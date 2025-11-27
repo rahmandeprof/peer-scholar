@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { FileText, Download, Search, BookOpen, Upload, SortAsc, SortDesc } from 'lucide-react';
+import { FileText, Download, Search, BookOpen, SortAsc, SortDesc } from 'lucide-react';
 import api from '../lib/api';
-import { useToast } from '../contexts/ToastContext';
 
 interface Material {
   id: string;
@@ -23,8 +22,6 @@ export function CommunityMaterials() {
   const [filter, setFilter] = useState('');
   const [sortField, setSortField] = useState<SortField>('createdAt');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
-  const [uploading, setUploading] = useState(false);
-  const toast = useToast();
 
   const fetchMaterials = async () => {
     try {
@@ -40,32 +37,6 @@ export function CommunityMaterials() {
   useEffect(() => {
     fetchMaterials();
   }, []);
-
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('title', file.name);
-    formData.append('category', 'course_material');
-    formData.append('isPublic', 'true'); // Explicitly public
-
-    setUploading(true);
-    try {
-      await api.post('/chat/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      toast.success('Material shared with community successfully!');
-      fetchMaterials(); // Refresh list
-    } catch (err) {
-      console.error('Failed to upload material', err);
-      toast.error('Failed to upload material.');
-    } finally {
-      setUploading(false);
-      e.target.value = '';
-    }
-  };
 
   const filteredMaterials = materials
     .filter(m => 
@@ -118,25 +89,6 @@ export function CommunityMaterials() {
                 className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none"
               />
             </div>
-            
-            <button
-              onClick={() => document.getElementById('community-upload')?.click()}
-              disabled={uploading}
-              className="flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
-            >
-              {uploading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-              ) : (
-                <Upload className="w-5 h-5 mr-2" />
-              )}
-              Share
-            </button>
-            <input
-              type="file"
-              id="community-upload"
-              className="hidden"
-              onChange={handleUpload}
-            />
           </div>
         </div>
 

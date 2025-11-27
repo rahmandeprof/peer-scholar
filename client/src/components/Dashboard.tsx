@@ -1,3 +1,5 @@
+
+
 import { useState, useEffect } from 'react';
 import { Chatbot } from './Chatbot';
 import { StudyTimer } from './StudyTimer';
@@ -21,6 +23,7 @@ export function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [streak, setStreak] = useState(0);
   const [history, setHistory] = useState<Conversation[]>([]);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const { theme, toggleTheme } = useTheme();
 
   const fetchStreak = async () => {
@@ -46,8 +49,20 @@ export function Dashboard() {
     fetchHistory();
   }, []);
 
+  const handleHistoryClick = (id: string) => {
+    setSelectedConversationId(id);
+    setCurrentView('chat');
+    if (window.innerWidth < 768) setSidebarOpen(false);
+  };
+
+  const handleUploadComplete = () => {
+    fetchStreak();
+    setUploadModalOpen(false);
+    setCurrentView('community'); // Redirect to community materials
+  };
+
   return (
-    <div className="flex h-screen bg-gray-200 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
       {/* Sidebar - Desktop */}
       <aside className="hidden md:flex md:flex-col w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800">
         <div className="p-6 border-b border-gray-200 dark:border-gray-800">
@@ -59,15 +74,18 @@ export function Dashboard() {
         <div className="flex-1 overflow-y-auto">
           <nav className="p-4 space-y-2">
             <button
-              onClick={() => setCurrentView('chat')}
+              onClick={() => {
+                setCurrentView('chat');
+                setSelectedConversationId(null); // New chat
+              }}
               className={`w-full px-4 py-3 rounded-xl text-left font-medium transition-colors ${
-                currentView === 'chat'
+                currentView === 'chat' && !selectedConversationId
                   ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400'
                   : 'hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
             >
               <MessageSquare className="inline w-5 h-5 mr-2" />
-              Chat
+              New Chat
             </button>
             <button
               onClick={() => setCurrentView('community')}
@@ -109,7 +127,12 @@ export function Dashboard() {
                 {history.map((conv) => (
                   <button
                     key={conv.id}
-                    className="w-full px-4 py-2 text-sm text-left text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg truncate transition-colors flex items-center"
+                    onClick={() => handleHistoryClick(conv.id)}
+                    className={`w-full px-4 py-2 text-sm text-left rounded-lg truncate transition-colors flex items-center ${
+                      selectedConversationId === conv.id
+                        ? 'bg-gray-100 dark:bg-gray-800 text-primary-600 dark:text-primary-400 font-medium'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}
                   >
                     <History className="w-3 h-3 mr-2 flex-shrink-0" />
                     <span className="truncate">{conv.title}</span>
@@ -166,16 +189,17 @@ export function Dashboard() {
                 <button
                   onClick={() => {
                     setCurrentView('chat');
+                    setSelectedConversationId(null);
                     setSidebarOpen(false);
                   }}
                   className={`w-full px-4 py-3 rounded-xl text-left font-medium transition-colors ${
-                    currentView === 'chat'
+                    currentView === 'chat' && !selectedConversationId
                       ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400'
                       : 'hover:bg-gray-100 dark:hover:bg-gray-800'
                   }`}
                 >
                   <MessageSquare className="inline w-5 h-5 mr-2" />
-                  Chat
+                  New Chat
                 </button>
                 <button
                   onClick={() => {
@@ -216,6 +240,30 @@ export function Dashboard() {
                   Upload to Community
                 </button>
               </nav>
+
+              {history.length > 0 && (
+                <div className="p-4 pt-0">
+                  <h3 className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                    History
+                  </h3>
+                  <div className="space-y-1">
+                    {history.map((conv) => (
+                      <button
+                        key={conv.id}
+                        onClick={() => handleHistoryClick(conv.id)}
+                        className={`w-full px-4 py-2 text-sm text-left rounded-lg truncate transition-colors flex items-center ${
+                          selectedConversationId === conv.id
+                            ? 'bg-gray-100 dark:bg-gray-800 text-primary-600 dark:text-primary-400 font-medium'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                        }`}
+                      >
+                        <History className="w-3 h-3 mr-2 flex-shrink-0" />
+                        <span className="truncate">{conv.title}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="p-4 border-t border-gray-200 dark:border-gray-800 space-y-3">
@@ -265,7 +313,13 @@ export function Dashboard() {
         {/* Content Area */}
         <div className="flex-1 overflow-hidden">
           {currentView === 'chat' ? (
-            <Chatbot />
+            <Chatbot 
+              initialConversationId={selectedConversationId}
+              onConversationChange={(id) => {
+                setSelectedConversationId(id);
+                fetchHistory(); // Refresh history list
+              }}
+            />
           ) : currentView === 'community' ? (
             <CommunityMaterials />
           ) : (
@@ -279,7 +333,7 @@ export function Dashboard() {
       <UploadModal
         isOpen={uploadModalOpen}
         onClose={() => setUploadModalOpen(false)}
-        onUploadComplete={fetchStreak}
+        onUploadComplete={handleUploadComplete}
       />
     </div>
   );

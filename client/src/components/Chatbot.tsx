@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Send, Loader2, Paperclip } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Send, Loader2, Paperclip, X } from 'lucide-react';
 import api from '../lib/api';
 import { CompactTimer } from './CompactTimer';
 import { useToast } from '../contexts/ToastContext';
@@ -9,30 +9,95 @@ interface Message {
   content: string;
 }
 
-export function Chatbot() {
+interface ChatbotProps {
+  initialConversationId?: string | null;
+  onConversationChange?: (id: string) => void;
+}
+
+export function Chatbot({ initialConversationId, onConversationChange }: ChatbotProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const toast = useToast();
 
-  const handleSend = async () => {
-    if (!input.trim()) return;
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
 
-    const userMessage: Message = { role: 'user', content: input };
+  useEffect(() => {
+    if (initialConversationId) {
+      setConversationId(initialConversationId);
+      fetchMessages(initialConversationId);
+    } else {
+      setConversationId(null);
+      setMessages([]);
+    }
+  }, [initialConversationId]);
+
+  const fetchMessages = async (id: string) => {
+    try {
+      setLoading(true);
+      const res = await api.get(`/chat/history/${id}`);
+      const formattedMessages = res.data.messages.map((msg: any) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+      setMessages(formattedMessages);
+    } catch (err) {
+      console.error('Failed to fetch conversation', err);
+      toast.error('Failed to load conversation.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAttachedFile(file);
+      // Focus input for caption
+      const inputEl = document.querySelector('input[type="text"]') as HTMLInputElement;
+      if (inputEl) inputEl.focus();
+    }
+  };
+
+  const handleSend = async () => {
+    if (!input.trim() && !attachedFile) return;
+
+    const userContent = attachedFile ? `[Attached: ${attachedFile.name}] ${input}` : input;
+    const userMessage: Message = { role: 'user', content: userContent };
     setMessages((prev) => [...prev, userMessage]);
+    
+    const currentInput = input;
+    const currentFile = attachedFile;
+    
     setInput('');
+    setAttachedFile(null);
     setLoading(true);
 
     try {
+      // If file attached, upload it first
+      if (currentFile) {
+        const formData = new FormData();
+        formData.append('file', currentFile);
+        formData.append('title', currentFile.name);
+        formData.append('category', 'personal_note');
+        formData.append('isPublic', 'false');
+
+        await api.post('/chat/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      }
+
       const res = await api.post('/chat/message', { 
-        content: input,
+        content: currentInput || (currentFile ? `Analyze ${currentFile.name}` : ''),
         conversationId 
       });
       
       // Save conversation ID from first response
       if (!conversationId && res.data.conversation?.id) {
-        setConversationId(res.data.conversation.id);
+        const newId = res.data.conversation.id;
+        setConversationId(newId);
+        if (onConversationChange) onConversationChange(newId);
       }
 
       const assistantMessage: Message = {
@@ -52,31 +117,7 @@ export function Chatbot() {
     setMessages([]);
     setConversationId(null);
     setInput('');
-  };
-
-  const handlePersonalUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('title', file.name);
-    formData.append('category', 'personal_note');
-    formData.append('isPublic', 'false');
-
-    setLoading(true);
-    try {
-      await api.post('/chat/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      toast.success(`Successfully uploaded "${file.name}" for your personal study context.`);
-    } catch (err) {
-      console.error('Failed to upload file', err);
-      toast.error('Failed to upload file. Please try again.');
-    } finally {
-      setLoading(false);
-      e.target.value = '';
-    }
+    if (onConversationChange) onConversationChange(''); // Notify parent to clear selection
   };
 
   return (
@@ -133,31 +174,49 @@ export function Chatbot() {
       </div>
 
       <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900">
+        {attachedFile && (
+          <div className="mb-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-between">
+            <div className="flex items-center truncate">
+              <Paperclip className="w-4 h-4 mr-2 text-primary-600" />
+              <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{attachedFile.name}</span>
+            </div>
+            <button 
+              onClick={() => setAttachedFile(null)}
+              className="text-gray-500 hover:text-red-500 ml-2"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
         <div className="flex space-x-2 max-w-5xl mx-auto w-full">
           <button
-            onClick={() => document.getElementById('personal-upload')?.click()}
-            className="p-3 text-gray-500 hover:text-primary-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
-            title="Upload for Personal Study (Eyes Only)"
+            onClick={() => document.getElementById('chat-upload')?.click()}
+            className={`p-3 rounded-xl transition-colors ${
+              attachedFile 
+                ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400' 
+                : 'text-gray-500 hover:text-primary-600 hover:bg-gray-100 dark:hover:bg-gray-800'
+            }`}
+            title="Attach file"
           >
             <Paperclip className="w-5 h-5" />
           </button>
           <input
             type="file"
-            id="personal-upload"
+            id="chat-upload"
             className="hidden"
-            onChange={handlePersonalUpload}
+            onChange={handleFileSelect}
           />
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Ask a question..."
+            placeholder={attachedFile ? "Add a caption..." : "Ask a question..."}
             className="flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none"
           />
           <button
             onClick={handleSend}
-            disabled={loading || !input.trim()}
+            disabled={loading || (!input.trim() && !attachedFile)}
             className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Send className="w-5 h-5" />
