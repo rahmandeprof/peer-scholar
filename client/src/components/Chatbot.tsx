@@ -11,10 +11,11 @@ interface Message {
 
 interface ChatbotProps {
   initialConversationId?: string | null;
+  initialMaterialId?: string | null;
   onConversationChange?: (id: string) => void;
 }
 
-export function Chatbot({ initialConversationId, onConversationChange }: ChatbotProps) {
+export function Chatbot({ initialConversationId, initialMaterialId, onConversationChange }: ChatbotProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,16 +23,23 @@ export function Chatbot({ initialConversationId, onConversationChange }: Chatbot
   const toast = useToast();
 
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  // Store the ID of the material we want to chat about (either from prop or upload)
+  const [activeMaterialId, setActiveMaterialId] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialConversationId) {
       setConversationId(initialConversationId);
       fetchMessages(initialConversationId);
+      setActiveMaterialId(null); // Clear material focus when switching chats
     } else {
       setConversationId(null);
       setMessages([]);
+      if (initialMaterialId) {
+        setActiveMaterialId(initialMaterialId);
+        // Maybe add a system message or visual indicator that we are chatting about a specific material?
+      }
     }
-  }, [initialConversationId]);
+  }, [initialConversationId, initialMaterialId]);
 
   const fetchMessages = async (id: string) => {
     try {
@@ -75,6 +83,8 @@ export function Chatbot({ initialConversationId, onConversationChange }: Chatbot
     setLoading(true);
 
     try {
+      let materialId = activeMaterialId;
+
       // If file attached, upload it first
       if (currentFile) {
         const formData = new FormData();
@@ -83,14 +93,20 @@ export function Chatbot({ initialConversationId, onConversationChange }: Chatbot
         formData.append('category', 'personal_note');
         formData.append('isPublic', 'false');
 
-        await api.post('/chat/upload', formData, {
+        const uploadRes = await api.post('/chat/upload', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
+        
+        // Use the uploaded file's ID for this message context
+        if (uploadRes.data && uploadRes.data.id) {
+          materialId = uploadRes.data.id;
+        }
       }
 
       const res = await api.post('/chat/message', { 
         content: currentInput || (currentFile ? `Analyze ${currentFile.name}` : ''),
-        conversationId 
+        conversationId,
+        materialId 
       });
       
       // Save conversation ID from first response
@@ -116,6 +132,7 @@ export function Chatbot({ initialConversationId, onConversationChange }: Chatbot
   const handleNewChat = () => {
     setMessages([]);
     setConversationId(null);
+    setActiveMaterialId(null);
     setInput('');
     if (onConversationChange) onConversationChange(''); // Notify parent to clear selection
   };

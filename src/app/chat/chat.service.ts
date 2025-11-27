@@ -28,7 +28,7 @@ export class ChatService {
     private readonly messageRepo: Repository<Message>,
     private readonly usersService: UsersService,
     private readonly cloudinaryService: CloudinaryService,
-  ) {}
+  ) { }
 
   // Extract text from file (pdf, docx, txt)
   async extractTextFromFile(file: Express.Multer.File): Promise<string> {
@@ -151,10 +151,17 @@ export class ChatService {
     });
   }
 
+  async deleteConversation(conversationId: string, user: User) {
+    const conversation = await this.getConversation(conversationId, user);
+    await this.conversationRepo.remove(conversation);
+    return { success: true };
+  }
+
   async sendMessage(
     user: User,
     conversationId: string | null,
     content: string,
+    materialId?: string,
   ) {
     let conversation: Conversation;
 
@@ -182,6 +189,7 @@ export class ChatService {
       user,
       content,
       conversation.id,
+      materialId,
     );
 
     // Save assistant message
@@ -203,8 +211,23 @@ export class ChatService {
     user: User,
     question: string,
     conversationId: string,
+    materialId?: string,
   ) {
-    // 1. Retrieve context from materials
+    let context = '';
+    let materials: Material[] = [];
+
+    // 1. If materialId is provided, use it as the primary context
+    if (materialId) {
+      const material = await this.materialRepo.findOne({
+        where: { id: materialId },
+      });
+      if (material) {
+        materials = [material];
+        context = `FOCUSED SOURCE: ${material.title}\n${material.content}\n\n`;
+      }
+    }
+
+    // 2. Retrieve additional context from materials if needed (or if no specific material selected)
     // Simple keyword search for now. In production, use vector search.
     const keywords = question.split(' ').filter((w) => w.length > 3);
 
@@ -221,6 +244,11 @@ export class ChatService {
           userId: user.id,
         },
       );
+
+    // Exclude the focused material if already selected
+    if (materialId) {
+      queryBuilder.andWhere('material.id != :materialId', { materialId });
+    }
 
     // Add keyword matching (very basic)
     if (keywords.length > 0) {
@@ -239,13 +267,14 @@ export class ChatService {
       );
     }
 
-    const materials = await queryBuilder.take(3).getMany();
+    const additionalMaterials = await queryBuilder.take(3).getMany();
+    materials = [...materials, ...additionalMaterials];
 
-    const context = materials
+    context += additionalMaterials
       .map((m) => `SOURCE: ${m.title}\n${m.content.substring(0, 500)}...`)
       .join('\n\n');
 
-    // 2. Retrieve recent chat history
+    // 3. Retrieve recent chat history
     const history = await this.messageRepo.find({
       where: { conversationId },
       order: { createdAt: 'DESC' },
@@ -256,12 +285,13 @@ export class ChatService {
       .map((m) => `${m.role}: ${m.content}`)
       .join('\n');
 
-    // 3. Call OpenAI
+    // 4. Call OpenAI
     const key = process.env.OPENAI_API_KEY;
 
     if (!key) throw new Error('OPENAI_API_KEY is not set');
 
     const system = `You are a helpful student assistant. Use the provided context to answer the student's question. 
+    If a FOCUSED SOURCE is provided, prioritize it above all else.
     If the context contains relevant course material, cite it. 
     If the student asks about past questions, look for materials categorized as such.
     Context:\n${context}`;

@@ -24,6 +24,7 @@ export function Dashboard() {
   const [streak, setStreak] = useState(0);
   const [history, setHistory] = useState<Conversation[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const [selectedMaterialId, setSelectedMaterialId] = useState<string | null>(null);
   const { theme, toggleTheme } = useTheme();
 
   const fetchStreak = async () => {
@@ -51,8 +52,30 @@ export function Dashboard() {
 
   const handleHistoryClick = (id: string) => {
     setSelectedConversationId(id);
+    setSelectedMaterialId(null); // Clear material selection when picking a history item
     setCurrentView('chat');
     if (window.innerWidth < 768) setSidebarOpen(false);
+  };
+
+  const handleDeleteConversation = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!confirm('Are you sure you want to delete this conversation?')) return;
+
+    try {
+      await api.delete(`/chat/history/${id}`);
+      setHistory(prev => prev.filter(c => c.id !== id));
+      if (selectedConversationId === id) {
+        setSelectedConversationId(null);
+      }
+    } catch (err) {
+      console.error('Failed to delete conversation', err);
+    }
+  };
+
+  const handleChatWithMaterial = (materialId: string) => {
+    setSelectedMaterialId(materialId);
+    setSelectedConversationId(null); // Start new chat
+    setCurrentView('chat');
   };
 
   const handleUploadComplete = () => {
@@ -77,6 +100,7 @@ export function Dashboard() {
               onClick={() => {
                 setCurrentView('chat');
                 setSelectedConversationId(null); // New chat
+                setSelectedMaterialId(null);
               }}
               className={`w-full px-4 py-3 rounded-xl text-left font-medium transition-colors ${
                 currentView === 'chat' && !selectedConversationId
@@ -125,18 +149,27 @@ export function Dashboard() {
               </h3>
               <div className="space-y-1">
                 {history.map((conv) => (
-                  <button
+                  <div
                     key={conv.id}
-                    onClick={() => handleHistoryClick(conv.id)}
-                    className={`w-full px-4 py-2 text-sm text-left rounded-lg truncate transition-colors flex items-center ${
+                    className={`group w-full px-4 py-2 text-sm text-left rounded-lg truncate transition-colors flex items-center justify-between cursor-pointer ${
                       selectedConversationId === conv.id
                         ? 'bg-gray-100 dark:bg-gray-800 text-primary-600 dark:text-primary-400 font-medium'
                         : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                     }`}
+                    onClick={() => handleHistoryClick(conv.id)}
                   >
-                    <History className="w-3 h-3 mr-2 flex-shrink-0" />
-                    <span className="truncate">{conv.title}</span>
-                  </button>
+                    <div className="flex items-center truncate">
+                      <History className="w-3 h-3 mr-2 flex-shrink-0" />
+                      <span className="truncate">{conv.title}</span>
+                    </div>
+                    <button
+                      onClick={(e) => handleDeleteConversation(e, conv.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-opacity"
+                      title="Delete conversation"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -190,6 +223,7 @@ export function Dashboard() {
                   onClick={() => {
                     setCurrentView('chat');
                     setSelectedConversationId(null);
+                    setSelectedMaterialId(null);
                     setSidebarOpen(false);
                   }}
                   className={`w-full px-4 py-3 rounded-xl text-left font-medium transition-colors ${
@@ -248,18 +282,27 @@ export function Dashboard() {
                   </h3>
                   <div className="space-y-1">
                     {history.map((conv) => (
-                      <button
+                      <div
                         key={conv.id}
-                        onClick={() => handleHistoryClick(conv.id)}
-                        className={`w-full px-4 py-2 text-sm text-left rounded-lg truncate transition-colors flex items-center ${
+                        className={`group w-full px-4 py-2 text-sm text-left rounded-lg truncate transition-colors flex items-center justify-between cursor-pointer ${
                           selectedConversationId === conv.id
                             ? 'bg-gray-100 dark:bg-gray-800 text-primary-600 dark:text-primary-400 font-medium'
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                         }`}
+                        onClick={() => handleHistoryClick(conv.id)}
                       >
-                        <History className="w-3 h-3 mr-2 flex-shrink-0" />
-                        <span className="truncate">{conv.title}</span>
-                      </button>
+                        <div className="flex items-center truncate">
+                          <History className="w-3 h-3 mr-2 flex-shrink-0" />
+                          <span className="truncate">{conv.title}</span>
+                        </div>
+                        <button
+                          onClick={(e) => handleDeleteConversation(e, conv.id)}
+                          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-opacity"
+                          title="Delete conversation"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -315,13 +358,14 @@ export function Dashboard() {
           {currentView === 'chat' ? (
             <Chatbot 
               initialConversationId={selectedConversationId}
+              initialMaterialId={selectedMaterialId}
               onConversationChange={(id) => {
                 setSelectedConversationId(id);
                 fetchHistory(); // Refresh history list
               }}
             />
           ) : currentView === 'community' ? (
-            <CommunityMaterials />
+            <CommunityMaterials onChat={handleChatWithMaterial} />
           ) : (
             <div className="h-full overflow-y-auto p-4 md:p-8 flex items-center justify-center">
               <StudyTimer onSessionComplete={fetchStreak} />
