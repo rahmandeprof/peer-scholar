@@ -286,63 +286,48 @@ export class ChatService {
       .join('\n');
 
     // 4. Call OpenAI
-    const key = process.env.OPENAI_API_KEY;
-
-    if (!key) throw new Error('OPENAI_API_KEY is not set');
-
-    const system = `You are a helpful student assistant. Use the provided context to answer the student's question. 
-    If a FOCUSED SOURCE is provided, prioritize it above all else.
-    If the context contains relevant course material, cite it. 
-    If the student asks about past questions, look for materials categorized as such.
-    Context:\n${context}`;
-
-    const userPrompt = `History:\n${historyText}\n\nQuestion: ${question}`;
-
-    try {
-      const completion = await axios.post(
-        'https://api.openai.com/v1/chat/completions',
-        {
-          model: COMPLETION_MODEL,
-          messages: [
-            { role: 'system', content: system },
-            { role: 'user', content: userPrompt },
-          ],
+    {
+      model: COMPLETION_MODEL,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: userPrompt },
+        ],
           max_tokens: 512,
         },
-        { headers: { Authorization: `Bearer ${key}` } },
+    { headers: { Authorization: `Bearer ${key}` } },
       );
 
-      const answer = completion.data.choices?.[0]?.message?.content ?? '';
+    const answer = completion.data.choices?.[0]?.message?.content ?? '';
 
-      return {
-        answer,
-        sources: materials.map((m) => ({ title: m.title, id: m.id })),
-      };
-    } catch (error) {
-      this.logger.error('OpenAI API error', error);
+    return {
+      answer,
+      sources: materials.map((m) => ({ title: m.title, id: m.id })),
+    };
+  } catch(error) {
+    this.logger.error('OpenAI API error', error);
 
-      return {
-        answer: "I'm sorry, I encountered an error processing your request.",
-        sources: [],
-      };
-    }
+    return {
+      answer: "I'm sorry, I encountered an error processing your request.",
+      sources: [],
+    };
   }
+}
 
-  getMaterials(user: User) {
-    const queryBuilder = this.materialRepo
-      .createQueryBuilder('material')
-      .leftJoin('material.uploadedBy', 'uploader')
-      .where(
-        '(material.isPublic = :isPublic AND material.department = :dept AND material.yearLevel = :year) OR (uploader.id = :userId)',
-        {
-          isPublic: true,
-          dept: user.department,
-          year: user.yearOfStudy,
-          userId: user.id,
-        },
-      )
-      .orderBy('material.createdAt', 'DESC');
+getMaterials(user: User) {
+  const queryBuilder = this.materialRepo
+    .createQueryBuilder('material')
+    .leftJoin('material.uploadedBy', 'uploader')
+    .where(
+      '(material.isPublic = :isPublic AND material.department = :dept AND material.yearLevel = :year) OR (uploader.id = :userId)',
+      {
+        isPublic: true,
+        dept: user.department,
+        year: user.yearOfStudy,
+        userId: user.id,
+      },
+    )
+    .orderBy('material.createdAt', 'DESC');
 
-    return queryBuilder.getMany();
-  }
+  return queryBuilder.getMany();
+}
 }

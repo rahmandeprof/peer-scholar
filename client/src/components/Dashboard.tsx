@@ -7,6 +7,7 @@ import { UploadModal } from './UploadModal';
 import { CommunityMaterials } from './CommunityMaterials';
 import { Flame, Upload, Clock, Moon, Sun, Menu, X, BookOpen, MessageSquare, History } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { ConfirmationModal } from './ConfirmationModal';
 import api from '../lib/api';
 
 type View = 'chat' | 'study' | 'community';
@@ -25,6 +26,7 @@ export function Dashboard() {
   const [history, setHistory] = useState<Conversation[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [selectedMaterialId, setSelectedMaterialId] = useState<string | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null });
   const { theme, toggleTheme } = useTheme();
 
   const fetchStreak = async () => {
@@ -57,14 +59,18 @@ export function Dashboard() {
     if (window.innerWidth < 768) setSidebarOpen(false);
   };
 
-  const handleDeleteConversation = async (e: React.MouseEvent, id: string) => {
+  const handleDeleteClick = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!confirm('Are you sure you want to delete this conversation?')) return;
+    setDeleteConfirmation({ isOpen: true, id });
+  };
 
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmation.id) return;
+    
     try {
-      await api.delete(`/chat/history/${id}`);
-      setHistory(prev => prev.filter(c => c.id !== id));
-      if (selectedConversationId === id) {
+      await api.delete(`/chat/history/${deleteConfirmation.id}`);
+      setHistory(prev => prev.filter(c => c.id !== deleteConfirmation.id));
+      if (selectedConversationId === deleteConfirmation.id) {
         setSelectedConversationId(null);
       }
     } catch (err) {
@@ -87,7 +93,7 @@ export function Dashboard() {
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
       {/* Sidebar - Desktop */}
-      <aside className="hidden md:flex md:flex-col w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800">
+      <aside className="hidden md:flex md:flex-col w-80 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800">
         <div className="p-6 border-b border-gray-200 dark:border-gray-800">
           <h1 className="text-2xl font-bold">
             peer<span className="text-primary-600">Scholar</span>
@@ -163,7 +169,7 @@ export function Dashboard() {
                       <span className="truncate">{conv.title}</span>
                     </div>
                     <button
-                      onClick={(e) => handleDeleteConversation(e, conv.id)}
+                      onClick={(e) => handleDeleteClick(e, conv.id)}
                       className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-opacity"
                       title="Delete conversation"
                     >
@@ -296,7 +302,7 @@ export function Dashboard() {
                           <span className="truncate">{conv.title}</span>
                         </div>
                         <button
-                          onClick={(e) => handleDeleteConversation(e, conv.id)}
+                          onClick={(e) => handleDeleteClick(e, conv.id)}
                           className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-opacity"
                           title="Delete conversation"
                         >
@@ -378,6 +384,16 @@ export function Dashboard() {
         isOpen={uploadModalOpen}
         onClose={() => setUploadModalOpen(false)}
         onUploadComplete={handleUploadComplete}
+      />
+
+      <ConfirmationModal
+        isOpen={deleteConfirmation.isOpen}
+        onClose={() => setDeleteConfirmation({ isOpen: false, id: null })}
+        onConfirm={handleConfirmDelete}
+        title="Delete Conversation"
+        message="Are you sure you want to delete this conversation? This action cannot be undone."
+        confirmText="Delete"
+        isDangerous={true}
       />
     </div>
   );

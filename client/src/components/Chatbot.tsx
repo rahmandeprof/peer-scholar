@@ -68,14 +68,16 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
     }
   };
 
-  const handleSend = async () => {
-    if (!input.trim() && !attachedFile) return;
+  const handleSend = async (inputOrEvent?: string | React.MouseEvent) => {
+    const overrideInput = typeof inputOrEvent === 'string' ? inputOrEvent : undefined;
+    const textToSend = overrideInput || input;
+    if (!textToSend.trim() && !attachedFile) return;
 
-    const userContent = attachedFile ? `[Attached: ${attachedFile.name}] ${input}` : input;
+    const userContent = attachedFile ? `[Attached: ${attachedFile.name}] ${textToSend}` : textToSend;
     const userMessage: Message = { role: 'user', content: userContent };
     setMessages((prev) => [...prev, userMessage]);
     
-    const currentInput = input;
+    const currentInput = textToSend;
     const currentFile = attachedFile;
     
     setInput('');
@@ -100,11 +102,12 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
         // Use the uploaded file's ID for this message context
         if (uploadRes.data && uploadRes.data.id) {
           materialId = uploadRes.data.id;
+          setActiveMaterialId(materialId); // Set as active for subsequent messages
         }
       }
 
       const res = await api.post('/chat/message', { 
-        content: currentInput || (currentFile ? `Analyze ${currentFile.name}` : ''),
+        content: currentInput || (currentFile ? `Please read and summarize the content of ${currentFile.name}` : ''),
         conversationId,
         materialId 
       });
@@ -128,6 +131,13 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
       setLoading(false);
     }
   };
+
+  // Auto-trigger summary when opening a material
+  useEffect(() => {
+    if (initialMaterialId && !messages.length && !loading) {
+      handleSend("Please summarize this material and prepare to answer questions about it.");
+    }
+  }, [initialMaterialId]);
 
   const handleNewChat = () => {
     setMessages([]);
