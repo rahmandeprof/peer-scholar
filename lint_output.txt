@@ -1,0 +1,73 @@
+
+> scholar-app@0.0.1 lint
+> eslint "{src,apps,libs,test}/**/*.ts" --fix
+
+
+c:\Users\Windows 10 Pro\Desktop\scholar app\src\app\auth\auth.controller.ts
+  34:3   error  Async method 'register' has no 'await' expression  require-await
+  41:30  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+
+c:\Users\Windows 10 Pro\Desktop\scholar app\src\app\auth\auth.module.ts
+  22:51  error  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+c:\Users\Windows 10 Pro\Desktop\scholar app\src\app\auth\auth.service.ts
+  54:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+c:\Users\Windows 10 Pro\Desktop\scholar app\src\app\auth\jwt.strategy.ts
+  14:49  error  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  18:3   error  Async method 'validate' has no 'await' expression                                                          require-await
+  18:3   error  Async method 'validate' has no 'await' expression                                                          @typescript-eslint/require-await
+  18:27  error  Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+
+c:\Users\Windows 10 Pro\Desktop\scholar app\src\app\chat\chat.controller.ts
+  21:3   error  Async method 'uploadFile' has no 'await' expression                                                        require-await
+  33:17  error  Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  35:27  error  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  44:3   error  Async method 'sendMessage' has no 'await' expression                                                       require-await
+  47:17  error  Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  49:27  error  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  57:27  error  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  62:3   error  Async method 'getHistory' has no 'await' expression                                                        require-await
+  63:32  error  Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  64:27  error  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  70:62  error  Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  71:27  error  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  75:14  error  Using the spread operator on class instances will lose their class prototype                               @typescript-eslint/no-misused-spread
+  78:3   error  Async method 'getMaterials' has no 'await' expression                                                      require-await
+  79:34  error  Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  80:27  error  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+c:\Users\Windows 10 Pro\Desktop\scholar app\src\app\chat\chat.service.ts
+   14:7   error  'EMBEDDING_MODEL' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  121:3   error  Async method 'createConversation' has no 'await' expression  require-await
+  130:3   error  Async method 'getConversations' has no 'await' expression    require-await
+  148:3   error  Async method 'getMessages' has no 'await' expression         require-await
+  232:64  error  Invalid type "number" of template literal expression         @typescript-eslint/restrict-template-expressions
+  235:52  error  Invalid type "number" of template literal expression         @typescript-eslint/restrict-template-expressions
+  302:3   error  Async method 'getMaterials' has no 'await' expression        require-await
+
+c:\Users\Windows 10 Pro\Desktop\scholar app\src\app\chat\vector-store.ts
+   4:25  error  Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  58:3   error  Expected a `for-of` loop instead of a `for` loop with this simple iteration  @typescript-eslint/prefer-for-of
+
+c:\Users\Windows 10 Pro\Desktop\scholar app\src\app\common\filters\http-exception.filter.ts
+  23:17  error  Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  30:41  error  Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  30:54  error  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  31:40  error  Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  41:45  error  Invalid type "HttpStatus" of template literal expression                                                   @typescript-eslint/restrict-template-expressions
+
+c:\Users\Windows 10 Pro\Desktop\scholar app\src\app\common\interceptors\logging.interceptor.ts
+  16:71  error  Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  28:16  error  Invalid type "any" of template literal expression                                                          @typescript-eslint/restrict-template-expressions
+  28:26  error  Invalid type "any" of template literal expression                                                          @typescript-eslint/restrict-template-expressions
+  28:33  error  Invalid type "any" of template literal expression                                                          @typescript-eslint/restrict-template-expressions
+  28:58  error  Invalid type "number" of template literal expression                                                       @typescript-eslint/restrict-template-expressions
+  35:16  error  Invalid type "any" of template literal expression                                                          @typescript-eslint/restrict-template-expressions
+  35:26  error  Invalid type "any" of template literal expression                                                          @typescript-eslint/restrict-template-expressions
+  35:33  error  Invalid type "any" of template literal expression                                                          @typescript-eslint/restrict-template-expressions
+  35:46  error  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  35:58  error  Invalid type "number" of template literal expression                                                       @typescript-eslint/restrict-template-expressions
+
+✖ 48 problems (48 errors, 0 warnings)
+
