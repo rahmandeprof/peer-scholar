@@ -60,14 +60,15 @@ export class ChatController {
     );
   }
 
+  @Delete('history/:id')
+  deleteConversation(@Param('id', new ParseUUIDPipe()) id: string, @Req() req: RequestWithUser) {
+    console.log('DELETE request received for id:', id);
+    return this.chatService.deleteConversation(id, req.user);
+  }
+
   @Get('history')
   getHistory(@Req() req: RequestWithUser) {
     return this.chatService.getConversations(req.user);
-  }
-
-  @Delete('history/:id')
-  deleteConversation(@Param('id', new ParseUUIDPipe()) id: string, @Req() req: RequestWithUser) {
-    return this.chatService.deleteConversation(id, req.user);
   }
 
   @Get('history/:id')
