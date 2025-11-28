@@ -154,8 +154,9 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
         <CompactTimer />
         <button
           onClick={handleNewChat}
-          className="text-sm text-gray-500 hover:text-primary-600 transition-colors"
+          className="group flex items-center px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600 text-white rounded-xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 font-medium text-sm"
         >
+          <span className="mr-2 text-lg font-light">+</span>
           New Chat
         </button>
       </div>

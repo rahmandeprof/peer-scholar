@@ -9,6 +9,7 @@ import {
   UseGuards,
   UseInterceptors,
   Delete,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -65,7 +66,7 @@ export class ChatController {
   }
 
   @Delete('history/:id')
-  deleteConversation(@Param('id') id: string, @Req() req: RequestWithUser) {
+  deleteConversation(@Param('id', new ParseUUIDPipe()) id: string, @Req() req: RequestWithUser) {
     return this.chatService.deleteConversation(id, req.user);
   }
 
