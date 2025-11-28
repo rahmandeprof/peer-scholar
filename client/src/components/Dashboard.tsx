@@ -67,8 +67,10 @@ export function Dashboard() {
   const handleConfirmDelete = async () => {
     if (!deleteConfirmation.id) return;
     
+    console.log('Attempting to delete conversation:', deleteConfirmation.id);
     try {
       await api.delete(`/chat/history/${deleteConfirmation.id}`);
+      console.log('Delete successful');
       setHistory(prev => prev.filter(c => c.id !== deleteConfirmation.id));
       if (selectedConversationId === deleteConfirmation.id) {
         setSelectedConversationId(null);

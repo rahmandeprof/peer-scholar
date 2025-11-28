@@ -59,7 +59,7 @@ export function CompactTimer() {
   };
 
   return (
-    <div className="absolute top-4 right-4 z-10 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm transition-all hover:shadow-md">
+    <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm transition-all hover:shadow-md">
       <div className="flex items-center space-x-4">
         <div className="flex flex-col">
           <button 

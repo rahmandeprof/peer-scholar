@@ -68,7 +68,7 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
     }
   };
 
-  const handleSend = async (inputOrEvent?: string | React.MouseEvent) => {
+  const handleSend = async (inputOrEvent?: string | React.MouseEvent, materialIdOverride?: string) => {
     const overrideInput = typeof inputOrEvent === 'string' ? inputOrEvent : undefined;
     const textToSend = overrideInput || input;
     if (!textToSend.trim() && !attachedFile) return;
@@ -85,7 +85,7 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
     setLoading(true);
 
     try {
-      let materialId = activeMaterialId;
+      let materialId = materialIdOverride || activeMaterialId;
 
       // If file attached, upload it first
       if (currentFile) {
@@ -135,7 +135,8 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
   // Auto-trigger summary when opening a material
   useEffect(() => {
     if (initialMaterialId && !messages.length && !loading) {
-      handleSend("Please summarize this material and prepare to answer questions about it.");
+      // Pass initialMaterialId explicitly to ensure it's used
+      handleSend("Please summarize this material and prepare to answer questions about it.", initialMaterialId);
     }
   }, [initialMaterialId]);
 

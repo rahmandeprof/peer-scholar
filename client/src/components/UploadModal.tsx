@@ -16,6 +16,7 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
   const [category, setCategory] = useState('course_material');
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -54,6 +55,7 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
       }, 2000);
     } catch (err) {
       console.error('Upload failed', err);
+      setError('Failed to upload material. Please try again.');
     } finally {
       setUploading(false);
     }
@@ -78,6 +80,11 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm">
+                {error}
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title</label>
               <input
