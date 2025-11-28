@@ -115,12 +115,16 @@ export class UsersService {
       : null;
 
     if (lastActivity) {
-      const diff = now.getTime() - lastActivity.getTime();
-      const diffDays = diff / (1000 * 3600 * 24);
+      // Compare dates (ignoring time)
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const last = new Date(lastActivity.getFullYear(), lastActivity.getMonth(), lastActivity.getDate());
 
-      if (diffDays < 1) {
+      const diffTime = today.getTime() - last.getTime();
+      const diffDays = diffTime / (1000 * 3600 * 24);
+
+      if (diffDays === 0) {
         // Same day, do nothing
-      } else if (diffDays < 2) {
+      } else if (diffDays === 1) {
         // Consecutive day
         streak.currentStreak += 1;
         if (streak.currentStreak > streak.longestStreak) {
@@ -139,13 +143,23 @@ export class UsersService {
     await this.streakRepository.save(streak);
   }
 
+  private getStage(streak: number): string {
+    if (streak >= 30) return 'Grandmaster';
+    if (streak >= 14) return 'Master';
+    if (streak >= 7) return 'Scholar';
+    if (streak >= 3) return 'Apprentice';
+    return 'Novice';
+  }
+
   async getInsights(userId: string) {
     const streak = await this.streakRepository.findOne({ where: { userId } });
+    const currentStreak = streak?.currentStreak ?? 0;
 
     return {
-      currentStreak: streak?.currentStreak ?? 0,
+      currentStreak,
       longestStreak: streak?.longestStreak ?? 0,
       lastActivity: streak?.lastActivityDate,
+      stage: this.getStage(currentStreak),
     };
   }
 }

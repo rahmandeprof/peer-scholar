@@ -1,11 +1,23 @@
-
-
 import { useState, useEffect } from 'react';
 import { Chatbot } from './Chatbot';
 import { StudyTimer } from './StudyTimer';
 import { UploadModal } from './UploadModal';
 import { CommunityMaterials } from './CommunityMaterials';
-import { Flame, Upload, Clock, Moon, Sun, Menu, X, BookOpen, MessageSquare, History } from 'lucide-react';
+import { 
+  Flame, 
+  Upload, 
+  Clock, 
+  Moon, 
+  Sun, 
+  Menu, 
+  X, 
+  BookOpen, 
+  MessageSquare, 
+  History, 
+  Trash2, 
+  Edit2, 
+  Check 
+} from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { ConfirmationModal } from './ConfirmationModal';
 import api from '../lib/api';
@@ -27,6 +39,11 @@ export function Dashboard() {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [selectedMaterialId, setSelectedMaterialId] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null });
+  
+  // Rename state
+  const [editingConversationId, setEditingConversationId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+
   const { theme, toggleTheme } = useTheme();
 
   const fetchStreak = async () => {
@@ -53,6 +70,7 @@ export function Dashboard() {
   }, []);
 
   const handleHistoryClick = (id: string) => {
+    if (editingConversationId === id) return; // Don't switch if editing
     setSelectedConversationId(id);
     setSelectedMaterialId(null); // Clear material selection when picking a history item
     setCurrentView('chat');
@@ -78,6 +96,30 @@ export function Dashboard() {
     } catch (err) {
       console.error('Failed to delete conversation', err);
     }
+  };
+
+  const handleRenameClick = (e: React.MouseEvent, conv: Conversation) => {
+    e.stopPropagation();
+    setEditingConversationId(conv.id);
+    setEditTitle(conv.title);
+  };
+
+  const handleSaveRename = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!editTitle.trim()) return;
+
+    try {
+      await api.patch(`/chat/history/${id}`, { title: editTitle });
+      setHistory(prev => prev.map(c => c.id === id ? { ...c, title: editTitle } : c));
+      setEditingConversationId(null);
+    } catch (err) {
+      console.error('Failed to rename conversation', err);
+    }
+  };
+
+  const handleCancelRename = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingConversationId(null);
   };
 
   const handleChatWithMaterial = (materialId: string) => {
@@ -159,24 +201,59 @@ export function Dashboard() {
                 {history.map((conv) => (
                   <div
                     key={conv.id}
-                    className={`group w-full px-4 py-2 text-sm text-left rounded-lg truncate transition-colors flex items-center justify-between cursor-pointer ${
+                    className={`group w-full px-4 py-2 text-sm text-left rounded-lg transition-colors flex items-center justify-between cursor-pointer ${
                       selectedConversationId === conv.id
                         ? 'bg-gray-100 dark:bg-gray-800 text-primary-600 dark:text-primary-400 font-medium'
                         : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                     }`}
                     onClick={() => handleHistoryClick(conv.id)}
                   >
-                    <div className="flex items-center truncate">
-                      <History className="w-3 h-3 mr-2 flex-shrink-0" />
-                      <span className="truncate">{conv.title}</span>
+                    <div className="flex items-center space-x-3 min-w-0 flex-1">
+                      <History className="w-3 h-3 flex-shrink-0" />
+                      {editingConversationId === conv.id ? (
+                        <div className="flex items-center space-x-1 w-full" onClick={e => e.stopPropagation()}>
+                          <input
+                            type="text"
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            className="flex-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-xs focus:outline-none focus:border-primary-500"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveRename(e as any, conv.id);
+                              if (e.key === 'Escape') handleCancelRename(e as any);
+                            }}
+                            onClick={e => e.stopPropagation()}
+                          />
+                          <button onClick={(e) => handleSaveRename(e, conv.id)} className="p-1 text-green-500 hover:bg-green-50 rounded">
+                            <Check className="w-3 h-3" />
+                          </button>
+                          <button onClick={handleCancelRename} className="p-1 text-red-500 hover:bg-red-50 rounded">
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="truncate">{conv.title}</span>
+                      )}
                     </div>
-                    <button
-                      onClick={(e) => handleDeleteClick(e, conv.id)}
-                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-opacity"
-                      title="Delete conversation"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
+                    
+                    {!editingConversationId && (
+                      <div className="flex items-center space-x-1 opacity-100">
+                        <button
+                          onClick={(e) => handleRenameClick(e, conv)}
+                          className="p-1 text-gray-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded transition-colors"
+                          title="Rename conversation"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={(e) => handleDeleteClick(e, conv.id)}
+                          className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                          title="Delete conversation"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -292,15 +369,15 @@ export function Dashboard() {
                     {history.map((conv) => (
                       <div
                         key={conv.id}
-                        className={`group w-full px-4 py-2 text-sm text-left rounded-lg truncate transition-colors flex items-center justify-between cursor-pointer ${
+                        className={`group w-full px-4 py-2 text-sm text-left rounded-lg transition-colors flex items-center justify-between cursor-pointer ${
                           selectedConversationId === conv.id
                             ? 'bg-gray-100 dark:bg-gray-800 text-primary-600 dark:text-primary-400 font-medium'
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                         }`}
                         onClick={() => handleHistoryClick(conv.id)}
                       >
-                        <div className="flex items-center truncate">
-                          <History className="w-3 h-3 mr-2 flex-shrink-0" />
+                        <div className="flex items-center space-x-3 min-w-0 flex-1">
+                          <History className="w-3 h-3 flex-shrink-0" />
                           <span className="truncate">{conv.title}</span>
                         </div>
                         <button

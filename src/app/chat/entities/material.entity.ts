@@ -23,11 +23,20 @@ export class Material extends IDAndTimestamp {
   @Column({ type: 'text' })
   content!: string;
 
+  @Column({ type: 'text', nullable: true })
+  summary: string;
+
   @Column({ nullable: true })
   department!: string;
 
   @Column({ type: 'int', nullable: true })
   yearLevel!: number;
+
+  @Column({ nullable: true })
+  courseCode: string;
+
+  @Column({ nullable: true })
+  topic: string;
 
   @Column({
     type: 'simple-enum',

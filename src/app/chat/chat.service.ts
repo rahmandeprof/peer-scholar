@@ -86,6 +86,8 @@ export class ChatService {
       department?: string;
       yearLevel?: number;
       isPublic?: string;
+      courseCode?: string;
+      topic?: string;
     },
   ) {
     const text = await this.extractTextFromFile(file);
@@ -115,6 +117,23 @@ export class ChatService {
     });
 
     return this.materialRepo.save(material);
+  }
+
+  async deleteMaterial(materialId: string, user: User) {
+    const material = await this.materialRepo.findOne({
+      where: { id: materialId },
+      relations: ['uploadedBy'],
+    });
+
+    if (!material) throw new NotFoundException('Material not found');
+
+    // Allow delete if user is owner OR if it's a personal note belonging to user (redundant check but safe)
+    if (material.uploadedBy?.id !== user.id) {
+      throw new NotFoundException('You can only delete your own materials');
+    }
+
+    await this.materialRepo.remove(material);
+    return { success: true };
   }
 
   createConversation(user: User, title: string) {
@@ -155,6 +174,12 @@ export class ChatService {
     const conversation = await this.getConversation(conversationId, user);
     await this.conversationRepo.remove(conversation);
     return { success: true };
+  }
+
+  async renameConversation(conversationId: string, title: string, user: User) {
+    const conversation = await this.getConversation(conversationId, user);
+    conversation.title = title;
+    return this.conversationRepo.save(conversation);
   }
 
   async sendMessage(
@@ -207,6 +232,78 @@ export class ChatService {
     };
   }
 
+  private async getOrGenerateSummary(material: Material): Promise<string> {
+    if (material.summary) return material.summary;
+
+    const key = process.env.OPENAI_API_KEY;
+    if (!key) return '';
+
+    try {
+      const response = await axios.post(
+        'https://api.openai.com/v1/chat/completions',
+        {
+          model: COMPLETION_MODEL,
+          messages: [
+            { role: 'system', content: 'Summarize the following text concisely but comprehensively for a student.' },
+            { role: 'user', content: material.content.substring(0, 6000) }, // Limit to avoid token limits
+          ],
+          max_tokens: 500,
+        },
+        { headers: { Authorization: `Bearer ${key}` } },
+      );
+
+      const summary = response.data.choices?.[0]?.message?.content || '';
+      if (summary) {
+        material.summary = summary;
+        await this.materialRepo.save(material);
+      }
+      return summary;
+    } catch (e) {
+      this.logger.error('Failed to generate summary', e);
+      return '';
+    }
+  }
+
+  async generateQuiz(materialId: string, user: User) {
+    const material = await this.materialRepo.findOne({ where: { id: materialId } });
+    if (!material) throw new NotFoundException('Material not found');
+
+    const key = process.env.OPENAI_API_KEY;
+    if (!key) throw new Error('OPENAI_API_KEY is not set');
+
+    const prompt = `Generate 5 multiple-choice questions based on the following text. 
+    Return the result as a JSON array of objects with the following structure:
+    {
+      "question": "string",
+      "options": ["string", "string", "string", "string"],
+      "correctAnswer": "string" (must be one of the options)
+    }
+    
+    Text:
+    ${material.content.substring(0, 6000)}`;
+
+    try {
+      const response = await axios.post(
+        'https://api.openai.com/v1/chat/completions',
+        {
+          model: COMPLETION_MODEL,
+          messages: [
+            { role: 'system', content: 'You are a helpful assistant that generates quizzes.' },
+            { role: 'user', content: prompt },
+          ],
+          response_format: { type: "json_object" },
+        },
+        { headers: { Authorization: `Bearer ${key}` } },
+      );
+
+      const content = response.data.choices?.[0]?.message?.content;
+      return JSON.parse(content).questions || JSON.parse(content);
+    } catch (error) {
+      this.logger.error('Failed to generate quiz', error);
+      throw new Error('Failed to generate quiz');
+    }
+  }
+
   private async generateResponse(
     user: User,
     question: string,
@@ -223,7 +320,8 @@ export class ChatService {
       });
       if (material) {
         materials = [material];
-        context = `FOCUSED SOURCE: ${material.title}\n${material.content}\n\n`;
+        const summary = await this.getOrGenerateSummary(material);
+        context = `FOCUSED SOURCE SUMMARY: ${summary}\n\n`;
       }
     }
 
@@ -331,7 +429,7 @@ export class ChatService {
   getMaterials(user: User) {
     const queryBuilder = this.materialRepo
       .createQueryBuilder('material')
-      .leftJoin('material.uploadedBy', 'uploader')
+      .leftJoinAndSelect('material.uploadedBy', 'uploader')
       .where(
         '(material.isPublic = :isPublic AND material.department = :dept AND material.yearLevel = :year) OR (uploader.id = :userId)',
         {

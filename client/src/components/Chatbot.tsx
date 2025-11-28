@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Send, Loader2, Paperclip, X } from 'lucide-react';
+import { Send, Loader2, Paperclip, X, Brain } from 'lucide-react';
 import api from '../lib/api';
 import { CompactTimer } from './CompactTimer';
 import { useToast } from '../contexts/ToastContext';
+import { QuizModal } from './QuizModal';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -25,6 +26,7 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   // Store the ID of the material we want to chat about (either from prop or upload)
   const [activeMaterialId, setActiveMaterialId] = useState<string | null>(null);
+  const [isQuizOpen, setIsQuizOpen] = useState(false);
 
   useEffect(() => {
     if (initialConversationId) {
@@ -152,13 +154,24 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
     <div className="flex flex-col h-full relative">
       <div className="flex justify-between items-center px-4 py-2 border-b border-gray-100 dark:border-gray-800">
         <CompactTimer />
-        <button
-          onClick={handleNewChat}
-          className="group flex items-center px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600 text-white rounded-xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 font-medium text-sm"
-        >
-          <span className="mr-2 text-lg font-light">+</span>
-          New Chat
-        </button>
+        <div className="flex items-center space-x-2">
+          {activeMaterialId && (
+            <button
+              onClick={() => setIsQuizOpen(true)}
+              className="group flex items-center px-3 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 rounded-xl transition-colors font-medium text-sm"
+            >
+              <Brain className="w-4 h-4 mr-2" />
+              Take Quiz
+            </button>
+          )}
+          <button
+            onClick={handleNewChat}
+            className="group flex items-center px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600 text-white rounded-xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 font-medium text-sm"
+          >
+            <span className="mr-2 text-lg font-light">+</span>
+            New Chat
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-4">
@@ -252,6 +265,14 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
           </button>
         </div>
       </div>
+
+      {activeMaterialId && (
+        <QuizModal
+          isOpen={isQuizOpen}
+          onClose={() => setIsQuizOpen(false)}
+          materialId={activeMaterialId}
+        />
+      )}
     </div>
   );
 }

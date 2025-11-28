@@ -10,6 +10,7 @@ import {
   UseInterceptors,
   Delete,
   ParseUUIDPipe,
+  Patch,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -41,6 +42,8 @@ export class ChatController {
       department?: string;
       yearLevel?: number;
       isPublic?: string;
+      courseCode?: string;
+      topic?: string;
     },
     @Req() req: RequestWithUser,
   ) {
@@ -66,6 +69,15 @@ export class ChatController {
     return this.chatService.deleteConversation(id, req.user);
   }
 
+  @Patch('history/:id')
+  renameConversation(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body('title') title: string,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.chatService.renameConversation(id, title, req.user);
+  }
+
   @Get('history')
   getHistory(@Req() req: RequestWithUser) {
     return this.chatService.getConversations(req.user);
@@ -89,5 +101,21 @@ export class ChatController {
   @Get('materials')
   getMaterials(@Req() req: RequestWithUser) {
     return this.chatService.getMaterials(req.user);
+  }
+
+  @Delete('materials/:id')
+  deleteMaterial(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.chatService.deleteMaterial(id, req.user);
+  }
+
+  @Post('quiz/:id')
+  generateQuiz(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.chatService.generateQuiz(id, req.user);
   }
 }

@@ -13,6 +13,8 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
   const [title, setTitle] = useState('');
   const [department, setDepartment] = useState('');
   const [yearLevel, setYearLevel] = useState('');
+  const [courseCode, setCourseCode] = useState('');
+  const [topic, setTopic] = useState('');
   const [category, setCategory] = useState('course_material');
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -35,6 +37,8 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
     formData.append('title', title);
     formData.append('department', department);
     formData.append('yearLevel', yearLevel);
+    formData.append('courseCode', courseCode);
+    formData.append('topic', topic);
     formData.append('category', category);
     formData.append('isPublic', 'true');
 
@@ -48,6 +52,8 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
       setTitle('');
       setDepartment('');
       setYearLevel('');
+      setCourseCode('');
+      setTopic('');
       if (onUploadComplete) onUploadComplete();
       setTimeout(() => {
         setSuccess(false);
@@ -116,6 +122,29 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
                   onChange={(e) => setYearLevel(e.target.value)}
                   className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none"
                   placeholder="e.g., 1"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Course Code</label>
+                <input
+                  type="text"
+                  value={courseCode}
+                  onChange={(e) => setCourseCode(e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none"
+                  placeholder="e.g., PHY101"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Topic</label>
+                <input
+                  type="text"
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none"
+                  placeholder="e.g., Mechanics"
                 />
               </div>
             </div>

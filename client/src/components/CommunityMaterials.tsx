@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { FileText, Download, Search, BookOpen, SortAsc, SortDesc, MessageSquare } from 'lucide-react';
+import { FileText, Download, Search, BookOpen, SortAsc, SortDesc, MessageSquare, Trash2 } from 'lucide-react';
 import api from '../lib/api';
+import { useAuth } from '../contexts/AuthContext';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface Material {
   id: string;
@@ -11,6 +13,11 @@ interface Material {
   createdAt: string;
   isPublic: boolean;
   url: string;
+  uploadedBy?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
 }
 
 type SortField = 'createdAt' | 'title' | 'yearLevel';
@@ -26,6 +33,9 @@ export function CommunityMaterials({ onChat }: CommunityMaterialsProps) {
   const [filter, setFilter] = useState('');
   const [sortField, setSortField] = useState<SortField>('createdAt');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null });
+  
+  const { user } = useAuth();
 
   const fetchMaterials = async () => {
     try {
@@ -41,6 +51,23 @@ export function CommunityMaterials({ onChat }: CommunityMaterialsProps) {
   useEffect(() => {
     fetchMaterials();
   }, []);
+
+  const handleDeleteClick = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setDeleteConfirmation({ isOpen: true, id });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmation.id) return;
+
+    try {
+      await api.delete(`/chat/materials/${deleteConfirmation.id}`);
+      setMaterials(prev => prev.filter(m => m.id !== deleteConfirmation.id));
+      setDeleteConfirmation({ isOpen: false, id: null });
+    } catch (err) {
+      console.error('Failed to delete material', err);
+    }
+  };
 
   const filteredMaterials = materials
     .filter(m => 
@@ -138,9 +165,20 @@ export function CommunityMaterials({ onChat }: CommunityMaterialsProps) {
             {filteredMaterials.map((material) => (
               <div
                 key={material.id}
-                className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 hover:shadow-lg transition-shadow group"
+                className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 hover:shadow-lg transition-shadow group relative"
               >
-                <div className="flex items-start justify-between mb-4">
+                {/* Delete Button */}
+                {user && material.uploadedBy?.id === user.id && (
+                  <button
+                    onClick={(e) => handleDeleteClick(e, material.id)}
+                    className="absolute top-4 right-4 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                    title="Delete material"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+
+                <div className="flex items-start justify-between mb-4 pr-8">
                   <div className="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg text-primary-600 dark:text-primary-400">
                     <FileText className="w-6 h-6" />
                   </div>
@@ -193,6 +231,16 @@ export function CommunityMaterials({ onChat }: CommunityMaterialsProps) {
           </div>
         )}
       </div>
+
+      <ConfirmationModal
+        isOpen={deleteConfirmation.isOpen}
+        onClose={() => setDeleteConfirmation({ isOpen: false, id: null })}
+        onConfirm={handleConfirmDelete}
+        title="Delete Material"
+        message="Are you sure you want to delete this material? This action cannot be undone."
+        confirmText="Delete"
+        isDangerous={true}
+      />
     </div>
   );
 }
