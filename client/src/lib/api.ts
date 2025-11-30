@@ -38,6 +38,11 @@ api.interceptors.response.use(
     if (error.response) {
       // Server responded with error status
       const status = error.response.status;
+
+      if (status === 401) {
+        window.dispatchEvent(new Event('auth:unauthorized'));
+      }
+
       const data = error.response.data as {
         message?: string;
         errors?: unknown;

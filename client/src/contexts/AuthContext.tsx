@@ -46,7 +46,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(JSON.parse(storedUser));
     }
     setIsLoading(false);
-  }, []);
+
+    const handleUnauthorized = () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setToken(null);
+      setUser(null);
+      toast.error('Session expired. Please log in again.');
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+
+    return () => {
+      window.removeEventListener('auth:unauthorized', handleUnauthorized);
+    };
+  }, [toast]);
 
   const login = (newToken: string, newUser: User) => {
     localStorage.setItem('token', newToken);
