@@ -14,7 +14,7 @@ export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
-  ) {}
+  ) { }
 
   async validateUser(
     email: string,
@@ -51,13 +51,13 @@ export class AuthService {
       | User
       | Omit<User, 'password'>
       | {
-          id: string;
-          email: string;
-          firstName: string;
-          lastName: string;
-          department: string;
-          yearOfStudy: number;
-        },
+        id: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+        department: string;
+        yearOfStudy: number;
+      },
   ) {
     const payload = {
       email: user.email,
@@ -92,5 +92,36 @@ export class AuthService {
     const newUser = await this.usersService.create(userDataPlain);
 
     return this.login(newUser);
+  }
+
+  async googleLogin(req: any) {
+    if (!req.user) {
+      return 'No user from google';
+    }
+
+    const { email, firstName, lastName, picture, googleId } = req.user;
+
+    let user = await this.usersService.findByEmail(email);
+
+    if (!user) {
+      // Create new user
+      const userData = {
+        email,
+        firstName,
+        lastName,
+        image: picture,
+        googleId,
+        password: '', // No password for google users
+        department: 'General', // Default
+        yearOfStudy: 1, // Default
+      };
+      user = await this.usersService.create(userData as any);
+    } else if (!user.googleId) {
+      // Link existing user
+      await this.usersService.update(user.id, { googleId, image: picture });
+      user.googleId = googleId;
+    }
+
+    return this.login(user);
   }
 }

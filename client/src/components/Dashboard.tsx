@@ -3,6 +3,7 @@ import { Chatbot } from './Chatbot';
 import { StudyTimer } from './StudyTimer';
 import { UploadModal } from './UploadModal';
 import { StudyPartner } from './StudyPartner';
+import { UserProfile } from './UserProfile';
 import { CommunityMaterials } from './CommunityMaterials';
 import { 
   Flame, 
@@ -35,6 +36,7 @@ interface Conversation {
 export function Dashboard() {
   const [currentView, setCurrentView] = useState<View>('chat');
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [streak, setStreak] = useState(0);
   const [history, setHistory] = useState<Conversation[]>([]);
@@ -283,6 +285,13 @@ export function Dashboard() {
             </div>
           </div>
           <button
+            onClick={() => setProfileOpen(true)}
+            className="w-full px-4 py-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center"
+          >
+            <Users className="w-5 h-5 mr-2" />
+            My Profile
+          </button>
+          <button
             onClick={toggleTheme}
             className="w-full px-4 py-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center"
           >
@@ -494,6 +503,11 @@ export function Dashboard() {
         isOpen={uploadModalOpen}
         onClose={() => setUploadModalOpen(false)}
         onUploadComplete={handleUploadComplete}
+      />
+
+      <UserProfile
+        isOpen={profileOpen}
+        onClose={() => setProfileOpen(false)}
       />
 
       <ConfirmationModal

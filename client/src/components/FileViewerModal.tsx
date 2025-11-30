@@ -66,8 +66,10 @@ export function FileViewerModal({ isOpen, onClose, material }: FileViewerModalPr
             </div>
           ) : (
             <div className="w-full h-full overflow-y-auto bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-8 shadow-sm">
-              <div className="prose dark:prose-invert max-w-none whitespace-pre-wrap font-mono text-sm">
-                {material.content}
+              <div className="max-w-3xl mx-auto">
+                <div className="prose dark:prose-invert max-w-none whitespace-pre-wrap font-serif text-lg leading-relaxed">
+                  {material.content}
+                </div>
               </div>
             </div>
           )}

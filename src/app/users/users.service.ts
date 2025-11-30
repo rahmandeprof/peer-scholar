@@ -12,6 +12,7 @@ import { CreateUserDto } from '@/app/users/dto/create-user.dto';
 import { UpdateUserDto } from '@/app/users/dto/update-user.dto';
 
 import { WinstonLoggerService } from '@/logger/winston-logger/winston-logger.service';
+import { EmailService } from '@/app/common/services/email.service';
 import { PaginationService } from '@/pagination/pagination.service';
 
 import { SuccessResponse } from '@/utils/response';
@@ -29,6 +30,7 @@ export class UsersService {
     @InjectRepository(PartnerRequest)
     private readonly partnerRequestRepo: Repository<PartnerRequest>,
     private readonly logger: WinstonLoggerService,
+    private readonly emailService: EmailService,
   ) {
     this.logger.setContext(UsersService.name);
   }
@@ -67,7 +69,14 @@ export class UsersService {
       status: PartnerRequestStatus.PENDING,
     });
 
-    return this.partnerRequestRepo.save(request);
+    await this.partnerRequestRepo.save(request);
+
+    // Send email
+    // In a real app, generate a token/link. For now, just link to the app.
+    const link = 'http://localhost:5173';
+    await this.emailService.sendPartnerInvite(receiver.email, sender.firstName, link);
+
+    return request;
   }
 
   async respondToRequest(requestId: string, userId: string, accept: boolean) {

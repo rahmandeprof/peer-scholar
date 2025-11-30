@@ -6,6 +6,7 @@ import {
   Max,
   Min,
   MinLength,
+  IsOptional,
 } from 'class-validator';
 
 export class CreateUserDto {
@@ -34,4 +35,12 @@ export class CreateUserDto {
   @Min(1)
   @Max(6)
   yearOfStudy!: number;
+
+  @IsString()
+  @IsOptional()
+  googleId?: string;
+
+  @IsString()
+  @IsOptional()
+  image?: string;
 }
