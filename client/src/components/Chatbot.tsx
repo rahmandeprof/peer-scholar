@@ -174,7 +174,7 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-4 scroll-smooth">
         {messages.length === 0 ? (
           <div className="text-center text-gray-500 dark:text-gray-400 mt-20">
             <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">Welcome to peerScholar</h2>
@@ -215,7 +215,7 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
         )}
       </div>
 
-      <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900">
+      <div className="border-t border-gray-200 dark:border-gray-700 p-3 md:p-4 bg-white dark:bg-gray-900">
         {attachedFile && (
           <div className="mb-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-between">
             <div className="flex items-center truncate">
@@ -230,10 +230,10 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
             </button>
           </div>
         )}
-        <div className="flex space-x-2 max-w-5xl mx-auto w-full">
+        <div className="flex space-x-2 max-w-5xl mx-auto w-full items-end">
           <button
             onClick={() => document.getElementById('chat-upload')?.click()}
-            className={`p-3 rounded-xl transition-colors ${
+            className={`p-3 rounded-xl transition-colors shrink-0 ${
               attachedFile 
                 ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400' 
                 : 'text-gray-500 hover:text-primary-600 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -248,18 +248,23 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
             className="hidden"
             onChange={handleFileSelect}
           />
-          <input
-            type="text"
+          <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
             placeholder={attachedFile ? "Add a caption..." : "Ask a question..."}
-            className="flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none"
+            className="flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none resize-none min-h-[46px] max-h-32"
+            rows={1}
           />
           <button
-            onClick={handleSend}
+            onClick={() => handleSend()}
             disabled={loading || (!input.trim() && !attachedFile)}
-            className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="p-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
           >
             <Send className="w-5 h-5" />
           </button>

@@ -1,16 +1,16 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
+  ParseUUIDPipe,
+  Patch,
   Post,
   Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
-  Delete,
-  ParseUUIDPipe,
-  Patch,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -29,7 +29,7 @@ interface RequestWithUser extends Request {
 @Controller('chat')
 @UseGuards(AuthGuard('jwt'))
 export class ChatController {
-  constructor(private readonly chatService: ChatService) { }
+  constructor(private readonly chatService: ChatService) {}
 
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
@@ -52,7 +52,8 @@ export class ChatController {
 
   @Post('message')
   sendMessage(
-    @Body() body: { conversationId?: string; content: string; materialId?: string },
+    @Body()
+    body: { conversationId?: string; content: string; materialId?: string },
     @Req() req: RequestWithUser,
   ) {
     return this.chatService.sendMessage(
@@ -64,8 +65,12 @@ export class ChatController {
   }
 
   @Delete('history/:id')
-  deleteConversation(@Param('id', new ParseUUIDPipe()) id: string, @Req() req: RequestWithUser) {
+  deleteConversation(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Req() req: RequestWithUser,
+  ) {
     console.log('DELETE request received for id:', id);
+
     return this.chatService.deleteConversation(id, req.user);
   }
 

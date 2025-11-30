@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Chatbot } from './Chatbot';
 import { StudyTimer } from './StudyTimer';
 import { UploadModal } from './UploadModal';
+import { StudyPartner } from './StudyPartner';
 import { CommunityMaterials } from './CommunityMaterials';
 import { 
   Flame, 
@@ -16,13 +17,14 @@ import {
   History, 
   Trash2, 
   Edit2, 
-  Check 
+  Check,
+  Users
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { ConfirmationModal } from './ConfirmationModal';
 import api from '../lib/api';
 
-type View = 'chat' | 'study' | 'community';
+type View = 'chat' | 'study' | 'community' | 'partner';
 
 interface Conversation {
   id: string;
@@ -135,7 +137,7 @@ export function Dashboard() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
+    <div className="flex h-[100dvh] bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
       {/* Sidebar - Desktop */}
       <aside className="hidden md:flex md:flex-col w-80 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800">
         <div className="p-6 border-b border-gray-200 dark:border-gray-800">
@@ -182,6 +184,17 @@ export function Dashboard() {
             >
               <Clock className="inline w-5 h-5 mr-2" />
               Study Timer
+            </button>
+            <button
+              onClick={() => setCurrentView('partner')}
+              className={`w-full px-4 py-3 rounded-xl text-left font-medium transition-colors ${
+                currentView === 'partner'
+                  ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+            >
+              <Users className="inline w-5 h-5 mr-2" />
+              Study Partner
             </button>
             <button
               onClick={() => setUploadModalOpen(true)}
@@ -350,10 +363,24 @@ export function Dashboard() {
                 </button>
                 <button
                   onClick={() => {
+                    setCurrentView('partner');
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full px-4 py-3 rounded-xl text-left font-medium transition-colors ${
+                    currentView === 'partner'
+                      ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400'
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }`}
+                >
+                  <Users className="inline w-5 h-5 mr-2" />
+                  Study Partner
+                </button>
+                <button
+                  onClick={() => {
                     setUploadModalOpen(true);
                     setSidebarOpen(false);
                   }}
-                  className="w-full px-4 py-3 rounded-xl text-left font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-primary-600 dark:text-primary-400"
+                  className="w-full px-4 py-3 rounded-xl text-left font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 >
                   <Upload className="inline w-5 h-5 mr-2" />
                   Upload to Community
@@ -451,6 +478,10 @@ export function Dashboard() {
             />
           ) : currentView === 'community' ? (
             <CommunityMaterials onChat={handleChatWithMaterial} />
+          ) : currentView === 'partner' ? (
+            <div className="h-full overflow-y-auto">
+              <StudyPartner />
+            </div>
           ) : (
             <div className="h-full overflow-y-auto p-4 md:p-8 flex items-center justify-center">
               <StudyTimer onSessionComplete={fetchStreak} />

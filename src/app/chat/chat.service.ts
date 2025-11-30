@@ -28,7 +28,7 @@ export class ChatService {
     private readonly messageRepo: Repository<Message>,
     private readonly usersService: UsersService,
     private readonly cloudinaryService: CloudinaryService,
-  ) { }
+  ) {}
 
   // Extract text from file (pdf, docx, txt)
   async extractTextFromFile(file: Express.Multer.File): Promise<string> {
@@ -133,6 +133,7 @@ export class ChatService {
     }
 
     await this.materialRepo.remove(material);
+
     return { success: true };
   }
 
@@ -172,13 +173,17 @@ export class ChatService {
 
   async deleteConversation(conversationId: string, user: User) {
     const conversation = await this.getConversation(conversationId, user);
+
     await this.conversationRepo.remove(conversation);
+
     return { success: true };
   }
 
   async renameConversation(conversationId: string, title: string, user: User) {
     const conversation = await this.getConversation(conversationId, user);
+
     conversation.title = title;
+
     return this.conversationRepo.save(conversation);
   }
 
@@ -236,6 +241,7 @@ export class ChatService {
     if (material.summary) return material.summary;
 
     const key = process.env.OPENAI_API_KEY;
+
     if (!key) return '';
 
     try {
@@ -244,7 +250,11 @@ export class ChatService {
         {
           model: COMPLETION_MODEL,
           messages: [
-            { role: 'system', content: 'Summarize the following text concisely but comprehensively for a student.' },
+            {
+              role: 'system',
+              content:
+                'Summarize the following text concisely but comprehensively for a student.',
+            },
             { role: 'user', content: material.content.substring(0, 6000) }, // Limit to avoid token limits
           ],
           max_tokens: 500,
@@ -253,22 +263,29 @@ export class ChatService {
       );
 
       const summary = response.data.choices?.[0]?.message?.content || '';
+
       if (summary) {
         material.summary = summary;
         await this.materialRepo.save(material);
       }
+
       return summary;
     } catch (e) {
       this.logger.error('Failed to generate summary', e);
+
       return '';
     }
   }
 
   async generateQuiz(materialId: string, user: User) {
-    const material = await this.materialRepo.findOne({ where: { id: materialId } });
+    const material = await this.materialRepo.findOne({
+      where: { id: materialId },
+    });
+
     if (!material) throw new NotFoundException('Material not found');
 
     const key = process.env.OPENAI_API_KEY;
+
     if (!key) throw new Error('OPENAI_API_KEY is not set');
 
     const prompt = `Generate 5 multiple-choice questions based on the following text. 
@@ -288,15 +305,19 @@ export class ChatService {
         {
           model: COMPLETION_MODEL,
           messages: [
-            { role: 'system', content: 'You are a helpful assistant that generates quizzes.' },
+            {
+              role: 'system',
+              content: 'You are a helpful assistant that generates quizzes.',
+            },
             { role: 'user', content: prompt },
           ],
-          response_format: { type: "json_object" },
+          response_format: { type: 'json_object' },
         },
         { headers: { Authorization: `Bearer ${key}` } },
       );
 
       const content = response.data.choices?.[0]?.message?.content;
+
       return JSON.parse(content).questions || JSON.parse(content);
     } catch (error) {
       this.logger.error('Failed to generate quiz', error);
@@ -318,9 +339,11 @@ export class ChatService {
       const material = await this.materialRepo.findOne({
         where: { id: materialId },
       });
+
       if (material) {
         materials = [material];
         const summary = await this.getOrGenerateSummary(material);
+
         context = `FOCUSED SOURCE SUMMARY: ${summary}\n\n`;
       }
     }
@@ -366,6 +389,7 @@ export class ChatService {
     }
 
     const additionalMaterials = await queryBuilder.take(3).getMany();
+
     materials = [...materials, ...additionalMaterials];
 
     context += additionalMaterials
@@ -396,6 +420,7 @@ export class ChatService {
     Context:\n${context}`;
 
     const userPrompt = `History:\n${historyText}\n\nQuestion: ${question}`;
+
     try {
       const completion = await axios.post(
         'https://api.openai.com/v1/chat/completions',

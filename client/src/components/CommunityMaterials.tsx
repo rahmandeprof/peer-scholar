@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { FileText, Download, Search, BookOpen, SortAsc, SortDesc, MessageSquare, Trash2 } from 'lucide-react';
+import { FileText, Search, BookOpen, SortAsc, SortDesc, MessageSquare, Trash2, Eye } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { ConfirmationModal } from './ConfirmationModal';
+import { FileViewerModal } from './FileViewerModal';
 
 interface Material {
   id: string;
@@ -20,6 +21,13 @@ interface Material {
   };
 }
 
+interface ViewerMaterial {
+  title: string;
+  content: string;
+  fileUrl: string;
+  fileType: string;
+}
+
 type SortField = 'createdAt' | 'title' | 'yearLevel';
 type SortOrder = 'asc' | 'desc';
 
@@ -34,6 +42,7 @@ export function CommunityMaterials({ onChat }: CommunityMaterialsProps) {
   const [sortField, setSortField] = useState<SortField>('createdAt');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null });
+  const [viewingMaterial, setViewingMaterial] = useState<ViewerMaterial | null>(null);
   
   const { user } = useAuth();
 
@@ -207,15 +216,18 @@ export function CommunityMaterials({ onChat }: CommunityMaterialsProps) {
                 </div>
 
                 <div className="flex space-x-2">
-                  <a
-                    href={material.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    onClick={() => setViewingMaterial({
+                      title: material.title,
+                      content: 'Loading content...', // Content will be fetched or displayed via iframe
+                      fileUrl: material.url,
+                      fileType: 'application/pdf' // Assuming PDF for now, should come from backend
+                    })}
                     className="flex-1 flex items-center justify-center px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-sm font-medium"
                   >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download
-                  </a>
+                    <Eye className="w-4 h-4 mr-2" />
+                    View
+                  </button>
                   {onChat && (
                     <button
                       onClick={() => onChat(material.id)}
@@ -240,6 +252,12 @@ export function CommunityMaterials({ onChat }: CommunityMaterialsProps) {
         message="Are you sure you want to delete this material? This action cannot be undone."
         confirmText="Delete"
         isDangerous={true}
+      />
+      
+      <FileViewerModal
+        isOpen={!!viewingMaterial}
+        onClose={() => setViewingMaterial(null)}
+        material={viewingMaterial}
       />
     </div>
   );

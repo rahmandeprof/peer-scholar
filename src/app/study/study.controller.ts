@@ -15,7 +15,7 @@ interface RequestWithUser extends Request {
 @Controller('study')
 @UseGuards(AuthGuard('jwt'))
 export class StudyController {
-  constructor(private readonly studyService: StudyService) { }
+  constructor(private readonly studyService: StudyService) {}
 
   @Post('start')
   startSession(
