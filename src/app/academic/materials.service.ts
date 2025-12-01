@@ -1,3 +1,4 @@
+import { InjectQueue } from '@nestjs/bull';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -8,6 +9,7 @@ import { User } from '@/app/users/entities/user.entity';
 
 import { CreateMaterialDto } from './dto/create-material.dto';
 
+import { Queue } from 'bull';
 import { v2 as cloudinary } from 'cloudinary';
 import { Repository } from 'typeorm';
 
@@ -19,6 +21,7 @@ export class MaterialsService {
     @InjectRepository(Course)
     private courseRepo: Repository<Course>,
     private configService: ConfigService,
+    @InjectQueue('materials') private materialsQueue: Queue,
   ) {
     const cloudinaryConfig = this.configService.get('cloudinary');
 
@@ -68,10 +71,17 @@ export class MaterialsService {
       tags: dto.tags,
       course,
       uploader: user,
-      status: MaterialStatus.READY,
+      status: MaterialStatus.PENDING,
     });
 
-    return this.materialRepo.save(material);
+    const savedMaterial = await this.materialRepo.save(material);
+
+    await this.materialsQueue.add('process-material', {
+      materialId: savedMaterial.id,
+      fileUrl: savedMaterial.fileUrl,
+    });
+
+    return savedMaterial;
   }
 
   findAll(courseId: string) {
