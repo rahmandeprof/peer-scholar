@@ -43,6 +43,22 @@ export function Login({ onSwitch }: LoginProps) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        <button
+          type="button"
+          onClick={() => window.location.href = `${api.defaults.baseURL}/auth/google`}
+          className="w-full py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition-colors flex items-center justify-center"
+        >
+          <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5 mr-2" />
+          Sign in with Google
+        </button>
+
+        <div className="relative flex items-center justify-center my-4">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
+          </div>
+          <span className="relative px-4 bg-white dark:bg-gray-800 text-sm text-gray-500">Or continue with email</span>
+        </div>
+
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
           <input
@@ -63,22 +79,6 @@ export function Login({ onSwitch }: LoginProps) {
             className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
             placeholder="••••••••"
           />
-        </div>
-
-        <button
-          type="button"
-          onClick={() => window.location.href = 'http://localhost:3000/api/auth/google'}
-          className="w-full py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition-colors flex items-center justify-center mb-4"
-        >
-          <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5 mr-2" />
-          Sign in with Google
-        </button>
-
-        <div className="relative flex items-center justify-center mb-4">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
-          </div>
-          <span className="relative px-4 bg-white dark:bg-gray-800 text-sm text-gray-500">Or continue with email</span>
         </div>
 
         <button

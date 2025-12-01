@@ -93,13 +93,15 @@ function AppContent() {
         <Route
           path="/"
           element={
-            isAuthenticated ? (
-              <Navigate to="/dashboard" replace />
-            ) : isLogin ? (
-              <Login onSwitch={() => setIsLogin(false)} />
-            ) : (
-              <Signup onSwitch={() => setIsLogin(true)} />
-            )
+            <div className="min-h-screen flex items-center justify-center px-4 py-12">
+              {isAuthenticated ? (
+                <Navigate to="/dashboard" replace />
+              ) : isLogin ? (
+                <Login onSwitch={() => setIsLogin(false)} />
+              ) : (
+                <Signup onSwitch={() => setIsLogin(true)} />
+              )}
+            </div>
           }
         />
       </Routes>
