@@ -9,6 +9,8 @@ import { Material } from './entities/material.entity';
 import { MaterialChunk } from './entities/material-chunk.entity';
 import { School } from './entities/school.entity';
 
+import { UsersModule } from '@/app/users/users.module';
+
 import { AcademicController } from './academic.controller';
 import { MaterialsController } from './materials.controller';
 
@@ -28,9 +30,10 @@ import { MaterialsService } from './materials.service';
     BullModule.registerQueue({
       name: 'materials',
     }),
+    UsersModule,
   ],
   controllers: [AcademicController, MaterialsController],
   providers: [AcademicService, MaterialsService],
   exports: [TypeOrmModule, AcademicService, MaterialsService],
 })
-export class AcademicModule {}
+export class AcademicModule { }
