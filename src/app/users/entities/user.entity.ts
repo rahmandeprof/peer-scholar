@@ -1,8 +1,11 @@
+import { Department } from '@/app/academic/entities/department.entity';
+import { Faculty } from '@/app/academic/entities/faculty.entity';
+import { School } from '@/app/academic/entities/school.entity';
 import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
 
 import { CapitalizeTransformer } from '@/utils/transformers/capitalize';
 
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, ManyToOne } from 'typeorm';
 
 @Entity()
 export class User extends IDAndTimestamp {
@@ -40,14 +43,17 @@ export class User extends IDAndTimestamp {
   @Column({ nullable: true })
   password!: string;
 
-  @Column({ nullable: true })
-  department!: string;
+  @ManyToOne(() => Department, { nullable: true })
+  department: Department;
 
   @Column({ type: 'int', nullable: true })
   yearOfStudy!: number;
 
-  @Column({ nullable: true })
-  faculty!: string;
+  @ManyToOne(() => Faculty, { nullable: true })
+  faculty: Faculty;
+
+  @ManyToOne(() => School, { nullable: true })
+  school: School;
 
   @Column({ type: 'int', default: 0 })
   currentStreak: number;

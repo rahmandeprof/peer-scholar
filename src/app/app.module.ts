@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 
+import { AcademicModule } from '@/app/academic/academic.module';
 import { AdminModule } from '@/app/admin/admin.module';
 import { AuthModule } from '@/app/auth/auth.module';
 import { ChatModule } from '@/app/chat/chat.module';
@@ -41,6 +42,7 @@ import configuration from '@/config/configuration';
     StudyModule,
     ChatModule,
     CommonModule,
+    AcademicModule,
   ],
   controllers: [AppController],
   providers: [
