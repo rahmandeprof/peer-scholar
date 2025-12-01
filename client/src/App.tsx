@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Dashboard } from './components/Dashboard';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -8,7 +8,27 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { Login } from './components/Login';
 import { Signup } from './components/Signup';
 import { GoogleCallback } from './components/GoogleCallback';
+import Onboarding from './components/Onboarding';
+import CourseView from './components/CourseView';
 import { Loader2 } from 'lucide-react';
+
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+};
 
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -22,21 +42,46 @@ function AppContent() {
     );
   }
 
-  if (isAuthenticated) {
-    return <Dashboard />;
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 p-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Routes>
         <Route path="/auth/callback" element={<GoogleCallback />} />
-        <Route path="*" element={
-          isLogin ? (
-            <Login onSwitch={() => setIsLogin(false)} />
-          ) : (
-            <Signup onSwitch={() => setIsLogin(true)} />
-          )
-        } />
+        <Route
+          path="/onboarding"
+          element={
+            <ProtectedRoute>
+              <Onboarding />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/courses/:courseId"
+          element={
+            <ProtectedRoute>
+              <CourseView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/"
+          element={
+            isAuthenticated ? (
+              <Navigate to="/dashboard" replace />
+            ) : isLogin ? (
+              <Login onSwitch={() => setIsLogin(false)} />
+            ) : (
+              <Signup onSwitch={() => setIsLogin(true)} />
+            )
+          }
+        />
       </Routes>
     </div>
   );

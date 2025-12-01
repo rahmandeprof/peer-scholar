@@ -16,7 +16,7 @@ import { MaterialsService } from './materials.service';
 @Controller('materials')
 @UseGuards(AuthGuard('jwt'))
 export class MaterialsController {
-  constructor(private readonly materialsService: MaterialsService) {}
+  constructor(private readonly materialsService: MaterialsService) { }
 
   @Get('presign')
   getPresignedUrl() {
@@ -30,7 +30,11 @@ export class MaterialsController {
   }
 
   @Get()
-  findAll(@Query('courseId') courseId: string) {
-    return this.materialsService.findAll(courseId);
+  findAll(
+    @Query('courseId') courseId: string,
+    @Query('type') type?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.materialsService.findAll(courseId, type, search);
   }
 }

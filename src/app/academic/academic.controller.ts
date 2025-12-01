@@ -4,7 +4,7 @@ import { AcademicService } from './academic.service';
 
 @Controller('academic')
 export class AcademicController {
-  constructor(private readonly academicService: AcademicService) {}
+  constructor(private readonly academicService: AcademicService) { }
 
   @Get('schools')
   getSchools() {
@@ -24,5 +24,10 @@ export class AcademicController {
   @Get('departments/:id/courses')
   getCourses(@Param('id') id: string) {
     return this.academicService.getCourses(id);
+  }
+
+  @Get('courses/:id')
+  getCourse(@Param('id') id: string) {
+    return this.academicService.getCourse(id);
   }
 }

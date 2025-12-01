@@ -84,11 +84,24 @@ export class MaterialsService {
     return savedMaterial;
   }
 
-  findAll(courseId: string) {
-    return this.materialRepo.find({
-      where: { course: { id: courseId } },
-      relations: ['uploader'],
-      order: { createdAt: 'DESC' },
-    });
+  findAll(courseId: string, type?: string, search?: string) {
+    const query = this.materialRepo.createQueryBuilder('material')
+      .leftJoinAndSelect('material.uploader', 'uploader')
+      .where('material.courseId = :courseId', { courseId });
+
+    if (type && type !== 'all') {
+      query.andWhere('material.type = :type', { type });
+    }
+
+    if (search) {
+      query.andWhere(
+        '(LOWER(material.title) LIKE LOWER(:search) OR LOWER(material.description) LIKE LOWER(:search))',
+        { search: `%${search}%` },
+      );
+    }
+
+    query.orderBy('material.createdAt', 'DESC');
+
+    return query.getMany();
   }
 }

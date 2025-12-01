@@ -19,7 +19,7 @@ export class AcademicService {
     private departmentRepo: Repository<Department>,
     @InjectRepository(Course)
     private courseRepo: Repository<Course>,
-  ) {}
+  ) { }
 
   getSchools() {
     return this.schoolRepo.find();
@@ -36,6 +36,11 @@ export class AcademicService {
   getCourses(departmentId: string) {
     return this.courseRepo.find({
       where: { department: { id: departmentId } },
+      order: { level: 'ASC', code: 'ASC' },
     });
+  }
+
+  getCourse(id: string) {
+    return this.courseRepo.findOneBy({ id });
   }
 }
