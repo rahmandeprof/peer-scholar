@@ -47,15 +47,18 @@ export class AuthController {
 
   @Get('google')
   @UseGuards(AuthGuard('google'))
-  async googleAuth(@Req() req: any) {}
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  async googleAuth() {}
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async googleAuthRedirect(@Req() req: any, @Res() res: Response) {
     const data = await this.authService.googleLogin(req);
+    const clientUrl = process.env.CLIENT_URL ?? 'http://localhost:5173';
 
     if (typeof data === 'string') {
-      res.redirect('http://localhost:5173/login?error=auth_failed');
+      res.redirect(`${clientUrl}/login?error=auth_failed`);
 
       return;
     }
@@ -63,7 +66,7 @@ export class AuthController {
     const userStr = encodeURIComponent(JSON.stringify(data.user));
 
     res.redirect(
-      `http://localhost:5173/auth/callback?token=${data.access_token}&user=${userStr}`,
+      `${clientUrl}/auth/callback?token=${data.access_token}&user=${userStr}`,
     );
   }
 }

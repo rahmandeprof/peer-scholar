@@ -82,6 +82,9 @@ export class EnvironmentVariables {
   OAUTH_GOOGLE_CLIENT_SECRET!: string;
 
   @IsString()
+  GOOGLE_CALLBACK_URL!: string;
+
+  @IsString()
   OAUTH_TWITTER_CLIENT_ID!: string;
 
   @IsString()
