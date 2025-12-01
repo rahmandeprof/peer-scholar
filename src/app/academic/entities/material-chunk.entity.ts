@@ -16,9 +16,8 @@ export class MaterialChunk extends IDAndTimestamp {
   @Column({ type: 'int' })
   chunkIndex: number;
 
-  // Using 'vector' type requires pgvector extension
-  // For now, we'll define it but might need to handle migration carefully
-  // @ts-ignore
-  @Column({ type: 'vector', nullable: true })
+  // Using 'float' array type to satisfy TypeORM validation
+  // In production, this should ideally be a 'vector' column via migration
+  @Column({ type: 'float', array: true, nullable: true })
   embedding: number[] | null;
 }

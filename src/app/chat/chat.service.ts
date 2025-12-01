@@ -369,10 +369,10 @@ export class ChatService {
 
         let query = `
           SELECT "chunk"."content", "chunk"."materialId", "material"."title", 
-          1 - ("chunk"."embedding" <=> $1) as similarity
+          1 - ("chunk"."embedding"::vector <=> $1) as similarity
           FROM "material_chunk" "chunk"
           INNER JOIN "material" "material" ON "chunk"."materialId" = "material"."id"
-          WHERE 1 - ("chunk"."embedding" <=> $1) > 0.5
+          WHERE 1 - ("chunk"."embedding"::vector <=> $1) > 0.5
         `;
 
         const params: unknown[] = [`[${embedding.join(',')}]`];
