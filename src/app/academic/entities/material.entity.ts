@@ -47,7 +47,7 @@ export class Material extends IDAndTimestamp {
   @Column({ type: 'text', nullable: true })
   summary?: string;
 
-  @Column()
+  @Column({ nullable: true })
   fileUrl: string;
 
   @Column({ nullable: true })
