@@ -117,6 +117,26 @@ export class MaterialProcessor {
         await this.chunkRepo.save(chunk);
       }
 
+      // 5. Extract Topics (using first 2000 chars)
+      if (this.openai) {
+        try {
+          const topicPrompt = `Extract 5-10 relevant academic topics or tags from the following text. Return them as a comma-separated list. Text: ${text.slice(0, 2000)}`;
+          const completion = await this.openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [{ role: 'user', content: topicPrompt }],
+          });
+          const tagsText = completion.choices[0].message.content ?? '';
+          const tags = tagsText
+            .split(',')
+            .map((t) => t.trim())
+            .filter((t) => t.length > 0);
+
+          material.tags = tags;
+        } catch (e) {
+          this.logger.warn('Failed to extract topics', e);
+        }
+      }
+
       material.status = MaterialStatus.READY;
       await this.materialRepo.save(material);
 
