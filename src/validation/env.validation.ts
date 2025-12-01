@@ -101,7 +101,7 @@ export class EnvironmentVariables {
   SMTP_PORT!: number;
 
   @IsString()
-  SMTP_EMAIL!: string;
+  SMTP_USER!: string;
 
   @IsString()
   SMTP_PASSWORD!: string;
