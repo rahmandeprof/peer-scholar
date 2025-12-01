@@ -118,16 +118,18 @@ export class ChatService {
       title: metadata.title,
       type: metadata.category,
       scope:
-        metadata.isPublic === 'true' ? AccessScope.PUBLIC : AccessScope.COURSE, // Default to COURSE if not public
+        metadata.isPublic === 'true' ? AccessScope.PUBLIC : AccessScope.COURSE,
       content: text,
       fileUrl: url,
       fileType: file.mimetype,
       uploader: user,
-      // Note: We are not setting course, department, etc. here as they are not in the metadata
-      // This method seems to be for "direct chat upload" which might be different from "academic upload"
     });
 
-    return this.materialRepo.save(material);
+    const savedMaterial = await this.materialRepo.save(material);
+
+    await this.usersService.increaseReputation(user.id, 10);
+
+    return savedMaterial;
   }
 
   async deleteMaterial(materialId: string, user: User) {

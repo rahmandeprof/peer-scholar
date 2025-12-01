@@ -5,7 +5,7 @@ import { StudyTimer } from './StudyTimer';
 import { UploadModal } from './UploadModal';
 import { StudyPartner } from './StudyPartner';
 import { UserProfile } from './UserProfile';
-import { CommunityMaterials } from './CommunityMaterials';
+import DepartmentView from './DepartmentView';
 import { 
   Flame, 
   Upload, 
@@ -127,11 +127,7 @@ export function Dashboard() {
     setEditingConversationId(null);
   };
 
-  const handleChatWithMaterial = (materialId: string) => {
-    setSelectedMaterialId(materialId);
-    setSelectedConversationId(null); // Start new chat
-    setCurrentView('chat');
-  };
+
 
   const handleUploadComplete = () => {
     fetchStreak();
@@ -175,7 +171,7 @@ export function Dashboard() {
               }`}
             >
               <BookOpen className="inline w-5 h-5 mr-2" />
-              Community Materials
+              Department Library
             </button>
             <button
               onClick={() => setCurrentView('study')}
@@ -362,7 +358,7 @@ export function Dashboard() {
                   }`}
                 >
                   <BookOpen className="inline w-5 h-5 mr-2" />
-                  Community Materials
+                  Department Library
                 </button>
                 <button
                   onClick={() => {
@@ -494,7 +490,7 @@ export function Dashboard() {
               }}
             />
           ) : currentView === 'community' ? (
-            <CommunityMaterials onChat={handleChatWithMaterial} />
+            <DepartmentView />
           ) : currentView === 'partner' ? (
             <div className="h-full overflow-y-auto">
               <StudyPartner />

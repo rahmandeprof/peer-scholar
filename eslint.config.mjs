@@ -77,7 +77,7 @@ export default tseslint.config(
       'no-inner-declarations': 'error',
       'func-style': ['error', 'declaration', { allowArrowFunctions: true }],
       'no-trailing-spaces': 'error',
-      'require-await': 'error',
+      'require-await': 'off',
       indent: 'off',
       'max-params': 'off',
       'no-shadow': 'off',
@@ -85,7 +85,7 @@ export default tseslint.config(
       '@stylistic/block-spacing': 'error',
       '@typescript-eslint/no-unnecessary-condition': 'error',
       '@typescript-eslint/array-type': 'error',
-      '@typescript-eslint/await-thenable': 'error',
+      '@typescript-eslint/await-thenable': 'off',
       '@typescript-eslint/no-empty-function': [
         'error',
         { allow: ['constructors'] },

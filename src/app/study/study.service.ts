@@ -48,6 +48,7 @@ export class StudyService {
 
     if (session.type === StudySessionType.STUDY) {
       await this.usersService.updateStreak(userId);
+      await this.usersService.increaseReputation(userId, 5);
     }
 
     return session;

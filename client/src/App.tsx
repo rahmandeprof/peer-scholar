@@ -9,7 +9,9 @@ import { Login } from './components/Login';
 import { Signup } from './components/Signup';
 import { GoogleCallback } from './components/GoogleCallback';
 import Onboarding from './components/Onboarding';
-import CourseView from './components/CourseView';
+import { CourseView } from './components/CourseView';
+import { MaterialView } from './components/MaterialView';
+import { StudyPartner } from './components/StudyPartner';
 import { Loader2 } from 'lucide-react';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -55,6 +57,14 @@ function AppContent() {
           }
         />
         <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/courses/:courseId"
           element={
             <ProtectedRoute>
@@ -63,10 +73,20 @@ function AppContent() {
           }
         />
         <Route
-          path="/dashboard"
+          path="/materials/:id"
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <MaterialView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/partner"
+          element={
+            <ProtectedRoute>
+              <div className="h-screen bg-gray-50 dark:bg-gray-950">
+                <StudyPartner />
+              </div>
             </ProtectedRoute>
           }
         />

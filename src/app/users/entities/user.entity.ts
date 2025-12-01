@@ -5,7 +5,7 @@ import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
 
 import { CapitalizeTransformer } from '@/utils/transformers/capitalize';
 
-import { Column, Entity, ManyToOne } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
 
 @Entity()
 export class User extends IDAndTimestamp {
@@ -69,4 +69,13 @@ export class User extends IDAndTimestamp {
 
   @Column({ nullable: true, unique: true })
   googleId: string;
+
+  @OneToMany('Material', 'uploader')
+  materials: any[];
+
+  @Column({ default: 0 })
+  reputation: number;
+
+  @Column({ default: false })
+  isVerified: boolean;
 }

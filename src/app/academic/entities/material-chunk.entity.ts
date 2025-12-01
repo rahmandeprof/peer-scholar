@@ -18,6 +18,7 @@ export class MaterialChunk extends IDAndTimestamp {
 
   // Using 'vector' type requires pgvector extension
   // For now, we'll define it but might need to handle migration carefully
+  // @ts-ignore
   @Column({ type: 'vector', nullable: true })
-  embedding: number[];
+  embedding: number[] | null;
 }

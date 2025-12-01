@@ -1,7 +1,7 @@
 import { Department } from './department.entity';
 import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
 
-import { Column, Entity, ManyToOne } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
 
 @Entity()
 export class Course extends IDAndTimestamp {
@@ -19,4 +19,7 @@ export class Course extends IDAndTimestamp {
 
   @ManyToOne(() => Department, (department) => department.courses)
   department: Department;
+
+  @OneToMany('Material', 'course')
+  materials: any[];
 }

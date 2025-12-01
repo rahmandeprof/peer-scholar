@@ -9,6 +9,8 @@ import { User } from '@/app/users/entities/user.entity';
 
 import { CreateMaterialDto } from './dto/create-material.dto';
 
+import { UsersService } from '@/app/users/users.service';
+
 import { Queue } from 'bull';
 import { v2 as cloudinary } from 'cloudinary';
 import { Repository } from 'typeorm';
@@ -22,6 +24,7 @@ export class MaterialsService {
     private courseRepo: Repository<Course>,
     private configService: ConfigService,
     @InjectQueue('materials') private materialsQueue: Queue,
+    private usersService: UsersService,
   ) {
     const cloudinaryConfig = this.configService.get('cloudinary');
 
@@ -81,11 +84,49 @@ export class MaterialsService {
       fileUrl: savedMaterial.fileUrl,
     });
 
+    await this.usersService.increaseReputation(user.id, 10);
+
     return savedMaterial;
   }
 
+  async getTrending() {
+    return this.materialRepo.find({
+      order: { createdAt: 'DESC' },
+      take: 5,
+      relations: ['uploader', 'course'],
+    });
+  }
+
+  async getCourseTopics(courseId: string) {
+    const materials = await this.materialRepo.find({
+      where: { course: { id: courseId } },
+      select: ['tags'],
+    });
+
+    const topicCounts: Record<string, number> = {};
+
+    materials.forEach((material) => {
+      if (material.tags) {
+        material.tags.forEach((tag) => {
+          const normalizedTag = tag.trim().toLowerCase(); // Normalize
+
+          if (normalizedTag) {
+            topicCounts[normalizedTag] = (topicCounts[normalizedTag] || 0) + 1;
+          }
+        });
+      }
+    });
+
+    // Convert to array and sort
+    return Object.entries(topicCounts)
+      .map(([topic, count]) => ({ topic, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10); // Top 10
+  }
+
   findAll(courseId: string, type?: string, search?: string) {
-    const query = this.materialRepo.createQueryBuilder('material')
+    const query = this.materialRepo
+      .createQueryBuilder('material')
       .leftJoinAndSelect('material.uploader', 'uploader')
       .where('material.courseId = :courseId', { courseId });
 
@@ -103,5 +144,18 @@ export class MaterialsService {
     query.orderBy('material.createdAt', 'DESC');
 
     return query.getMany();
+  }
+
+  async findOne(id: string) {
+    const material = await this.materialRepo.findOne({
+      where: { id },
+      relations: ['uploader', 'course'],
+    });
+
+    if (!material) {
+      throw new NotFoundException('Material not found');
+    }
+
+    return material;
   }
 }

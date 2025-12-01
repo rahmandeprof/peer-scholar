@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { X, User, Save, Mail, Building, GraduationCap } from 'lucide-react';
+import { X, User, Save, Mail, Building, GraduationCap, Trophy, Shield } from 'lucide-react';
 import api from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
 
@@ -25,7 +25,7 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
       setFormData({
         firstName: user.firstName,
         lastName: user.lastName,
-        department: user.department || '',
+        department: typeof user.department === 'object' ? user.department?.name || '' : user.department || '',
         yearOfStudy: user.yearOfStudy || 1,
       });
     }
@@ -78,6 +78,25 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
                 <span>{user.firstName[0]}{user.lastName[0]}</span>
               )}
             </div>
+          </div>
+
+          <div className="flex justify-center mb-6 space-x-4">
+             <div className="bg-yellow-50 dark:bg-yellow-900/20 px-4 py-2 rounded-xl border border-yellow-200 dark:border-yellow-800 flex items-center">
+               <Trophy className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2" />
+               <div>
+                 <p className="text-xs text-yellow-600 dark:text-yellow-400 font-medium uppercase tracking-wider">Reputation</p>
+                 <p className="text-lg font-bold text-yellow-700 dark:text-yellow-300">{user.reputation || 0}</p>
+               </div>
+             </div>
+             {user.isVerified && (
+               <div className="bg-blue-50 dark:bg-blue-900/20 px-4 py-2 rounded-xl border border-blue-200 dark:border-blue-800 flex items-center">
+                 <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-2" />
+                 <div>
+                   <p className="text-xs text-blue-600 dark:text-blue-400 font-medium uppercase tracking-wider">Status</p>
+                   <p className="text-lg font-bold text-blue-700 dark:text-blue-300">Verified</p>
+                 </div>
+               </div>
+             )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">

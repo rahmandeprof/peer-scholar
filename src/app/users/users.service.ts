@@ -148,7 +148,11 @@ export class UsersService {
   // ... existing updateStreak ...
 
   async create(createUserDto: CreateUserDto) {
-    const user = this.userRepository.create(createUserDto);
+    const { department, ...rest } = createUserDto;
+    const user = this.userRepository.create({
+      ...rest,
+      department: department ? ({ id: department } as any) : undefined,
+    });
     const savedUser = await this.userRepository.save(user);
 
     // Initialize streak
@@ -324,5 +328,13 @@ export class UsersService {
       lastActivity: streak?.lastActivityDate,
       stage: this.getStage(effectiveStreak),
     };
+  }
+  async increaseReputation(userId: string, amount: number) {
+    const user = await this.findOne(userId);
+
+    if (user) {
+      user.reputation += amount;
+      await this.userRepository.save(user);
+    }
   }
 }

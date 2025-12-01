@@ -19,7 +19,7 @@ export class AcademicService {
     private departmentRepo: Repository<Department>,
     @InjectRepository(Course)
     private courseRepo: Repository<Course>,
-  ) { }
+  ) {}
 
   getSchools() {
     return this.schoolRepo.find();

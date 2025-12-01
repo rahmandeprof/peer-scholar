@@ -69,8 +69,6 @@ export class ChatController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Req() req: RequestWithUser,
   ) {
-    // console.log('DELETE request received for id:', id);
-
     return this.chatService.deleteConversation(id, req.user);
   }
 
@@ -117,10 +115,7 @@ export class ChatController {
   }
 
   @Post('quiz/:id')
-  generateQuiz(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @Param('id', new ParseUUIDPipe()) id: string,
-  ) {
+  generateQuiz(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.chatService.generateQuiz(id);
   }
 }

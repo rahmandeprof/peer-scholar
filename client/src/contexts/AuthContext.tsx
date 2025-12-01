@@ -1,14 +1,19 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useToast } from './ToastContext';
+import axios from '../lib/api';
 
 interface User {
   id: string;
   email: string;
   firstName: string;
   lastName: string;
-  department: string;
-  yearOfStudy: number;
+  department?: { id: string; name: string };
+  faculty?: { id: string; name: string };
+  school?: { id: string; name: string };
+  yearOfStudy?: number;
+  reputation?: number;
+  isVerified?: boolean;
 }
 
 interface AuthContextType {
@@ -16,6 +21,7 @@ interface AuthContextType {
   token: string | null;
   login: (token: string, user: User) => void;
   logout: () => void;
+  refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
@@ -36,16 +42,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const toast = useToast();
 
-  useEffect(() => {
-    // Check for stored token on mount
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+  const refreshUser = useCallback(async () => {
+    try {
+      const res = await axios.get('/users/profile');
+      const updatedUser = res.data;
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    } catch (error) {
+      console.error('Failed to refresh user', error);
     }
-    setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    const initAuth = async () => {
+      const storedToken = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
+
+      if (storedToken) {
+        setToken(storedToken);
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+        // Verify token and refresh user data
+        try {
+          const res = await axios.get('/users/profile');
+          setUser(res.data);
+          localStorage.setItem('user', JSON.stringify(res.data));
+        } catch (error) {
+          console.error('Token invalid or expired', error);
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setToken(null);
+          setUser(null);
+        }
+      }
+      setIsLoading(false);
+    };
+
+    initAuth();
 
     const handleUnauthorized = () => {
       localStorage.removeItem('token');
@@ -85,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         token,
         login,
         logout,
+        refreshUser,
         isAuthenticated: !!token,
         isLoading,
       }}

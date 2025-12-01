@@ -20,7 +20,7 @@ import { join } from 'path';
           auth:
             config.get('NODE_ENV') === 'production'
               ? {
-                  user: config.get('SMTP_EMAIL'),
+                  user: config.get('SMTP_USER'),
                   pass: config.get('SMTP_PASSWORD'),
                 }
               : undefined,

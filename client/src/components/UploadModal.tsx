@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Upload as UploadIcon, FileText, Check } from 'lucide-react';
 import api from '../lib/api';
+import { useAuth } from '../contexts/AuthContext';
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -8,17 +9,39 @@ interface UploadModalProps {
   onUploadComplete?: () => void;
 }
 
+interface Course {
+  id: string;
+  code: string;
+  title: string;
+}
+
 export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalProps) {
+  const { user } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
-  const [department, setDepartment] = useState('');
-  const [yearLevel, setYearLevel] = useState('');
-  const [courseCode, setCourseCode] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState('');
   const [topic, setTopic] = useState('');
-  const [category, setCategory] = useState('course_material');
+  const [category, setCategory] = useState('note');
+  const [courses, setCourses] = useState<Course[]>([]);
+  
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen && user?.department?.id) {
+      fetchCourses(user.department.id);
+    }
+  }, [isOpen, user]);
+
+  const fetchCourses = async (departmentId: string) => {
+    try {
+      const res = await api.get(`/academic/departments/${departmentId}/courses`);
+      setCourses(res.data);
+    } catch (error) {
+      console.error('Failed to fetch courses', error);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -30,36 +53,58 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file || !title) return;
-
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('title', title);
-    formData.append('department', department);
-    formData.append('yearLevel', yearLevel);
-    formData.append('courseCode', courseCode);
-    formData.append('topic', topic);
-    formData.append('category', category);
-    formData.append('isPublic', 'true');
+    if (!file || !title || !selectedCourse) return;
 
     setUploading(true);
+    setError(null);
+
     try {
-      await api.post('/chat/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      // 1. Get presigned URL
+      const presignRes = await api.get(`/materials/presign?fileType=${file.type}`);
+      const { url, signature, timestamp, apiKey, folder } = presignRes.data;
+
+      // 2. Upload to Cloudinary
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('api_key', apiKey);
+      formData.append('timestamp', timestamp.toString());
+      formData.append('signature', signature);
+      formData.append('folder', folder);
+
+      const uploadRes = await fetch(url, {
+        method: 'POST',
+        body: formData,
       });
+
+      if (!uploadRes.ok) throw new Error('Failed to upload file to storage');
+      const uploadData = await uploadRes.json();
+
+      // 3. Create Material Record
+      await api.post('/materials', {
+        title,
+        description: topic, // Using topic as description for now or add separate field
+        type: category,
+        fileUrl: uploadData.secure_url,
+        fileType: file.type,
+        size: file.size,
+        courseId: selectedCourse,
+        scope: 'department', // Default to department scope
+        tags: topic ? [topic] : [],
+      });
+
       setSuccess(true);
       setFile(null);
       setTitle('');
-      setDepartment('');
-      setYearLevel('');
-      setCourseCode('');
+      setSelectedCourse('');
       setTopic('');
+      
       if (onUploadComplete) onUploadComplete();
       setTimeout(() => {
         onClose();
+        setSuccess(false);
       }, 2000);
     } catch (err) {
-      // console.error('Upload failed', err);
+      console.error('Upload failed', err);
       setError('Failed to upload material. Please try again.');
     } finally {
       setUploading(false);
@@ -81,7 +126,7 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
 
         <div className="p-6">
           <p className="mb-6 text-gray-600 dark:text-gray-400">
-            Share materials with the community. These will be accessible to other students in your department.
+            Share materials with your department.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -102,50 +147,32 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Department</label>
-                <input
-                  type="text"
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none"
-                  placeholder="e.g., Science"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Year Level</label>
-                <input
-                  type="number"
-                  value={yearLevel}
-                  onChange={(e) => setYearLevel(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none"
-                  placeholder="e.g., 1"
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Course</label>
+              <select
+                value={selectedCourse}
+                onChange={(e) => setSelectedCourse(e.target.value)}
+                className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none"
+                required
+              >
+                <option value="">Select a course</option>
+                {courses.map((course) => (
+                  <option key={course.id} value={course.id}>
+                    {course.code} - {course.title}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Course Code</label>
-                <input
-                  type="text"
-                  value={courseCode}
-                  onChange={(e) => setCourseCode(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none"
-                  placeholder="e.g., PHY101"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Topic</label>
-                <input
-                  type="text"
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none"
-                  placeholder="e.g., Mechanics"
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Topic (Optional)</label>
+              <input
+                type="text"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none"
+                placeholder="e.g., Mechanics"
+              />
             </div>
 
             <div>
@@ -155,8 +182,10 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none"
               >
-                <option value="course_material">Course Material</option>
+                <option value="note">Note</option>
+                <option value="slide">Slide</option>
                 <option value="past_question">Past Question</option>
+                <option value="other">Other</option>
               </select>
             </div>
 
@@ -165,6 +194,7 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
                 type="file"
                 onChange={handleFileChange}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                required
               />
               {file ? (
                 <div className="flex items-center justify-center text-primary-700 dark:text-primary-400 font-medium">
