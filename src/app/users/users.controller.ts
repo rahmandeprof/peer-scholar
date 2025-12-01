@@ -22,7 +22,7 @@ import { Paginate, PaginateQuery } from 'nestjs-paginate';
 @Controller('users')
 @UseGuards(AuthGuard('jwt'))
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
   @Post()
   create(@Body() createUserDto: CreateUserDto) {
@@ -32,6 +32,12 @@ export class UsersController {
   @Get()
   public findAll(@Paginate() query: PaginateQuery) {
     return this.usersService.findAll(query);
+  }
+
+  @Get('profile')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getProfile(@Req() req: any) {
+    return this.usersService.findOne(req.user.id);
   }
 
   @Get(':id')
