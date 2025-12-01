@@ -16,6 +16,7 @@ export enum AccessScope {
   PUBLIC = 'public',
   DEPARTMENT = 'department',
   COURSE = 'course',
+  PRIVATE = 'private',
 }
 
 export enum MaterialStatus {
@@ -40,25 +41,31 @@ export class Material extends IDAndTimestamp {
   })
   type: MaterialType;
 
+  @Column({ type: 'text', nullable: true })
+  content?: string;
+
+  @Column({ type: 'text', nullable: true })
+  summary?: string;
+
   @Column()
   fileUrl: string;
 
   @Column({ nullable: true })
-  fileType: string; // mime type
+  fileType: string;
 
   @Column({ type: 'int', default: 0 })
-  size: number; // bytes
+  size: number;
 
-  @ManyToOne(() => Course)
-  course: Course;
+  @ManyToOne(() => Course, (course) => course.materials, { nullable: true })
+  course?: Course;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, (user) => user.materials)
   uploader: User;
 
   @Column({
     type: 'enum',
     enum: AccessScope,
-    default: AccessScope.PUBLIC,
+    default: AccessScope.PRIVATE,
   })
   scope: AccessScope;
 

@@ -15,7 +15,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
 
-import { MaterialCategory } from './entities/material.entity';
+import { MaterialType } from '../academic/entities/material.entity';
 import { User } from '@/app/users/entities/user.entity';
 
 import { ChatService } from './chat.service';
@@ -38,7 +38,7 @@ export class ChatController {
     @Body()
     body: {
       title: string;
-      category: MaterialCategory;
+      category: MaterialType;
       department?: string;
       yearLevel?: number;
       isPublic?: string;
@@ -69,7 +69,7 @@ export class ChatController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Req() req: RequestWithUser,
   ) {
-    console.log('DELETE request received for id:', id);
+    // console.log('DELETE request received for id:', id);
 
     return this.chatService.deleteConversation(id, req.user);
   }
@@ -119,8 +119,8 @@ export class ChatController {
   @Post('quiz/:id')
   generateQuiz(
     @Param('id', new ParseUUIDPipe()) id: string,
-    @Req() req: RequestWithUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.chatService.generateQuiz(id, req.user);
+    return this.chatService.generateQuiz(id);
   }
 }

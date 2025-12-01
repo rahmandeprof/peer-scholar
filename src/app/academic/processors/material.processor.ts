@@ -138,6 +138,7 @@ export class MaterialProcessor {
       }
 
       material.status = MaterialStatus.READY;
+      material.content = text;
       await this.materialRepo.save(material);
 
       this.logger.debug('Material processing completed');
