@@ -9,6 +9,7 @@ import { StudyStreak } from '@/app/users/entities/study-streak.entity';
 import { User } from '@/app/users/entities/user.entity';
 
 import { CreateUserDto } from '@/app/users/dto/create-user.dto';
+import { UpdateAcademicProfileDto } from '@/app/users/dto/update-academic-profile.dto';
 import { UpdateUserDto } from '@/app/users/dto/update-user.dto';
 
 import { EmailService } from '@/app/common/services/email.service';
@@ -137,7 +138,7 @@ export class UsersService {
     };
   }
 
-  async getPendingRequests(userId: string) {
+  getPendingRequests(userId: string) {
     return this.partnerRequestRepo.find({
       where: { receiver: { id: userId }, status: PartnerRequestStatus.PENDING },
       relations: ['sender'],
@@ -209,6 +210,20 @@ export class UsersService {
     const user = await this.getOne(id);
 
     Object.assign(user, updateUserDto);
+
+    return this.userRepository.save(user);
+  }
+
+  async updateAcademicProfile(id: string, dto: UpdateAcademicProfileDto) {
+    const user = await this.getOne(id);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    user.school = { id: dto.schoolId } as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    user.faculty = { id: dto.facultyId } as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    user.department = { id: dto.departmentId } as any;
+    user.yearOfStudy = dto.yearOfStudy;
 
     return this.userRepository.save(user);
   }
