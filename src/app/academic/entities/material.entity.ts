@@ -1,8 +1,9 @@
+import { MaterialChunk } from './material-chunk.entity';
 import { Course } from '@/app/academic/entities/course.entity';
 import { User } from '@/app/users/entities/user.entity';
 import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
 
-import { Column, Entity, ManyToOne } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
 
 export enum MaterialType {
   NOTE = 'note',
@@ -76,4 +77,7 @@ export class Material extends IDAndTimestamp {
 
   @Column({ type: 'int', default: 0 })
   downloads: number;
+
+  @OneToMany(() => MaterialChunk, (chunk) => chunk.material)
+  chunks: MaterialChunk[];
 }
