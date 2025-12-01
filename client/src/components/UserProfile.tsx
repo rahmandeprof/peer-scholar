@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { X, User, Save, Mail, Building, GraduationCap, Calendar } from 'lucide-react';
+import { X, User, Save, Mail, Building, GraduationCap } from 'lucide-react';
 import api from '../lib/api';
-import { useToast } from '../hooks/use-toast';
+import { useToast } from '../contexts/ToastContext';
 
 interface UserProfileProps {
   isOpen: boolean;
@@ -10,8 +10,8 @@ interface UserProfileProps {
 }
 
 export function UserProfile({ isOpen, onClose }: UserProfileProps) {
-  const { user, login } = useAuth();
-  const { toast } = useToast();
+  const { user } = useAuth();
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
@@ -38,24 +38,16 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
     setLoading(true);
 
     try {
-      const res = await api.patch(`/users/${user.id}`, formData);
+      await api.patch(`/users/${user.id}`, formData);
       // Update local user state by re-logging in with new data (simplified)
       // Ideally, AuthContext should expose an updateProfile method
       // For now, we'll just show success and close
-      toast({
-        title: 'Profile updated',
-        description: 'Your changes have been saved successfully.',
-        variant: 'default',
-      });
+      toast.success('Profile updated successfully');
       onClose();
       window.location.reload(); // Force reload to update context
     } catch (err) {
-      console.error('Failed to update profile', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to update profile. Please try again.',
-        variant: 'destructive',
-      });
+      // console.error('Failed to update profile', err);
+      toast.error('Failed to update profile. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -80,8 +72,8 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="flex justify-center mb-6">
             <div className="w-24 h-24 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 text-3xl font-bold overflow-hidden">
-              {user.image ? (
-                <img src={user.image} alt="Profile" className="w-full h-full object-cover" />
+              {(user as any).image ? (
+                <img src={(user as any).image} alt="Profile" className="w-full h-full object-cover" />
               ) : (
                 <span>{user.firstName[0]}{user.lastName[0]}</span>
               )}

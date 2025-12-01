@@ -58,7 +58,7 @@ export function Dashboard() {
       const res = await api.get('/study/streak');
       setStreak(res.data.currentStreak || 0);
     } catch (err) {
-      console.error('Failed to fetch streak', err);
+      // console.error('Failed to fetch streak', err);
     }
   };
 
@@ -67,13 +67,13 @@ export function Dashboard() {
       const res = await api.get('/chat/history');
       setHistory(res.data);
     } catch (err) {
-      console.error('Failed to fetch history', err);
+      // console.error('Failed to fetch history', err);
     }
   };
 
   useEffect(() => {
-    fetchStreak();
-    fetchHistory();
+    void fetchStreak();
+    void fetchHistory();
   }, []);
 
   const handleHistoryClick = (id: string) => {
@@ -92,16 +92,14 @@ export function Dashboard() {
   const handleConfirmDelete = async () => {
     if (!deleteConfirmation.id) return;
     
-    console.log('Attempting to delete conversation:', deleteConfirmation.id);
     try {
       await api.delete(`/chat/history/${deleteConfirmation.id}`);
-      console.log('Delete successful');
       setHistory(prev => prev.filter(c => c.id !== deleteConfirmation.id));
       if (selectedConversationId === deleteConfirmation.id) {
         setSelectedConversationId(null);
       }
     } catch (err) {
-      console.error('Failed to delete conversation', err);
+      // console.error('Failed to delete conversation', err);
     }
   };
 
@@ -111,7 +109,7 @@ export function Dashboard() {
     setEditTitle(conv.title);
   };
 
-  const handleSaveRename = async (e: React.MouseEvent, id: string) => {
+  const handleSaveRename = async (e: React.SyntheticEvent, id: string) => {
     e.stopPropagation();
     if (!editTitle.trim()) return;
 
@@ -120,11 +118,11 @@ export function Dashboard() {
       setHistory(prev => prev.map(c => c.id === id ? { ...c, title: editTitle } : c));
       setEditingConversationId(null);
     } catch (err) {
-      console.error('Failed to rename conversation', err);
+      // console.error('Failed to rename conversation', err);
     }
   };
 
-  const handleCancelRename = (e: React.MouseEvent) => {
+  const handleCancelRename = (e: React.SyntheticEvent) => {
     e.stopPropagation();
     setEditingConversationId(null);
   };
@@ -237,8 +235,8 @@ export function Dashboard() {
                             className="flex-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-xs focus:outline-none focus:border-primary-500"
                             autoFocus
                             onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleSaveRename(e as any, conv.id);
-                              if (e.key === 'Escape') handleCancelRename(e as any);
+                              if (e.key === 'Enter') handleSaveRename(e, conv.id);
+                              if (e.key === 'Escape') handleCancelRename(e);
                             }}
                             onClick={e => e.stopPropagation()}
                           />

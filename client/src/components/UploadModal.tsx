@@ -56,11 +56,10 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }: UploadModalPr
       setTopic('');
       if (onUploadComplete) onUploadComplete();
       setTimeout(() => {
-        setSuccess(false);
         onClose();
       }, 2000);
     } catch (err) {
-      console.error('Upload failed', err);
+      // console.error('Upload failed', err);
       setError('Failed to upload material. Please try again.');
     } finally {
       setUploading(false);

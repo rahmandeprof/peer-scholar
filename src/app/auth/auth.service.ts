@@ -14,7 +14,7 @@ export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
-  ) { }
+  ) {}
 
   async validateUser(
     email: string,
@@ -51,13 +51,13 @@ export class AuthService {
       | User
       | Omit<User, 'password'>
       | {
-        id: string;
-        email: string;
-        firstName: string;
-        lastName: string;
-        department: string;
-        yearOfStudy: number;
-      },
+          id: string;
+          email: string;
+          firstName: string;
+          lastName: string;
+          department: string;
+          yearOfStudy: number;
+        },
   ) {
     const payload = {
       email: user.email,
@@ -115,6 +115,7 @@ export class AuthService {
         department: 'General', // Default
         yearOfStudy: 1, // Default
       };
+
       user = await this.usersService.create(userData as any);
     } else if (!user.googleId) {
       // Link existing user

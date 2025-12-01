@@ -51,14 +51,14 @@ export function CommunityMaterials({ onChat }: CommunityMaterialsProps) {
       const res = await api.get('/chat/materials');
       setMaterials(res.data);
     } catch (err) {
-      console.error('Failed to fetch materials', err);
+      // console.error('Failed to fetch materials', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchMaterials();
+    void fetchMaterials();
   }, []);
 
   const handleDeleteClick = (e: React.MouseEvent, id: string) => {
@@ -74,7 +74,7 @@ export function CommunityMaterials({ onChat }: CommunityMaterialsProps) {
       setMaterials(prev => prev.filter(m => m.id !== deleteConfirmation.id));
       setDeleteConfirmation({ isOpen: false, id: null });
     } catch (err) {
-      console.error('Failed to delete material', err);
+      // console.error('Failed to delete material', err);
     }
   };
 

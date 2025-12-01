@@ -31,7 +31,7 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
   useEffect(() => {
     if (initialConversationId) {
       setConversationId(initialConversationId);
-      fetchMessages(initialConversationId);
+      void fetchMessages(initialConversationId);
       setActiveMaterialId(null); // Clear material focus when switching chats
     } else {
       setConversationId(null);
@@ -53,7 +53,7 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
       }));
       setMessages(formattedMessages);
     } catch (err) {
-      console.error('Failed to fetch conversation', err);
+      // console.error('Failed to fetch conversation', err);
       toast.error('Failed to load conversation.');
     } finally {
       setLoading(false);
@@ -127,7 +127,7 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
       };
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (err) {
-      console.error('Failed to send message', err);
+      // console.error('Failed to send message', err);
       toast.error('Failed to send message. Please try again.');
     } finally {
       setLoading(false);
@@ -138,7 +138,7 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
   useEffect(() => {
     if (initialMaterialId && !messages.length && !loading) {
       // Pass initialMaterialId explicitly to ensure it's used
-      handleSend("Please summarize this material and prepare to answer questions about it.", initialMaterialId);
+      void handleSend("Please summarize this material and prepare to answer questions about it.", initialMaterialId);
     }
   }, [initialMaterialId]);
 

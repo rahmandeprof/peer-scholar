@@ -38,12 +38,13 @@ export function StudyPartner() {
       setStats(statsRes.data);
       setRequests(requestsRes.data);
     } catch (err) {
-      console.error('Failed to fetch partner data', err);
+      // console.error('Failed to fetch partner data', err);
+      toast.error('Failed to load partner data');
     }
   };
 
   useEffect(() => {
-    fetchData();
+    void fetchData();
   }, []);
 
   const handleInvite = async (e: React.FormEvent) => {
@@ -56,7 +57,7 @@ export function StudyPartner() {
       toast.success('Invite sent successfully!');
       setInviteEmail('');
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to send invite');
+      toast.error(err.response?.data?.message ?? 'Failed to send invite');
     } finally {
       setLoading(false);
     }

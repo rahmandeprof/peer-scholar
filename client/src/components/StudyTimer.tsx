@@ -27,7 +27,7 @@ export function StudyTimer({ onSessionComplete }: { onSessionComplete?: () => vo
         await api.post('/study/end', { sessionId });
         if (onSessionComplete) onSessionComplete();
       } catch (err) {
-        console.error('Failed to end session', err);
+        // console.error('Failed to end session', err);
       }
     }
     
@@ -59,7 +59,7 @@ export function StudyTimer({ onSessionComplete }: { onSessionComplete?: () => vo
         setTimeLeft((t) => t - 1);
       }, 1000);
     } else if (timeLeft === 0) {
-      handleComplete();
+      void handleComplete();
     }
 
     return () => {
@@ -75,7 +75,7 @@ export function StudyTimer({ onSessionComplete }: { onSessionComplete?: () => vo
       }
       setIsActive(true);
     } catch (err) {
-      console.error('Failed to start session', err);
+      // console.error('Failed to start session', err);
     }
   };
 

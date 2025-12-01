@@ -18,7 +18,7 @@ export function GoogleCallback() {
         login(token, user);
         navigate('/');
       } catch (err) {
-        console.error('Failed to parse user data', err);
+        // console.error('Failed to parse user data', err);
         navigate('/login?error=auth_failed');
       }
     } else {

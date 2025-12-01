@@ -11,8 +11,8 @@ import { User } from '@/app/users/entities/user.entity';
 import { CreateUserDto } from '@/app/users/dto/create-user.dto';
 import { UpdateUserDto } from '@/app/users/dto/update-user.dto';
 
-import { WinstonLoggerService } from '@/logger/winston-logger/winston-logger.service';
 import { EmailService } from '@/app/common/services/email.service';
+import { WinstonLoggerService } from '@/logger/winston-logger/winston-logger.service';
 import { PaginationService } from '@/pagination/pagination.service';
 
 import { SuccessResponse } from '@/utils/response';
@@ -74,7 +74,12 @@ export class UsersService {
     // Send email
     // In a real app, generate a token/link. For now, just link to the app.
     const link = 'http://localhost:5173';
-    await this.emailService.sendPartnerInvite(receiver.email, sender.firstName, link);
+
+    await this.emailService.sendPartnerInvite(
+      receiver.email,
+      sender.firstName,
+      link,
+    );
 
     return request;
   }

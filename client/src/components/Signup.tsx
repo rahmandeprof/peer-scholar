@@ -28,7 +28,7 @@ export function Signup({ onSwitch }: SignupProps) {
       const res = await api.post('/auth/register', formData);
       login(res.data.access_token, res.data.user);
     } catch (err: unknown) {
-      console.error(err);
+      // console.error(err);
       const errorMessage = err instanceof Error ? err.message : 'Registration failed';
       toast.error(errorMessage);
     } finally {

@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
 import { LoginDto } from './dto/login.dto';
@@ -10,7 +18,7 @@ import { Request, Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) { }
+  constructor(private authService: AuthService) {}
 
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
@@ -39,7 +47,7 @@ export class AuthController {
 
   @Get('google')
   @UseGuards(AuthGuard('google'))
-  async googleAuth(@Req() req: any) { }
+  async googleAuth(@Req() req: any) {}
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
@@ -47,10 +55,15 @@ export class AuthController {
     const data = await this.authService.googleLogin(req);
 
     if (typeof data === 'string') {
-      return res.redirect('http://localhost:5173/login?error=auth_failed');
+      res.redirect('http://localhost:5173/login?error=auth_failed');
+
+      return;
     }
 
     const userStr = encodeURIComponent(JSON.stringify(data.user));
-    return res.redirect(`http://localhost:5173/auth/callback?token=${data.access_token}&user=${userStr}`);
+
+    res.redirect(
+      `http://localhost:5173/auth/callback?token=${data.access_token}&user=${userStr}`,
+    );
   }
 }

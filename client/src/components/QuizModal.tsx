@@ -48,7 +48,7 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
       const res = await api.post(`/chat/quiz/${materialId}`);
       setQuestions(res.data);
     } catch (err) {
-      console.error('Failed to fetch quiz', err);
+      // console.error('Failed to fetch quiz', err);
     } finally {
       setLoading(false);
     }

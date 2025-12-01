@@ -27,7 +27,7 @@ export function Login({ onSwitch }: LoginProps) {
       const res = await api.post('/auth/login', { email, password });
       login(res.data.access_token, res.data.user);
     } catch (err: unknown) {
-      console.error(err);
+      // console.error(err);
       const errorMessage = err instanceof Error ? err.message : 'Invalid credentials';
       toast.error(errorMessage);
     } finally {

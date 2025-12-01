@@ -39,7 +39,7 @@ export function MaterialUpload({ onUploadComplete }: { onUploadComplete?: () => 
       if (onUploadComplete) onUploadComplete();
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      console.error('Upload failed', err);
+      // console.error('Upload failed', err);
     } finally {
       setUploading(false);
     }
