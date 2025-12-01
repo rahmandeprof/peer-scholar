@@ -330,7 +330,7 @@ export class UsersService {
     };
   }
   async increaseReputation(userId: string, amount: number) {
-    const user = await this.findOne(userId);
+    const user = await this.getOne(userId);
 
     if (user) {
       user.reputation += amount;
