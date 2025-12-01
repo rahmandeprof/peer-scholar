@@ -26,12 +26,10 @@ export class MaterialsService {
     @InjectQueue('materials') private materialsQueue: Queue,
     private usersService: UsersService,
   ) {
-    const cloudinaryConfig = this.configService.get('cloudinary');
-
     cloudinary.config({
-      cloud_name: cloudinaryConfig.cloudName,
-      api_key: cloudinaryConfig.apiKey,
-      api_secret: cloudinaryConfig.apiSecret,
+      cloud_name: this.configService.get('CLOUD_NAME'),
+      api_key: this.configService.get('CLOUD_API_KEY'),
+      api_secret: this.configService.get('CLOUD_API_SECRET'),
     });
   }
 
@@ -43,9 +41,9 @@ export class MaterialsService {
     };
 
     const apiSecret =
-      this.configService.get<string>('cloudinary.apiSecret') ?? '';
+      this.configService.get<string>('CLOUD_API_SECRET') ?? '';
     const cloudName =
-      this.configService.get<string>('cloudinary.cloudName') ?? '';
+      this.configService.get<string>('CLOUD_NAME') ?? '';
 
     const signature = cloudinary.utils.api_sign_request(params, apiSecret);
 
