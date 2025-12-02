@@ -3,6 +3,7 @@ import axios from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { BookOpen, FileText, Upload } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { LoadingState } from './LoadingState';
 
 interface Course {
   id: string;
@@ -65,7 +66,7 @@ const DepartmentView: React.FC = () => {
   };
 
   if (loading) {
-    return <div className='p-8 text-center'>Loading department data...</div>;
+    return <LoadingState message='Fetching department library...' />;
   }
 
   if (!user?.department) {

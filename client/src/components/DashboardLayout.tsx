@@ -1,11 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Chatbot } from './Chatbot';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { StudyTimer } from './StudyTimer';
 import { UploadModal } from './UploadModal';
-import { StudyPartner } from './StudyPartner';
 import { UserProfile } from './UserProfile';
-import DepartmentView from './DepartmentView';
 import {
   Flame,
   Upload,
@@ -16,22 +13,19 @@ import {
   X,
   BookOpen,
   MessageSquare,
-  History,
-  Trash2,
-  Edit2,
-  Check,
   Users,
   LogOut,
   Home,
   ChevronDown,
   ChevronRight,
+  History,
+  Edit2,
+  Trash2,
+  Check,
 } from 'lucide-react';
-import { AcademicControlCenter } from './AcademicControlCenter';
 import { useTheme } from '../contexts/ThemeContext';
 import { ConfirmationModal } from './ConfirmationModal';
 import api from '../lib/api';
-
-type View = 'home' | 'chat' | 'study' | 'community' | 'partner';
 
 interface Conversation {
   id: string;
@@ -39,24 +33,18 @@ interface Conversation {
   createdAt: string;
 }
 
-export function Dashboard() {
-  const [currentView, setCurrentView] = useState<View>('home');
+export function DashboardLayout() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [streak, setStreak] = useState(0);
   const [history, setHistory] = useState<Conversation[]>([]);
   const [historyOpen, setHistoryOpen] = useState(true);
-  const [selectedConversationId, setSelectedConversationId] = useState<
-    string | null
-  >(null);
-  const [selectedMaterialId, setSelectedMaterialId] = useState<string | null>(
-    null,
-  );
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     isOpen: boolean;
     id: string | null;
   }>({ isOpen: false, id: null });
+  const [logoutConfirmation, setLogoutConfirmation] = useState(false);
 
   // Rename state
   const [editingConversationId, setEditingConversationId] = useState<
@@ -66,6 +54,8 @@ export function Dashboard() {
 
   const { theme, toggleTheme } = useTheme();
   const { logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const fetchStreak = async () => {
     try {
@@ -90,16 +80,14 @@ export function Dashboard() {
     void fetchHistory();
   }, []);
 
-  const handleHistoryClick = (id: string) => {
-    if (editingConversationId === id) return; // Don't switch if editing
-    setSelectedConversationId(id);
-    setSelectedMaterialId(null); // Clear material selection when picking a history item
-    setCurrentView('chat');
-    if (window.innerWidth < 768) setSidebarOpen(false);
-  };
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
 
   const handleDeleteClick = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
+    e.preventDefault();
     setDeleteConfirmation({ isOpen: true, id });
   };
 
@@ -109,8 +97,8 @@ export function Dashboard() {
     try {
       await api.delete(`/chat/history/${deleteConfirmation.id}`);
       setHistory((prev) => prev.filter((c) => c.id !== deleteConfirmation.id));
-      if (selectedConversationId === deleteConfirmation.id) {
-        setSelectedConversationId(null);
+      if (location.pathname === `/chat/${deleteConfirmation.id}`) {
+        navigate('/chat');
       }
     } catch {
       // console.error('Failed to delete conversation', err);
@@ -119,12 +107,14 @@ export function Dashboard() {
 
   const handleRenameClick = (e: React.MouseEvent, conv: Conversation) => {
     e.stopPropagation();
+    e.preventDefault();
     setEditingConversationId(conv.id);
     setEditTitle(conv.title);
   };
 
   const handleSaveRename = async (e: React.SyntheticEvent, id: string) => {
     e.stopPropagation();
+    e.preventDefault();
     if (!editTitle.trim()) return;
 
     try {
@@ -140,14 +130,22 @@ export function Dashboard() {
 
   const handleCancelRename = (e: React.SyntheticEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     setEditingConversationId(null);
   };
 
   const handleUploadComplete = () => {
     fetchStreak();
     setUploadModalOpen(false);
-    setCurrentView('community'); // Redirect to community materials
+    navigate('/department');
   };
+
+  const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+    `w-full px-3 py-2.5 rounded-xl text-left font-medium transition-all duration-200 flex items-center ${
+      isActive
+        ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 shadow-sm ring-1 ring-primary-200 dark:ring-primary-800'
+        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-200'
+    }`;
 
   return (
     <div className='flex h-[100dvh] bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 overflow-hidden relative'>
@@ -167,48 +165,21 @@ export function Dashboard() {
 
         <div className='flex-1 overflow-y-auto py-4'>
           <nav className='px-3 space-y-1'>
-            <button
-              onClick={() => setCurrentView('home')}
-              className={`w-full px-3 py-2.5 rounded-xl text-left font-medium transition-all duration-200 flex items-center ${
-                currentView === 'home'
-                  ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 shadow-sm ring-1 ring-primary-200 dark:ring-primary-800'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              <Home
-                className={`w-5 h-5 mr-3 ${currentView === 'home' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400'}`}
-              />
+            <NavLink to='/dashboard' className={navLinkClass}>
+              <Home className='w-5 h-5 mr-3' />
               Home
-            </button>
+            </NavLink>
             <div className='px-3 mb-2 mt-4 text-xs font-semibold text-gray-500 uppercase tracking-wider'>
               Community
             </div>
-            <button
-              onClick={() => setCurrentView('community')}
-              className={`w-full px-3 py-2.5 rounded-xl text-left font-medium transition-all duration-200 flex items-center ${
-                currentView === 'community'
-                  ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 shadow-sm ring-1 ring-primary-200 dark:ring-primary-800'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              <BookOpen
-                className={`w-5 h-5 mr-3 ${currentView === 'community' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400'}`}
-              />
+            <NavLink to='/department' className={navLinkClass}>
+              <BookOpen className='w-5 h-5 mr-3' />
               Department Library
-            </button>
-            <button
-              onClick={() => setCurrentView('partner')}
-              className={`w-full px-3 py-2.5 rounded-xl text-left font-medium transition-all duration-200 flex items-center ${
-                currentView === 'partner'
-                  ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 shadow-sm ring-1 ring-primary-200 dark:ring-primary-800'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              <Users
-                className={`w-5 h-5 mr-3 ${currentView === 'partner' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400'}`}
-              />
+            </NavLink>
+            <NavLink to='/study-partner' className={navLinkClass}>
+              <Users className='w-5 h-5 mr-3' />
               Study Partner
-            </button>
+            </NavLink>
             <button
               onClick={() => setUploadModalOpen(true)}
               className='w-full px-3 py-2.5 rounded-xl text-left font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-200 transition-all duration-200 flex items-center'
@@ -220,36 +191,14 @@ export function Dashboard() {
             <div className='px-3 mt-6 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider'>
               Tools
             </div>
-            <button
-              onClick={() => setCurrentView('study')}
-              className={`w-full px-3 py-2.5 rounded-xl text-left font-medium transition-all duration-200 flex items-center ${
-                currentView === 'study'
-                  ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 shadow-sm ring-1 ring-primary-200 dark:ring-primary-800'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              <Clock
-                className={`w-5 h-5 mr-3 ${currentView === 'study' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400'}`}
-              />
+            <NavLink to='/study-timer' className={navLinkClass}>
+              <Clock className='w-5 h-5 mr-3' />
               Study Timer
-            </button>
-            <button
-              onClick={() => {
-                setCurrentView('chat');
-                setSelectedConversationId(null);
-                setSelectedMaterialId(null);
-              }}
-              className={`w-full px-3 py-2.5 rounded-xl text-left font-medium transition-all duration-200 flex items-center ${
-                currentView === 'chat' && !selectedConversationId
-                  ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 shadow-sm ring-1 ring-primary-200 dark:ring-primary-800'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              <MessageSquare
-                className={`w-5 h-5 mr-3 ${currentView === 'chat' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400'}`}
-              />
+            </NavLink>
+            <NavLink to='/chat' className={navLinkClass}>
+              <MessageSquare className='w-5 h-5 mr-3' />
               AI Assistant
-            </button>
+            </NavLink>
           </nav>
 
           {history.length > 0 && (
@@ -268,14 +217,16 @@ export function Dashboard() {
               {historyOpen && (
                 <div className='space-y-0.5 animate-slide-down'>
                   {history.slice(0, 5).map((conv) => (
-                    <div
+                    <NavLink
                       key={conv.id}
-                      className={`group w-full px-3 py-2 text-sm text-left rounded-lg transition-all duration-200 flex items-center justify-between cursor-pointer ${
-                        selectedConversationId === conv.id
-                          ? 'bg-gray-100 dark:bg-gray-800 text-primary-600 dark:text-primary-400 font-medium'
-                          : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-200'
-                      }`}
-                      onClick={() => handleHistoryClick(conv.id)}
+                      to={`/chat/${conv.id}`}
+                      className={({ isActive }) =>
+                        `group w-full px-3 py-2 text-sm text-left rounded-lg transition-all duration-200 flex items-center justify-between cursor-pointer ${
+                          isActive
+                            ? 'bg-gray-100 dark:bg-gray-800 text-primary-600 dark:text-primary-400 font-medium'
+                            : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-200'
+                        }`
+                      }
                     >
                       <div className='flex items-center space-x-3 min-w-0 flex-1'>
                         <History className='w-3.5 h-3.5 flex-shrink-0 opacity-70' />
@@ -333,7 +284,7 @@ export function Dashboard() {
                           </button>
                         </div>
                       )}
-                    </div>
+                    </NavLink>
                   ))}
                 </div>
               )}
@@ -383,7 +334,7 @@ export function Dashboard() {
           </div>
 
           <button
-            onClick={logout}
+            onClick={() => setLogoutConfirmation(true)}
             className='w-full px-3 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/10 text-red-600 dark:text-red-400 transition-colors text-sm font-medium flex items-center justify-center'
           >
             <LogOut className='w-4 h-4 mr-2' />
@@ -414,76 +365,26 @@ export function Dashboard() {
 
             <div className='flex-1 overflow-y-auto py-4'>
               <nav className='px-4 space-y-2'>
-                <button
-                  onClick={() => {
-                    setCurrentView('home');
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full px-4 py-3 rounded-xl text-left font-medium transition-colors flex items-center ${
-                    currentView === 'home'
-                      ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
-                  }`}
-                >
+                <NavLink to='/dashboard' className={navLinkClass}>
                   <Home className='w-5 h-5 mr-3' />
                   Home
-                </button>
-                <button
-                  onClick={() => {
-                    setCurrentView('community');
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full px-4 py-3 rounded-xl text-left font-medium transition-colors flex items-center ${
-                    currentView === 'community'
-                      ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
-                  }`}
-                >
+                </NavLink>
+                <NavLink to='/department' className={navLinkClass}>
                   <BookOpen className='w-5 h-5 mr-3' />
                   Department Library
-                </button>
-                <button
-                  onClick={() => {
-                    setCurrentView('partner');
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full px-4 py-3 rounded-xl text-left font-medium transition-colors flex items-center ${
-                    currentView === 'partner'
-                      ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
-                  }`}
-                >
+                </NavLink>
+                <NavLink to='/study-partner' className={navLinkClass}>
                   <Users className='w-5 h-5 mr-3' />
                   Study Partner
-                </button>
-                <button
-                  onClick={() => {
-                    setCurrentView('study');
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full px-4 py-3 rounded-xl text-left font-medium transition-colors flex items-center ${
-                    currentView === 'study'
-                      ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
-                  }`}
-                >
+                </NavLink>
+                <NavLink to='/study-timer' className={navLinkClass}>
                   <Clock className='w-5 h-5 mr-3' />
                   Study Timer
-                </button>
-                <button
-                  onClick={() => {
-                    setCurrentView('chat');
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full px-4 py-3 rounded-xl text-left font-medium transition-colors flex items-center ${
-                    currentView === 'chat'
-                      ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
-                  }`}
-                >
+                </NavLink>
+                <NavLink to='/chat' className={navLinkClass}>
                   <MessageSquare className='w-5 h-5 mr-3' />
                   AI Assistant
-                </button>
+                </NavLink>
 
                 <div className='pt-4 mt-4 border-t border-gray-100 dark:border-gray-800'>
                   <button
@@ -511,7 +412,10 @@ export function Dashboard() {
                     Theme
                   </button>
                   <button
-                    onClick={logout}
+                    onClick={() => {
+                      setSidebarOpen(false);
+                      setLogoutConfirmation(true);
+                    }}
                     className='w-full px-4 py-3 rounded-xl text-left font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors flex items-center'
                   >
                     <LogOut className='w-5 h-5 mr-3' />
@@ -542,34 +446,7 @@ export function Dashboard() {
 
         {/* Content Area */}
         <div className='flex-1 overflow-hidden relative'>
-          {currentView === 'chat' ? (
-            <Chatbot
-              initialConversationId={selectedConversationId}
-              initialMaterialId={selectedMaterialId}
-              onConversationChange={(id) => {
-                setSelectedConversationId(id);
-                fetchHistory();
-              }}
-            />
-          ) : currentView === 'home' ? (
-            <AcademicControlCenter
-              onNavigate={(view, id) => {
-                setCurrentView(view);
-                if (id) setSelectedConversationId(id);
-              }}
-              onUpload={() => setUploadModalOpen(true)}
-            />
-          ) : currentView === 'community' ? (
-            <DepartmentView />
-          ) : currentView === 'partner' ? (
-            <div className='h-full overflow-y-auto'>
-              <StudyPartner />
-            </div>
-          ) : (
-            <div className='h-full overflow-y-auto p-4 md:p-8 flex items-center justify-center'>
-              <StudyTimer onSessionComplete={fetchStreak} />
-            </div>
-          )}
+          <Outlet />
         </div>
       </main>
 
@@ -589,6 +466,15 @@ export function Dashboard() {
         message='Are you sure you want to delete this conversation? This action cannot be undone.'
         confirmText='Delete'
         isDangerous={true}
+      />
+
+      <ConfirmationModal
+        isOpen={logoutConfirmation}
+        onClose={() => setLogoutConfirmation(false)}
+        onConfirm={logout}
+        title='Sign Out'
+        message='Are you sure you want to sign out?'
+        confirmText='Sign Out'
       />
     </div>
   );

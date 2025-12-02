@@ -16,11 +16,15 @@ interface ChatbotProps {
   onConversationChange?: (id: string) => void;
 }
 
+import { useParams, useNavigate } from 'react-router-dom';
+
 export function Chatbot({
   initialConversationId,
   initialMaterialId,
   onConversationChange,
 }: ChatbotProps) {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,24 +32,25 @@ export function Chatbot({
   const toast = useToast();
 
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
-  // Store the ID of the material we want to chat about (either from prop or upload)
   const [activeMaterialId, setActiveMaterialId] = useState<string | null>(null);
   const [isQuizOpen, setIsQuizOpen] = useState(false);
 
   useEffect(() => {
-    if (initialConversationId) {
-      setConversationId(initialConversationId);
-      void fetchMessages(initialConversationId);
-      setActiveMaterialId(null); // Clear material focus when switching chats
+    // Priority: URL param > prop > null
+    const targetId = id || initialConversationId;
+
+    if (targetId) {
+      setConversationId(targetId);
+      void fetchMessages(targetId);
+      setActiveMaterialId(null);
     } else {
       setConversationId(null);
       setMessages([]);
       if (initialMaterialId) {
         setActiveMaterialId(initialMaterialId);
-        // Maybe add a system message or visual indicator that we are chatting about a specific material?
       }
     }
-  }, [initialConversationId, initialMaterialId]);
+  }, [id, initialConversationId, initialMaterialId]);
 
   const fetchMessages = async (id: string) => {
     try {
@@ -135,7 +140,7 @@ export function Chatbot({
       if (!conversationId && res.data.conversation?.id) {
         const newId = res.data.conversation.id;
         setConversationId(newId);
-        if (onConversationChange) onConversationChange(newId);
+        navigate(`/chat/${newId}`);
       }
 
       const assistantMessage: Message = {
@@ -166,7 +171,7 @@ export function Chatbot({
     setConversationId(null);
     setActiveMaterialId(null);
     setInput('');
-    if (onConversationChange) onConversationChange(''); // Notify parent to clear selection
+    navigate('/chat');
   };
 
   return (

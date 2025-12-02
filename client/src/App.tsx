@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Dashboard } from './components/Dashboard';
+import { DashboardLayout } from './components/DashboardLayout';
+import { AcademicControlCenter } from './components/AcademicControlCenter';
+import DepartmentView from './components/DepartmentView';
+import { StudyTimer } from './components/StudyTimer';
+import { Chatbot } from './components/Chatbot';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -19,14 +23,14 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
-        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+      <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950'>
+        <Loader2 className='w-8 h-8 animate-spin text-primary-600' />
       </div>
     );
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to='/' replace />;
   }
 
   return <>{children}</>;
@@ -38,64 +42,49 @@ function AppContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
-        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+      <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950'>
+        <Loader2 className='w-8 h-8 animate-spin text-primary-600' />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className='min-h-screen bg-gray-50 dark:bg-gray-950'>
       <Routes>
-        <Route path="/auth/callback" element={<GoogleCallback />} />
+        <Route path='/auth/callback' element={<GoogleCallback />} />
         <Route
-          path="/onboarding"
+          path='/onboarding'
           element={
             <ProtectedRoute>
               <Onboarding />
             </ProtectedRoute>
           }
         />
+
+        {/* Protected Dashboard Routes */}
         <Route
-          path="/dashboard"
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <DashboardLayout />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route path='/dashboard' element={<AcademicControlCenter />} />
+          <Route path='/department' element={<DepartmentView />} />
+          <Route path='/study-partner' element={<StudyPartner />} />
+          <Route path='/study-timer' element={<StudyTimer />} />
+          <Route path='/chat' element={<Chatbot />} />
+          <Route path='/chat/:id' element={<Chatbot />} />
+          <Route path='/courses/:courseId' element={<CourseView />} />
+          <Route path='/materials/:id' element={<MaterialView />} />
+        </Route>
+
         <Route
-          path="/courses/:courseId"
+          path='/'
           element={
-            <ProtectedRoute>
-              <CourseView />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/materials/:id"
-          element={
-            <ProtectedRoute>
-              <MaterialView />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/partner"
-          element={
-            <ProtectedRoute>
-              <div className="h-screen bg-gray-50 dark:bg-gray-950">
-                <StudyPartner />
-              </div>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/"
-          element={
-            <div className="min-h-screen flex items-center justify-center px-4 py-12">
+            <div className='min-h-screen flex items-center justify-center px-4 py-12'>
               {isAuthenticated ? (
-                <Navigate to="/dashboard" replace />
+                <Navigate to='/dashboard' replace />
               ) : isLogin ? (
                 <Login onSwitch={() => setIsLogin(false)} />
               ) : (
@@ -104,6 +93,9 @@ function AppContent() {
             </div>
           }
         />
+
+        {/* Catch all redirect */}
+        <Route path='*' element={<Navigate to='/' replace />} />
       </Routes>
     </div>
   );

@@ -37,15 +37,18 @@ interface Conversation {
   materialId?: string;
 }
 
+import { useNavigate } from 'react-router-dom';
+
 interface AcademicControlCenterProps {
-  onNavigate: (view: 'chat' | 'partner' | 'study', id?: string) => void;
-  onUpload: () => void;
+  onNavigate?: (view: 'chat' | 'partner' | 'study', id?: string) => void;
+  onUpload?: () => void;
 }
 
 export function AcademicControlCenter({
   onNavigate,
   onUpload,
 }: AcademicControlCenterProps) {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [partnerStats, setPartnerStats] = useState<PartnerStats | null>(null);
@@ -203,7 +206,7 @@ export function AcademicControlCenter({
 
         {/* Partner Status */}
         <div
-          onClick={() => onNavigate('partner')}
+          onClick={() => navigate('/study-partner')}
           className='bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform'
         >
           <div className='absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 pointer-events-none' />
@@ -268,7 +271,7 @@ export function AcademicControlCenter({
               Study Progress
             </h2>
             <button
-              onClick={() => onNavigate('study')}
+              onClick={() => navigate('/study-timer')}
               className='text-sm font-medium text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400'
             >
               View Timer
@@ -312,8 +315,7 @@ export function AcademicControlCenter({
             Course Shelves
           </h2>
           <Link
-            to='/dashboard'
-            onClick={() => onNavigate('chat')} // Actually this should probably go to community view or similar, but for now...
+            to='/department'
             className='text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300'
           >
             View All
@@ -356,7 +358,7 @@ export function AcademicControlCenter({
       <StudySessionModal
         isOpen={studyModalOpen}
         onClose={() => setStudyModalOpen(false)}
-        onUpload={onUpload}
+        onUpload={onUpload || (() => {})}
       />
     </div>
   );

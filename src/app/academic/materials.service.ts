@@ -53,7 +53,7 @@ export class MaterialsService {
       url: `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
       signature,
       timestamp,
-      apiKey: this.configService.get('cloudinary.apiKey'),
+      apiKey: this.configService.get('CLOUD_API_KEY'),
       folder: 'materials',
     };
   }
