@@ -90,6 +90,7 @@ export class AuthService {
       lastName: userData.lastName,
       email: userData.email,
       department: userData.department,
+      faculty: userData.faculty,
       yearOfStudy: userData.yearOfStudy,
       password: hashedPassword,
     };

@@ -42,6 +42,10 @@ export class CreateUserDto {
 
   @IsString()
   @IsOptional()
+  faculty?: string;
+
+  @IsString()
+  @IsOptional()
   facultyId?: string;
 
   @IsString()
