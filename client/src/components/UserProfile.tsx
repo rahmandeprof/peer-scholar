@@ -170,6 +170,21 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
 
           <div>
             <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+              Username
+            </label>
+            <div className='relative'>
+              <User className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4' />
+              <input
+                type='text'
+                value={user.email.split('@')[0]}
+                disabled
+                className='w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-500 cursor-not-allowed'
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
               Faculty
             </label>
             <div className='relative'>

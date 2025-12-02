@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, Upload as UploadIcon, FileText, Check } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,12 +9,6 @@ interface UploadModalProps {
   onUploadComplete?: () => void;
 }
 
-interface Course {
-  id: string;
-  code: string;
-  title: string;
-}
-
 export function UploadModal({
   isOpen,
   onClose,
@@ -23,36 +17,14 @@ export function UploadModal({
   const { user } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
-  const [selectedCourse, setSelectedCourse] = useState('');
   const [topic, setTopic] = useState('');
   const [category, setCategory] = useState('note');
   const [visibility, setVisibility] = useState('public');
   const [courseCode, setCourseCode] = useState('');
-  const [courses, setCourses] = useState<Course[]>([]);
 
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    // If we have department ID logic, keep it, otherwise maybe fetch all courses or rely on manual entry
-    // For now, keeping existing logic but handling string department
-    if (isOpen && user?.department && typeof user.department !== 'string') {
-      // @ts-ignore
-      fetchCourses(user.department.id);
-    }
-  }, [isOpen, user]);
-
-  const fetchCourses = async (departmentId: string) => {
-    try {
-      const res = await api.get(
-        `/academic/departments/${departmentId}/courses`,
-      );
-      setCourses(res.data);
-    } catch (error) {
-      console.error('Failed to fetch courses', error);
-    }
-  };
 
   if (!isOpen) return null;
 
@@ -64,7 +36,7 @@ export function UploadModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file || !title) return; // Removed selectedCourse requirement for general upload
+    if (!file || !title) return;
 
     setUploading(true);
     setError(null);
@@ -100,7 +72,6 @@ export function UploadModal({
         fileUrl: uploadData.secure_url,
         fileType: file.type,
         size: file.size,
-        courseId: selectedCourse || undefined,
         courseCode: courseCode || undefined,
         topic: topic || undefined,
         scope: visibility,
@@ -113,8 +84,8 @@ export function UploadModal({
       setSuccess(true);
       setFile(null);
       setTitle('');
-      setSelectedCourse('');
       setTopic('');
+      setCourseCode('');
 
       if (onUploadComplete) onUploadComplete();
       setTimeout(() => {
@@ -167,25 +138,6 @@ export function UploadModal({
                 placeholder='e.g., Introduction to Physics'
                 required
               />
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-                Course
-              </label>
-              <select
-                value={selectedCourse}
-                onChange={(e) => setSelectedCourse(e.target.value)}
-                className='w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none'
-                required
-              >
-                <option value=''>Select a course</option>
-                {courses.map((course) => (
-                  <option key={course.id} value={course.id}>
-                    {course.code} - {course.title}
-                  </option>
-                ))}
-              </select>
             </div>
 
             <div>
