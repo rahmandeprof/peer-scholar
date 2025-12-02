@@ -446,7 +446,9 @@ export function DashboardLayout() {
 
         {/* Content Area */}
         <div className='flex-1 overflow-hidden relative'>
-          <Outlet />
+          <Outlet
+            context={{ openUploadModal: () => setUploadModalOpen(true) }}
+          />
         </div>
       </main>
 

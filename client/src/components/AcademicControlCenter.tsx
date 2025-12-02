@@ -36,17 +36,12 @@ interface Conversation {
   materialId?: string;
 }
 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 
-interface AcademicControlCenterProps {
-  onUpload?: () => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onNavigate?: (view: any, id: any) => void;
-}
-
-export function AcademicControlCenter({
-  onUpload,
-}: AcademicControlCenterProps) {
+export function AcademicControlCenter() {
+  const { openUploadModal } = useOutletContext<{
+    openUploadModal: () => void;
+  }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
@@ -246,7 +241,7 @@ export function AcademicControlCenter({
       <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
         {/* Upload Button */}
         <div
-          onClick={onUpload}
+          onClick={openUploadModal}
           className='bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl p-6 text-white shadow-lg cursor-pointer hover:scale-[1.02] transition-transform flex flex-col items-center justify-center text-center min-h-[200px]'
         >
           <div className='w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mb-4 backdrop-blur-sm'>
@@ -353,7 +348,7 @@ export function AcademicControlCenter({
       <StudySessionModal
         isOpen={studyModalOpen}
         onClose={() => setStudyModalOpen(false)}
-        onUpload={onUpload || (() => {})}
+        onUpload={openUploadModal}
       />
     </div>
   );
