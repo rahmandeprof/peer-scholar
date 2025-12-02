@@ -61,7 +61,13 @@ export function UploadModal({
         body: formData,
       });
 
-      if (!uploadRes.ok) throw new Error('Failed to upload file to storage');
+      if (!uploadRes.ok) {
+        const errorData = await uploadRes.text();
+        console.error('Cloudinary upload failed:', errorData);
+        throw new Error(
+          `Failed to upload file to storage: ${uploadRes.statusText}`,
+        );
+      }
       const uploadData = await uploadRes.json();
 
       // 3. Create Material Record

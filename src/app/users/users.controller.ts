@@ -40,27 +40,6 @@ export class UsersController {
     return this.usersService.findOne(req.user.id);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(id, updateUserDto);
-  }
-
-  @Post('onboarding')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onboarding(@Req() req: any, @Body() dto: UpdateAcademicProfileDto) {
-    return this.usersService.updateAcademicProfile(req.user.id, dto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(id);
-  }
-
   @Post('partner/invite')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   invitePartner(@Body('email') email: string, @Req() req: any) {
@@ -89,5 +68,26 @@ export class UsersController {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getPendingRequests(@Req() req: any) {
     return this.usersService.getPendingRequests(req.user.id);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.usersService.findOne(id);
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+    return this.usersService.update(id, updateUserDto);
+  }
+
+  @Post('onboarding')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onboarding(@Req() req: any, @Body() dto: UpdateAcademicProfileDto) {
+    return this.usersService.updateAcademicProfile(req.user.id, dto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.usersService.remove(id);
   }
 }

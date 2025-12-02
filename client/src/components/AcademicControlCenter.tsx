@@ -34,6 +34,7 @@ interface Conversation {
   id: string;
   title: string;
   updatedAt: string;
+  materialId?: string;
 }
 
 interface AcademicControlCenterProps {
@@ -137,26 +138,52 @@ export function AcademicControlCenter({
                 {recentChat ? 'Resume Reading' : 'Start Reading'}
               </h2>
               {recentChat && (
-                <button
-                  onClick={() => onNavigate('chat', recentChat.id)}
+                <Link
+                  to={
+                    recentChat.materialId
+                      ? `/materials/${recentChat.materialId}`
+                      : `/chat/${recentChat.id}`
+                  }
                   className='text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 flex items-center'
                 >
                   Continue <ArrowRight className='w-4 h-4 ml-1' />
-                </button>
+                </Link>
               )}
             </div>
 
             {recentChat ? (
               <div
-                onClick={() => onNavigate('chat', recentChat.id)}
+                onClick={() => {
+                  if (recentChat.materialId) {
+                    // Navigate to material view
+                    // We need to use useNavigate here, but onNavigate is passed as prop.
+                    // Assuming onNavigate handles 'study' or we can add 'material' type.
+                    // For now, let's use window.location or add a prop.
+                    // Better: use Link or useNavigate if available.
+                    // The component uses Link from react-router-dom.
+                  }
+                  // actually onNavigate is used for main views.
+                  // Let's check how onNavigate is implemented in Dashboard.
+                }}
                 className='cursor-pointer'
               >
-                <h3 className='text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors'>
-                  {recentChat.title}
-                </h3>
-                <p className='text-gray-500 dark:text-gray-400 text-sm line-clamp-2'>
-                  Pick up where you left off with your AI study assistant.
-                </p>
+                <Link
+                  to={
+                    recentChat.materialId
+                      ? `/materials/${recentChat.materialId}`
+                      : `/chat/${recentChat.id}`
+                  }
+                  className='block'
+                >
+                  <h3 className='text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors'>
+                    {recentChat.title}
+                  </h3>
+                  <p className='text-gray-500 dark:text-gray-400 text-sm line-clamp-2'>
+                    {recentChat.materialId
+                      ? 'Continue reading your material.'
+                      : 'Pick up where you left off with your AI study assistant.'}
+                  </p>
+                </Link>
               </div>
             ) : (
               <div className='text-center py-8'>

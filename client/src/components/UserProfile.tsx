@@ -37,8 +37,14 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
       setFormData({
         firstName: user.firstName,
         lastName: user.lastName,
-        faculty: typeof user.faculty === 'string' ? user.faculty : '',
-        department: typeof user.department === 'string' ? user.department : '',
+        faculty:
+          typeof user.faculty === 'string'
+            ? user.faculty
+            : (user.faculty as any)?.name || '',
+        department:
+          typeof user.department === 'string'
+            ? user.department
+            : (user.department as any)?.name || '',
         yearOfStudy: user.yearOfStudy || 1,
       });
     }
@@ -64,7 +70,7 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
 
   return (
     <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm'>
-      <div className='bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-pop-in'>
+      <div className='bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-pop-in'>
         <div className='flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-800'>
           <h2 className='text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center'>
             <User className='w-5 h-5 mr-2 text-primary-600' />

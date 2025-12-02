@@ -23,6 +23,8 @@ import {
   Users,
   LogOut,
   Home,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import { AcademicControlCenter } from './AcademicControlCenter';
 import { useTheme } from '../contexts/ThemeContext';
@@ -44,6 +46,7 @@ export function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [streak, setStreak] = useState(0);
   const [history, setHistory] = useState<Conversation[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(true);
   const [selectedConversationId, setSelectedConversationId] = useState<
     string | null
   >(null);
@@ -251,79 +254,89 @@ export function Dashboard() {
 
           {history.length > 0 && (
             <div className='mt-6 px-3'>
-              <h3 className='px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2'>
+              <button
+                onClick={() => setHistoryOpen(!historyOpen)}
+                className='w-full flex items-center justify-between px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 hover:text-gray-700 dark:hover:text-gray-300 transition-colors'
+              >
                 Recent Chats
-              </h3>
-              <div className='space-y-0.5'>
-                {history.slice(0, 5).map((conv) => (
-                  <div
-                    key={conv.id}
-                    className={`group w-full px-3 py-2 text-sm text-left rounded-lg transition-all duration-200 flex items-center justify-between cursor-pointer ${
-                      selectedConversationId === conv.id
-                        ? 'bg-gray-100 dark:bg-gray-800 text-primary-600 dark:text-primary-400 font-medium'
-                        : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-200'
-                    }`}
-                    onClick={() => handleHistoryClick(conv.id)}
-                  >
-                    <div className='flex items-center space-x-3 min-w-0 flex-1'>
-                      <History className='w-3.5 h-3.5 flex-shrink-0 opacity-70' />
-                      {editingConversationId === conv.id ? (
-                        <div
-                          className='flex items-center space-x-1 w-full'
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <input
-                            type='text'
-                            value={editTitle}
-                            onChange={(e) => setEditTitle(e.target.value)}
-                            className='flex-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-xs focus:outline-none focus:border-primary-500'
-                            autoFocus
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter')
-                                handleSaveRename(e, conv.id);
-                              if (e.key === 'Escape') handleCancelRename(e);
-                            }}
+                {historyOpen ? (
+                  <ChevronDown className='w-3 h-3' />
+                ) : (
+                  <ChevronRight className='w-3 h-3' />
+                )}
+              </button>
+              {historyOpen && (
+                <div className='space-y-0.5 animate-slide-down'>
+                  {history.slice(0, 5).map((conv) => (
+                    <div
+                      key={conv.id}
+                      className={`group w-full px-3 py-2 text-sm text-left rounded-lg transition-all duration-200 flex items-center justify-between cursor-pointer ${
+                        selectedConversationId === conv.id
+                          ? 'bg-gray-100 dark:bg-gray-800 text-primary-600 dark:text-primary-400 font-medium'
+                          : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-200'
+                      }`}
+                      onClick={() => handleHistoryClick(conv.id)}
+                    >
+                      <div className='flex items-center space-x-3 min-w-0 flex-1'>
+                        <History className='w-3.5 h-3.5 flex-shrink-0 opacity-70' />
+                        {editingConversationId === conv.id ? (
+                          <div
+                            className='flex items-center space-x-1 w-full'
                             onClick={(e) => e.stopPropagation()}
-                          />
-                          <button
-                            onClick={(e) => handleSaveRename(e, conv.id)}
-                            className='p-1 text-green-500 hover:bg-green-50 rounded'
                           >
-                            <Check className='w-3 h-3' />
+                            <input
+                              type='text'
+                              value={editTitle}
+                              onChange={(e) => setEditTitle(e.target.value)}
+                              className='flex-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-xs focus:outline-none focus:border-primary-500'
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter')
+                                  handleSaveRename(e, conv.id);
+                                if (e.key === 'Escape') handleCancelRename(e);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <button
+                              onClick={(e) => handleSaveRename(e, conv.id)}
+                              className='p-1 text-green-500 hover:bg-green-50 rounded'
+                            >
+                              <Check className='w-3 h-3' />
+                            </button>
+                            <button
+                              onClick={handleCancelRename}
+                              className='p-1 text-red-500 hover:bg-red-50 rounded'
+                            >
+                              <X className='w-3 h-3' />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className='truncate'>{conv.title}</span>
+                        )}
+                      </div>
+
+                      {!editingConversationId && (
+                        <div className='flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity'>
+                          <button
+                            onClick={(e) => handleRenameClick(e, conv)}
+                            className='p-1 text-gray-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded transition-colors'
+                            title='Rename conversation'
+                          >
+                            <Edit2 className='w-3 h-3' />
                           </button>
                           <button
-                            onClick={handleCancelRename}
-                            className='p-1 text-red-500 hover:bg-red-50 rounded'
+                            onClick={(e) => handleDeleteClick(e, conv.id)}
+                            className='p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors'
+                            title='Delete conversation'
                           >
-                            <X className='w-3 h-3' />
+                            <Trash2 className='w-3 h-3' />
                           </button>
                         </div>
-                      ) : (
-                        <span className='truncate'>{conv.title}</span>
                       )}
                     </div>
-
-                    {!editingConversationId && (
-                      <div className='flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity'>
-                        <button
-                          onClick={(e) => handleRenameClick(e, conv)}
-                          className='p-1 text-gray-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded transition-colors'
-                          title='Rename conversation'
-                        >
-                          <Edit2 className='w-3 h-3' />
-                        </button>
-                        <button
-                          onClick={(e) => handleDeleteClick(e, conv.id)}
-                          className='p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors'
-                          title='Delete conversation'
-                        >
-                          <Trash2 className='w-3 h-3' />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -471,6 +484,40 @@ export function Dashboard() {
                   <MessageSquare className='w-5 h-5 mr-3' />
                   AI Assistant
                 </button>
+
+                <div className='pt-4 mt-4 border-t border-gray-100 dark:border-gray-800'>
+                  <button
+                    onClick={() => {
+                      setProfileOpen(true);
+                      setSidebarOpen(false);
+                    }}
+                    className='w-full px-4 py-3 rounded-xl text-left font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center'
+                  >
+                    <Users className='w-5 h-5 mr-3' />
+                    Profile
+                  </button>
+                  <button
+                    onClick={() => {
+                      toggleTheme();
+                      setSidebarOpen(false);
+                    }}
+                    className='w-full px-4 py-3 rounded-xl text-left font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center'
+                  >
+                    {theme === 'light' ? (
+                      <Moon className='w-5 h-5 mr-3' />
+                    ) : (
+                      <Sun className='w-5 h-5 mr-3' />
+                    )}
+                    Theme
+                  </button>
+                  <button
+                    onClick={logout}
+                    className='w-full px-4 py-3 rounded-xl text-left font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors flex items-center'
+                  >
+                    <LogOut className='w-5 h-5 mr-3' />
+                    Sign Out
+                  </button>
+                </div>
               </nav>
             </div>
           </aside>
