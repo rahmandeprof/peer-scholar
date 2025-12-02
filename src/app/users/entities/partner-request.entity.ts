@@ -24,6 +24,6 @@ export class PartnerRequest extends IDAndTimestamp {
   })
   status: PartnerRequestStatus;
 
-  @Column({ nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   lastNudgedAt: Date | null;
 }
