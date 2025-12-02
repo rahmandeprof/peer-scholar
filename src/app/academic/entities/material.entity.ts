@@ -36,7 +36,7 @@ export class Material extends IDAndTimestamp {
   description: string;
 
   @Column({
-    type: 'enum',
+    type: 'simple-enum',
     enum: MaterialType,
     default: MaterialType.OTHER,
   })
@@ -64,14 +64,14 @@ export class Material extends IDAndTimestamp {
   uploader: User;
 
   @Column({
-    type: 'enum',
+    type: 'simple-enum',
     enum: AccessScope,
     default: AccessScope.PRIVATE,
   })
   scope: AccessScope;
 
   @Column({
-    type: 'enum',
+    type: 'simple-enum',
     enum: MaterialStatus,
     default: MaterialStatus.PENDING,
   })
