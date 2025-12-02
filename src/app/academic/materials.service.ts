@@ -3,7 +3,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { Material, MaterialStatus } from './entities/material.entity';
+import {
+  AccessScope,
+  Material,
+  MaterialStatus,
+} from './entities/material.entity';
 import { Course } from '@/app/academic/entities/course.entity';
 import { User } from '@/app/users/entities/user.entity';
 
@@ -13,7 +17,7 @@ import { UsersService } from '@/app/users/users.service';
 
 import { Queue } from 'bull';
 import { v2 as cloudinary } from 'cloudinary';
-import { Repository } from 'typeorm';
+import { Brackets, Repository, WhereExpressionBuilder } from 'typeorm';
 
 @Injectable()
 export class MaterialsService {
@@ -40,10 +44,8 @@ export class MaterialsService {
       folder: 'materials',
     };
 
-    const apiSecret =
-      this.configService.get<string>('CLOUD_API_SECRET') ?? '';
-    const cloudName =
-      this.configService.get<string>('CLOUD_NAME') ?? '';
+    const apiSecret = this.configService.get<string>('CLOUD_API_SECRET') ?? '';
+    const cloudName = this.configService.get<string>('CLOUD_NAME') ?? '';
 
     const signature = cloudinary.utils.api_sign_request(params, apiSecret);
 
@@ -104,6 +106,7 @@ export class MaterialsService {
     const topicCounts: Record<string, number> = {};
 
     materials.forEach((material) => {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (material.tags) {
         material.tags.forEach((tag) => {
           const normalizedTag = tag.trim().toLowerCase(); // Normalize
@@ -122,10 +125,12 @@ export class MaterialsService {
       .slice(0, 10); // Top 10
   }
 
-  findAll(courseId: string, type?: string, search?: string) {
+  findAll(courseId: string, user: User, type?: string, search?: string) {
     const query = this.materialRepo
       .createQueryBuilder('material')
       .leftJoinAndSelect('material.uploader', 'uploader')
+      .leftJoinAndSelect('material.course', 'course')
+      .leftJoinAndSelect('course.department', 'department')
       .where('material.courseId = :courseId', { courseId });
 
     if (type && type !== 'all') {
@@ -139,9 +144,55 @@ export class MaterialsService {
       );
     }
 
+    // Access Control Logic
+    // Public: Everyone can see
+    // Department: Only users in the same department can see
+    // Course: Only users in the same course (not implemented yet, treating as Dept for now)
+    // Private: Only uploader can see
+
+    query.andWhere(
+      new Brackets((qb: WhereExpressionBuilder) => {
+        qb.where('material.scope = :publicScope', {
+          publicScope: AccessScope.PUBLIC,
+        }).orWhere('material.uploaderId = :userId', { userId: user.id });
+
+        if (user.department) {
+          // If user has a department, they can see department-scoped materials from that department
+          // We need to check if the material's course belongs to the user's department
+          // Since we joined course.department, we can check department.id
+          // Note: This assumes material.course.department is the same as the material's "intended" department scope
+          // If scope is DEPARTMENT, we check if user.department.id === course.department.id
+
+          qb.orWhere(
+            '(material.scope = :deptScope AND department.id = :userDeptId)',
+            {
+              deptScope: AccessScope.DEPARTMENT,
+              userDeptId:
+                typeof user.department === 'string'
+                  ? user.department
+                  : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    (user.department as any).id,
+            },
+          );
+        }
+      }),
+    );
+
     query.orderBy('material.createdAt', 'DESC');
 
     return query.getMany();
+  }
+
+  async updateScope(id: string, scope: AccessScope, userId: string) {
+    const material = await this.findOne(id);
+
+    if (material.uploader.id !== userId) {
+      throw new Error('Only the uploader can update the scope');
+    }
+
+    material.scope = scope;
+
+    return this.materialRepo.save(material);
   }
 
   async findOne(id: string) {

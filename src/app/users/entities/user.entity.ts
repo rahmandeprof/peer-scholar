@@ -1,5 +1,3 @@
-import { Department } from '@/app/academic/entities/department.entity';
-import { Faculty } from '@/app/academic/entities/faculty.entity';
 import { School } from '@/app/academic/entities/school.entity';
 import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
 
@@ -43,14 +41,14 @@ export class User extends IDAndTimestamp {
   @Column({ nullable: true })
   password!: string;
 
-  @ManyToOne(() => Department, { nullable: true })
-  department: Department;
+  @Column({ nullable: true })
+  department!: string;
 
   @Column({ type: 'int', nullable: true })
   yearOfStudy!: number;
 
-  @ManyToOne(() => Faculty, { nullable: true })
-  faculty: Faculty;
+  @Column({ nullable: true })
+  faculty!: string;
 
   @ManyToOne(() => School, { nullable: true })
   school: School;
@@ -71,7 +69,7 @@ export class User extends IDAndTimestamp {
   googleId: string;
 
   @OneToMany('Material', 'uploader')
-  materials: any[];
+  materials: import('../../academic/entities/material.entity').Material[];
 
   @Column({ default: 0 })
   reputation: number;

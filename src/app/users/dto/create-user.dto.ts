@@ -36,6 +36,18 @@ export class CreateUserDto {
   @IsOptional()
   department?: string;
 
+  @IsString()
+  @IsOptional()
+  schoolId?: string;
+
+  @IsString()
+  @IsOptional()
+  facultyId?: string;
+
+  @IsString()
+  @IsOptional()
+  departmentId?: string;
+
   @IsOptional()
   yearOfStudy?: number;
 }

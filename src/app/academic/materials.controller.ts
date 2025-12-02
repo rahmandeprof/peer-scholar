@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -33,10 +34,23 @@ export class MaterialsController {
   @Get()
   findAll(
     @Query('courseId') courseId: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    @Req() req: any,
     @Query('type') type?: string,
     @Query('search') search?: string,
   ) {
-    return this.materialsService.findAll(courseId, type, search);
+    return this.materialsService.findAll(courseId, req.user, type, search);
+  }
+
+  @Patch(':id/scope')
+  updateScope(
+    @Param('id') id: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    @Body('scope') scope: any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    @Req() req: any,
+  ) {
+    return this.materialsService.updateScope(id, scope, req.user.id);
   }
 
   @Get('trending')

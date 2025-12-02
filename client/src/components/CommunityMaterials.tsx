@@ -8,11 +8,14 @@ import {
   MessageSquare,
   Trash2,
   Eye,
+  Download,
+  Share2,
 } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { ConfirmationModal } from './ConfirmationModal';
 import { FileViewerModal } from './FileViewerModal';
+import { LoadingState } from './LoadingState';
 
 interface Material {
   id: string;
@@ -193,9 +196,7 @@ export function CommunityMaterials({ onChat }: CommunityMaterialsProps) {
 
       <div className='flex-1 overflow-y-auto p-6'>
         {loading ? (
-          <div className='flex justify-center py-20'>
-            <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600'></div>
-          </div>
+          <LoadingState message='Fetching community materials...' />
         ) : filteredMaterials.length === 0 ? (
           <div className='text-center py-20 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800'>
             <BookOpen className='w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4' />
@@ -258,28 +259,50 @@ export function CommunityMaterials({ onChat }: CommunityMaterialsProps) {
                   </div>
                 </div>
 
-                <div className='flex space-x-2'>
+                <div className='grid grid-cols-2 gap-2'>
                   <button
                     onClick={() =>
                       setViewingMaterial({
                         title: material.title,
-                        content: 'Loading content...', // Content will be fetched or displayed via iframe
+                        content: 'Loading content...',
                         fileUrl: material.url,
-                        fileType: 'application/pdf', // Assuming PDF for now, should come from backend
+                        fileType: 'application/pdf',
                       })
                     }
-                    className='flex-1 flex items-center justify-center px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-sm font-medium'
+                    className='flex items-center justify-center px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-xs font-medium'
                   >
-                    <Eye className='w-4 h-4 mr-2' />
+                    <Eye className='w-3 h-3 mr-1.5' />
                     View
+                  </button>
+                  <a
+                    href={material.url}
+                    download
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='flex items-center justify-center px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-xs font-medium text-gray-700 dark:text-gray-300'
+                  >
+                    <Download className='w-3 h-3 mr-1.5' />
+                    Download
+                  </a>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        `${window.location.origin}/materials/${material.id}`,
+                      );
+                      // You might want to add a toast here
+                    }}
+                    className='flex items-center justify-center px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-xs font-medium'
+                  >
+                    <Share2 className='w-3 h-3 mr-1.5' />
+                    Share
                   </button>
                   {onChat && (
                     <button
                       onClick={() => onChat(material.id)}
-                      className='flex-1 flex items-center justify-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors text-sm font-medium'
+                      className='flex items-center justify-center px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors text-xs font-medium'
                     >
-                      <MessageSquare className='w-4 h-4 mr-2' />
-                      Chat
+                      <MessageSquare className='w-3 h-3 mr-1.5' />
+                      Summarize
                     </button>
                   )}
                 </div>

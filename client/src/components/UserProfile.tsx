@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import api from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
+import { UNILORIN_FACULTIES } from '../data/unilorin-faculties';
 
 interface UserProfileProps {
   isOpen: boolean;
@@ -22,9 +23,11 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
   const { user } = useAuth();
   const toast = useToast();
   const [loading, setLoading] = useState(false);
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
+    faculty: '',
     department: '',
     yearOfStudy: 1,
   });
@@ -34,10 +37,8 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
       setFormData({
         firstName: user.firstName,
         lastName: user.lastName,
-        department:
-          typeof user.department === 'object'
-            ? user.department?.name || ''
-            : user.department || '',
+        faculty: typeof user.faculty === 'string' ? user.faculty : '',
+        department: typeof user.department === 'string' ? user.department : '',
         yearOfStudy: user.yearOfStudy || 1,
       });
     }
@@ -51,14 +52,10 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
 
     try {
       await api.patch(`/users/${user.id}`, formData);
-      // Update local user state by re-logging in with new data (simplified)
-      // Ideally, AuthContext should expose an updateProfile method
-      // For now, we'll just show success and close
       toast.success('Profile updated successfully');
       onClose();
-      window.location.reload(); // Force reload to update context
+      window.location.reload();
     } catch {
-      // console.error('Failed to update profile', _err);
       toast.error('Failed to update profile. Please try again.');
     } finally {
       setLoading(false);
@@ -173,19 +170,55 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
 
           <div>
             <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+              Faculty
+            </label>
+            <div className='relative'>
+              <Building className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4' />
+              <select
+                value={formData.faculty}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    faculty: e.target.value,
+                    department: '',
+                  });
+                }}
+                className='w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none appearance-none'
+              >
+                <option value=''>Select Faculty</option>
+                {UNILORIN_FACULTIES.map((faculty) => (
+                  <option key={faculty.name} value={faculty.name}>
+                    {faculty.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
               Department
             </label>
             <div className='relative'>
               <Building className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4' />
-              <input
-                type='text'
+              <select
                 value={formData.department}
                 onChange={(e) =>
                   setFormData({ ...formData, department: e.target.value })
                 }
-                className='w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none'
-                placeholder='e.g. Computer Science'
-              />
+                className='w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none appearance-none disabled:opacity-50'
+                disabled={!formData.faculty}
+              >
+                <option value=''>Select Department</option>
+                {formData.faculty &&
+                  UNILORIN_FACULTIES.find(
+                    (f) => f.name === formData.faculty,
+                  )?.departments.map((dept) => (
+                    <option key={dept} value={dept}>
+                      {dept}
+                    </option>
+                  ))}
+              </select>
             </div>
           </div>
 

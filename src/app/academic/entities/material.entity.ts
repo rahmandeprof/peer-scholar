@@ -85,6 +85,18 @@ export class Material extends IDAndTimestamp {
   @Column({ type: 'int', default: 0 })
   downloads: number;
 
+  @Column({ nullable: true })
+  targetFaculty?: string;
+
+  @Column({ nullable: true })
+  targetDepartment?: string;
+
+  @Column({ nullable: true })
+  courseCode?: string;
+
+  @Column({ nullable: true })
+  topic?: string;
+
   @OneToMany(() => MaterialChunk, (chunk) => chunk.material)
   chunks: MaterialChunk[];
 }

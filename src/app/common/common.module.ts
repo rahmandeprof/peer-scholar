@@ -1,7 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 
 import { CloudinaryService } from './services/cloudinary.service';
-
 import { EmailService } from './services/email.service';
 
 @Global()
@@ -9,4 +8,4 @@ import { EmailService } from './services/email.service';
   providers: [CloudinaryService, EmailService],
   exports: [CloudinaryService, EmailService],
 })
-export class CommonModule { }
+export class CommonModule {}
