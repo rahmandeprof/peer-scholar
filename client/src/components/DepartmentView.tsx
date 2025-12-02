@@ -35,11 +35,13 @@ const DepartmentView: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [trendingMaterials, setTrendingMaterials] = useState<Material[]>([]);
+  const [recentMaterials, setRecentMaterials] = useState<Material[]>([]);
 
   useEffect(() => {
     if (user?.department?.id) {
       fetchCourses(user.department.id);
       fetchTrending();
+      fetchRecent();
     }
   }, [user]);
 
@@ -62,6 +64,15 @@ const DepartmentView: React.FC = () => {
       setTrendingMaterials(res.data);
     } catch (error) {
       console.error('Failed to fetch trending materials', error);
+    }
+  };
+
+  const fetchRecent = async () => {
+    try {
+      const res = await axios.get('/materials');
+      setRecentMaterials(res.data);
+    } catch (error) {
+      console.error('Failed to fetch recent materials', error);
     }
   };
 
@@ -177,7 +188,7 @@ const DepartmentView: React.FC = () => {
         <BookOpen className='w-6 h-6 mr-3 text-primary-500' />
         Your Courses
       </h2>
-      <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3'>
+      <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-12'>
         {courses.map((course) => (
           <div
             key={course.id}
@@ -217,6 +228,64 @@ const DepartmentView: React.FC = () => {
             </div>
           </div>
         ))}
+      </div>
+
+      <h2 className='text-xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center'>
+        <FileText className='w-6 h-6 mr-3 text-primary-500' />
+        Recent Uploads
+      </h2>
+      <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3'>
+        {recentMaterials.map((material) => (
+          <div
+            key={material.id}
+            className='bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl overflow-hidden shadow-sm rounded-2xl hover:shadow-md transition-all border border-gray-200/50 dark:border-gray-700/50 group'
+          >
+            <div className='p-6'>
+              <div className='flex items-start justify-between mb-4'>
+                <div className='flex-1 min-w-0 mr-4'>
+                  <h3
+                    className='text-lg font-bold text-gray-900 dark:text-gray-100 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors'
+                    title={material.title}
+                  >
+                    {material.title}
+                  </h3>
+                  <p className='mt-1 text-sm text-gray-500 dark:text-gray-400 font-medium'>
+                    {material.course?.code}
+                  </p>
+                </div>
+                <span className='inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 border border-primary-100 dark:border-primary-800'>
+                  {material.type}
+                </span>
+              </div>
+              <div className='flex items-center text-sm text-gray-500 dark:text-gray-400'>
+                <span className='truncate'>
+                  By {material.uploader?.firstName}{' '}
+                  {material.uploader?.lastName}
+                </span>
+              </div>
+            </div>
+            <div className='bg-gray-50/50 dark:bg-gray-700/30 px-6 py-4 border-t border-gray-100 dark:border-gray-700/50'>
+              <Link
+                to={`/materials/${material.id}`}
+                className='text-sm font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 flex items-center group-hover:translate-x-1 transition-transform'
+              >
+                Study Now
+                <FileText className='ml-2 h-4 w-4' />
+              </Link>
+            </div>
+          </div>
+        ))}
+        {recentMaterials.length === 0 && (
+          <div className='col-span-full text-center py-12 bg-gray-50/50 dark:bg-gray-800/30 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700'>
+            <FileText className='w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4' />
+            <h3 className='text-lg font-medium text-gray-900 dark:text-gray-100'>
+              No recent uploads
+            </h3>
+            <p className='text-gray-500 dark:text-gray-400'>
+              Be the first to upload a material!
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

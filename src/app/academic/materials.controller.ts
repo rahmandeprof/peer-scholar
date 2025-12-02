@@ -33,13 +33,13 @@ export class MaterialsController {
 
   @Get()
   findAll(
-    @Query('courseId') courseId: string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     @Req() req: any,
+    @Query('courseId') courseId?: string,
     @Query('type') type?: string,
     @Query('search') search?: string,
   ) {
-    return this.materialsService.findAll(courseId, req.user, type, search);
+    return this.materialsService.findAll(req.user, courseId, type, search);
   }
 
   @Patch(':id/scope')

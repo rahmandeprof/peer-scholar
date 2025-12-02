@@ -125,13 +125,25 @@ export class MaterialsService {
       .slice(0, 10); // Top 10
   }
 
-  findAll(courseId: string, user: User, type?: string, search?: string) {
+  findAll(user: User, courseId?: string, type?: string, search?: string) {
     const query = this.materialRepo
       .createQueryBuilder('material')
       .leftJoinAndSelect('material.uploader', 'uploader')
       .leftJoinAndSelect('material.course', 'course')
-      .leftJoinAndSelect('course.department', 'department')
-      .where('material.courseId = :courseId', { courseId });
+      .leftJoinAndSelect('course.department', 'department');
+
+    if (courseId) {
+      query.where('material.courseId = :courseId', { courseId });
+    } else if (user.department) {
+      // If no courseId, filter by user's department
+      const deptId =
+        typeof user.department === 'string'
+          ? user.department
+          : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (user.department as any).id;
+
+      query.where('course.departmentId = :deptId', { deptId });
+    }
 
     if (type && type !== 'all') {
       query.andWhere('material.type = :type', { type });

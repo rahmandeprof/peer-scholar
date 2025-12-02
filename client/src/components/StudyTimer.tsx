@@ -129,69 +129,71 @@ export function StudyTimer({
   const CurrentIcon = MODES[mode].icon;
 
   return (
-    <div className='bg-white rounded-2xl shadow-xl p-8 w-full max-w-md mx-auto border border-primary-100'>
-      <div className='flex justify-center space-x-4 mb-8'>
-        {(Object.keys(MODES) as TimerMode[]).map((m) => (
-          <button
-            key={m}
-            onClick={() => setMode(m)}
-            className={twMerge(
-              'px-4 py-2 rounded-full text-sm font-medium transition-all',
-              mode === m
-                ? 'bg-primary-100 text-primary-800 ring-2 ring-primary-500'
-                : 'text-gray-500 hover:bg-gray-100',
-            )}
-          >
-            {MODES[m].label}
-          </button>
-        ))}
-      </div>
+    <div className='h-full flex items-center justify-center p-4'>
+      <div className='bg-white rounded-2xl shadow-xl p-8 w-full max-w-md mx-auto border border-primary-100'>
+        <div className='flex justify-center space-x-4 mb-8'>
+          {(Object.keys(MODES) as TimerMode[]).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              className={twMerge(
+                'px-4 py-2 rounded-full text-sm font-medium transition-all',
+                mode === m
+                  ? 'bg-primary-100 text-primary-800 ring-2 ring-primary-500'
+                  : 'text-gray-500 hover:bg-gray-100',
+              )}
+            >
+              {MODES[m].label}
+            </button>
+          ))}
+        </div>
 
-      <div className='text-center mb-8'>
-        <div className='relative inline-flex items-center justify-center'>
-          <div
-            className={twMerge(
-              'absolute inset-0 rounded-full opacity-20 blur-xl',
-              MODES[mode].color,
-            )}
-          ></div>
-          <div className='relative text-8xl font-bold text-gray-800 font-mono tracking-tighter'>
-            {formatTime(timeLeft)}
+        <div className='text-center mb-8'>
+          <div className='relative inline-flex items-center justify-center'>
+            <div
+              className={twMerge(
+                'absolute inset-0 rounded-full opacity-20 blur-xl',
+                MODES[mode].color,
+              )}
+            ></div>
+            <div className='relative text-8xl font-bold text-gray-800 font-mono tracking-tighter'>
+              {formatTime(timeLeft)}
+            </div>
+          </div>
+          <div className='flex items-center justify-center mt-4 text-gray-500'>
+            <CurrentIcon className='w-5 h-5 mr-2' />
+            <span className='uppercase tracking-widest text-sm font-semibold'>
+              {MODES[mode].label} Mode
+            </span>
           </div>
         </div>
-        <div className='flex items-center justify-center mt-4 text-gray-500'>
-          <CurrentIcon className='w-5 h-5 mr-2' />
-          <span className='uppercase tracking-widest text-sm font-semibold'>
-            {MODES[mode].label} Mode
-          </span>
+
+        <div className='flex justify-center space-x-4'>
+          {!isActive ? (
+            <button
+              onClick={handleStart}
+              className='flex items-center px-8 py-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-lg transition-colors shadow-lg shadow-primary-200'
+            >
+              <Play className='w-6 h-6 mr-2' fill='currentColor' />
+              Start
+            </button>
+          ) : (
+            <button
+              onClick={handlePause}
+              className='flex items-center px-8 py-4 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-bold text-lg transition-colors shadow-lg shadow-yellow-200'
+            >
+              <Pause className='w-6 h-6 mr-2' fill='currentColor' />
+              Pause
+            </button>
+          )}
+
+          <button
+            onClick={handleReset}
+            className='p-4 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors'
+          >
+            <RotateCcw className='w-6 h-6' />
+          </button>
         </div>
-      </div>
-
-      <div className='flex justify-center space-x-4'>
-        {!isActive ? (
-          <button
-            onClick={handleStart}
-            className='flex items-center px-8 py-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-lg transition-colors shadow-lg shadow-primary-200'
-          >
-            <Play className='w-6 h-6 mr-2' fill='currentColor' />
-            Start
-          </button>
-        ) : (
-          <button
-            onClick={handlePause}
-            className='flex items-center px-8 py-4 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-bold text-lg transition-colors shadow-lg shadow-yellow-200'
-          >
-            <Pause className='w-6 h-6 mr-2' fill='currentColor' />
-            Pause
-          </button>
-        )}
-
-        <button
-          onClick={handleReset}
-          className='p-4 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors'
-        >
-          <RotateCcw className='w-6 h-6' />
-        </button>
       </div>
     </div>
   );
