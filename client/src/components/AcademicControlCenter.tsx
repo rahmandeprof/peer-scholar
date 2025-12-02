@@ -29,7 +29,18 @@ interface PartnerStats {
   image?: string;
 }
 
-// ... imports ...
+interface Conversation {
+  id: string;
+  title: string;
+  updatedAt: string;
+  materialId?: string;
+}
+
+import { useNavigate } from 'react-router-dom';
+
+interface AcademicControlCenterProps {
+  onUpload?: () => void;
+}
 
 export function AcademicControlCenter({
   onUpload,
