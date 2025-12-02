@@ -186,6 +186,50 @@ export class MaterialsService {
     // Private: Only uploader can see
 
     query.andWhere(
+      new Brackets((qb: WhereExpressionBuilder) => {
+        qb.where('material.scope = :publicScope', {
+          publicScope: AccessScope.PUBLIC,
+        }).orWhere('material.uploaderId = :userId', { userId: user.id });
+
+        if (user.department) {
+          const userDeptId =
+            typeof user.department === 'string'
+              ? user.department
+              : (user.department as any).id;
+
+          const userDeptName =
+            typeof user.department === 'string'
+              ? user.department
+              : (user.department as any).name;
+
+          qb.orWhere(
+            '(material.scope = :deptScope AND (department.id = :userDeptId OR material.targetDepartment = :userDeptName))',
+            {
+              deptScope: AccessScope.DEPARTMENT,
+              userDeptId,
+              userDeptName,
+            },
+          );
+        }
+
+        if (user.faculty) {
+          const userFacultyName =
+            typeof user.faculty === 'string'
+              ? user.faculty
+              : (user.faculty as any).name;
+
+          qb.orWhere(
+            '(material.scope = :facultyScope AND material.targetFaculty = :userFacultyName)',
+            {
+              facultyScope: AccessScope.FACULTY,
+              userFacultyName,
+            },
+          );
+        }
+      }),
+    );
+
+    return query.getMany();
   }
 
   async updateScope(id: string, scope: AccessScope, userId: string) {
