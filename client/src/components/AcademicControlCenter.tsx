@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
+import { StudySessionModal } from './StudySessionModal';
 
 interface Course {
   id: string;
@@ -49,7 +50,9 @@ export function AcademicControlCenter({
   const [partnerStats, setPartnerStats] = useState<PartnerStats | null>(null);
   const [recentChat, setRecentChat] = useState<Conversation | null>(null);
   const [streak, setStreak] = useState(0);
+  const [stage, setStage] = useState('Novice');
   const [loading, setLoading] = useState(true);
+  const [studyModalOpen, setStudyModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -60,6 +63,7 @@ export function AcademicControlCenter({
         ]);
 
         setStreak(streakRes.data.currentStreak || 0);
+        setStage(streakRes.data.stage || 'Novice');
         if (historyRes.data && historyRes.data.length > 0) {
           setRecentChat(historyRes.data[0]);
         }
@@ -101,20 +105,20 @@ export function AcademicControlCenter({
     <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full overflow-y-auto space-y-8'>
       <div className='flex items-center justify-between'>
         <div>
-          <h1 className='text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight'>
+          <h1 className='text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight'>
             Academic Control Center
           </h1>
-          <p className='text-gray-500 dark:text-gray-400 mt-1'>
-            Welcome back, {user?.firstName}. Ready to learn?
+          <p className='text-sm md:text-base text-gray-500 dark:text-gray-400 mt-1'>
+            Welcome back, {user?.firstName || 'Student'}. Ready to learn?
           </p>
         </div>
         <div className='flex items-center space-x-4'>
-          <div className='flex items-center bg-orange-50 dark:bg-orange-900/20 px-4 py-2 rounded-xl border border-orange-100 dark:border-orange-800/30'>
+          <div className='flex items-center bg-orange-50 dark:bg-orange-900/20 px-3 py-1.5 md:px-4 md:py-2 rounded-xl border border-orange-100 dark:border-orange-800/30'>
             <Flame
-              className='w-5 h-5 text-orange-500 mr-2'
+              className='w-4 h-4 md:w-5 md:h-5 text-orange-500 mr-2'
               fill='currentColor'
             />
-            <span className='font-bold text-orange-700 dark:text-orange-400'>
+            <span className='font-bold text-sm md:text-base text-orange-700 dark:text-orange-400'>
               {streak} Day Streak
             </span>
           </div>
@@ -130,7 +134,7 @@ export function AcademicControlCenter({
             <div className='flex items-center justify-between mb-4'>
               <h2 className='text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center'>
                 <Activity className='w-5 h-5 mr-2 text-primary-500' />
-                Resume Reading
+                {recentChat ? 'Resume Reading' : 'Start Reading'}
               </h2>
               {recentChat && (
                 <button
@@ -160,7 +164,7 @@ export function AcademicControlCenter({
                   No recent study sessions.
                 </p>
                 <button
-                  onClick={() => onNavigate('chat')}
+                  onClick={() => setStudyModalOpen(true)}
                   className='px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors'
                 >
                   Start a New Session
@@ -262,8 +266,8 @@ export function AcademicControlCenter({
               </div>
             </div>
             <div className='bg-gray-50 dark:bg-gray-700/30 rounded-xl p-4 text-center'>
-              <div className='text-2xl font-bold text-gray-900 dark:text-gray-100'>
-                Master
+              <div className='text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 truncate px-2'>
+                {stage}
               </div>
               <div className='text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1'>
                 Current Level
@@ -321,6 +325,12 @@ export function AcademicControlCenter({
           )}
         </div>
       </div>
+
+      <StudySessionModal
+        isOpen={studyModalOpen}
+        onClose={() => setStudyModalOpen(false)}
+        onUpload={onUpload}
+      />
     </div>
   );
 }

@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  type ReactNode,
+} from 'react';
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
 
 type ToastType = 'success' | 'error' | 'info' | 'warning';
@@ -35,43 +41,58 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
-  const showToast = useCallback((message: string, type: ToastType = 'info', duration = 5000) => {
-    const id = Math.random().toString(36).substring(7);
-    const toast: Toast = { id, type, message, duration };
-    
-    setToasts((prev) => [...prev, toast]);
+  const showToast = useCallback(
+    (message: string, type: ToastType = 'info', duration = 5000) => {
+      const id = Math.random().toString(36).substring(7);
+      const toast: Toast = { id, type, message, duration };
 
-    if (duration > 0) {
-      setTimeout(() => removeToast(id), duration);
-    }
-  }, [removeToast]);
+      setToasts((prev) => [...prev, toast]);
 
-  const success = useCallback((message: string, duration?: number) => {
-    showToast(message, 'success', duration);
-  }, [showToast]);
+      if (duration > 0) {
+        setTimeout(() => removeToast(id), duration);
+      }
+    },
+    [removeToast],
+  );
 
-  const error = useCallback((message: string, duration?: number) => {
-    showToast(message, 'error', duration);
-  }, [showToast]);
+  const success = useCallback(
+    (message: string, duration?: number) => {
+      showToast(message, 'success', duration);
+    },
+    [showToast],
+  );
 
-  const info = useCallback((message: string, duration?: number) => {
-    showToast(message, 'info', duration);
-  }, [showToast]);
+  const error = useCallback(
+    (message: string, duration?: number) => {
+      showToast(message, 'error', duration);
+    },
+    [showToast],
+  );
 
-  const warning = useCallback((message: string, duration?: number) => {
-    showToast(message, 'warning', duration);
-  }, [showToast]);
+  const info = useCallback(
+    (message: string, duration?: number) => {
+      showToast(message, 'info', duration);
+    },
+    [showToast],
+  );
+
+  const warning = useCallback(
+    (message: string, duration?: number) => {
+      showToast(message, 'warning', duration);
+    },
+    [showToast],
+  );
 
   const getIcon = (type: ToastType) => {
     switch (type) {
       case 'success':
-        return <CheckCircle className="w-5 h-5" />;
+        return <CheckCircle className='w-5 h-5' />;
       case 'error':
-        return <AlertCircle className="w-5 h-5" />;
+        return <AlertCircle className='w-5 h-5' />;
       case 'warning':
-        return <AlertTriangle className="w-5 h-5" />;
+        return <AlertTriangle className='w-5 h-5' />;
       default:
-        return <Info className="w-5 h-5" />;
+        return <Info className='w-5 h-5' />;
     }
   };
 
@@ -91,21 +112,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast, success, error, info, warning }}>
       {children}
-      
+
       {/* Toast Container */}
-      <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-md">
+      <div className='fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 w-full max-w-md px-4'>
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl border shadow-lg animate-in slide-in-from-right ${getStyles(toast.type)}`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl border shadow-xl animate-in slide-in-from-top-2 fade-in duration-300 ${getStyles(toast.type)} bg-opacity-100 dark:bg-opacity-100`}
           >
             {getIcon(toast.type)}
-            <p className="flex-1 text-sm font-medium">{toast.message}</p>
+            <p className='flex-1 text-sm font-medium'>{toast.message}</p>
             <button
               onClick={() => removeToast(toast.id)}
-              className="hover:opacity-70 transition-opacity"
+              className='hover:opacity-70 transition-opacity p-1'
             >
-              <X className="w-4 h-4" />
+              <X className='w-4 h-4' />
             </button>
           </div>
         ))}
