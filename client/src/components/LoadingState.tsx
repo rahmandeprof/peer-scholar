@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, BookOpen, GraduationCap, Lightbulb } from 'lucide-react';
+import { Loader2, GraduationCap } from 'lucide-react';
 
 const LOADING_MESSAGES = [
   'Gathering knowledge...',

@@ -35,8 +35,8 @@ export class AuthService {
 
       return {
         ...result,
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        department: user.department?.name || '',
+
+        department: user.department || '',
       } as {
         id: string;
         email: string;
