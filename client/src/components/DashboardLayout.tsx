@@ -456,7 +456,7 @@ export function DashboardLayout() {
         onUploadComplete={handleUploadComplete}
       />
 
-      <UserProfile isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
+      {profileOpen && <UserProfile onClose={() => setProfileOpen(false)} />}
 
       <ConfirmationModal
         isOpen={deleteConfirmation.isOpen}

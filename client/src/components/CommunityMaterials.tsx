@@ -34,6 +34,7 @@ interface Material {
 }
 
 interface ViewerMaterial {
+  id: string;
   title: string;
   content: string;
   fileUrl: string;
@@ -263,6 +264,7 @@ export function CommunityMaterials({ onChat }: CommunityMaterialsProps) {
                   <button
                     onClick={() =>
                       setViewingMaterial({
+                        id: material.id,
                         title: material.title,
                         content: 'Loading content...',
                         fileUrl: material.url,

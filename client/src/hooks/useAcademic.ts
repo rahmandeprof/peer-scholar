@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import api from '../lib/api';
-import { Department, Faculty, School } from '../types/academic';
+import type { Department, Faculty, School } from '../types/academic';
 
 export function useAcademic() {
   const [schools, setSchools] = useState<School[]>([]);

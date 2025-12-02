@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import api from '../lib/api';
-import { Send, MessageSquare, Trash2 } from 'lucide-react';
+import { Send, MessageSquare } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 
 interface Comment {
@@ -21,7 +20,6 @@ interface CommentsSectionProps {
 }
 
 export function CommentsSection({ materialId }: CommentsSectionProps) {
-  const { user } = useAuth();
   const toast = useToast();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');

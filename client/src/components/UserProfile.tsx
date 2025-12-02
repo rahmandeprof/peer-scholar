@@ -1,20 +1,66 @@
 import { QuizHistory } from './QuizHistory';
 
-// ... existing imports
+import { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+import { UNILORIN_FACULTIES } from '../data/unilorin-faculties';
+import {
+  User,
+  X,
+  Trophy,
+  Shield,
+  Mail,
+  Building,
+  GraduationCap,
+  Save,
+} from 'lucide-react';
+import api from '../lib/api';
 
-export function UserProfile({ isOpen, onClose }: UserProfileProps) {
+interface UserProfileProps {
+  onClose: () => void;
+}
+
+export function UserProfile({ onClose }: UserProfileProps) {
   const { user } = useAuth();
+
+  if (!user) return null;
   const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'quizzes'>('profile');
 
-  // ... existing state
+  const [formData, setFormData] = useState({
+    firstName: user?.firstName ?? '',
+    lastName: user?.lastName ?? '',
+    faculty: user?.faculty?.name ?? (user?.faculty as unknown as string) ?? '',
+    department:
+      user?.department?.name ?? (user?.department as unknown as string) ?? '',
+    yearOfStudy: user?.yearOfStudy ?? 1,
+  });
 
-  // ... existing useEffect
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await api.patch('/users/profile', {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+      });
 
-  if (!isOpen || !user) return null;
+      await api.patch('/users/academic-profile', {
+        facultyId: formData.faculty, // Backend handles string mapping if needed or we send name
+        departmentId: formData.department,
+        yearOfStudy: formData.yearOfStudy,
+      });
 
-  // ... existing handleSubmit
+      toast.success('Profile updated successfully');
+      onClose();
+      window.location.reload(); // Simple reload to refresh context
+    } catch {
+      toast.error('Failed to update profile');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm'>
@@ -216,8 +262,8 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
                     <option value=''>Select Department</option>
                     {formData.faculty &&
                       UNILORIN_FACULTIES.find(
-                        (f) => f.name === formData.faculty,
-                      )?.departments.map((dept) => (
+                        (f: { name: string }) => f.name === formData.faculty,
+                      )?.departments.map((dept: string) => (
                         <option key={dept} value={dept}>
                           {dept}
                         </option>
