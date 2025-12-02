@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from 'react';
 import type { ReactNode } from 'react';
 import { useToast } from './ToastContext';
 import axios from '../lib/api';
@@ -14,6 +20,7 @@ interface User {
   yearOfStudy?: number;
   reputation?: number;
   isVerified?: boolean;
+  image?: string;
 }
 
 interface AuthContextType {

@@ -16,7 +16,11 @@ interface ChatbotProps {
   onConversationChange?: (id: string) => void;
 }
 
-export function Chatbot({ initialConversationId, initialMaterialId, onConversationChange }: ChatbotProps) {
+export function Chatbot({
+  initialConversationId,
+  initialMaterialId,
+  onConversationChange,
+}: ChatbotProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -47,13 +51,14 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
     try {
       setLoading(true);
       const res = await api.get(`/chat/history/${id}`);
-      const formattedMessages = res.data.messages.map((msg: any) => ({
-        role: msg.role,
-        content: msg.content,
-      }));
+      const formattedMessages = res.data.messages.map(
+        (msg: { role: 'user' | 'assistant'; content: string }) => ({
+          role: msg.role,
+          content: msg.content,
+        }),
+      );
       setMessages(formattedMessages);
-    } catch (err) {
-      // console.error('Failed to fetch conversation', err);
+    } catch {
       toast.error('Failed to load conversation.');
     } finally {
       setLoading(false);
@@ -65,23 +70,31 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
     if (file) {
       setAttachedFile(file);
       // Focus input for caption
-      const inputEl = document.querySelector('input[type="text"]') as HTMLInputElement;
+      const inputEl = document.querySelector(
+        'input[type="text"]',
+      ) as HTMLInputElement;
       if (inputEl) inputEl.focus();
     }
   };
 
-  const handleSend = async (inputOrEvent?: string | React.MouseEvent, materialIdOverride?: string) => {
-    const overrideInput = typeof inputOrEvent === 'string' ? inputOrEvent : undefined;
+  const handleSend = async (
+    inputOrEvent?: string,
+    materialIdOverride?: string,
+  ) => {
+    const overrideInput =
+      typeof inputOrEvent === 'string' ? inputOrEvent : undefined;
     const textToSend = overrideInput || input;
     if (!textToSend.trim() && !attachedFile) return;
 
-    const userContent = attachedFile ? `[Attached: ${attachedFile.name}] ${textToSend}` : textToSend;
+    const userContent = attachedFile
+      ? `[Attached: ${attachedFile.name}] ${textToSend}`
+      : textToSend;
     const userMessage: Message = { role: 'user', content: userContent };
     setMessages((prev) => [...prev, userMessage]);
-    
+
     const currentInput = textToSend;
     const currentFile = attachedFile;
-    
+
     setInput('');
     setAttachedFile(null);
     setLoading(true);
@@ -100,7 +113,7 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
         const uploadRes = await api.post('/chat/upload', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
-        
+
         // Use the uploaded file's ID for this message context
         if (uploadRes.data && uploadRes.data.id) {
           materialId = uploadRes.data.id;
@@ -108,12 +121,16 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
         }
       }
 
-      const res = await api.post('/chat/message', { 
-        content: currentInput || (currentFile ? `Please read and summarize the content of ${currentFile.name}` : ''),
+      const res = await api.post('/chat/message', {
+        content:
+          currentInput ||
+          (currentFile
+            ? `Please read and summarize the content of ${currentFile.name}`
+            : ''),
         conversationId,
-        materialId 
+        materialId,
       });
-      
+
       // Save conversation ID from first response
       if (!conversationId && res.data.conversation?.id) {
         const newId = res.data.conversation.id;
@@ -126,8 +143,7 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
         content: res.data.assistantMessage.content,
       };
       setMessages((prev) => [...prev, assistantMessage]);
-    } catch (err) {
-      // console.error('Failed to send message', err);
+    } catch {
       toast.error('Failed to send message. Please try again.');
     } finally {
       setLoading(false);
@@ -138,7 +154,10 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
   useEffect(() => {
     if (initialMaterialId && !messages.length && !loading) {
       // Pass initialMaterialId explicitly to ensure it's used
-      void handleSend("Please summarize this material and prepare to answer questions about it.", initialMaterialId);
+      void handleSend(
+        'Please summarize this material and prepare to answer questions about it.',
+        initialMaterialId,
+      );
     }
   }, [initialMaterialId]);
 
@@ -151,38 +170,40 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
   };
 
   return (
-    <div className="flex flex-col h-full relative">
-      <div className="flex justify-between items-center px-4 py-2 border-b border-gray-100 dark:border-gray-800">
+    <div className='flex flex-col h-full relative'>
+      <div className='flex justify-between items-center px-4 py-2 border-b border-gray-100 dark:border-gray-800'>
         <CompactTimer />
-        <div className="flex items-center space-x-2">
+        <div className='flex items-center space-x-2'>
           {activeMaterialId && (
             <button
               onClick={() => setIsQuizOpen(true)}
-              className="group flex items-center px-3 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 rounded-xl transition-colors font-medium text-sm"
+              className='group flex items-center px-3 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 rounded-xl transition-colors font-medium text-sm'
             >
-              <Brain className="w-4 h-4 mr-2" />
+              <Brain className='w-4 h-4 mr-2' />
               Take Quiz
             </button>
           )}
           <button
             onClick={handleNewChat}
-            className="group flex items-center px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600 text-white rounded-xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 font-medium text-sm"
+            className='group flex items-center px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600 text-white rounded-xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 font-medium text-sm'
           >
-            <span className="mr-2 text-lg font-light">+</span>
+            <span className='mr-2 text-lg font-light'>+</span>
             New Chat
           </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-4 scroll-smooth">
+      <div className='flex-1 overflow-y-auto p-4 md:p-8 space-y-4 scroll-smooth'>
         {messages.length === 0 ? (
-          <div className="text-center text-gray-500 dark:text-gray-400 mt-20">
-            <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">Welcome to peerScholar</h2>
-            <p className="mb-4">Ask me anything about your study materials!</p>
+          <div className='text-center text-gray-500 dark:text-gray-400 mt-20'>
+            <h2 className='text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100'>
+              Welcome to peerScholar
+            </h2>
+            <p className='mb-4'>Ask me anything about your study materials!</p>
             {conversationId && (
-              <button 
+              <button
                 onClick={handleNewChat}
-                className="text-primary-600 hover:underline text-sm"
+                className='text-primary-600 hover:underline text-sm'
               >
                 Start a new chat
               </button>
@@ -207,45 +228,47 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
           ))
         )}
         {loading && (
-          <div className="flex justify-start">
-            <div className="bg-white dark:bg-gray-800 px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
-              <Loader2 className="w-5 h-5 animate-spin text-gray-500" />
+          <div className='flex justify-start'>
+            <div className='bg-white dark:bg-gray-800 px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm'>
+              <Loader2 className='w-5 h-5 animate-spin text-gray-500' />
             </div>
           </div>
         )}
       </div>
 
-      <div className="border-t border-gray-200 dark:border-gray-700 p-3 md:p-4 bg-white dark:bg-gray-900">
+      <div className='border-t border-gray-200 dark:border-gray-700 p-3 md:p-4 bg-white dark:bg-gray-900'>
         {attachedFile && (
-          <div className="mb-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-between">
-            <div className="flex items-center truncate">
-              <Paperclip className="w-4 h-4 mr-2 text-primary-600" />
-              <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{attachedFile.name}</span>
+          <div className='mb-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-between'>
+            <div className='flex items-center truncate'>
+              <Paperclip className='w-4 h-4 mr-2 text-primary-600' />
+              <span className='text-sm text-gray-700 dark:text-gray-300 truncate'>
+                {attachedFile.name}
+              </span>
             </div>
-            <button 
+            <button
               onClick={() => setAttachedFile(null)}
-              className="text-gray-500 hover:text-red-500 ml-2"
+              className='text-gray-500 hover:text-red-500 ml-2'
             >
-              <X className="w-4 h-4" />
+              <X className='w-4 h-4' />
             </button>
           </div>
         )}
-        <div className="flex space-x-2 max-w-5xl mx-auto w-full items-end">
+        <div className='flex space-x-2 max-w-5xl mx-auto w-full items-end'>
           <button
             onClick={() => document.getElementById('chat-upload')?.click()}
             className={`p-3 rounded-xl transition-colors shrink-0 ${
-              attachedFile 
-                ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400' 
+              attachedFile
+                ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
                 : 'text-gray-500 hover:text-primary-600 hover:bg-gray-100 dark:hover:bg-gray-800'
             }`}
-            title="Attach file"
+            title='Attach file'
           >
-            <Paperclip className="w-5 h-5" />
+            <Paperclip className='w-5 h-5' />
           </button>
           <input
-            type="file"
-            id="chat-upload"
-            className="hidden"
+            type='file'
+            id='chat-upload'
+            className='hidden'
             onChange={handleFileSelect}
           />
           <textarea
@@ -257,16 +280,18 @@ export function Chatbot({ initialConversationId, initialMaterialId, onConversati
                 handleSend();
               }
             }}
-            placeholder={attachedFile ? "Add a caption..." : "Ask a question..."}
-            className="flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none resize-none min-h-[46px] max-h-32"
+            placeholder={
+              attachedFile ? 'Add a caption...' : 'Ask a question...'
+            }
+            className='flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none resize-none min-h-[46px] max-h-32'
             rows={1}
           />
           <button
             onClick={() => handleSend()}
             disabled={loading || (!input.trim() && !attachedFile)}
-            className="p-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+            className='p-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0'
           >
-            <Send className="w-5 h-5" />
+            <Send className='w-5 h-5' />
           </button>
         </div>
       </div>
