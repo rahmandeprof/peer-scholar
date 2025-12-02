@@ -13,7 +13,6 @@ interface Message {
 interface ChatbotProps {
   initialConversationId?: string | null;
   initialMaterialId?: string | null;
-  onConversationChange?: (id: string) => void;
 }
 
 import { useParams, useNavigate } from 'react-router-dom';
@@ -21,7 +20,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 export function Chatbot({
   initialConversationId,
   initialMaterialId,
-  onConversationChange,
 }: ChatbotProps) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();

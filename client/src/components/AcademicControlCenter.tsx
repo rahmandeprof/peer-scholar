@@ -40,12 +40,10 @@ interface Conversation {
 import { useNavigate } from 'react-router-dom';
 
 interface AcademicControlCenterProps {
-  onNavigate?: (view: 'chat' | 'partner' | 'study', id?: string) => void;
   onUpload?: () => void;
 }
 
 export function AcademicControlCenter({
-  onNavigate,
   onUpload,
 }: AcademicControlCenterProps) {
   const navigate = useNavigate();
