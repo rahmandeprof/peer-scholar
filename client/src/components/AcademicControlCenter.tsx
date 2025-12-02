@@ -21,27 +21,15 @@ interface Course {
 }
 
 interface PartnerStats {
-  partner: {
-    firstName: string;
-    lastName: string;
-    currentStreak: number;
-    lastActivity: string;
-  };
-  combinedStreak: number;
-}
-
-interface Conversation {
   id: string;
-  title: string;
-  updatedAt: string;
-  materialId?: string;
+  firstName: string;
+  lastName: string;
+  currentStreak: number;
+  combinedStreak: number;
+  image?: string;
 }
 
-import { useNavigate } from 'react-router-dom';
-
-interface AcademicControlCenterProps {
-  onUpload?: () => void;
-}
+// ... imports ...
 
 export function AcademicControlCenter({
   onUpload,
@@ -49,7 +37,7 @@ export function AcademicControlCenter({
   const navigate = useNavigate();
   const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
-  const [partnerStats, setPartnerStats] = useState<PartnerStats | null>(null);
+  const [partners, setPartners] = useState<PartnerStats[]>([]);
   const [recentChat, setRecentChat] = useState<Conversation | null>(null);
   const [streak, setStreak] = useState(0);
   const [stage, setStage] = useState('Novice');
@@ -79,7 +67,8 @@ export function AcademicControlCenter({
 
         try {
           const partnerRes = await api.get('/users/partner');
-          setPartnerStats(partnerRes.data);
+          // Ensure we handle array response
+          setPartners(Array.isArray(partnerRes.data) ? partnerRes.data : []);
         } catch {
           // Ignore if no partner
         }
@@ -95,16 +84,14 @@ export function AcademicControlCenter({
     }
   }, [user]);
 
-  if (loading) {
-    return (
-      <div className='flex items-center justify-center h-full'>
-        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600'></div>
-      </div>
-    );
-  }
+  // ... (loading check)
+
+  // Helper to get top partner
+  const topPartner = partners.length > 0 ? partners[0] : null;
 
   return (
     <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full overflow-y-auto space-y-8'>
+      {/* ... (Header) ... */}
       <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
         <div>
           <h1 className='text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight'>
@@ -153,21 +140,7 @@ export function AcademicControlCenter({
             </div>
 
             {recentChat ? (
-              <div
-                onClick={() => {
-                  if (recentChat.materialId) {
-                    // Navigate to material view
-                    // We need to use useNavigate here, but onNavigate is passed as prop.
-                    // Assuming onNavigate handles 'study' or we can add 'material' type.
-                    // For now, let's use window.location or add a prop.
-                    // Better: use Link or useNavigate if available.
-                    // The component uses Link from react-router-dom.
-                  }
-                  // actually onNavigate is used for main views.
-                  // Let's check how onNavigate is implemented in Dashboard.
-                }}
-                className='cursor-pointer'
-              >
+              <div className='cursor-pointer'>
                 <Link
                   to={
                     recentChat.materialId
@@ -215,21 +188,26 @@ export function AcademicControlCenter({
                 <Users className='w-5 h-5 mr-2' />
                 Partner
               </h2>
-              {partnerStats && (
+              {topPartner && (
                 <span className='bg-white/20 px-2 py-1 rounded-lg text-xs font-bold'>
-                  {partnerStats.combinedStreak} Combined
+                  {topPartner.combinedStreak} Combined
                 </span>
               )}
             </div>
 
-            {partnerStats ? (
+            {topPartner ? (
               <div>
                 <div className='text-2xl font-bold mb-1'>
-                  {partnerStats.partner.firstName}
+                  {topPartner.firstName}
+                  {partners.length > 1 && (
+                    <span className='text-sm font-normal opacity-80 ml-2'>
+                      +{partners.length - 1} more
+                    </span>
+                  )}
                 </div>
                 <div className='flex items-center text-indigo-100 text-sm'>
                   <span className='w-2 h-2 bg-green-400 rounded-full mr-2 shadow-[0_0_8px_rgba(74,222,128,0.6)] animate-pulse'></span>
-                  {partnerStats.partner.currentStreak} day streak
+                  {topPartner.currentStreak} day streak
                 </div>
               </div>
             ) : (
