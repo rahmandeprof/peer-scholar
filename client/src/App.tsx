@@ -72,6 +72,7 @@ function AppContent() {
           <Route path='/dashboard' element={<AcademicControlCenter />} />
           <Route path='/department' element={<DepartmentView />} />
           <Route path='/study-partner' element={<StudyPartner />} />
+          <Route path='/partner' element={<Navigate to='/study-partner' replace />} />
           <Route path='/study-timer' element={<StudyTimer />} />
           <Route path='/chat' element={<Chatbot />} />
           <Route path='/chat/:id' element={<Chatbot />} />

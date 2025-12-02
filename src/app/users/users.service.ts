@@ -44,8 +44,7 @@ export class UsersService {
 
     if (!receiver) throw new NotFoundException('User not found');
     if (sender.id === receiver.id) throw new Error('Cannot invite yourself');
-    if (sender.partnerId) throw new Error('You already have a partner');
-    if (receiver.partnerId) throw new Error('User already has a partner');
+    // Removed single partner checks to allow multiple partners
 
     const existingRequest = await this.partnerRequestRepo.findOne({
       where: [
@@ -75,7 +74,7 @@ export class UsersService {
     // Send email
     // In a real app, generate a token/link. For now, just link to the app.
     const clientUrl = this.configService.get<string>('CLIENT_URL') ?? '';
-    const link = `${clientUrl}/partner`;
+    const link = `${clientUrl}/study-partner`;
 
     await this.emailService.sendPartnerInvite(
       receiver.email,
@@ -113,14 +112,8 @@ export class UsersService {
 
     if (accept) {
       request.status = PartnerRequestStatus.ACCEPTED;
-
-      // Update users
-      await this.userRepository.update(request.sender.id, {
-        partnerId: request.receiver.id,
-      });
-      await this.userRepository.update(request.receiver.id, {
-        partnerId: request.sender.id,
-      });
+      // No need to update partnerId on User entity anymore.
+      // The PartnerRequest with status ACCEPTED serves as the link.
     } else {
       request.status = PartnerRequestStatus.REJECTED;
       // TODO: Send notification to sender about rejection
@@ -135,28 +128,43 @@ export class UsersService {
   }
 
   async getPartnerStats(userId: string) {
-    const user = await this.getOne(userId);
-
-    if (!user.partnerId) return null;
-
-    const partner = await this.getOne(user.partnerId);
-    const partnerStreak = await this.streakRepository.findOne({
-      where: { userId: partner.id },
+    // Find all accepted requests where user is sender or receiver
+    const requests = await this.partnerRequestRepo.find({
+      where: [
+        { sender: { id: userId }, status: PartnerRequestStatus.ACCEPTED },
+        { receiver: { id: userId }, status: PartnerRequestStatus.ACCEPTED },
+      ],
+      relations: ['sender', 'receiver'],
     });
 
-    const userEffectiveStreak = await this.calculateEffectiveStreak(userId);
-    const partnerEffectiveStreak =
-      this.calculateEffectiveStreakFromEntity(partnerStreak);
+    if (requests.length === 0) return [];
 
-    return {
-      partner: {
-        firstName: partner.firstName,
-        lastName: partner.lastName,
-        currentStreak: partnerEffectiveStreak,
-        lastActivity: partnerStreak?.lastActivityDate,
-      },
-      combinedStreak: Math.min(userEffectiveStreak, partnerEffectiveStreak),
-    };
+    const partnersData = await Promise.all(
+      requests.map(async (req) => {
+        const partner = req.sender.id === userId ? req.receiver : req.sender;
+
+        const partnerStreak = await this.streakRepository.findOne({
+          where: { userId: partner.id },
+        });
+
+        const userEffectiveStreak = await this.calculateEffectiveStreak(userId);
+        const partnerEffectiveStreak =
+          this.calculateEffectiveStreakFromEntity(partnerStreak);
+
+        return {
+          id: partner.id,
+          firstName: partner.firstName,
+          lastName: partner.lastName,
+          email: partner.email,
+          image: partner.image,
+          currentStreak: partnerEffectiveStreak,
+          lastActivity: partnerStreak?.lastActivityDate,
+          combinedStreak: Math.min(userEffectiveStreak, partnerEffectiveStreak),
+        };
+      }),
+    );
+
+    return partnersData;
   }
 
   getPendingRequests(userId: string) {

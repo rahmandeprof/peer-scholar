@@ -249,6 +249,16 @@ export class ChatService {
     };
   }
 
+  async getSummary(materialId: string): Promise<string> {
+    const material = await this.materialRepo.findOne({
+      where: { id: materialId },
+    });
+
+    if (!material) throw new NotFoundException('Material not found');
+
+    return this.getOrGenerateSummary(material);
+  }
+
   private async getOrGenerateSummary(material: Material): Promise<string> {
     if (material.summary) return material.summary;
 
@@ -280,6 +290,40 @@ export class ChatService {
       this.logger.error('Failed to generate summary', e);
 
       return '';
+    }
+  }
+
+  async extractKeyPoints(materialId: string): Promise<string[]> {
+    const material = await this.materialRepo.findOne({
+      where: { id: materialId },
+    });
+
+    if (!material) throw new NotFoundException('Material not found');
+
+    if (!this.openai) throw new Error('OPENAI_API_KEY is not set');
+
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: COMPLETION_MODEL,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'Extract 5-7 key bullet points from the following text. Return them as a JSON array of strings.',
+          },
+          { role: 'user', content: material.content?.substring(0, 6000) ?? '' },
+        ],
+        response_format: { type: 'json_object' },
+      });
+
+      const content = response.choices[0].message.content;
+      if (!content) return [];
+
+      const parsed = JSON.parse(content);
+      return parsed.points || parsed.keyPoints || parsed.key_points || [];
+    } catch (e) {
+      this.logger.error('Failed to extract key points', e);
+      return [];
     }
   }
 

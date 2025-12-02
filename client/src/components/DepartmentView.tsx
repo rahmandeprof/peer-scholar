@@ -98,22 +98,22 @@ const DepartmentView: React.FC = () => {
 
   return (
     <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full overflow-y-auto'>
-      <div className='flex justify-between items-center mb-8'>
+      <div className='flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8'>
         <div>
-          <h1 className='text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight'>
+          <h1 className='text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight'>
             {user.department.name}
           </h1>
-          <p className='text-gray-500 dark:text-gray-400 mt-1 flex items-center'>
+          <p className='text-sm md:text-base text-gray-500 dark:text-gray-400 mt-1 flex flex-wrap items-center gap-2'>
             <span className='font-medium text-primary-600 dark:text-primary-400'>
               {user.faculty?.name}
             </span>
-            <span className='mx-2'>•</span>
-            {user.school?.name}
+            <span className='hidden md:inline'>•</span>
+            <span>{user.school?.name}</span>
           </p>
         </div>
         <Link
           to='/upload'
-          className='inline-flex items-center px-5 py-2.5 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 transition-all hover:shadow-md hover:-translate-y-0.5'
+          className='inline-flex items-center justify-center px-5 py-2.5 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 transition-all hover:shadow-md hover:-translate-y-0.5 w-full md:w-auto'
         >
           <Upload className='h-4 w-4 mr-2' />
           Upload Material

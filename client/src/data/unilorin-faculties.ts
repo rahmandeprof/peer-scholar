@@ -61,19 +61,32 @@ export const UNILORIN_FACULTIES = [
     ],
   },
   {
-    name: 'Faculty Of Engineering',
+    name: 'Faculty of Communication and Information Sciences',
+    departments: [
+      'Telecommunication Science',
+      'Library And Information Science',
+      'Computer Science',
+      'Information Technology',
+    ],
+  },
+  {
+    name: 'Faculty of Environmental Sciences',
     departments: [
       'Architecture',
+      'Urban And Regional Planning',
+      'Quantity Surveying Surveying And Geoinformation',
+    ],
+  },
+  {
+    name: 'Faculty Of Engineering',
+    departments: [
       'Agricultural And Biosystems Engineering',
+      'Computer Engineering',
       'Chemical Engineering',
       'Biomedical Engineering',
       'Water Resources And Environmental Engineering',
-      'Urban And Regional Planning',
-      'Telecommunication Sciences',
-      'Quantity Surveying Surveying And Geoinformation',
       'Metallurgical And Material Engineering',
       'Mechanical Engineering',
-      'Engineering Information And Communication Sciences',
       'Electrical/Electronics',
       'Civil Engineering',
     ],
@@ -94,7 +107,7 @@ export const UNILORIN_FACULTIES = [
     ],
   },
   {
-    name: 'Faculty Of Sciences',
+    name: 'Faculty Of Physcal/Life Sciences',
     departments: [
       'Biochemistry',
       'Zoology',
@@ -103,10 +116,8 @@ export const UNILORIN_FACULTIES = [
       'Physics',
       'Microbiology',
       'Mathematics',
-      'Library And Information Sciences',
       'Industrial Chemistry',
       'Geology',
-      'Computer Sciences',
       'Chemistry',
       'Biology',
     ],

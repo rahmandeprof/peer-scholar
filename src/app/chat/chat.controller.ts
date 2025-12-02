@@ -29,7 +29,7 @@ interface RequestWithUser extends Request {
 @Controller('chat')
 @UseGuards(AuthGuard('jwt'))
 export class ChatController {
-  constructor(private readonly chatService: ChatService) {}
+  constructor(private readonly chatService: ChatService) { }
 
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
@@ -117,5 +117,15 @@ export class ChatController {
   @Post('quiz/:id')
   generateQuiz(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.chatService.generateQuiz(id);
+  }
+
+  @Get('summary/:id')
+  getSummary(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.chatService.getSummary(id);
+  }
+
+  @Get('key-points/:id')
+  getKeyPoints(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.chatService.extractKeyPoints(id);
   }
 }

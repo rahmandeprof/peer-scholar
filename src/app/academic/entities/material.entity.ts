@@ -14,6 +14,7 @@ export enum MaterialType {
 
 export enum AccessScope {
   PUBLIC = 'public',
+  FACULTY = 'faculty',
   DEPARTMENT = 'department',
   COURSE = 'course',
   PRIVATE = 'private',

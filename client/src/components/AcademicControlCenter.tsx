@@ -105,7 +105,7 @@ export function AcademicControlCenter({
 
   return (
     <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full overflow-y-auto space-y-8'>
-      <div className='flex items-center justify-between'>
+      <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
         <div>
           <h1 className='text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight'>
             Academic Control Center
@@ -114,7 +114,7 @@ export function AcademicControlCenter({
             Welcome back, {user?.firstName || 'Student'}. Ready to learn?
           </p>
         </div>
-        <div className='flex items-center space-x-4'>
+        <div className='flex items-center self-start md:self-auto'>
           <div className='flex items-center bg-orange-50 dark:bg-orange-900/20 px-3 py-1.5 md:px-4 md:py-2 rounded-xl border border-orange-100 dark:border-orange-800/30'>
             <Flame
               className='w-4 h-4 md:w-5 md:h-5 text-orange-500 mr-2'
@@ -276,7 +276,7 @@ export function AcademicControlCenter({
             </button>
           </div>
 
-          <div className='grid grid-cols-3 gap-4'>
+          <div className='grid grid-cols-2 md:grid-cols-3 gap-4'>
             <div className='bg-gray-50 dark:bg-gray-700/30 rounded-xl p-4 text-center'>
               <div className='text-2xl font-bold text-gray-900 dark:text-gray-100'>
                 {streak}
@@ -285,7 +285,7 @@ export function AcademicControlCenter({
                 Current Streak
               </div>
             </div>
-            <div className='bg-gray-50 dark:bg-gray-700/30 rounded-xl p-4 text-center'>
+            <div className='bg-gray-50 dark:bg-gray-700/30 rounded-xl p-4 text-center hidden md:block'>
               <div className='text-2xl font-bold text-gray-900 dark:text-gray-100'>
                 {courses.length}
               </div>

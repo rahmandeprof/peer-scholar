@@ -34,8 +34,24 @@ export class CreateMaterialDto {
   size?: number;
 
   @IsString()
-  @IsNotEmpty()
-  courseId: string;
+  @IsOptional()
+  courseId?: string;
+
+  @IsString()
+  @IsOptional()
+  courseCode?: string;
+
+  @IsString()
+  @IsOptional()
+  targetFaculty?: string;
+
+  @IsString()
+  @IsOptional()
+  targetDepartment?: string;
+
+  @IsString()
+  @IsOptional()
+  topic?: string;
 
   @IsEnum(AccessScope)
   @IsOptional()

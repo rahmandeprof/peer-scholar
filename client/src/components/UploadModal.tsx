@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Upload as UploadIcon, FileText, Check } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
+import { UNILORIN_FACULTIES } from '../data/unilorin-faculties';
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -21,6 +22,8 @@ export function UploadModal({
   const [category, setCategory] = useState('note');
   const [visibility, setVisibility] = useState('public');
   const [courseCode, setCourseCode] = useState('');
+  const [specificFaculty, setSpecificFaculty] = useState('');
+  const [specificDepartment, setSpecificDepartment] = useState('');
 
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -71,6 +74,24 @@ export function UploadModal({
       const uploadData = await uploadRes.json();
 
       // 3. Create Material Record
+      // Determine scope and targets
+      let scope = visibility;
+      let targetFaculty = undefined;
+      let targetDepartment = undefined;
+
+      if (visibility === 'specific_faculty') {
+        scope = 'faculty';
+        targetFaculty = specificFaculty;
+      } else if (visibility === 'specific_department') {
+        scope = 'department';
+        targetDepartment = specificDepartment;
+        targetFaculty = specificFaculty; // Optional: keep faculty context
+      } else if (visibility === 'faculty') {
+        targetFaculty = typeof user?.faculty === 'string' ? user.faculty : (user?.faculty as any)?.name;
+      } else if (visibility === 'department') {
+        targetDepartment = typeof user?.department === 'string' ? user.department : (user?.department as any)?.name;
+      }
+
       await api.post('/materials', {
         title,
         description: topic,
@@ -80,10 +101,9 @@ export function UploadModal({
         size: file.size,
         courseCode: courseCode || undefined,
         topic: topic || undefined,
-        scope: visibility,
-        targetFaculty: visibility === 'faculty' ? user?.faculty : undefined,
-        targetDepartment:
-          visibility === 'department' ? user?.department : undefined,
+        scope,
+        targetFaculty,
+        targetDepartment,
         tags: topic ? [topic] : [],
       });
 
@@ -199,8 +219,79 @@ export function UploadModal({
                     : (user?.department as any)?.name || ''}
                   )
                 </option>
+                <option value='specific_faculty'>Specific Faculty</option>
+                <option value='specific_department'>Specific Department</option>
               </select>
             </div>
+
+            {visibility === 'specific_faculty' && (
+              <div>
+                <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+                  Select Faculty
+                </label>
+                <select
+                  value={specificFaculty}
+                  onChange={(e) => setSpecificFaculty(e.target.value)}
+                  className='w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none'
+                  required
+                >
+                  <option value=''>Select Faculty</option>
+                  {UNILORIN_FACULTIES.map((f) => (
+                    <option key={f.name} value={f.name}>
+                      {f.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {visibility === 'specific_department' && (
+              <div className='space-y-4'>
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+                    Select Faculty
+                  </label>
+                  <select
+                    value={specificFaculty}
+                    onChange={(e) => {
+                      setSpecificFaculty(e.target.value);
+                      setSpecificDepartment('');
+                    }}
+                    className='w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none'
+                    required
+                  >
+                    <option value=''>Select Faculty</option>
+                    {UNILORIN_FACULTIES.map((f) => (
+                      <option key={f.name} value={f.name}>
+                        {f.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+                    Select Department
+                  </label>
+                  <select
+                    value={specificDepartment}
+                    onChange={(e) => setSpecificDepartment(e.target.value)}
+                    className='w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-50'
+                    required
+                    disabled={!specificFaculty}
+                  >
+                    <option value=''>Select Department</option>
+                    {specificFaculty &&
+                      UNILORIN_FACULTIES.find(
+                        (f) => f.name === specificFaculty,
+                      )?.departments.map((d) => (
+                        <option key={d} value={d}>
+                          {d}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+            )}
 
             <div>
               <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>

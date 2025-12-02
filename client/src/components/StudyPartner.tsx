@@ -4,13 +4,14 @@ import api from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
 import confetti from 'canvas-confetti';
 
-interface PartnerStats {
-  partner: {
-    firstName: string;
-    lastName: string;
-    currentStreak: number;
-    lastActivity: string;
-  };
+interface PartnerData {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  image: string;
+  currentStreak: number;
+  lastActivity: string;
   combinedStreak: number;
 }
 
@@ -24,7 +25,7 @@ interface PartnerRequest {
 }
 
 export function StudyPartner() {
-  const [stats, setStats] = useState<PartnerStats | null>(null);
+  const [partners, setPartners] = useState<PartnerData[]>([]);
   const [requests, setRequests] = useState<PartnerRequest[]>([]);
   const [inviteEmail, setInviteEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,12 +35,14 @@ export function StudyPartner() {
 
   const fetchData = async () => {
     try {
-      const [statsRes, requestsRes, sentRes] = await Promise.all([
+      const [partnersRes, requestsRes, sentRes] = await Promise.all([
         api.get('/users/partner'),
         api.get('/users/partner/requests'),
         api.get('/users/partner/sent'),
       ]);
-      setStats(statsRes.data);
+      // Ensure we handle both array (new) and object (old cache?) if any
+      // But we changed backend, so it should be array.
+      setPartners(Array.isArray(partnersRes.data) ? partnersRes.data : []);
       setRequests(requestsRes.data);
       setSentRequests(sentRes.data);
     } catch {
@@ -108,80 +111,71 @@ export function StudyPartner() {
     }
   };
 
-  if (stats) {
-    return (
-      <div className='max-w-4xl mx-auto p-6 space-y-8 h-full overflow-y-auto'>
-        <div className='bg-gradient-to-br from-primary-500 to-purple-600 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden'>
-          <div className='absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none' />
-
-          <div className='flex items-center justify-between mb-8 relative z-10'>
-            <div className='flex items-center space-x-4'>
-              <div className='p-3 bg-white/20 rounded-2xl backdrop-blur-md shadow-inner'>
-                <Users className='w-8 h-8' />
-              </div>
-              <div>
-                <h2 className='text-3xl font-bold tracking-tight'>
-                  Study Partner
-                </h2>
-                <p className='text-primary-100 font-medium'>
-                  Together you go further
-                </p>
-              </div>
-            </div>
-            <div className='text-right'>
-              <div className='text-5xl font-bold tracking-tighter'>
-                {stats.combinedStreak}
-              </div>
-              <div className='text-primary-100 text-sm font-bold uppercase tracking-wider'>
-                Combined Streak
-              </div>
-            </div>
-          </div>
-
-          <div className='grid md:grid-cols-2 gap-6 relative z-10'>
-            <div className='bg-white/10 rounded-2xl p-6 backdrop-blur-md border border-white/10'>
-              <h3 className='text-lg font-bold mb-4 flex items-center'>
-                <Shield className='w-5 h-5 mr-2' />
-                Your Study Partner
-              </h3>
-              <div className='space-y-2'>
-                <div className='text-2xl font-bold'>
-                  {stats.partner.firstName} {stats.partner.lastName}
-                </div>
-                <div className='flex items-center text-primary-100 font-medium'>
-                  <span className='w-2.5 h-2.5 bg-green-400 rounded-full mr-2 shadow-[0_0_8px_rgba(74,222,128,0.6)]'></span>
-                  {stats.partner.currentStreak} day streak
-                </div>
-              </div>
-            </div>
-
-            <div className='bg-white/10 rounded-2xl p-6 backdrop-blur-md border border-white/10 flex items-center justify-center text-center'>
-              <div>
-                <p className='text-lg font-bold mb-2'>Keep it up!</p>
-                <p className='text-primary-100 text-sm'>
-                  Study together to increase your combined streak.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className='max-w-2xl mx-auto p-6 space-y-8 h-full overflow-y-auto'>
-      <div className='text-center mb-12'>
-        <div className='inline-flex items-center justify-center w-20 h-20 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-3xl mb-6 shadow-sm'>
-          <UserPlus className='w-10 h-10' />
+    <div className='max-w-4xl mx-auto p-6 space-y-8 h-full overflow-y-auto'>
+      {partners.length > 0 ? (
+        <div className='grid gap-6 md:grid-cols-2'>
+          {partners.map((partner) => (
+            <div
+              key={partner.id}
+              className='bg-gradient-to-br from-primary-500 to-purple-600 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden'
+            >
+              <div className='absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none' />
+
+              <div className='flex items-center justify-between mb-8 relative z-10'>
+                <div className='flex items-center space-x-4'>
+                  <div className='p-3 bg-white/20 rounded-2xl backdrop-blur-md shadow-inner'>
+                    <Users className='w-8 h-8' />
+                  </div>
+                  <div>
+                    <h2 className='text-2xl font-bold tracking-tight'>
+                      Study Partner
+                    </h2>
+                    <p className='text-primary-100 font-medium text-sm'>
+                      Together you go further
+                    </p>
+                  </div>
+                </div>
+                <div className='text-right'>
+                  <div className='text-4xl font-bold tracking-tighter'>
+                    {partner.combinedStreak}
+                  </div>
+                  <div className='text-primary-100 text-xs font-bold uppercase tracking-wider'>
+                    Combined Streak
+                  </div>
+                </div>
+              </div>
+
+              <div className='space-y-6 relative z-10'>
+                <div className='bg-white/10 rounded-2xl p-6 backdrop-blur-md border border-white/10'>
+                  <h3 className='text-lg font-bold mb-4 flex items-center'>
+                    <Shield className='w-5 h-5 mr-2' />
+                    {partner.firstName} {partner.lastName}
+                  </h3>
+                  <div className='space-y-2'>
+                    <div className='flex items-center text-primary-100 font-medium'>
+                      <span className='w-2.5 h-2.5 bg-green-400 rounded-full mr-2 shadow-[0_0_8px_rgba(74,222,128,0.6)]'></span>
+                      {partner.currentStreak} day streak
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
-        <h2 className='text-4xl font-bold text-gray-900 dark:text-gray-100 mb-3 tracking-tight'>
-          Find a Study Partner
-        </h2>
-        <p className='text-lg text-gray-600 dark:text-gray-400 max-w-md mx-auto'>
-          Boost your motivation by tracking streaks together with a peer.
-        </p>
-      </div>
+      ) : (
+        <div className='text-center mb-12'>
+          <div className='inline-flex items-center justify-center w-20 h-20 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-3xl mb-6 shadow-sm'>
+            <UserPlus className='w-10 h-10' />
+          </div>
+          <h2 className='text-4xl font-bold text-gray-900 dark:text-gray-100 mb-3 tracking-tight'>
+            Find a Study Partner
+          </h2>
+          <p className='text-lg text-gray-600 dark:text-gray-400 max-w-md mx-auto'>
+            Boost your motivation by tracking streaks together with a peer.
+          </p>
+        </div>
+      )}
 
       {requests.length > 0 && (
         <div className='bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl shadow-sm border border-gray-200/50 dark:border-gray-700/50 overflow-hidden mb-8'>

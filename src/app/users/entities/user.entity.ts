@@ -62,9 +62,6 @@ export class User extends IDAndTimestamp {
   @Column({ type: 'date', nullable: true })
   lastStudyDate: Date;
 
-  @Column({ nullable: true })
-  partnerId: string;
-
   @Column({ nullable: true, unique: true })
   googleId: string;
 

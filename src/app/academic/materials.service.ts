@@ -59,9 +59,28 @@ export class MaterialsService {
   }
 
   async create(dto: CreateMaterialDto, user: User) {
-    const course = await this.courseRepo.findOneBy({ id: dto.courseId });
+    let course: Course | null = null;
 
-    if (!course) throw new NotFoundException('Course not found');
+    if (dto.courseId) {
+      course = await this.courseRepo.findOneBy({ id: dto.courseId });
+      if (!course) throw new NotFoundException('Course not found');
+    } else if (dto.courseCode) {
+      // Try to find by code, or create if not exists (optional, or just link by code)
+      course = await this.courseRepo.findOneBy({ code: dto.courseCode });
+      if (!course) {
+        // Create a new course if it doesn't exist
+        // We might need to infer department from user or targetDepartment
+        // For now, let's create it without a department if we can't determine it
+        // Or better, just leave course as null and rely on courseCode string
+        // But the entity has a relation. Let's try to create it.
+        course = this.courseRepo.create({
+          code: dto.courseCode,
+          title: dto.courseCode, // Fallback title
+          // department: ... we don't know the department for sure unless we look it up
+        });
+        course = await this.courseRepo.save(course);
+      }
+    }
 
     const material = this.materialRepo.create({
       title: dto.title,
@@ -72,7 +91,11 @@ export class MaterialsService {
       size: dto.size,
       scope: dto.scope,
       tags: dto.tags,
-      course,
+      course: course || undefined, // Link if found/created
+      courseCode: dto.courseCode,
+      targetFaculty: dto.targetFaculty,
+      targetDepartment: dto.targetDepartment,
+      topic: dto.topic,
       uploader: user,
       status: MaterialStatus.PENDING,
     });
@@ -140,7 +163,7 @@ export class MaterialsService {
         typeof user.department === 'string'
           ? user.department
           : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (user.department as any).id;
+          (user.department as any).id;
 
       query.where('course.departmentId = :deptId', { deptId });
     }
@@ -163,36 +186,6 @@ export class MaterialsService {
     // Private: Only uploader can see
 
     query.andWhere(
-      new Brackets((qb: WhereExpressionBuilder) => {
-        qb.where('material.scope = :publicScope', {
-          publicScope: AccessScope.PUBLIC,
-        }).orWhere('material.uploaderId = :userId', { userId: user.id });
-
-        if (user.department) {
-          // If user has a department, they can see department-scoped materials from that department
-          // We need to check if the material's course belongs to the user's department
-          // Since we joined course.department, we can check department.id
-          // Note: This assumes material.course.department is the same as the material's "intended" department scope
-          // If scope is DEPARTMENT, we check if user.department.id === course.department.id
-
-          qb.orWhere(
-            '(material.scope = :deptScope AND department.id = :userDeptId)',
-            {
-              deptScope: AccessScope.DEPARTMENT,
-              userDeptId:
-                typeof user.department === 'string'
-                  ? user.department
-                  : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    (user.department as any).id,
-            },
-          );
-        }
-      }),
-    );
-
-    query.orderBy('material.createdAt', 'DESC');
-
-    return query.getMany();
   }
 
   async updateScope(id: string, scope: AccessScope, userId: string) {
