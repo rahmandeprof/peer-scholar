@@ -116,15 +116,67 @@ export class UsersService {
       // The PartnerRequest with status ACCEPTED serves as the link.
     } else {
       request.status = PartnerRequestStatus.REJECTED;
-      // TODO: Send notification to sender about rejection
-      // For now, we just update the status. The sender can see it in their "Sent Requests" if we show history,
-      // or we can remove it. The user asked for notification.
-      // Since we don't have a notification system yet, we'll rely on the status update.
-      // But we should probably delete the request or mark it as rejected so it doesn't clutter.
-      // Let's keep it as REJECTED for history.
+
+      // Send notification to sender about rejection
+      const clientUrl = this.configService.get<string>('CLIENT_URL') ?? '';
+      const link = `${clientUrl}/study-partner`;
+
+      await this.emailService.sendPartnerRejection(
+        request.sender.email,
+        request.receiver.firstName,
+        link,
+      );
     }
 
     return this.partnerRequestRepo.save(request);
+  }
+
+  async nudgePartner(userId: string, partnerId: string) {
+    // Check if they are partners
+    const request = await this.partnerRequestRepo.findOne({
+      where: [
+        {
+          sender: { id: userId },
+          receiver: { id: partnerId },
+          status: PartnerRequestStatus.ACCEPTED,
+        },
+        {
+          sender: { id: partnerId },
+          receiver: { id: userId },
+          status: PartnerRequestStatus.ACCEPTED,
+        },
+      ],
+      relations: ['sender', 'receiver'],
+    });
+
+    if (!request) throw new Error('You are not partners with this user');
+
+    // Check rate limit (e.g., 1 hour)
+    if (request.lastNudgedAt) {
+      const diff = Date.now() - request.lastNudgedAt.getTime();
+      const hours = diff / (1000 * 60 * 60);
+
+      if (hours < 1) {
+        throw new Error('You can only nudge a partner once per hour');
+      }
+    }
+
+    const sender =
+      request.sender.id === userId ? request.sender : request.receiver;
+    const receiver =
+      request.sender.id === userId ? request.receiver : request.sender;
+
+    // Send email
+    await this.emailService.sendNudge(
+      receiver.email,
+      sender.firstName,
+      `${sender.firstName} sent you a study nudge!`,
+    );
+
+    request.lastNudgedAt = new Date();
+    await this.partnerRequestRepo.save(request);
+
+    return { success: true };
   }
 
   async getPartnerStats(userId: string) {

@@ -1,4 +1,12 @@
-import { X, Brain, FileText, Sparkles, MessageSquare, List, Loader2 } from 'lucide-react';
+import {
+  X,
+  Brain,
+  FileText,
+  Sparkles,
+  MessageSquare,
+  List,
+  Loader2,
+} from 'lucide-react';
 import { Chatbot } from './Chatbot';
 import { useState } from 'react';
 import api from '../lib/api';
@@ -50,7 +58,13 @@ export function AISidebar({ isOpen, onClose, materialId }: AISidebarProps) {
   };
 
   return (
-    <div className='w-[400px] bg-white dark:bg-gray-800 flex flex-col shrink-0 shadow-2xl z-20 border-l border-gray-200 dark:border-gray-700 h-full animate-slide-left'>
+    <div
+      className={`bg-white dark:bg-gray-800 flex flex-col shrink-0 shadow-2xl z-20 border-l border-gray-200 dark:border-gray-700 h-full transition-all duration-300 ease-in-out fixed inset-y-0 right-0 md:relative md:inset-auto ${
+        isOpen
+          ? 'w-full md:w-[400px] translate-x-0'
+          : 'w-0 translate-x-full md:translate-x-0 md:w-0'
+      }`}
+    >
       {/* Sidebar Header */}
       <div className='h-16 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 shrink-0 bg-gray-50/50 dark:bg-gray-900/50 backdrop-blur-sm'>
         <div className='flex items-center space-x-2'>
@@ -94,7 +108,7 @@ export function AISidebar({ isOpen, onClose, materialId }: AISidebarProps) {
       </div>
 
       {/* Content */}
-      <div className='flex-1 overflow-hidden flex flex-col'>
+      <div className='flex-1 overflow-hidden flex flex-col w-full md:w-[400px]'>
         {activeTab === 'chat' ? (
           <Chatbot initialMaterialId={materialId} />
         ) : (
@@ -184,7 +198,10 @@ export function AISidebar({ isOpen, onClose, materialId }: AISidebarProps) {
                 </h3>
                 <ul className='space-y-2'>
                   {keyPoints.map((point, i) => (
-                    <li key={i} className='flex items-start text-sm text-gray-700 dark:text-gray-300'>
+                    <li
+                      key={i}
+                      className='flex items-start text-sm text-gray-700 dark:text-gray-300'
+                    >
                       <span className='mr-2 mt-1.5 w-1.5 h-1.5 bg-green-500 rounded-full shrink-0' />
                       {point}
                     </li>

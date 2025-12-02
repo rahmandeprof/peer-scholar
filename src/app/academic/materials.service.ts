@@ -91,7 +91,7 @@ export class MaterialsService {
       size: dto.size,
       scope: dto.scope,
       tags: dto.tags,
-      course: course || undefined, // Link if found/created
+      course: course ?? undefined, // Link if found/created
       courseCode: dto.courseCode,
       targetFaculty: dto.targetFaculty,
       targetDepartment: dto.targetDepartment,
@@ -162,8 +162,7 @@ export class MaterialsService {
       const deptId =
         typeof user.department === 'string'
           ? user.department
-          : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (user.department as any).id;
+          : (user.department as { id: string }).id;
 
       query.where('course.departmentId = :deptId', { deptId });
     }
@@ -195,12 +194,12 @@ export class MaterialsService {
           const userDeptId =
             typeof user.department === 'string'
               ? user.department
-              : (user.department as any).id;
+              : (user.department as { id: string }).id;
 
           const userDeptName =
             typeof user.department === 'string'
               ? user.department
-              : (user.department as any).name;
+              : (user.department as { name: string }).name;
 
           qb.orWhere(
             '(material.scope = :deptScope AND (department.id = :userDeptId OR material.targetDepartment = :userDeptName))',
@@ -216,7 +215,7 @@ export class MaterialsService {
           const userFacultyName =
             typeof user.faculty === 'string'
               ? user.faculty
-              : (user.faculty as any).name;
+              : (user.faculty as { name: string }).name;
 
           qb.orWhere(
             '(material.scope = :facultyScope AND material.targetFaculty = :userFacultyName)',

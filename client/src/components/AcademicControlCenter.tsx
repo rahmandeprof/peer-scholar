@@ -40,6 +40,8 @@ import { useNavigate } from 'react-router-dom';
 
 interface AcademicControlCenterProps {
   onUpload?: () => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onNavigate?: (view: any, id: any) => void;
 }
 
 export function AcademicControlCenter({

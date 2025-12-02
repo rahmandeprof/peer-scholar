@@ -23,4 +23,7 @@ export class PartnerRequest extends IDAndTimestamp {
     default: PartnerRequestStatus.PENDING,
   })
   status: PartnerRequestStatus;
+
+  @Column({ nullable: true })
+  lastNudgedAt: Date | null;
 }

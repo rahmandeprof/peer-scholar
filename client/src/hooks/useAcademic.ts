@@ -1,22 +1,7 @@
-/* eslint-disable no-console */
 import { useCallback, useEffect, useState } from 'react';
 
 import api from '../lib/api';
-
-export interface School {
-  id: string;
-  name: string;
-}
-
-export interface Faculty {
-  id: string;
-  name: string;
-}
-
-export interface Department {
-  id: string;
-  name: string;
-}
+import { Department, Faculty, School } from '../types/academic';
 
 export function useAcademic() {
   const [schools, setSchools] = useState<School[]>([]);

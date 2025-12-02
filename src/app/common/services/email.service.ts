@@ -42,7 +42,56 @@ export class EmailService {
       this.logger.log(`Invite email sent to ${to}`);
     } catch (error) {
       this.logger.error(`Failed to send email to ${to}`, error);
-      // Don't throw, just log. We don't want to block the request if email fails.
+    }
+  }
+
+  async sendNudge(to: string, senderName: string, message: string) {
+    try {
+      await this.transporter.sendMail({
+        from:
+          process.env.SMTP_FROM ?? '"PeerStudent" <noreply@peerstudent.com>',
+        to,
+        subject: `⚡ Study Nudge from ${senderName}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h2 style="color: #F59E0B;">⚡ Study Nudge!</h2>
+            <p>Hi there,</p>
+            <p><strong>${senderName}</strong> sent you a nudge to remind you to study!</p>
+            <p style="font-size: 16px; padding: 15px; background-color: #f9fafb; border-radius: 5px;">"${message}"</p>
+            <p>Don't break your streak! Log in now and complete a study session.</p>
+            <div style="margin: 30px 0;">
+              <a href="${process.env.CLIENT_URL ?? ''}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Go to Dashboard</a>
+            </div>
+          </div>
+        `,
+      });
+      this.logger.log(`Nudge email sent to ${to}`);
+    } catch (error) {
+      this.logger.error(`Failed to send nudge to ${to}`, error);
+    }
+  }
+  async sendPartnerRejection(to: string, senderName: string, link: string) {
+    try {
+      await this.transporter.sendMail({
+        from:
+          process.env.SMTP_FROM ?? '"PeerStudent" <noreply@peerstudent.com>',
+        to,
+        subject: `Update on your study partner request`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h2 style="color: #EF4444;">Request Update</h2>
+            <p>Hi there,</p>
+            <p><strong>${senderName}</strong> has declined your study partner request.</p>
+            <p>Don't be discouraged! There are many other students looking for partners.</p>
+            <div style="margin: 30px 0;">
+              <a href="${link}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Find New Partners</a>
+            </div>
+          </div>
+        `,
+      });
+      this.logger.log(`Rejection email sent to ${to}`);
+    } catch (error) {
+      this.logger.error(`Failed to send rejection email to ${to}`, error);
     }
   }
 }

@@ -161,6 +161,9 @@ export const MaterialView = () => {
       </div>
 
       {/* Right Side: AI Sidebar */}
+      <div
+        className={`transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-[400px]' : 'w-0'} hidden md:block`}
+      />
       <AISidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}

@@ -56,6 +56,14 @@ export class UsersController {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rejectPartner(@Param('id') id: string, @Req() req: any) {
     return this.usersService.respondToRequest(id, req.user.id, false);
+
+    return this.usersService.respondToRequest(id, req.user.id, false);
+  }
+
+  @Post('partner/nudge/:id')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  nudgePartner(@Param('id') id: string, @Req() req: any) {
+    return this.usersService.nudgePartner(req.user.id, id);
   }
 
   @Get('partner')

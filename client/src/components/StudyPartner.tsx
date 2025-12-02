@@ -158,6 +158,21 @@ export function StudyPartner() {
                       {partner.currentStreak} day streak
                     </div>
                   </div>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await api.post(`/users/partner/nudge/${partner.id}`);
+                        toast.success('Nudge sent successfully! ⚡');
+                      } catch (err: any) {
+                        toast.error(
+                          err.response?.data?.message || 'Failed to send nudge',
+                        );
+                      }
+                    }}
+                    className='mt-4 w-full py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl font-bold transition-colors flex items-center justify-center'
+                  >
+                    Send Nudge ⚡
+                  </button>
                 </div>
               </div>
             </div>

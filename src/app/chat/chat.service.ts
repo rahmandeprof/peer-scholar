@@ -8,8 +8,10 @@ import {
   MaterialType,
 } from '../academic/entities/material.entity';
 import { MaterialChunk } from '../academic/entities/material-chunk.entity';
+import { Comment } from './entities/comment.entity';
 import { Conversation } from './entities/conversation.entity';
 import { Message, MessageRole } from './entities/message.entity';
+import { QuizResult } from './entities/quiz-result.entity';
 import { User } from '@/app/users/entities/user.entity';
 
 import { CloudinaryService } from '@/app/common/services/cloudinary.service';
@@ -34,6 +36,10 @@ export class ChatService {
     private readonly conversationRepo: Repository<Conversation>,
     @InjectRepository(Message)
     private readonly messageRepo: Repository<Message>,
+    @InjectRepository(QuizResult)
+    private readonly quizResultRepo: Repository<QuizResult>,
+    @InjectRepository(Comment)
+    private readonly commentRepo: Repository<Comment>,
     private readonly usersService: UsersService,
     private readonly cloudinaryService: CloudinaryService,
     private readonly configService: ConfigService,
@@ -317,12 +323,15 @@ export class ChatService {
       });
 
       const content = response.choices[0].message.content;
+
       if (!content) return [];
 
       const parsed = JSON.parse(content);
-      return parsed.points || parsed.keyPoints || parsed.key_points || [];
+
+      return parsed.points ?? parsed.keyPoints ?? parsed.key_points ?? [];
     } catch (e) {
       this.logger.error('Failed to extract key points', e);
+
       return [];
     }
   }
@@ -371,6 +380,36 @@ export class ChatService {
       this.logger.error('Failed to generate quiz', error);
       throw new Error('Failed to generate quiz');
     }
+  }
+
+  async saveQuizResult(
+    user: User,
+    materialId: string,
+    score: number,
+    totalQuestions: number,
+  ) {
+    const material = await this.materialRepo.findOne({
+      where: { id: materialId },
+    });
+
+    if (!material) throw new NotFoundException('Material not found');
+
+    const result = this.quizResultRepo.create({
+      user,
+      material,
+      score,
+      totalQuestions,
+    });
+
+    return this.quizResultRepo.save(result);
+  }
+
+  getQuizHistory(user: User) {
+    return this.quizResultRepo.find({
+      where: { user: { id: user.id } },
+      relations: ['material'],
+      order: { createdAt: 'DESC' },
+    });
   }
 
   private async generateResponse(
@@ -464,7 +503,7 @@ export class ChatService {
     });
     const historyText = history
       .reverse()
-      .map((m) => `${m.role}: ${m.content}`)
+      .map((m: Message) => `${m.role}: ${m.content}`)
       .join('\n');
 
     // 4. Call OpenAI
@@ -519,5 +558,29 @@ export class ChatService {
       .orderBy('material.createdAt', 'DESC');
 
     return queryBuilder.getMany();
+  }
+
+  async addComment(user: User, materialId: string, content: string) {
+    const material = await this.materialRepo.findOne({
+      where: { id: materialId },
+    });
+
+    if (!material) throw new NotFoundException('Material not found');
+
+    const comment = this.commentRepo.create({
+      user,
+      material,
+      content,
+    });
+
+    return this.commentRepo.save(comment);
+  }
+
+  getComments(materialId: string) {
+    return this.commentRepo.find({
+      where: { material: { id: materialId } },
+      relations: ['user'],
+      order: { createdAt: 'DESC' },
+    });
   }
 }

@@ -1,9 +1,12 @@
-import { X, FileText, Download } from 'lucide-react';
+import { useState } from 'react';
+import { X, FileText, Download, MessageSquare } from 'lucide-react';
+import { CommentsSection } from './CommentsSection';
 
 interface FileViewerModalProps {
   isOpen: boolean;
   onClose: () => void;
   material: {
+    id: string;
     title: string;
     content: string;
     fileUrl: string;
@@ -11,68 +14,104 @@ interface FileViewerModalProps {
   } | null;
 }
 
-export function FileViewerModal({ isOpen, onClose, material }: FileViewerModalProps) {
+export function FileViewerModal({
+  isOpen,
+  onClose,
+  material,
+}: FileViewerModalProps) {
+  const [showComments, setShowComments] = useState(false);
+
   if (!isOpen || !material) return null;
 
   const isPDF = material.fileType === 'application/pdf';
   const isImage = material.fileType.startsWith('image/');
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col relative">
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
-              <FileText className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+    <div className='fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm'>
+      <div className='bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col relative overflow-hidden'>
+        <div className='flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 z-10'>
+          <div className='flex items-center space-x-3'>
+            <div className='p-2 bg-primary-100 dark:bg-primary-900/30 rounded-lg'>
+              <FileText className='w-5 h-5 text-primary-600 dark:text-primary-400' />
             </div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate max-w-md">
+            <h2 className='text-lg font-semibold text-gray-900 dark:text-gray-100 truncate max-w-md'>
               {material.title}
             </h2>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className='flex items-center space-x-2'>
+            <button
+              onClick={() => setShowComments(!showComments)}
+              className={`p-2 rounded-lg transition-colors flex items-center space-x-2 ${
+                showComments
+                  ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
+                  : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+              title='Toggle Comments'
+            >
+              <MessageSquare className='w-5 h-5' />
+              <span className='text-sm font-medium hidden sm:inline'>
+                Discussion
+              </span>
+            </button>
+            <div className='w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2' />
             <a
               href={material.fileUrl}
               download
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-              title="Download original"
+              target='_blank'
+              rel='noopener noreferrer'
+              className='p-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors'
+              title='Download original'
             >
-              <Download className="w-5 h-5" />
+              <Download className='w-5 h-5' />
             </a>
             <button
               onClick={onClose}
-              className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+              className='p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors'
             >
-              <X className="w-5 h-5" />
+              <X className='w-5 h-5' />
             </button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-hidden bg-gray-50 dark:bg-gray-950 p-4">
-          {isPDF ? (
-            <iframe
-              src={material.fileUrl}
-              className="w-full h-full rounded-xl border border-gray-200 dark:border-gray-800"
-              title="PDF Viewer"
-            />
-          ) : isImage ? (
-            <div className="w-full h-full flex items-center justify-center">
-              <img
+        <div className='flex flex-1 overflow-hidden'>
+          <div className='flex-1 overflow-hidden bg-gray-50 dark:bg-gray-950 p-4 relative'>
+            {isPDF ? (
+              <iframe
                 src={material.fileUrl}
-                alt={material.title}
-                className="max-w-full max-h-full rounded-xl object-contain"
+                className='w-full h-full rounded-xl border border-gray-200 dark:border-gray-800'
+                title='PDF Viewer'
               />
-            </div>
-          ) : (
-            <div className="w-full h-full overflow-y-auto bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-8 shadow-sm">
-              <div className="max-w-3xl mx-auto">
-                <div className="prose dark:prose-invert max-w-none whitespace-pre-wrap font-serif text-lg leading-relaxed">
-                  {material.content}
+            ) : isImage ? (
+              <div className='w-full h-full flex items-center justify-center'>
+                <img
+                  src={material.fileUrl}
+                  alt={material.title}
+                  className='max-w-full max-h-full rounded-xl object-contain'
+                />
+              </div>
+            ) : (
+              <div className='w-full h-full overflow-y-auto bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-8 shadow-sm'>
+                <div className='max-w-3xl mx-auto'>
+                  <div className='prose dark:prose-invert max-w-none whitespace-pre-wrap font-serif text-lg leading-relaxed'>
+                    {material.content}
+                  </div>
                 </div>
               </div>
+            )}
+          </div>
+
+          {/* Comments Sidebar */}
+          <div
+            className={`border-l border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 transition-all duration-300 ease-in-out absolute inset-y-0 right-0 z-20 md:relative md:inset-auto ${
+              showComments
+                ? 'w-full md:w-96 translate-x-0'
+                : 'w-0 translate-x-full md:translate-x-0 md:w-0'
+            }`}
+          >
+            <div className='w-full md:w-96 h-full overflow-hidden'>
+              <CommentsSection materialId={material.id} />
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

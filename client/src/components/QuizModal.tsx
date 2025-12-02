@@ -74,6 +74,18 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
     }
   };
 
+  const saveResult = async (finalScore: number) => {
+    try {
+      await api.post('/chat/quiz/result', {
+        materialId,
+        score: finalScore,
+        totalQuestions: questions.length,
+      });
+    } catch {
+      // console.error('Failed to save quiz result', err);
+    }
+  };
+
   const handleNextQuestion = () => {
     setAnimating(true);
     setTimeout(() => {
@@ -83,6 +95,7 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
         setIsCorrect(null);
       } else {
         setShowResult(true);
+        saveResult(score);
       }
       setAnimating(false);
     }, 300);

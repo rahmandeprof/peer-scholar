@@ -29,7 +29,7 @@ interface RequestWithUser extends Request {
 @Controller('chat')
 @UseGuards(AuthGuard('jwt'))
 export class ChatController {
-  constructor(private readonly chatService: ChatService) { }
+  constructor(private readonly chatService: ChatService) {}
 
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
@@ -127,5 +127,42 @@ export class ChatController {
   @Get('key-points/:id')
   getKeyPoints(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.chatService.extractKeyPoints(id);
+  }
+
+  @Post('quiz/result')
+  saveQuizResult(
+    @Body()
+    body: {
+      materialId: string;
+      score: number;
+      totalQuestions: number;
+    },
+    @Req() req: RequestWithUser,
+  ) {
+    return this.chatService.saveQuizResult(
+      req.user,
+      body.materialId,
+      body.score,
+      body.totalQuestions,
+    );
+  }
+
+  @Get('quiz/history')
+  getQuizHistory(@Req() req: RequestWithUser) {
+    return this.chatService.getQuizHistory(req.user);
+  }
+
+  @Post('material/:id/comment')
+  addComment(
+    @Param('id') id: string,
+    @Body('content') content: string,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.chatService.addComment(req.user, id, content);
+  }
+
+  @Get('material/:id/comments')
+  getComments(@Param('id') id: string) {
+    return this.chatService.getComments(id);
   }
 }
