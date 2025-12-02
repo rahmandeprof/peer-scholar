@@ -29,12 +29,13 @@ export class AuthService {
   } | null> {
     const user = await this.usersService.findByEmail(email);
 
-    if (user && (await bcrypt.compare(pass, user.password))) {
+    if (user?.password && (await bcrypt.compare(pass, user.password))) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...result } = user;
 
       return {
         ...result,
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         department: user.department?.name || '',
       } as {
         id: string;
@@ -97,6 +98,7 @@ export class AuthService {
     return this.login(newUser);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async googleLogin(req: any) {
     if (!req.user) {
       return 'No user from google';
@@ -119,6 +121,7 @@ export class AuthService {
         yearOfStudy: 1, // Default
       };
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       user = await this.usersService.create(userData as any);
     } else if (!user.googleId) {
       // Link existing user

@@ -172,7 +172,7 @@ export function StudyPartner() {
               >
                 <div className='flex items-center space-x-4'>
                   <div className='w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold text-lg'>
-                    {req.sender.firstName[0]}
+                    {req.sender.firstName?.[0] || '?'}
                   </div>
                   <div>
                     <div className='font-bold text-gray-900 dark:text-gray-100'>

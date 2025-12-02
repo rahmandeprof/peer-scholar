@@ -80,7 +80,6 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
             <X className='w-5 h-5 text-gray-500' />
           </button>
         </div>
-
         <form onSubmit={handleSubmit} className='p-6 space-y-4'>
           <div className='flex justify-center mb-6'>
             <div className='w-24 h-24 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 text-3xl font-bold overflow-hidden'>
@@ -92,8 +91,8 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
                 />
               ) : (
                 <span>
-                  {user.firstName[0]}
-                  {user.lastName[0]}
+                  {(user.firstName?.[0] || '').toUpperCase()}
+                  {(user.lastName?.[0] || '').toUpperCase()}
                 </span>
               )}
             </div>
