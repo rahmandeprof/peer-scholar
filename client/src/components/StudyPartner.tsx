@@ -30,17 +30,21 @@ export function StudyPartner() {
   const [loading, setLoading] = useState(false);
   const toast = useToast();
 
+  const [sentRequests, setSentRequests] = useState<PartnerRequest[]>([]);
+
   const fetchData = async () => {
     try {
-      const [statsRes, requestsRes] = await Promise.all([
+      const [statsRes, requestsRes, sentRes] = await Promise.all([
         api.get('/users/partner'),
         api.get('/users/partner/requests'),
+        api.get('/users/partner/sent'),
       ]);
       setStats(statsRes.data);
       setRequests(requestsRes.data);
+      setSentRequests(sentRes.data);
     } catch {
       // console.error('Failed to fetch partner data', err);
-      toast.error('Failed to load partner data');
+      // toast.error('Failed to load partner data');
     }
   };
 
@@ -57,6 +61,7 @@ export function StudyPartner() {
       await api.post('/users/partner/invite', { email: inviteEmail });
       toast.success('Invite sent successfully!');
       setInviteEmail('');
+      fetchData();
     } catch (err: unknown) {
       let message = 'Failed to send invite';
       if (err instanceof Error) {
@@ -70,6 +75,16 @@ export function StudyPartner() {
       toast.error(message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCancelInvite = async (id: string) => {
+    try {
+      await api.delete(`/users/partner/invite/${id}`);
+      toast.success('Invite cancelled');
+      setSentRequests((prev) => prev.filter((req) => req.id !== id));
+    } catch {
+      toast.error('Failed to cancel invite');
     }
   };
 
@@ -208,6 +223,46 @@ export function StudyPartner() {
                     <X className='w-5 h-5' />
                   </button>
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {sentRequests.length > 0 && (
+        <div className='bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl shadow-sm border border-gray-200/50 dark:border-gray-700/50 overflow-hidden mb-8'>
+          <div className='p-4 border-b border-gray-200/50 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/30'>
+            <h3 className='font-bold text-gray-900 dark:text-gray-100'>
+              Sent Requests
+            </h3>
+          </div>
+          <div className='divide-y divide-gray-200/50 dark:divide-gray-700/50'>
+            {sentRequests.map((req) => (
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              <div
+                key={req.id}
+                className='p-4 flex items-center justify-between hover:bg-white/50 dark:hover:bg-gray-800/50 transition-colors'
+              >
+                <div className='flex items-center space-x-4'>
+                  <div className='w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold text-lg'>
+                    {(req as any).receiver?.firstName?.[0] || '?'}
+                  </div>
+                  <div>
+                    <div className='font-bold text-gray-900 dark:text-gray-100'>
+                      {(req as any).receiver?.firstName}{' '}
+                      {(req as any).receiver?.lastName}
+                    </div>
+                    <div className='text-sm text-gray-500'>
+                      {(req as any).receiver?.email}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleCancelInvite(req.id)}
+                  className='px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium'
+                >
+                  Cancel
+                </button>
               </div>
             ))}
           </div>

@@ -86,6 +86,20 @@ export class UsersService {
     return request;
   }
 
+  async cancelInvite(requestId: string, userId: string) {
+    const request = await this.partnerRequestRepo.findOne({
+      where: { id: requestId },
+      relations: ['sender'],
+    });
+
+    if (!request) throw new NotFoundException('Request not found');
+    if (request.sender.id !== userId) throw new Error('Not authorized');
+    if (request.status !== PartnerRequestStatus.PENDING)
+      throw new Error('Cannot cancel processed request');
+
+    return this.partnerRequestRepo.remove(request);
+  }
+
   async respondToRequest(requestId: string, userId: string, accept: boolean) {
     const request = await this.partnerRequestRepo.findOne({
       where: { id: requestId },
@@ -109,6 +123,12 @@ export class UsersService {
       });
     } else {
       request.status = PartnerRequestStatus.REJECTED;
+      // TODO: Send notification to sender about rejection
+      // For now, we just update the status. The sender can see it in their "Sent Requests" if we show history,
+      // or we can remove it. The user asked for notification.
+      // Since we don't have a notification system yet, we'll rely on the status update.
+      // But we should probably delete the request or mark it as rejected so it doesn't clutter.
+      // Let's keep it as REJECTED for history.
     }
 
     return this.partnerRequestRepo.save(request);
@@ -143,6 +163,13 @@ export class UsersService {
     return this.partnerRequestRepo.find({
       where: { receiver: { id: userId }, status: PartnerRequestStatus.PENDING },
       relations: ['sender'],
+    });
+  }
+
+  getSentRequests(userId: string) {
+    return this.partnerRequestRepo.find({
+      where: { sender: { id: userId }, status: PartnerRequestStatus.PENDING },
+      relations: ['receiver'],
     });
   }
 

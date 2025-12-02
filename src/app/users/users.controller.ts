@@ -70,6 +70,18 @@ export class UsersController {
     return this.usersService.getPendingRequests(req.user.id);
   }
 
+  @Get('partner/sent')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getSentRequests(@Req() req: any) {
+    return this.usersService.getSentRequests(req.user.id);
+  }
+
+  @Delete('partner/invite/:id')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  cancelInvite(@Param('id') id: string, @Req() req: any) {
+    return this.usersService.cancelInvite(id, req.user.id);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
