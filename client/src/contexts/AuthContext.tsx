@@ -103,21 +103,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [toast]);
 
-  const login = (newToken: string, newUser: User) => {
-    localStorage.setItem('token', newToken);
-    localStorage.setItem('user', JSON.stringify(newUser));
-    setToken(newToken);
-    setUser(newUser);
-    toast.success(`Welcome back, ${newUser.firstName}!`);
-  };
+  const login = useCallback(
+    (newToken: string, newUser: User) => {
+      localStorage.setItem('token', newToken);
+      localStorage.setItem('user', JSON.stringify(newUser));
+      setToken(newToken);
+      setUser(newUser);
+      toast.success(`Welcome back, ${newUser.firstName}!`);
+    },
+    [toast],
+  );
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setToken(null);
     setUser(null);
     toast.info('Logged out successfully');
-  };
+  }, [toast]);
 
   return (
     <AuthContext.Provider

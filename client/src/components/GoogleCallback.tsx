@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
@@ -8,7 +8,12 @@ export function GoogleCallback() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
+  const processed = useRef(false);
+
   useEffect(() => {
+    if (processed.current) return;
+    processed.current = true;
+
     const token = searchParams.get('token');
     const userStr = searchParams.get('user');
 
