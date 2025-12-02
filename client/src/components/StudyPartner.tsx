@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Users, UserPlus, Check, X, Mail, Shield } from 'lucide-react';
 import api from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
+import confetti from 'canvas-confetti';
 
 interface PartnerStats {
   partner: {
@@ -75,7 +76,17 @@ export function StudyPartner() {
   const handleResponse = async (id: string, accept: boolean) => {
     try {
       await api.post(`/users/partner/${accept ? 'accept' : 'reject'}/${id}`);
-      toast.success(accept ? 'Partner request accepted!' : 'Request rejected');
+      if (accept) {
+        toast.success('Study Partner accepted! 🎉');
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#4F46E5', '#10B981', '#F59E0B'],
+        });
+      } else {
+        toast.success('Request rejected');
+      }
       fetchData();
     } catch {
       toast.error('Failed to process request');
@@ -116,7 +127,7 @@ export function StudyPartner() {
             <div className='bg-white/10 rounded-2xl p-6 backdrop-blur-md border border-white/10'>
               <h3 className='text-lg font-bold mb-4 flex items-center'>
                 <Shield className='w-5 h-5 mr-2' />
-                Your Partner
+                Your Study Partner
               </h3>
               <div className='space-y-2'>
                 <div className='text-2xl font-bold'>

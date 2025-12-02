@@ -22,12 +22,14 @@ import {
   Check,
   Users,
   LogOut,
+  Home,
 } from 'lucide-react';
+import { AcademicControlCenter } from './AcademicControlCenter';
 import { useTheme } from '../contexts/ThemeContext';
 import { ConfirmationModal } from './ConfirmationModal';
 import api from '../lib/api';
 
-type View = 'chat' | 'study' | 'community' | 'partner';
+type View = 'home' | 'chat' | 'study' | 'community' | 'partner';
 
 interface Conversation {
   id: string;
@@ -36,7 +38,7 @@ interface Conversation {
 }
 
 export function Dashboard() {
-  const [currentView, setCurrentView] = useState<View>('community');
+  const [currentView, setCurrentView] = useState<View>('home');
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -156,13 +158,26 @@ export function Dashboard() {
       <aside className='hidden md:flex md:flex-col w-72 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-800/50 z-10 shadow-sm'>
         <div className='p-6 border-b border-gray-200/50 dark:border-gray-800/50'>
           <h1 className='text-2xl font-bold tracking-tight'>
-            peer<span className='text-primary-600'>Scholar</span>
+            peer<span className='text-primary-600'>Student</span>
           </h1>
         </div>
 
         <div className='flex-1 overflow-y-auto py-4'>
           <nav className='px-3 space-y-1'>
-            <div className='px-3 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider'>
+            <button
+              onClick={() => setCurrentView('home')}
+              className={`w-full px-3 py-2.5 rounded-xl text-left font-medium transition-all duration-200 flex items-center ${
+                currentView === 'home'
+                  ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 shadow-sm ring-1 ring-primary-200 dark:ring-primary-800'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+            >
+              <Home
+                className={`w-5 h-5 mr-3 ${currentView === 'home' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400'}`}
+              />
+              Home
+            </button>
+            <div className='px-3 mb-2 mt-4 text-xs font-semibold text-gray-500 uppercase tracking-wider'>
               Community
             </div>
             <button
@@ -374,7 +389,7 @@ export function Dashboard() {
           <aside className='absolute left-0 top-0 bottom-0 w-72 bg-white dark:bg-gray-900 shadow-2xl flex flex-col animate-slide-right'>
             <div className='p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center'>
               <h1 className='text-2xl font-bold'>
-                peer<span className='text-primary-600'>Scholar</span>
+                peer<span className='text-primary-600'>Student</span>
               </h1>
               <button
                 onClick={() => setSidebarOpen(false)}
@@ -386,6 +401,20 @@ export function Dashboard() {
 
             <div className='flex-1 overflow-y-auto py-4'>
               <nav className='px-4 space-y-2'>
+                <button
+                  onClick={() => {
+                    setCurrentView('home');
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full px-4 py-3 rounded-xl text-left font-medium transition-colors flex items-center ${
+                    currentView === 'home'
+                      ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
+                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                  }`}
+                >
+                  <Home className='w-5 h-5 mr-3' />
+                  Home
+                </button>
                 <button
                   onClick={() => {
                     setCurrentView('community');
@@ -459,7 +488,7 @@ export function Dashboard() {
             <Menu className='w-6 h-6' />
           </button>
           <h1 className='text-xl font-bold'>
-            peer<span className='text-primary-600'>Scholar</span>
+            peer<span className='text-primary-600'>Student</span>
           </h1>
           <div className='w-10' /> {/* Spacer for balance */}
         </header>
@@ -474,6 +503,14 @@ export function Dashboard() {
                 setSelectedConversationId(id);
                 fetchHistory();
               }}
+            />
+          ) : currentView === 'home' ? (
+            <AcademicControlCenter
+              onNavigate={(view, id) => {
+                setCurrentView(view);
+                if (id) setSelectedConversationId(id);
+              }}
+              onUpload={() => setUploadModalOpen(true)}
             />
           ) : currentView === 'community' ? (
             <DepartmentView />

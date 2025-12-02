@@ -29,7 +29,6 @@ async function bootstrap() {
 
   // Global logging interceptor
   app.useGlobalInterceptors(new LoggingInterceptor());
-
   // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({

@@ -1,4 +1,4 @@
-# 🎓 peerScholar - AI-Powered Student Study Assistant
+# 🎓 peerStudent - AI-Powered Student Study Assistant
 
 An intelligent study companion that helps students chat with their course materials, manage study sessions, and collaborate with peers.
 
@@ -9,18 +9,21 @@ An intelligent study companion that helps students chat with their course materi
 ## ✨ Features
 
 ### 🤖 AI Chatbot
+
 - Chat with your uploaded study materials
 - Context-aware responses using OpenAI
 - Access to both personal and community materials
 - Conversation history and management
 
 ### 📚 Material Management
+
 - **Personal Uploads**: Private materials for your eyes only
 - **Community Sharing**: Share materials with students in your department/year
 - Support for PDF, DOCX, and text files
 - Cloudinary-powered file storage
 
 ### ⏱️ Study Tools
+
 - Pomodoro-style study timer with modes:
   - Study Mode (25 min)
   - Test Mode (60 min)
@@ -29,16 +32,19 @@ An intelligent study companion that helps students chat with their course materi
 - Session history
 
 ### 👥 Community Features
+
 - Browse materials shared by peers
 - Filter by department and year level
 - Download and access shared resources
 
 ### 🔐 Authentication
+
 - Secure JWT-based authentication
 - User profiles with department and year tracking
 - Protected routes and API endpoints
 
 ### 🎨 Modern UI
+
 - Dark/Light mode toggle
 - Responsive design (mobile, tablet, desktop)
 - Toast notifications for user feedback
@@ -47,6 +53,7 @@ An intelligent study companion that helps students chat with their course materi
 ## 🚀 Tech Stack
 
 ### Frontend
+
 - **React 18** with TypeScript
 - **Vite** for fast development
 - **Tailwind CSS** for styling
@@ -54,6 +61,7 @@ An intelligent study companion that helps students chat with their course materi
 - **Axios** for API calls
 
 ### Backend
+
 - **NestJS** - Progressive Node.js framework
 - **TypeORM** - Database ORM
 - **PostgreSQL** - Primary database
@@ -61,6 +69,7 @@ An intelligent study companion that helps students chat with their course materi
 - **Passport** - Auth middleware
 
 ### AI & Services
+
 - **OpenAI GPT-3.5** - Chatbot intelligence
 - **Cloudinary** - File storage and delivery
 - **pdf-parse** - PDF text extraction
@@ -69,6 +78,7 @@ An intelligent study companion that helps students chat with their course materi
 ## 📦 Installation
 
 ### Prerequisites
+
 - Node.js 18+ and npm
 - PostgreSQL database
 - OpenAI API key
@@ -77,27 +87,33 @@ An intelligent study companion that helps students chat with their course materi
 ### Backend Setup
 
 1. **Clone the repository**
+
    ```bash
-   git clone https://github.com/yourusername/peerscholar.git
-   cd peerscholar
+   git clone https://github.com/yourusername/peerstudent.git
+   cd peerstudent
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Configure environment**
+
    ```bash
    cp .env.example .env
    ```
+
    Edit `.env` with your credentials:
+
    - Database connection
    - JWT secret
    - OpenAI API key
    - Cloudinary credentials
 
 4. **Run migrations**
+
    ```bash
    npm run migration:run
    ```
@@ -111,19 +127,23 @@ An intelligent study companion that helps students chat with their course materi
 ### Frontend Setup
 
 1. **Navigate to client directory**
+
    ```bash
    cd client
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Configure environment**
+
    ```bash
    cp .env.example .env
    ```
+
    Set `VITE_API_URL=http://localhost:3000`
 
 4. **Start development server**
@@ -145,17 +165,20 @@ An intelligent study companion that helps students chat with their course materi
 ### API Endpoints
 
 #### Authentication
+
 - `POST /auth/register` - Create new account
 - `POST /auth/login` - Login
 - `GET /auth/profile` - Get user profile (protected)
 
 #### Chat
+
 - `POST /chat/upload` - Upload material
 - `POST /chat/message` - Send message to chatbot
 - `GET /chat/history` - Get conversation history
 - `GET /chat/materials` - Get accessible materials
 
 #### Study
+
 - `POST /study/session` - Start study session
 - `PUT /study/session/:id` - End study session
 - `GET /study/streak` - Get current streak
@@ -163,7 +186,7 @@ An intelligent study companion that helps students chat with their course materi
 ## 🏗️ Project Structure
 
 ```
-peerscholar/
+peerstudent/
 ├── client/                 # Frontend React app
 │   ├── src/
 │   │   ├── components/    # React components
@@ -189,6 +212,7 @@ peerscholar/
 ### Environment Variables
 
 **Backend** (`.env`):
+
 ```env
 DB_HOST=localhost
 DB_PORT=5432
@@ -207,6 +231,7 @@ FRONTEND_URL=http://localhost:5173
 ```
 
 **Frontend** (`client/.env`):
+
 ```env
 VITE_API_URL=http://localhost:3000
 ```

@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import {
@@ -32,6 +33,7 @@ export class UsersService {
     private readonly partnerRequestRepo: Repository<PartnerRequest>,
     private readonly logger: WinstonLoggerService,
     private readonly emailService: EmailService,
+    private readonly configService: ConfigService,
   ) {
     this.logger.setContext(UsersService.name);
   }
@@ -72,7 +74,8 @@ export class UsersService {
 
     // Send email
     // In a real app, generate a token/link. For now, just link to the app.
-    const link = 'http://localhost:5173';
+    const clientUrl = this.configService.get<string>('CLIENT_URL') ?? '';
+    const link = `${clientUrl}/partner`;
 
     await this.emailService.sendPartnerInvite(
       receiver.email,
