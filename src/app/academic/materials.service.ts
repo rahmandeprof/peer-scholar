@@ -197,21 +197,15 @@ export class MaterialsService {
         }).orWhere('material.uploaderId = :userId', { userId: user.id });
 
         if (user.department) {
-          const userDeptId =
-            typeof user.department === 'string'
-              ? user.department
-              : (user.department as { id: string }).id;
-
           const userDeptName =
             typeof user.department === 'string'
               ? user.department
               : (user.department as { name: string }).name;
 
           qb.orWhere(
-            '(material.scope = :deptScope AND (department.id = :userDeptId OR material.targetDepartment = :userDeptName))',
+            '(material.scope = :deptScope AND (department.name = :userDeptName OR material.targetDepartment = :userDeptName))',
             {
               deptScope: AccessScope.DEPARTMENT,
-              userDeptId,
               userDeptName,
             },
           );

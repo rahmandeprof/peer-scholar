@@ -52,7 +52,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshUser = useCallback(async () => {
     try {
       const res = await axios.get('/users/profile');
-      const updatedUser = res.data;
+      // API returns { success: true, message: '...', data: User }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updatedUser = (res.data as any).data || res.data;
       setUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
     } catch (error) {
@@ -73,8 +75,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Verify token and refresh user data
         try {
           const res = await axios.get('/users/profile');
-          setUser(res.data);
-          localStorage.setItem('user', JSON.stringify(res.data));
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const fetchedUser = (res.data as any).data || res.data;
+          setUser(fetchedUser);
+          localStorage.setItem('user', JSON.stringify(fetchedUser));
         } catch (error) {
           console.error('Token invalid or expired', error);
           localStorage.removeItem('token');
