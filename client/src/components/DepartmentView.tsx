@@ -41,10 +41,14 @@ const DepartmentView: React.FC = () => {
   const [recentMaterials, setRecentMaterials] = useState<Material[]>([]);
 
   useEffect(() => {
-    if (user?.department?.id) {
+    if (!user) return;
+
+    if (user.department?.id) {
       fetchCourses(user.department.id);
       fetchTrending();
       fetchRecent();
+    } else {
+      setLoading(false);
     }
   }, [user]);
 

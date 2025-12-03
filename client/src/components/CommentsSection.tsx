@@ -85,6 +85,7 @@ export function CommentsSection({ materialId }: CommentsSectionProps) {
                       src={comment.user.image}
                       alt={comment.user.firstName}
                       className='w-full h-full object-cover'
+                      referrerPolicy='no-referrer'
                     />
                   ) : (
                     <span>
