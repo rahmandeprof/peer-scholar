@@ -46,6 +46,11 @@ export function UserProfile({ onClose }: UserProfileProps) {
         lastName: formData.lastName,
       });
 
+      console.log('Submitting profile update:', {
+        facultyId: formData.faculty,
+        departmentId: formData.department,
+        yearOfStudy: formData.yearOfStudy,
+      });
       await api.patch('/users/academic-profile', {
         facultyId: formData.faculty, // Backend handles string mapping if needed or we send name
         departmentId: formData.department,

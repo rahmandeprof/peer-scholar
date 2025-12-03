@@ -317,6 +317,9 @@ export class UsersService {
   }
 
   async updateAcademicProfile(id: string, dto: UpdateAcademicProfileDto) {
+    this.logger.log(
+      `Updating academic profile for user ${id}: ${JSON.stringify(dto)}`,
+    );
     const user = await this.getOne(id);
 
     if (dto.schoolId) {
@@ -336,7 +339,13 @@ export class UsersService {
       user.yearOfStudy = dto.yearOfStudy;
     }
 
-    return this.userRepository.save(user);
+    const savedUser = await this.userRepository.save(user);
+
+    this.logger.log(
+      `Saved user profile: ${JSON.stringify({ faculty: savedUser.faculty, department: savedUser.department })}`,
+    );
+
+    return savedUser;
   }
 
   async remove(id: string) {
