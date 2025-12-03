@@ -1,16 +1,9 @@
 import { BullModule } from '@nestjs/bull';
 import { Logger, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
-
-import { Material } from '../academic/entities/material.entity';
-import { MaterialChunk } from '../academic/entities/material-chunk.entity';
-
-import { MaterialProcessor } from '../academic/processors/material.processor';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Material, MaterialChunk]),
     BullModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
@@ -34,11 +27,8 @@ import { MaterialProcessor } from '../academic/processors/material.processor';
       },
       inject: [ConfigService],
     }),
-    BullModule.registerQueue({
-      name: 'materials',
-    }),
   ],
-  providers: [MaterialProcessor],
+  providers: [],
   exports: [BullModule],
 })
 export class QueueModule {}
