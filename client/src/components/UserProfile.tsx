@@ -152,6 +152,7 @@ export function UserProfile({ onClose }: UserProfileProps) {
                       src={user.image}
                       alt='Profile'
                       className='w-full h-full object-cover'
+                      referrerPolicy='no-referrer'
                     />
                   ) : (
                     <span>
