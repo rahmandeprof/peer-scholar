@@ -72,8 +72,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(storedToken);
         if (storedUser) {
           setUser(JSON.parse(storedUser));
+          // Optimistic: Stop loading immediately if we have cached data
+          setIsLoading(false);
         }
-        // Verify token and refresh user data
+
+        // Verify token and refresh user data in background
         try {
           const res = await axios.get('/users/profile');
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -82,12 +85,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.setItem('user', JSON.stringify(fetchedUser));
         } catch (error) {
           console.error('Token invalid or expired', error);
+          // Only clear if we failed to verify
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           setToken(null);
           setUser(null);
+          // If we optimistically let them in, we need to kick them out now
+          // This might cause a UI flash, but it's better than blocking every load
+          if (storedUser) {
+            toast.error('Session expired. Please log in again.');
+          }
         }
       }
+
+      // Ensure loading is false eventually
       setIsLoading(false);
     };
 
