@@ -37,6 +37,7 @@
     "@nestjs/mapped-types": "*",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.1.1",
+    "@nestjs/schedule": "^6.0.1",
     "@nestjs/typeorm": "^11.0.0",
     "@ngneat/falso": "^7.3.0",
     "@paralleldrive/cuid2": "^2.2.2",

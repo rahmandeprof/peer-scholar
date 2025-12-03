@@ -1,3 +1,4 @@
+import { InjectQueue } from '@nestjs/bull';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -14,6 +15,7 @@ import { CreateMaterialDto } from './dto/create-material.dto';
 
 import { UsersService } from '@/app/users/users.service';
 
+import { Queue } from 'bull';
 import { v2 as cloudinary } from 'cloudinary';
 import { Brackets, Repository, WhereExpressionBuilder } from 'typeorm';
 
@@ -25,6 +27,7 @@ export class MaterialsService {
     @InjectRepository(Course)
     private courseRepo: Repository<Course>,
     private configService: ConfigService,
+    @InjectQueue('materials') private materialsQueue: Queue,
     private usersService: UsersService,
   ) {
     cloudinary.config({
@@ -99,17 +102,16 @@ export class MaterialsService {
 
     const savedMaterial = await this.materialRepo.save(material);
 
-    // Queue processing removed as per user request to simplify upload
-    // try {
-    //   await this.materialsQueue.add('process-material', {
-    //     materialId: savedMaterial.id,
-    //     fileUrl: savedMaterial.fileUrl,
-    //   });
-    // } catch (error) {
-    //   // eslint-disable-next-line no-console
-    //   console.error('Failed to add material to processing queue', error);
-    //   // Continue without processing - material is saved
-    // }
+    try {
+      await this.materialsQueue.add('process-material', {
+        materialId: savedMaterial.id,
+        fileUrl: savedMaterial.fileUrl,
+      });
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to add material to processing queue', error);
+      // Continue without processing - material is saved
+    }
 
     await this.usersService.increaseReputation(user.id, 10);
 

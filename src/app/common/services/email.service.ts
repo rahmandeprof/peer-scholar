@@ -1,5 +1,10 @@
+import { InjectQueue } from '@nestjs/bull';
 import { Injectable, Logger } from '@nestjs/common';
 
+import { OTP } from '@/app/otp/entities/otp.entity';
+import { User } from '@/app/users/entities/user.entity';
+
+import { Queue } from 'bull';
 import * as nodemailer from 'nodemailer';
 
 @Injectable()
@@ -7,7 +12,7 @@ export class EmailService {
   private transporter: nodemailer.Transporter;
   private readonly logger = new Logger(EmailService.name);
 
-  constructor() {
+  constructor(@InjectQueue('email') private emailQueue: Queue) {
     this.transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT ?? '587'),
@@ -20,6 +25,18 @@ export class EmailService {
   }
 
   async sendPartnerInvite(to: string, inviterName: string, acceptLink: string) {
+    await this.emailQueue.add('send-partner-invite', {
+      to,
+      inviterName,
+      acceptLink,
+    });
+  }
+
+  async sendPartnerInviteDirect(
+    to: string,
+    inviterName: string,
+    acceptLink: string,
+  ) {
     try {
       await this.transporter.sendMail({
         from:
@@ -46,6 +63,14 @@ export class EmailService {
   }
 
   async sendNudge(to: string, senderName: string, message: string) {
+    await this.emailQueue.add('send-nudge', {
+      to,
+      senderName,
+      message,
+    });
+  }
+
+  async sendNudgeDirect(to: string, senderName: string, message: string) {
     try {
       await this.transporter.sendMail({
         from:
@@ -70,7 +95,20 @@ export class EmailService {
       this.logger.error(`Failed to send nudge to ${to}`, error);
     }
   }
+
   async sendPartnerRejection(to: string, senderName: string, link: string) {
+    await this.emailQueue.add('send-partner-rejection', {
+      to,
+      senderName,
+      link,
+    });
+  }
+
+  async sendPartnerRejectionDirect(
+    to: string,
+    senderName: string,
+    link: string,
+  ) {
     try {
       await this.transporter.sendMail({
         from:
@@ -93,5 +131,26 @@ export class EmailService {
     } catch (error) {
       this.logger.error(`Failed to send rejection email to ${to}`, error);
     }
+  }
+
+  async queueResetPassword(user: User, resetToken: string) {
+    await this.emailQueue.add('send-reset-password', {
+      user,
+      resetToken,
+    });
+  }
+
+  async queueOtp(user: User, otp: OTP) {
+    await this.emailQueue.add('send-otp', {
+      user,
+      otp,
+    });
+  }
+
+  async queueEmailVerification(user: User, verificationToken: string) {
+    await this.emailQueue.add('send-email-verification', {
+      user,
+      verificationToken,
+    });
   }
 }

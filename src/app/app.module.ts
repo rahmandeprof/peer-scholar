@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 
 import { AcademicModule } from '@/app/academic/academic.module';
 import { AdminModule } from '@/app/admin/admin.module';
@@ -8,6 +9,7 @@ import { AuthModule } from '@/app/auth/auth.module';
 import { ChatModule } from '@/app/chat/chat.module';
 import { CommonModule } from '@/app/common/common.module';
 import { OtpModule } from '@/app/otp/otp.module';
+import { QueueModule } from '@/app/queue/queue.module';
 import { StudyModule } from '@/app/study/study.module';
 import { UsersModule } from '@/app/users/users.module';
 import { DatabaseModule } from '@/database/database.module';
@@ -44,6 +46,8 @@ import configuration from '@/config/configuration';
     CommonModule,
     AcademicModule,
     AcademicModule,
+    QueueModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [AppController],
   providers: [

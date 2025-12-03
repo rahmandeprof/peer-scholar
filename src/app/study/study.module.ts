@@ -9,10 +9,12 @@ import { StudyController } from './study.controller';
 
 import { StudyService } from './study.service';
 
+import { StudyProcessor } from './processors/study.processor';
+
 @Module({
   imports: [TypeOrmModule.forFeature([StudySession]), UsersModule],
   controllers: [StudyController],
-  providers: [StudyService],
+  providers: [StudyService, StudyProcessor],
   exports: [StudyService],
 })
 export class StudyModule {}
