@@ -17,6 +17,7 @@ import { MaterialProcessor } from '../academic/processors/material.processor';
         redis: {
           host: configService.get('REDIS_HOST') ?? 'localhost',
           port: configService.get('REDIS_PORT') ?? 6379,
+          enableOfflineQueue: false,
         },
       }),
       inject: [ConfigService],
@@ -28,4 +29,4 @@ import { MaterialProcessor } from '../academic/processors/material.processor';
   providers: [MaterialProcessor],
   exports: [BullModule],
 })
-export class QueueModule {}
+export class QueueModule { }

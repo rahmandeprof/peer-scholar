@@ -102,10 +102,16 @@ export class MaterialsService {
 
     const savedMaterial = await this.materialRepo.save(material);
 
-    await this.materialsQueue.add('process-material', {
-      materialId: savedMaterial.id,
-      fileUrl: savedMaterial.fileUrl,
-    });
+    try {
+      await this.materialsQueue.add('process-material', {
+        materialId: savedMaterial.id,
+        fileUrl: savedMaterial.fileUrl,
+      });
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to add material to processing queue', error);
+      // Continue without processing - material is saved
+    }
 
     await this.usersService.increaseReputation(user.id, 10);
 
