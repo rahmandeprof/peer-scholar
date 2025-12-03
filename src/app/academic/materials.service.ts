@@ -155,7 +155,7 @@ export class MaterialsService {
       .slice(0, 10); // Top 10
   }
 
-  findAll(user: User, courseId?: string, type?: string, search?: string) {
+  async findAll(user: User, courseId?: string, type?: string, search?: string) {
     const query = this.materialRepo
       .createQueryBuilder('material')
       .leftJoinAndSelect('material.uploader', 'uploader')
@@ -228,7 +228,17 @@ export class MaterialsService {
       }),
     );
 
-    return query.getMany();
+    // Log the generated query
+    // console.log(query.getSql(), query.getParameters());
+
+    const materials = await query.getMany();
+
+    // eslint-disable-next-line no-console
+    console.log(
+      `Found ${materials.length.toString()} materials for user ${user.id}`,
+    );
+
+    return materials;
   }
 
   async updateScope(id: string, scope: AccessScope, userId: string) {
