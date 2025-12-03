@@ -319,13 +319,22 @@ export class UsersService {
   async updateAcademicProfile(id: string, dto: UpdateAcademicProfileDto) {
     const user = await this.getOne(id);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    user.school = { id: dto.schoolId } as any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    user.faculty = { id: dto.facultyId } as any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    user.department = { id: dto.departmentId } as any;
-    user.yearOfStudy = dto.yearOfStudy;
+    if (dto.schoolId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      user.school = { id: dto.schoolId } as any;
+    }
+
+    if (dto.facultyId) {
+      user.faculty = dto.facultyId;
+    }
+
+    if (dto.departmentId) {
+      user.department = dto.departmentId;
+    }
+
+    if (dto.yearOfStudy) {
+      user.yearOfStudy = dto.yearOfStudy;
+    }
 
     return this.userRepository.save(user);
   }
