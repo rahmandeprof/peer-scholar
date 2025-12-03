@@ -1,6 +1,6 @@
 import { QuizHistory } from './QuizHistory';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { UNILORIN_FACULTIES } from '../data/unilorin-faculties';
@@ -37,6 +37,20 @@ export function UserProfile({ onClose }: UserProfileProps) {
     yearOfStudy: user?.yearOfStudy ?? 1,
   });
 
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        firstName: user.firstName ?? '',
+        lastName: user.lastName ?? '',
+        faculty:
+          user.faculty?.name ?? (user.faculty as unknown as string) ?? '',
+        department:
+          user.department?.name ?? (user.department as unknown as string) ?? '',
+        yearOfStudy: user.yearOfStudy ?? 1,
+      });
+    }
+  }, [user]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -59,11 +73,28 @@ export function UserProfile({ onClose }: UserProfileProps) {
 
       toast.success('Profile updated successfully');
       await refreshUser();
-      onClose();
+      setIsEditing(false);
     } catch {
       toast.error('Failed to update profile');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const [isEditing, setIsEditing] = useState(false);
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    if (user) {
+      setFormData({
+        firstName: user.firstName ?? '',
+        lastName: user.lastName ?? '',
+        faculty:
+          user.faculty?.name ?? (user.faculty as unknown as string) ?? '',
+        department:
+          user.department?.name ?? (user.department as unknown as string) ?? '',
+        yearOfStudy: user.yearOfStudy ?? 1,
+      });
     }
   };
 
@@ -173,7 +204,8 @@ export function UserProfile({ onClose }: UserProfileProps) {
                     onChange={(e) =>
                       setFormData({ ...formData, firstName: e.target.value })
                     }
-                    className='w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none'
+                    disabled={!isEditing}
+                    className='w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed'
                     required
                   />
                 </div>
@@ -187,7 +219,8 @@ export function UserProfile({ onClose }: UserProfileProps) {
                     onChange={(e) =>
                       setFormData({ ...formData, lastName: e.target.value })
                     }
-                    className='w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none'
+                    disabled={!isEditing}
+                    className='w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed'
                     required
                   />
                 </div>
@@ -238,7 +271,8 @@ export function UserProfile({ onClose }: UserProfileProps) {
                         department: '',
                       });
                     }}
-                    className='w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none appearance-none'
+                    disabled={!isEditing}
+                    className='w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none appearance-none disabled:opacity-50 disabled:cursor-not-allowed'
                   >
                     <option value=''>Select Faculty</option>
                     {UNILORIN_FACULTIES.map((faculty) => (
@@ -261,8 +295,8 @@ export function UserProfile({ onClose }: UserProfileProps) {
                     onChange={(e) =>
                       setFormData({ ...formData, department: e.target.value })
                     }
-                    className='w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none appearance-none disabled:opacity-50'
-                    disabled={!formData.faculty}
+                    className='w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none appearance-none disabled:opacity-50 disabled:cursor-not-allowed'
+                    disabled={!isEditing || !formData.faculty}
                   >
                     <option value=''>Select Department</option>
                     {formData.faculty &&
@@ -291,7 +325,8 @@ export function UserProfile({ onClose }: UserProfileProps) {
                         yearOfStudy: parseInt(e.target.value),
                       })
                     }
-                    className='w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none appearance-none'
+                    disabled={!isEditing}
+                    className='w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none appearance-none disabled:opacity-50 disabled:cursor-not-allowed'
                   >
                     {[1, 2, 3, 4, 5, 6].map((year) => (
                       <option key={year} value={year}>
@@ -303,21 +338,42 @@ export function UserProfile({ onClose }: UserProfileProps) {
               </div>
 
               <div className='pt-4 flex justify-end space-x-3'>
-                <button
-                  type='button'
-                  onClick={onClose}
-                  className='px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors'
-                >
-                  Cancel
-                </button>
-                <button
-                  type='submit'
-                  disabled={loading}
-                  className='px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors flex items-center disabled:opacity-50'
-                >
-                  <Save className='w-4 h-4 mr-2' />
-                  {loading ? 'Saving...' : 'Save Changes'}
-                </button>
+                {!isEditing ? (
+                  <>
+                    <button
+                      type='button'
+                      onClick={onClose}
+                      className='px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors'
+                    >
+                      Close
+                    </button>
+                    <button
+                      type='button'
+                      onClick={() => setIsEditing(true)}
+                      className='px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors flex items-center'
+                    >
+                      Edit Profile
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type='button'
+                      onClick={handleCancel}
+                      className='px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors'
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type='submit'
+                      disabled={loading}
+                      className='px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors flex items-center disabled:opacity-50'
+                    >
+                      <Save className='w-4 h-4 mr-2' />
+                      {loading ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </>
+                )}
               </div>
             </form>
           )}

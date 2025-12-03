@@ -37,11 +37,24 @@ export class MaterialsService {
     });
   }
 
-  getPresignedUrl() {
+  getPresignedUrl(fileType: string) {
     const timestamp = Math.round(new Date().getTime() / 1000);
+    const folder = 'materials';
+
+    // Determine resource type based on file type
+    let resourceType = 'auto';
+
+    if (fileType.startsWith('image/')) {
+      resourceType = 'image';
+    } else if (fileType.startsWith('video/') || fileType.startsWith('audio/')) {
+      resourceType = 'video';
+    } else {
+      resourceType = 'raw';
+    }
+
     const params = {
       timestamp,
-      folder: 'materials',
+      folder,
     };
 
     const apiSecret = this.configService.get<string>('CLOUD_API_SECRET') ?? '';
@@ -50,11 +63,11 @@ export class MaterialsService {
     const signature = cloudinary.utils.api_sign_request(params, apiSecret);
 
     return {
-      url: `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
+      url: `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
       signature,
       timestamp,
       apiKey: this.configService.get('CLOUD_API_KEY'),
-      folder: 'materials',
+      folder,
     };
   }
 
