@@ -21,7 +21,14 @@ export function GoogleCallback() {
       try {
         const user = JSON.parse(decodeURIComponent(userStr));
         login(token, user);
-        navigate('/');
+
+        const redirect = localStorage.getItem('login_redirect');
+        if (redirect) {
+          localStorage.removeItem('login_redirect');
+          navigate(redirect);
+        } else {
+          navigate('/');
+        }
       } catch {
         // console.error('Failed to parse user data', err);
         navigate('/login?error=auth_failed');

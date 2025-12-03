@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { DashboardLayout } from './components/DashboardLayout';
 import { AcademicControlCenter } from './components/AcademicControlCenter';
 import DepartmentView from './components/DepartmentView';
@@ -29,8 +29,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
+  const location = useLocation();
+
   if (!isAuthenticated) {
-    return <Navigate to='/' replace />;
+    return <Navigate to='/' state={{ from: location }} replace />;
   }
 
   return <>{children}</>;
@@ -38,6 +40,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
   const [isLogin, setIsLogin] = useState(true);
 
   if (isLoading) {
@@ -72,7 +75,10 @@ function AppContent() {
           <Route path='/dashboard' element={<AcademicControlCenter />} />
           <Route path='/department' element={<DepartmentView />} />
           <Route path='/study-partner' element={<StudyPartner />} />
-          <Route path='/partner' element={<Navigate to='/study-partner' replace />} />
+          <Route
+            path='/partner'
+            element={<Navigate to='/study-partner' replace />}
+          />
           <Route path='/study-timer' element={<StudyTimer />} />
           <Route path='/chat' element={<Chatbot />} />
           <Route path='/chat/:id' element={<Chatbot />} />
@@ -85,7 +91,10 @@ function AppContent() {
           element={
             <div className='min-h-screen flex items-center justify-center px-4 py-12'>
               {isAuthenticated ? (
-                <Navigate to='/dashboard' replace />
+                <Navigate
+                  to={location.state?.from?.pathname || '/dashboard'}
+                  replace
+                />
               ) : isLogin ? (
                 <Login onSwitch={() => setIsLogin(false)} />
               ) : (
