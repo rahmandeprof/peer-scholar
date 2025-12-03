@@ -52,6 +52,136 @@ export function Signup({ onSwitch }: SignupProps) {
       </div>
 
       <form onSubmit={handleSubmit} className='space-y-4'>
+        <div className='grid grid-cols-2 gap-4'>
+          <div className='space-y-2'>
+            <label className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+              First Name
+            </label>
+            <input
+              required
+              value={formData.firstName}
+              onChange={(e) =>
+                setFormData({ ...formData, firstName: e.target.value })
+              }
+              className='w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none'
+            />
+          </div>
+          <div className='space-y-2'>
+            <label className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+              Last Name
+            </label>
+            <input
+              required
+              value={formData.lastName}
+              onChange={(e) =>
+                setFormData({ ...formData, lastName: e.target.value })
+              }
+              className='w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none'
+            />
+          </div>
+        </div>
+
+        <div className='space-y-2'>
+          <label className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+            Email
+          </label>
+          <input
+            required
+            type='email'
+            value={formData.email}
+            onChange={(e) =>
+              setFormData({ ...formData, email: e.target.value })
+            }
+            className='w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none'
+          />
+        </div>
+
+        <div className='space-y-2'>
+          <label className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+            Password
+          </label>
+          <input
+            required
+            type='password'
+            value={formData.password}
+            onChange={(e) =>
+              setFormData({ ...formData, password: e.target.value })
+            }
+            className='w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none'
+          />
+        </div>
+
+        <div className='grid grid-cols-2 gap-4'>
+          <div className='space-y-2 col-span-2'>
+            <label className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+              Faculty
+            </label>
+            <select
+              required
+              value={formData.faculty}
+              onChange={(e) => {
+                setFormData({
+                  ...formData,
+                  faculty: e.target.value,
+                  department: '',
+                });
+              }}
+              className='w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none'
+            >
+              <option value=''>Select Faculty</option>
+              {UNILORIN_FACULTIES.map((f) => (
+                <option key={f.name} value={f.name}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className='space-y-2'>
+            <label className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+              Department
+            </label>
+            <select
+              required
+              disabled={!formData.faculty}
+              value={formData.department}
+              onChange={(e) =>
+                setFormData({ ...formData, department: e.target.value })
+              }
+              className='w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-50'
+            >
+              <option value=''>Select Department</option>
+              {formData.faculty &&
+                UNILORIN_FACULTIES.find(
+                  (f) => f.name === formData.faculty,
+                )?.departments.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+            </select>
+          </div>
+          <div className='space-y-2'>
+            <label className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+              Year
+            </label>
+            <select
+              value={formData.yearOfStudy}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  yearOfStudy: parseInt(e.target.value),
+                })
+              }
+              className='w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none'
+            >
+              {[1, 2, 3, 4, 5, 6].map((y) => (
+                <option key={y} value={y}>
+                  Year {y}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
         <button
           type='submit'
           disabled={loading}
