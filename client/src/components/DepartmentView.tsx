@@ -5,20 +5,99 @@ import { BookOpen, FileText, Upload } from 'lucide-react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { LoadingState } from './LoadingState';
 
-// ... interfaces ...
+interface Course {
+  id: string;
+  code: string;
+  title: string;
+  level: number;
+}
+
+interface Material {
+  id: string;
+  title: string;
+  description: string;
+  type: string;
+  fileUrl: string;
+  fileType: string;
+  size: number;
+  createdAt: string;
+  uploader: {
+    firstName: string;
+    lastName: string;
+  };
+  course?: {
+    code: string;
+  };
+}
 
 const DepartmentView: React.FC = () => {
   const { openUploadModal } = useOutletContext<{
     openUploadModal: () => void;
   }>();
   const { user } = useAuth();
-  // ... state ...
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [trendingMaterials, setTrendingMaterials] = useState<Material[]>([]);
+  const [recentMaterials, setRecentMaterials] = useState<Material[]>([]);
 
-  // ... fetch functions ...
+  useEffect(() => {
+    if (user?.department?.id) {
+      fetchCourses(user.department.id);
+      fetchTrending();
+      fetchRecent();
+    }
+  }, [user]);
 
-  // ... loading check ...
+  const fetchCourses = async (departmentId: string) => {
+    try {
+      const res = await axios.get(
+        `/academic/departments/${departmentId}/courses`,
+      );
+      setCourses(res.data);
+    } catch (error) {
+      console.error('Failed to fetch courses', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // ... no department check ...
+  const fetchTrending = async () => {
+    try {
+      const res = await axios.get('/materials/trending');
+      setTrendingMaterials(res.data);
+    } catch (error) {
+      console.error('Failed to fetch trending materials', error);
+    }
+  };
+
+  const fetchRecent = async () => {
+    try {
+      const res = await axios.get('/materials');
+      setRecentMaterials(res.data);
+    } catch (error) {
+      console.error('Failed to fetch recent materials', error);
+    }
+  };
+
+  if (loading) {
+    return <LoadingState message='Fetching department library...' />;
+  }
+
+  if (!user?.department) {
+    return (
+      <div className='p-8 text-center'>
+        <p className='text-gray-600 mb-4'>
+          You haven't joined a department yet.
+        </p>
+        <Link
+          to='/onboarding'
+          className='text-indigo-600 hover:text-indigo-500 font-medium'
+        >
+          Complete your profile
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full overflow-y-auto'>
