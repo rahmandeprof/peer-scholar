@@ -1,5 +1,5 @@
 import { BullModule } from '@nestjs/bull';
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
@@ -13,13 +13,25 @@ import { MaterialProcessor } from '../academic/processors/material.processor';
     TypeOrmModule.forFeature([Material, MaterialChunk]),
     BullModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        redis: {
-          host: configService.get('REDIS_HOST') ?? 'localhost',
-          port: configService.get('REDIS_PORT') ?? 6379,
-          enableOfflineQueue: false,
-        },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const host = configService.get<string>('REDIS_HOST') ?? 'localhost';
+        const port = configService.get<number>('REDIS_PORT') ?? 6379;
+        const password = configService.get<string>('REDIS_PASSWORD');
+
+        Logger.log(
+          `[QueueModule] Connecting to Redis at ${host}:${String(port)}`,
+          'QueueModule',
+        );
+
+        return {
+          redis: {
+            host,
+            port,
+            password,
+            // enableOfflineQueue: false, // Allow offline queue to prevent startup crash
+          },
+        };
+      },
       inject: [ConfigService],
     }),
     BullModule.registerQueue({
@@ -29,4 +41,4 @@ import { MaterialProcessor } from '../academic/processors/material.processor';
   providers: [MaterialProcessor],
   exports: [BullModule],
 })
-export class QueueModule { }
+export class QueueModule {}

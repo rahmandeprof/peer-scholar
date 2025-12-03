@@ -36,6 +36,7 @@ import configuration from '@/config/configuration';
       validate,
     }),
     DatabaseModule,
+    QueueModule, // Initialize Bull/Redis first
     AuthModule,
     UsersModule,
     OtpModule,
@@ -45,8 +46,6 @@ import configuration from '@/config/configuration';
     ChatModule,
     CommonModule,
     AcademicModule,
-    AcademicModule,
-    QueueModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [AppController],
