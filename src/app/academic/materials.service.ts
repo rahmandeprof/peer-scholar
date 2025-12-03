@@ -96,6 +96,7 @@ export class MaterialsService {
       targetFaculty: dto.targetFaculty,
       targetDepartment: dto.targetDepartment,
       topic: dto.topic,
+      targetYear: dto.targetYear,
       uploader: user,
       status: MaterialStatus.PENDING,
     });
@@ -163,21 +164,13 @@ export class MaterialsService {
 
     if (courseId) {
       query.where('material.courseId = :courseId', { courseId });
-    } else if (user.department) {
-      // If no courseId, filter by user's department
-      const dept = user.department;
+    }
 
-      if (typeof dept === 'string') {
-        // It could be an ID or a Name. Check both.
-        query.andWhere(
-          '(course.departmentId = :dept OR department.name = :dept)',
-          { dept },
-        );
-      } else {
-        query.where('course.departmentId = :deptId', {
-          deptId: (dept as { id: string }).id,
-        });
-      }
+    if (user.yearOfStudy) {
+      query.andWhere(
+        '(material.targetYear IS NULL OR material.targetYear = :year)',
+        { year: user.yearOfStudy },
+      );
     }
 
     if (type && type !== 'all') {

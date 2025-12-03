@@ -60,4 +60,8 @@ export class CreateMaterialDto {
   @IsArray()
   @IsOptional()
   tags?: string[];
+
+  @IsNumber()
+  @IsOptional()
+  targetYear?: number;
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, GraduationCap } from 'lucide-react';
+import { GraduationCap } from 'lucide-react';
 
 const LOADING_MESSAGES = [
   'Gathering knowledge...',
@@ -30,7 +30,6 @@ export const LoadingState: React.FC<LoadingStateProps> = ({ message }) => {
         <div className='absolute inset-0 bg-primary-100 dark:bg-primary-900/30 rounded-full animate-ping opacity-20'></div>
         <div className='relative bg-white dark:bg-gray-800 p-4 rounded-full shadow-xl border border-gray-100 dark:border-gray-700'>
           <div className='relative w-12 h-12'>
-            <Loader2 className='absolute inset-0 w-full h-full text-primary-600 animate-spin' />
             <div className='absolute inset-0 flex items-center justify-center'>
               <GraduationCap className='w-6 h-6 text-primary-600 animate-bounce' />
             </div>

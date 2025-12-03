@@ -98,6 +98,9 @@ export class Material extends IDAndTimestamp {
   @Column({ nullable: true })
   topic?: string;
 
+  @Column({ type: 'int', nullable: true })
+  targetYear?: number;
+
   @OneToMany(() => MaterialChunk, (chunk) => chunk.material)
   chunks: MaterialChunk[];
 }

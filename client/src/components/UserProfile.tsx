@@ -21,7 +21,7 @@ interface UserProfileProps {
 }
 
 export function UserProfile({ onClose }: UserProfileProps) {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
 
   if (!user) return null;
   const toast = useToast();
@@ -53,8 +53,8 @@ export function UserProfile({ onClose }: UserProfileProps) {
       });
 
       toast.success('Profile updated successfully');
+      await refreshUser();
       onClose();
-      window.location.reload(); // Simple reload to refresh context
     } catch {
       toast.error('Failed to update profile');
     } finally {

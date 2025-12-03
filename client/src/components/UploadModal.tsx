@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Upload as UploadIcon, FileText, Check } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { UNILORIN_FACULTIES } from '../data/unilorin-faculties';
 
 interface UploadModalProps {
@@ -16,6 +17,7 @@ export function UploadModal({
   onUploadComplete,
 }: UploadModalProps) {
   const { user } = useAuth();
+  const toast = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   const [topic, setTopic] = useState('');
@@ -24,6 +26,7 @@ export function UploadModal({
   const [courseCode, setCourseCode] = useState('');
   const [specificFaculty, setSpecificFaculty] = useState('');
   const [specificDepartment, setSpecificDepartment] = useState('');
+  const [targetYear, setTargetYear] = useState<number | ''>('');
 
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -87,9 +90,15 @@ export function UploadModal({
         targetDepartment = specificDepartment;
         targetFaculty = specificFaculty; // Optional: keep faculty context
       } else if (visibility === 'faculty') {
-        targetFaculty = typeof user?.faculty === 'string' ? user.faculty : (user?.faculty as any)?.name;
+        targetFaculty =
+          typeof user?.faculty === 'string'
+            ? user.faculty
+            : (user?.faculty as any)?.name;
       } else if (visibility === 'department') {
-        targetDepartment = typeof user?.department === 'string' ? user.department : (user?.department as any)?.name;
+        targetDepartment =
+          typeof user?.department === 'string'
+            ? user.department
+            : (user?.department as any)?.name;
       }
 
       await api.post('/materials', {
@@ -104,14 +113,17 @@ export function UploadModal({
         scope,
         targetFaculty,
         targetDepartment,
+        targetYear: targetYear || undefined,
         tags: topic ? [topic] : [],
       });
 
       setSuccess(true);
+      toast.success('Material uploaded successfully!');
       setFile(null);
       setTitle('');
       setTopic('');
       setCourseCode('');
+      setTargetYear('');
 
       if (onUploadComplete) onUploadComplete();
       setTimeout(() => {
@@ -121,6 +133,7 @@ export function UploadModal({
     } catch (err) {
       console.error('Upload failed', err);
       setError('Failed to upload material. Please try again.');
+      toast.error('Failed to upload material');
     } finally {
       setUploading(false);
     }
@@ -221,6 +234,26 @@ export function UploadModal({
                 </option>
                 <option value='specific_faculty'>Specific Faculty</option>
                 <option value='specific_department'>Specific Department</option>
+              </select>
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+                Target Year (Optional)
+              </label>
+              <select
+                value={targetYear}
+                onChange={(e) =>
+                  setTargetYear(e.target.value ? parseInt(e.target.value) : '')
+                }
+                className='w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none'
+              >
+                <option value=''>All Years</option>
+                {[1, 2, 3, 4, 5, 6].map((year) => (
+                  <option key={year} value={year}>
+                    Year {year}
+                  </option>
+                ))}
               </select>
             </div>
 
