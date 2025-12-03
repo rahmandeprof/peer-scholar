@@ -8,7 +8,6 @@ import { AuthModule } from '@/app/auth/auth.module';
 import { ChatModule } from '@/app/chat/chat.module';
 import { CommonModule } from '@/app/common/common.module';
 import { OtpModule } from '@/app/otp/otp.module';
-import { QueueModule } from '@/app/queue/queue.module';
 import { StudyModule } from '@/app/study/study.module';
 import { UsersModule } from '@/app/users/users.module';
 import { DatabaseModule } from '@/database/database.module';
@@ -44,7 +43,7 @@ import configuration from '@/config/configuration';
     ChatModule,
     CommonModule,
     AcademicModule,
-    QueueModule,
+    AcademicModule,
   ],
   controllers: [AppController],
   providers: [

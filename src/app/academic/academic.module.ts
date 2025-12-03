@@ -1,4 +1,3 @@
-import { BullModule } from '@nestjs/bull';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
@@ -27,9 +26,6 @@ import { MaterialsService } from './materials.service';
       Material,
       MaterialChunk,
     ]),
-    BullModule.registerQueue({
-      name: 'materials',
-    }),
     UsersModule,
   ],
   controllers: [AcademicController, MaterialsController],
