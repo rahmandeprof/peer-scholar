@@ -46,7 +46,10 @@ export class StudyService {
 
     await this.studySessionRepo.save(session);
 
-    if (session.type === StudySessionType.STUDY) {
+    if (
+      session.type === StudySessionType.STUDY ||
+      session.type === StudySessionType.TEST
+    ) {
       await this.usersService.updateStreak(userId);
       await this.usersService.increaseReputation(userId, 5);
     }

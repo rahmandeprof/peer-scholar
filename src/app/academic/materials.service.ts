@@ -165,12 +165,19 @@ export class MaterialsService {
       query.where('material.courseId = :courseId', { courseId });
     } else if (user.department) {
       // If no courseId, filter by user's department
-      const deptId =
-        typeof user.department === 'string'
-          ? user.department
-          : (user.department as { id: string }).id;
+      const dept = user.department;
 
-      query.where('course.departmentId = :deptId', { deptId });
+      if (typeof dept === 'string') {
+        // It could be an ID or a Name. Check both.
+        query.andWhere(
+          '(course.departmentId = :dept OR department.name = :dept)',
+          { dept },
+        );
+      } else {
+        query.where('course.departmentId = :deptId', {
+          deptId: (dept as { id: string }).id,
+        });
+      }
     }
 
     if (type && type !== 'all') {
