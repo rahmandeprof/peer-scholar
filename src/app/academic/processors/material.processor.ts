@@ -73,6 +73,8 @@ export class MaterialProcessor {
         const result = await mammoth.extractRawText({ buffer });
 
         text = result.value;
+      } else if (material.fileType === 'text/plain') {
+        text = buffer.toString('utf-8');
       }
 
       if (!text) {
