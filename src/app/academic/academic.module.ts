@@ -17,6 +17,8 @@ import { MaterialsController } from './materials.controller';
 import { AcademicService } from './academic.service';
 import { MaterialsService } from './materials.service';
 
+import { MaterialProcessor } from './processors/material.processor';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -33,7 +35,7 @@ import { MaterialsService } from './materials.service';
     UsersModule,
   ],
   controllers: [AcademicController, MaterialsController],
-  providers: [AcademicService, MaterialsService],
+  providers: [AcademicService, MaterialsService, MaterialProcessor],
   exports: [TypeOrmModule, AcademicService, MaterialsService],
 })
 export class AcademicModule {}
