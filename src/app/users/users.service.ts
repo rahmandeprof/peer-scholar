@@ -2,6 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 
+import { Department } from '@/app/academic/entities/department.entity';
+import { Faculty } from '@/app/academic/entities/faculty.entity';
 import {
   PartnerRequest,
   PartnerRequestStatus,
@@ -31,6 +33,10 @@ export class UsersService {
     private readonly streakRepository: Repository<StudyStreak>,
     @InjectRepository(PartnerRequest)
     private readonly partnerRequestRepo: Repository<PartnerRequest>,
+    @InjectRepository(Department)
+    private readonly departmentRepo: Repository<Department>,
+    @InjectRepository(Faculty)
+    private readonly facultyRepo: Repository<Faculty>,
     private readonly logger: WinstonLoggerService,
     private readonly emailService: EmailService,
     private readonly configService: ConfigService,
@@ -276,7 +282,31 @@ export class UsersService {
   async findOne(id: string) {
     const user = await this.getOne(id);
 
-    return new SuccessResponse('User retrieved', user);
+    // Transform user to include full department/faculty objects
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const responseUser: any = Object.assign({}, user);
+
+    if (user.department) {
+      const dept = await this.departmentRepo.findOne({
+        where: { name: user.department },
+      });
+
+      if (dept) {
+        responseUser.department = { id: dept.id, name: dept.name };
+      }
+    }
+
+    if (user.faculty) {
+      const faculty = await this.facultyRepo.findOne({
+        where: { name: user.faculty },
+      });
+
+      if (faculty) {
+        responseUser.faculty = { id: faculty.id, name: faculty.name };
+      }
+    }
+
+    return new SuccessResponse('User retrieved', responseUser);
   }
 
   findByEmail(email: string) {

@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { Department } from '@/app/academic/entities/department.entity';
+import { Faculty } from '@/app/academic/entities/faculty.entity';
 import { PartnerRequest } from '@/app/users/entities/partner-request.entity';
 import { StudyStreak } from '@/app/users/entities/study-streak.entity';
 import { User } from '@/app/users/entities/user.entity';
@@ -11,7 +13,15 @@ import { UsersService } from '@/app/users/users.service';
 import { WinstonLoggerService } from '@/logger/winston-logger/winston-logger.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, StudyStreak, PartnerRequest])],
+  imports: [
+    TypeOrmModule.forFeature([
+      User,
+      StudyStreak,
+      PartnerRequest,
+      Department,
+      Faculty,
+    ]),
+  ],
   controllers: [UsersController],
   providers: [UsersService, WinstonLoggerService],
   exports: [UsersService],
