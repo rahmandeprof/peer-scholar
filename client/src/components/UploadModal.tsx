@@ -156,7 +156,7 @@ export function UploadModal({
 
         <div className='p-6'>
           <p className='mb-6 text-gray-600 dark:text-gray-400'>
-            Share materials with your department.
+            Share materials with students like you.
           </p>
 
           <form onSubmit={handleSubmit} className='space-y-4'>

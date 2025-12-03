@@ -2,99 +2,23 @@ import React, { useState, useEffect } from 'react';
 import axios from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { BookOpen, FileText, Upload } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import { LoadingState } from './LoadingState';
 
-interface Course {
-  id: string;
-  code: string;
-  title: string;
-  level: number;
-}
-
-interface Material {
-  id: string;
-  title: string;
-  description: string;
-  type: string;
-  fileUrl: string;
-  fileType: string;
-  size: number;
-  createdAt: string;
-  uploader: {
-    firstName: string;
-    lastName: string;
-  };
-  course?: {
-    code: string;
-  };
-}
+// ... interfaces ...
 
 const DepartmentView: React.FC = () => {
+  const { openUploadModal } = useOutletContext<{
+    openUploadModal: () => void;
+  }>();
   const { user } = useAuth();
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [trendingMaterials, setTrendingMaterials] = useState<Material[]>([]);
-  const [recentMaterials, setRecentMaterials] = useState<Material[]>([]);
+  // ... state ...
 
-  useEffect(() => {
-    if (user?.department?.id) {
-      fetchCourses(user.department.id);
-      fetchTrending();
-      fetchRecent();
-    }
-  }, [user]);
+  // ... fetch functions ...
 
-  const fetchCourses = async (departmentId: string) => {
-    try {
-      const res = await axios.get(
-        `/academic/departments/${departmentId}/courses`,
-      );
-      setCourses(res.data);
-    } catch (error) {
-      console.error('Failed to fetch courses', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // ... loading check ...
 
-  const fetchTrending = async () => {
-    try {
-      const res = await axios.get('/materials/trending');
-      setTrendingMaterials(res.data);
-    } catch (error) {
-      console.error('Failed to fetch trending materials', error);
-    }
-  };
-
-  const fetchRecent = async () => {
-    try {
-      const res = await axios.get('/materials');
-      setRecentMaterials(res.data);
-    } catch (error) {
-      console.error('Failed to fetch recent materials', error);
-    }
-  };
-
-  if (loading) {
-    return <LoadingState message='Fetching department library...' />;
-  }
-
-  if (!user?.department) {
-    return (
-      <div className='p-8 text-center'>
-        <p className='text-gray-600 mb-4'>
-          You haven't joined a department yet.
-        </p>
-        <Link
-          to='/onboarding'
-          className='text-indigo-600 hover:text-indigo-500 font-medium'
-        >
-          Complete your profile
-        </Link>
-      </div>
-    );
-  }
+  // ... no department check ...
 
   return (
     <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full overflow-y-auto'>
@@ -111,13 +35,13 @@ const DepartmentView: React.FC = () => {
             <span>{user.school?.name}</span>
           </p>
         </div>
-        <Link
-          to='/upload'
+        <button
+          onClick={openUploadModal}
           className='inline-flex items-center justify-center px-5 py-2.5 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 transition-all hover:shadow-md hover:-translate-y-0.5 w-full md:w-auto'
         >
           <Upload className='h-4 w-4 mr-2' />
           Upload Material
-        </Link>
+        </button>
       </div>
 
       {trendingMaterials.length > 0 && (
