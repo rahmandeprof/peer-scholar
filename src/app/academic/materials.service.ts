@@ -246,11 +246,6 @@ export class MaterialsService {
 
     const materials = await query.getMany();
 
-    // eslint-disable-next-line no-console
-    console.log(
-      `Found ${materials.length.toString()} materials for user ${user.id}`,
-    );
-
     return materials;
   }
 

@@ -51,36 +51,6 @@ export function UserProfile({ onClose }: UserProfileProps) {
     }
   }, [user]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await api.patch('/users/profile', {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-      });
-
-      console.log('Submitting profile update:', {
-        facultyId: formData.faculty,
-        departmentId: formData.department,
-        yearOfStudy: formData.yearOfStudy,
-      });
-      await api.patch('/users/academic-profile', {
-        facultyId: formData.faculty, // Backend handles string mapping if needed or we send name
-        departmentId: formData.department,
-        yearOfStudy: formData.yearOfStudy,
-      });
-
-      toast.success('Profile updated successfully');
-      await refreshUser();
-      setIsEditing(false);
-    } catch {
-      toast.error('Failed to update profile');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const [isEditing, setIsEditing] = useState(false);
 
   const handleCancel = () => {
@@ -95,6 +65,32 @@ export function UserProfile({ onClose }: UserProfileProps) {
           user.department?.name ?? (user.department as unknown as string) ?? '',
         yearOfStudy: user.yearOfStudy ?? 1,
       });
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await api.patch('/users/profile', {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+      });
+
+      await api.patch('/users/academic-profile', {
+        facultyId: formData.faculty, // Backend handles string mapping if needed or we send name
+        departmentId: formData.department,
+        yearOfStudy: formData.yearOfStudy,
+      });
+
+      toast.success('Profile updated successfully');
+      await refreshUser();
+      setIsEditing(false);
+      onClose();
+    } catch {
+      toast.error('Failed to update profile');
+    } finally {
+      setLoading(false);
     }
   };
 
