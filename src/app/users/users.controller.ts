@@ -22,7 +22,7 @@ import { Paginate, PaginateQuery } from 'nestjs-paginate';
 @Controller('users')
 @UseGuards(AuthGuard('jwt'))
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+  constructor(private readonly usersService: UsersService) {}
 
   @Post()
   create(@Body() createUserDto: CreateUserDto) {
@@ -47,7 +47,11 @@ export class UsersController {
   }
 
   @Patch('academic-profile')
-  updateAcademicProfile(@Req() req: any, @Body() dto: UpdateAcademicProfileDto) { // eslint-disable-line @typescript-eslint/no-explicit-any
+  updateAcademicProfile(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    @Req() req: any,
+    @Body() dto: UpdateAcademicProfileDto,
+  ) {
     return this.usersService.updateAcademicProfile(req.user.id, dto);
   }
 
