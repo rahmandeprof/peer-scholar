@@ -47,14 +47,93 @@ export const MaterialView = () => {
   const [sessionEndModalOpen, setSessionEndModalOpen] = useState(false);
   const [timerKey, setTimerKey] = useState(0); // Used to reset timer
 
-  // ... (handlers remain same)
+  const handleSessionEnd = () => {
+    setSessionEndModalOpen(true);
+  };
 
-  // ... (useEffect for fetchMaterial remains same)
+  const handleContinueReading = () => {
+    setSessionEndModalOpen(false);
+    setTimerKey((prev) => prev + 1); // Reset timer
+  };
 
-  // ... (useEffect for prefetchQuiz remains same)
+  const handleStartQuiz = () => {
+    setSessionEndModalOpen(false);
+    setQuizOpen(true);
+    setTimerKey((prev) => prev + 1); // Reset timer
+  };
+
+  useEffect(() => {
+    const fetchMaterial = async () => {
+      try {
+        const res = await api.get(`/materials/${id}`);
+        setMaterial(res.data);
+
+        // Track recently viewed material in localStorage
+        const recent = JSON.parse(
+          localStorage.getItem('recentMaterials') || '[]',
+        );
+        const newEntry = {
+          id: res.data.id,
+          title: res.data.title,
+          type: res.data.type,
+          courseCode: res.data.course?.code,
+          viewedAt: new Date().toISOString(),
+        };
+
+        // Remove existing entry if present (to move it to top)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const filtered = recent.filter((m: any) => m.id !== res.data.id);
+        // Add new entry to top, limit to 10
+        const updated = [newEntry, ...filtered].slice(0, 10);
+
+        localStorage.setItem('recentMaterials', JSON.stringify(updated));
+      } catch {
+        // console.error('Failed to fetch material', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      void fetchMaterial();
+    }
+  }, [id]);
+
+  // Background Pre-fetching for Quiz
+  useEffect(() => {
+    if (!material?.id) return;
+
+    const prefetchQuiz = async () => {
+      const cacheKey = `cached_quiz_${material.id}`;
+      const cached = localStorage.getItem(cacheKey);
+
+      // If already cached, don't fetch again
+      if (cached) return;
+
+      try {
+        // console.log('Pre-fetching quiz...');
+        const res = await api.post(`/chat/quiz/${material.id}`);
+        localStorage.setItem(cacheKey, JSON.stringify(res.data));
+        // console.log('Quiz pre-fetched and cached');
+      } catch (err) {
+        console.error('Failed to pre-fetch quiz', err);
+      }
+    };
+
+    // Small delay to prioritize main content load
+    const timer = setTimeout(() => {
+      void prefetchQuiz();
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [material?.id]);
 
   if (loading) {
-    // ...
+    return (
+      <div className='flex items-center justify-center h-screen'>
+        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600'></div>
+      </div>
+    );
   }
 
   if (!material) {

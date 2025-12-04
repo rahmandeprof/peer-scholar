@@ -3,7 +3,7 @@ import { QuizHistory } from './QuizHistory';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { UNILORIN_FACULTIES } from '../data/unilorin-faculties';
+
 import {
   User,
   X,
