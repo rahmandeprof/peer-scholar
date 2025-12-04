@@ -68,15 +68,15 @@ export const MaterialView = () => {
         const updated = [newEntry, ...filtered].slice(0, 10);
 
         localStorage.setItem('recentMaterials', JSON.stringify(updated));
-      } catch (error) {
-        console.error('Failed to fetch material', error);
+      } catch {
+        // console.error('Failed to fetch material', error);
       } finally {
         setLoading(false);
       }
     };
 
     if (id) {
-      fetchMaterial();
+      void fetchMaterial();
     }
   }, [id]);
 

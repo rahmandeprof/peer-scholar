@@ -58,7 +58,7 @@ const DepartmentView: React.FC = () => {
       setLoading(false);
     };
 
-    loadData();
+    void loadData();
   }, [user]);
 
   const fetchCourses = async (departmentId: string) => {
@@ -67,8 +67,8 @@ const DepartmentView: React.FC = () => {
         `/academic/departments/${departmentId}/courses`,
       );
       setCourses(res.data);
-    } catch (error) {
-      console.error('Failed to fetch courses', error);
+    } catch {
+      // console.error('Failed to fetch courses', error);
     }
   };
 
@@ -76,8 +76,8 @@ const DepartmentView: React.FC = () => {
     try {
       const res = await axios.get('/materials/trending');
       setTrendingMaterials(res.data);
-    } catch (error) {
-      console.error('Failed to fetch trending materials', error);
+    } catch {
+      // console.error('Failed to fetch trending materials', error);
     }
   };
 
@@ -85,8 +85,8 @@ const DepartmentView: React.FC = () => {
     try {
       const res = await axios.get('/materials');
       setRecentMaterials(res.data);
-    } catch (error) {
-      console.error('Failed to fetch recent materials', error);
+    } catch {
+      // console.error('Failed to fetch recent materials', error);
     }
   };
 
