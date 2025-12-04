@@ -48,6 +48,26 @@ export const MaterialView = () => {
         // For now, I'll try to fetch it.
         const res = await api.get(`/materials/${id}`);
         setMaterial(res.data);
+
+        // Track recently viewed material in localStorage
+        const recent = JSON.parse(
+          localStorage.getItem('recentMaterials') || '[]',
+        );
+        const newEntry = {
+          id: res.data.id,
+          title: res.data.title,
+          type: res.data.type,
+          courseCode: res.data.course?.code,
+          viewedAt: new Date().toISOString(),
+        };
+
+        // Remove existing entry if present (to move it to top)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const filtered = recent.filter((m: any) => m.id !== res.data.id);
+        // Add new entry to top, limit to 10
+        const updated = [newEntry, ...filtered].slice(0, 10);
+
+        localStorage.setItem('recentMaterials', JSON.stringify(updated));
       } catch (error) {
         console.error('Failed to fetch material', error);
       } finally {

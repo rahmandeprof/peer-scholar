@@ -347,10 +347,10 @@ export function DashboardLayout() {
       {sidebarOpen && (
         <div className='fixed inset-0 z-50 md:hidden'>
           <div
-            className='absolute inset-0 bg-gray-900/20 backdrop-blur-sm transition-opacity'
+            className='absolute inset-0 bg-gray-900/40 backdrop-blur-md transition-opacity'
             onClick={() => setSidebarOpen(false)}
           />
-          <aside className='absolute left-0 top-0 bottom-0 w-72 bg-white dark:bg-gray-900 shadow-2xl flex flex-col animate-slide-right'>
+          <aside className='absolute left-0 top-0 bottom-0 w-72 bg-white/90 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl flex flex-col animate-slide-right border-r border-gray-200/50 dark:border-gray-800/50'>
             <div className='p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center'>
               <h1 className='text-2xl font-bold'>
                 peer<span className='text-primary-600'>Scholar</span>

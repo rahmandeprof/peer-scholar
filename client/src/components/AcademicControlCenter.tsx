@@ -8,6 +8,7 @@ import {
   ArrowRight,
   TrendingUp,
   Activity,
+  FileText,
 } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -297,48 +298,52 @@ export function AcademicControlCenter() {
         </div>
       </div>
 
-      {/* Course Shelves */}
+      {/* Recently Opened (Replaces Course Shelves) */}
       <div>
         <div className='flex items-center justify-between mb-6'>
           <h2 className='text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center'>
             <BookOpen className='w-6 h-6 mr-3 text-primary-500' />
-            Course Shelves
+            Recently Opened
           </h2>
           <Link
             to='/department'
             className='text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300'
           >
-            View All
+            View Library
           </Link>
         </div>
 
-        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6'>
-          {courses.map((course) => (
-            <Link
-              key={course.id}
-              to={`/courses/${course.id}`}
-              className='bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all group'
-            >
-              <div className='w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex items-center justify-center text-primary-600 dark:text-primary-400 mb-4 group-hover:scale-110 transition-transform'>
-                <BookOpen className='w-6 h-6' />
-              </div>
-              <h3 className='font-bold text-gray-900 dark:text-gray-100 mb-1 truncate'>
-                {course.code}
-              </h3>
-              <p className='text-sm text-gray-500 dark:text-gray-400 line-clamp-2 h-10'>
-                {course.title}
-              </p>
-            </Link>
-          ))}
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6'>
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          {JSON.parse(localStorage.getItem('recentMaterials') || '[]')
+            .slice(0, 3)
+            .map((material: any) => (
+              <Link
+                key={material.id}
+                to={`/materials/${material.id}`}
+                className='bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all group'
+              >
+                <div className='w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex items-center justify-center text-primary-600 dark:text-primary-400 mb-4 group-hover:scale-110 transition-transform'>
+                  <FileText className='w-6 h-6' />
+                </div>
+                <h3 className='font-bold text-gray-900 dark:text-gray-100 mb-1 truncate'>
+                  {material.title}
+                </h3>
+                <p className='text-sm text-gray-500 dark:text-gray-400'>
+                  {material.courseCode || 'General'}
+                </p>
+              </Link>
+            ))}
 
-          {courses.length === 0 && (
+          {JSON.parse(localStorage.getItem('recentMaterials') || '[]')
+            .length === 0 && (
             <div className='col-span-full text-center py-12 bg-gray-50/50 dark:bg-gray-800/30 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700'>
               <BookOpen className='w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4' />
               <h3 className='text-lg font-medium text-gray-900 dark:text-gray-100'>
-                No courses found
+                No recently opened files
               </h3>
               <p className='text-gray-500 dark:text-gray-400'>
-                Join a department to see your courses.
+                Start studying to see your recent files here.
               </p>
             </div>
           )}
