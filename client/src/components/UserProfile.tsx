@@ -358,27 +358,20 @@ export function UserProfile({ onClose }: UserProfileProps) {
                 <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
                   Faculty
                 </label>
-                <div className='relative'>
+                <div className='relative group'>
                   <Building className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4' />
                   <select
                     value={formData.faculty}
-                    onChange={(e) => {
-                      setFormData({
-                        ...formData,
-                        faculty: e.target.value,
-                        department: '',
-                      });
-                    }}
-                    disabled={!isEditing}
-                    className='w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none appearance-none disabled:opacity-50 disabled:cursor-not-allowed'
+                    disabled
+                    className='w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-500 cursor-not-allowed appearance-none'
                   >
-                    <option value=''>Select Faculty</option>
-                    {UNILORIN_FACULTIES.map((faculty) => (
-                      <option key={faculty.name} value={faculty.name}>
-                        {faculty.name}
-                      </option>
-                    ))}
+                    <option value={formData.faculty}>{formData.faculty}</option>
                   </select>
+                  {/* Tooltip */}
+                  <div className='absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10'>
+                    Contact Support to request a transfer
+                    <div className='absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900'></div>
+                  </div>
                 </div>
               </div>
 
@@ -386,26 +379,22 @@ export function UserProfile({ onClose }: UserProfileProps) {
                 <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
                   Department
                 </label>
-                <div className='relative'>
+                <div className='relative group'>
                   <Building className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4' />
                   <select
                     value={formData.department}
-                    onChange={(e) =>
-                      setFormData({ ...formData, department: e.target.value })
-                    }
-                    className='w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none appearance-none disabled:opacity-50 disabled:cursor-not-allowed'
-                    disabled={!isEditing || !formData.faculty}
+                    disabled
+                    className='w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-500 cursor-not-allowed appearance-none'
                   >
-                    <option value=''>Select Department</option>
-                    {formData.faculty &&
-                      UNILORIN_FACULTIES.find(
-                        (f: { name: string }) => f.name === formData.faculty,
-                      )?.departments.map((dept: string) => (
-                        <option key={dept} value={dept}>
-                          {dept}
-                        </option>
-                      ))}
+                    <option value={formData.department}>
+                      {formData.department}
+                    </option>
                   </select>
+                  {/* Tooltip */}
+                  <div className='absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10'>
+                    Contact Support to request a transfer
+                    <div className='absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900'></div>
+                  </div>
                 </div>
               </div>
 

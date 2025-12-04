@@ -4,13 +4,20 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import api from '../lib/api';
 import { UNILORIN_FACULTIES } from '../data/unilorin-faculties';
-import { Loader2, GraduationCap, Building, School } from 'lucide-react';
+import {
+  Loader2,
+  GraduationCap,
+  Building,
+  School,
+  AlertTriangle,
+} from 'lucide-react';
 
 export default function CompleteProfile() {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
   const [loading, setLoading] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
 
   const [formData, setFormData] = useState({
     school: 'University of Ilorin', // Default for now
@@ -171,9 +178,46 @@ export default function CompleteProfile() {
             </select>
           </div>
 
+          {/* Warning Alert */}
+          <div className='bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4 flex items-start'>
+            <div className='p-2 bg-yellow-100 dark:bg-yellow-900/40 rounded-lg mr-3 shrink-0'>
+              <AlertTriangle className='w-5 h-5 text-yellow-600 dark:text-yellow-400' />
+            </div>
+            <div>
+              <h3 className='text-sm font-bold text-yellow-800 dark:text-yellow-300 mb-1'>
+                Please select carefully
+              </h3>
+              <p className='text-xs text-yellow-700 dark:text-yellow-400 leading-relaxed'>
+                To ensure academic integrity, you CANNOT change your School,
+                Faculty, or Department later.
+              </p>
+            </div>
+          </div>
+
+          {/* Confirmation Checkbox */}
+          <div className='flex items-start'>
+            <div className='flex items-center h-5'>
+              <input
+                id='confirm-details'
+                type='checkbox'
+                checked={confirmed}
+                onChange={(e) => setConfirmed(e.target.checked)}
+                className='w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500 dark:bg-gray-800 dark:border-gray-700'
+              />
+            </div>
+            <div className='ml-3 text-sm'>
+              <label
+                htmlFor='confirm-details'
+                className='font-medium text-gray-700 dark:text-gray-300'
+              >
+                I confirm these details are correct
+              </label>
+            </div>
+          </div>
+
           <button
             type='submit'
-            disabled={loading}
+            disabled={loading || !confirmed}
             className='w-full py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary-600/20'
           >
             {loading ? (
