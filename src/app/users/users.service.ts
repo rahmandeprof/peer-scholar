@@ -353,8 +353,7 @@ export class UsersService {
     const user = await this.getOne(id);
 
     if (dto.schoolId) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      user.school = { id: dto.schoolId } as any;
+      user.school = dto.schoolId;
     }
 
     if (dto.facultyId) {
