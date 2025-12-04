@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { BookOpen, FileText, Upload } from 'lucide-react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { LoadingState } from './LoadingState';
+import { MaterialCard } from './MaterialCard';
 
 interface Course {
   id: string;
@@ -22,6 +23,7 @@ interface Material {
   size: number;
   createdAt: string;
   uploader: {
+    id: string;
     firstName: string;
     lastName: string;
   };
@@ -88,6 +90,11 @@ const DepartmentView: React.FC = () => {
     } catch {
       // console.error('Failed to fetch recent materials', error);
     }
+  };
+
+  const handleDeleteMaterial = (id: string) => {
+    setTrendingMaterials((prev) => prev.filter((m) => m.id !== id));
+    setRecentMaterials((prev) => prev.filter((m) => m.id !== id));
   };
 
   if (loading) {
@@ -208,41 +215,12 @@ const DepartmentView: React.FC = () => {
             {trendingMaterials.slice(0, 3).map((material) => (
               <div
                 key={material.id}
-                className='snap-center shrink-0 w-[85vw] sm:w-auto bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl overflow-hidden shadow-sm rounded-2xl hover:shadow-md transition-all border border-gray-200/50 dark:border-gray-700/50 group'
+                className='snap-center shrink-0 w-[85vw] sm:w-auto'
               >
-                <div className='p-6'>
-                  <div className='flex items-start justify-between mb-4'>
-                    <div className='flex-1 min-w-0 mr-4'>
-                      <h3
-                        className='text-lg font-bold text-gray-900 dark:text-gray-100 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors'
-                        title={material.title}
-                      >
-                        {material.title}
-                      </h3>
-                      <p className='mt-1 text-sm text-gray-500 dark:text-gray-400 font-medium'>
-                        {material.course?.code}
-                      </p>
-                    </div>
-                    <span className='inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 border border-primary-100 dark:border-primary-800'>
-                      {material.type}
-                    </span>
-                  </div>
-                  <div className='flex items-center text-sm text-gray-500 dark:text-gray-400'>
-                    <span className='truncate'>
-                      By {material.uploader?.firstName}{' '}
-                      {material.uploader?.lastName}
-                    </span>
-                  </div>
-                </div>
-                <div className='bg-gray-50/50 dark:bg-gray-700/30 px-6 py-4 border-t border-gray-100 dark:border-gray-700/50'>
-                  <Link
-                    to={`/materials/${material.id}`}
-                    className='text-sm font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 flex items-center group-hover:translate-x-1 transition-transform'
-                  >
-                    Study Now
-                    <FileText className='ml-2 h-4 w-4' />
-                  </Link>
-                </div>
+                <MaterialCard
+                  material={material}
+                  onDelete={handleDeleteMaterial}
+                />
               </div>
             ))}
           </div>
@@ -317,44 +295,11 @@ const DepartmentView: React.FC = () => {
             return matchesSearch && matchesType;
           })
           .map((material) => (
-            <div
+            <MaterialCard
               key={material.id}
-              className='bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl overflow-hidden shadow-sm rounded-2xl hover:shadow-md transition-all border border-gray-200/50 dark:border-gray-700/50 group'
-            >
-              <div className='p-6'>
-                <div className='flex items-start justify-between mb-4'>
-                  <div className='flex-1 min-w-0 mr-4'>
-                    <h3
-                      className='text-lg font-bold text-gray-900 dark:text-gray-100 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors'
-                      title={material.title}
-                    >
-                      {material.title}
-                    </h3>
-                    <p className='mt-1 text-sm text-gray-500 dark:text-gray-400 font-medium'>
-                      {material.course?.code}
-                    </p>
-                  </div>
-                  <span className='inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 border border-primary-100 dark:border-primary-800'>
-                    {material.type}
-                  </span>
-                </div>
-                <div className='flex items-center text-sm text-gray-500 dark:text-gray-400'>
-                  <span className='truncate'>
-                    By {material.uploader?.firstName}{' '}
-                    {material.uploader?.lastName}
-                  </span>
-                </div>
-              </div>
-              <div className='bg-gray-50/50 dark:bg-gray-700/30 px-6 py-4 border-t border-gray-100 dark:border-gray-700/50'>
-                <Link
-                  to={`/materials/${material.id}`}
-                  className='text-sm font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 flex items-center group-hover:translate-x-1 transition-transform'
-                >
-                  Study Now
-                  <FileText className='ml-2 h-4 w-4' />
-                </Link>
-              </div>
-            </div>
+              material={material}
+              onDelete={handleDeleteMaterial}
+            />
           ))}
         {recentMaterials.length === 0 && (
           <div className='col-span-full text-center py-12 bg-gray-50/50 dark:bg-gray-800/30 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700'>

@@ -93,11 +93,11 @@ export const MaterialView = () => {
   }
 
   return (
-    <div className='flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden'>
+    <div className='flex h-full bg-gray-50 dark:bg-gray-900 overflow-hidden'>
       {/* Left Side: Material Viewer */}
-      <div className='flex-1 flex flex-col border-r border-gray-200 dark:border-gray-800'>
+      <div className='flex-1 flex flex-col border-r border-gray-200 dark:border-gray-800 min-w-0'>
         {/* Header */}
-        <div className='h-16 flex items-center justify-between px-6 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shrink-0'>
+        <div className='h-auto md:h-16 flex flex-col md:flex-row items-start md:items-center justify-between px-4 md:px-6 py-3 md:py-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shrink-0 gap-3 md:gap-0'>
           <div className='flex items-center space-x-4'>
             <button
               onClick={() => navigate(-1)}

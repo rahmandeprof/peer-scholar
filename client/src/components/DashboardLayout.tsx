@@ -159,7 +159,7 @@ export function DashboardLayout() {
       <aside className='hidden md:flex md:flex-col w-72 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-800/50 z-10 shadow-sm'>
         <div className='p-6 border-b border-gray-200/50 dark:border-gray-800/50'>
           <h1 className='text-2xl font-bold tracking-tight'>
-            peer<span className='text-primary-600'>Scholar</span>
+            peer<span className='text-primary-600'>Student</span>
           </h1>
         </div>
 
@@ -353,7 +353,7 @@ export function DashboardLayout() {
           <aside className='absolute left-0 top-0 bottom-0 w-72 bg-white/90 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl flex flex-col animate-slide-right border-r border-gray-200/50 dark:border-gray-800/50'>
             <div className='p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center'>
               <h1 className='text-2xl font-bold'>
-                peer<span className='text-primary-600'>Scholar</span>
+                peer<span className='text-primary-600'>Student</span>
               </h1>
               <button
                 onClick={() => setSidebarOpen(false)}
@@ -439,7 +439,7 @@ export function DashboardLayout() {
             <Menu className='w-6 h-6' />
           </button>
           <h1 className='text-xl font-bold'>
-            peer<span className='text-primary-600'>Scholar</span>
+            peer<span className='text-primary-600'>Student</span>
           </h1>
           <div className='w-10' /> {/* Spacer for balance */}
         </header>

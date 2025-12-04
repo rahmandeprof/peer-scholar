@@ -81,8 +81,10 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
         score: finalScore,
         totalQuestions: questions.length,
       });
-    } catch {
-      // console.error('Failed to save quiz result', err);
+      // toast.success('Quiz result saved!'); // Optional: don't spam user if not needed, but good for feedback
+    } catch (err) {
+      console.error('Failed to save quiz result', err);
+      // toast.error('Failed to save quiz result');
     }
   };
 

@@ -426,6 +426,10 @@ export class ChatService {
       totalQuestions,
     });
 
+    this.logger.log(
+      `Saving quiz result for user ${user.id}, material ${materialId}, score ${String(score)}/${String(totalQuestions)}`,
+    );
+
     return this.quizResultRepo.save(result);
   }
 

@@ -120,55 +120,61 @@ export function AISidebar({ isOpen, onClose, materialId }: AISidebarProps) {
 
               <button
                 onClick={() => setQuizOpen(true)}
-                className='w-full p-4 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md hover:border-primary-500 dark:hover:border-primary-500 transition-all text-left group'
+                className='w-full p-3 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md hover:border-primary-500 dark:hover:border-primary-500 transition-all text-left group'
               >
-                <div className='flex items-center mb-2'>
-                  <div className='p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg text-purple-600 dark:text-purple-400 mr-3 group-hover:scale-110 transition-transform'>
-                    <Brain className='w-5 h-5' />
+                <div className='flex items-center'>
+                  <div className='p-1.5 bg-purple-100 dark:bg-purple-900/30 rounded-lg text-purple-600 dark:text-purple-400 mr-3 group-hover:scale-110 transition-transform'>
+                    <Brain className='w-4 h-4' />
                   </div>
-                  <span className='font-bold text-gray-900 dark:text-white'>
-                    Generate Quiz
-                  </span>
+                  <div>
+                    <span className='font-bold text-gray-900 dark:text-white text-sm block'>
+                      Generate Quiz
+                    </span>
+                    <span className='text-xs text-gray-500 dark:text-gray-400'>
+                      Create a 5-question quiz
+                    </span>
+                  </div>
                 </div>
-                <p className='text-sm text-gray-500 dark:text-gray-400 pl-[3.25rem]'>
-                  Create a 5-question quiz based on this material.
-                </p>
               </button>
 
               <button
                 onClick={handleSummarize}
                 disabled={loading}
-                className='w-full p-4 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md hover:border-primary-500 dark:hover:border-primary-500 transition-all text-left group disabled:opacity-50'
+                className='w-full p-3 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md hover:border-primary-500 dark:hover:border-primary-500 transition-all text-left group disabled:opacity-50'
               >
-                <div className='flex items-center mb-2'>
-                  <div className='p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400 mr-3 group-hover:scale-110 transition-transform'>
-                    <FileText className='w-5 h-5' />
+                <div className='flex items-center'>
+                  <div className='p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400 mr-3 group-hover:scale-110 transition-transform'>
+                    <FileText className='w-4 h-4' />
                   </div>
-                  <span className='font-bold text-gray-900 dark:text-white'>
-                    Summarize
-                  </span>
+                  <div>
+                    <span className='font-bold text-gray-900 dark:text-white text-sm block'>
+                      Summarize
+                    </span>
+                    <span className='text-xs text-gray-500 dark:text-gray-400'>
+                      Get a concise summary
+                    </span>
+                  </div>
                 </div>
-                <p className='text-sm text-gray-500 dark:text-gray-400 pl-[3.25rem]'>
-                  Get a concise summary of the key points.
-                </p>
               </button>
 
               <button
                 onClick={handleKeyPoints}
                 disabled={loading}
-                className='w-full p-4 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md hover:border-primary-500 dark:hover:border-primary-500 transition-all text-left group disabled:opacity-50'
+                className='w-full p-3 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md hover:border-primary-500 dark:hover:border-primary-500 transition-all text-left group disabled:opacity-50'
               >
-                <div className='flex items-center mb-2'>
-                  <div className='p-2 bg-green-100 dark:bg-green-900/30 rounded-lg text-green-600 dark:text-green-400 mr-3 group-hover:scale-110 transition-transform'>
-                    <List className='w-5 h-5' />
+                <div className='flex items-center'>
+                  <div className='p-1.5 bg-green-100 dark:bg-green-900/30 rounded-lg text-green-600 dark:text-green-400 mr-3 group-hover:scale-110 transition-transform'>
+                    <List className='w-4 h-4' />
                   </div>
-                  <span className='font-bold text-gray-900 dark:text-white'>
-                    Key Points
-                  </span>
+                  <div>
+                    <span className='font-bold text-gray-900 dark:text-white text-sm block'>
+                      Key Points
+                    </span>
+                    <span className='text-xs text-gray-500 dark:text-gray-400'>
+                      Extract important concepts
+                    </span>
+                  </div>
                 </div>
-                <p className='text-sm text-gray-500 dark:text-gray-400 pl-[3.25rem]'>
-                  Extract the most important concepts.
-                </p>
               </button>
             </div>
 

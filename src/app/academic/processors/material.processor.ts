@@ -69,8 +69,7 @@ export class MaterialProcessor {
         text = data.text;
       } else if (
         material.fileType ===
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-        material.fileType === 'application/msword'
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
       ) {
         const result = await mammoth.extractRawText({ buffer });
 
@@ -82,6 +81,10 @@ export class MaterialProcessor {
         'application/vnd.openxmlformats-officedocument.presentationml.presentation'
       ) {
         text = await this.extractTextFromPPTX(buffer);
+      } else if (material.fileType.startsWith('image/')) {
+        // Direct OCR for images
+        this.logger.debug(`Image detected for ${materialId}. Using OCR.`);
+        text = await this.extractTextViaOCR(material.fileUrl, true);
       }
 
       // Fallback to OCR if text is empty or too short (likely scanned PDF or image-only PPT)
@@ -232,10 +235,39 @@ export class MaterialProcessor {
     }
   }
 
-  private async extractTextViaOCR(fileUrl: string): Promise<string> {
+  private async extractTextViaOCR(
+    fileUrl: string,
+    isImage = false,
+  ): Promise<string> {
     if (!this.openai) return '';
 
     try {
+      if (isImage) {
+        // For single images, send URL directly
+        const response = await this.openai.chat.completions.create({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Transcribe the text from this image exactly. Do not add any commentary.',
+                },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: fileUrl,
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+        return response.choices[0].message.content ?? '';
+      }
+
       // Cloudinary PDF-to-Image URL construction
       // We'll grab the first 5 pages to avoid excessive token usage/cost,
       // or we can try to grab more if needed. For now, let's try 5 pages.

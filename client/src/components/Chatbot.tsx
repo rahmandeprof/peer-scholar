@@ -4,6 +4,7 @@ import api from '../lib/api';
 import { CompactTimer } from './CompactTimer';
 import { useToast } from '../contexts/ToastContext';
 import { QuizModal } from './QuizModal';
+import { useParams, useNavigate } from 'react-router-dom';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -15,8 +16,6 @@ interface ChatbotProps {
   initialMaterialId?: string | null;
   embedded?: boolean;
 }
-
-import { useParams, useNavigate } from 'react-router-dom';
 
 export function Chatbot({
   initialConversationId,
@@ -174,17 +173,17 @@ export function Chatbot({
           {activeMaterialId && (
             <button
               onClick={() => setIsQuizOpen(true)}
-              className='group flex items-center px-3 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 rounded-xl transition-colors font-medium text-sm'
+              className='group flex items-center px-2.5 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 rounded-lg transition-colors font-medium text-xs'
             >
-              <Brain className='w-4 h-4 mr-2' />
+              <Brain className='w-3.5 h-3.5 mr-1.5' />
               Take Quiz
             </button>
           )}
           <button
             onClick={handleNewChat}
-            className='group flex items-center px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600 text-white rounded-xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 font-medium text-sm'
+            className='group flex items-center px-3 py-1.5 bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600 text-white rounded-lg shadow-sm hover:shadow-md transform hover:scale-[1.02] transition-all duration-200 font-medium text-xs'
           >
-            <span className='mr-2 text-lg font-light'>+</span>
+            <span className='mr-1.5 text-base font-light'>+</span>
             New Chat
           </button>
         </div>
@@ -194,7 +193,7 @@ export function Chatbot({
         {messages.length === 0 ? (
           <div className='text-center text-gray-500 dark:text-gray-400 mt-10'>
             <h2 className='text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100'>
-              Welcome to peerScholar
+              Welcome to peerStudent
             </h2>
             <p className='mb-8'>Ask me anything about your study materials!</p>
 
