@@ -43,10 +43,16 @@ const DepartmentView: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
-    if (user.department?.id) {
-      fetchCourses(user.department.id);
+    if (user.department) {
+      // Always fetch materials as they rely on the department name (string) or public scope
       fetchTrending();
       fetchRecent();
+
+      // Only fetch courses if we have a valid department ID
+      // The API endpoint /academic/departments/:id/courses requires an ID
+      if (typeof user.department !== 'string' && user.department.id) {
+        fetchCourses(user.department.id);
+      }
     } else {
       setLoading(false);
     }
@@ -103,16 +109,21 @@ const DepartmentView: React.FC = () => {
     );
   }
 
+  const departmentName =
+    typeof user.department === 'string'
+      ? user.department
+      : user.department.name;
+
   return (
     <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full overflow-y-auto'>
       <div className='flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8'>
         <div>
           <h1 className='text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight'>
-            {user.department.name}
+            {departmentName}
           </h1>
           <p className='text-sm md:text-base text-gray-500 dark:text-gray-400 mt-1 flex flex-wrap items-center gap-2'>
             <span className='font-medium text-primary-600 dark:text-primary-400'>
-              {user.faculty?.name}
+              {user.faculty?.name || (user.faculty as unknown as string)}
             </span>
             <span className='hidden md:inline'>•</span>
             <span>{user.school?.name}</span>
