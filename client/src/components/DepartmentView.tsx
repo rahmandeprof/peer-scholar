@@ -108,7 +108,7 @@ const DepartmentView: React.FC = () => {
           You haven't joined a department yet.
         </p>
         <Link
-          to='/onboarding'
+          to='/complete-profile'
           className='text-indigo-600 hover:text-indigo-500 font-medium'
         >
           Complete your profile

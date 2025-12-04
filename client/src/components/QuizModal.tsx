@@ -53,8 +53,21 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
   const fetchQuiz = async () => {
     setLoading(true);
     try {
+      // Check cache first
+      const cacheKey = `cached_quiz_${materialId}`;
+      const cached = localStorage.getItem(cacheKey);
+
+      if (cached) {
+        setQuestions(JSON.parse(cached));
+        setLoading(false);
+        return;
+      }
+
       const res = await api.post(`/chat/quiz/${materialId}`);
       setQuestions(res.data);
+
+      // Cache it if not already cached
+      localStorage.setItem(cacheKey, JSON.stringify(res.data));
     } catch {
       // console.error('Failed to fetch quiz', err);
     } finally {
@@ -132,7 +145,7 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
         }
       `}</style>
 
-      <div className='bg-white dark:bg-gray-900 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden relative flex flex-col animate-pop-in'>
+      <div className='bg-white dark:bg-gray-900 rounded-none md:rounded-3xl shadow-2xl w-full md:max-w-2xl h-full md:h-auto md:max-h-[90vh] overflow-hidden relative flex flex-col animate-pop-in'>
         {/* Header */}
         <div className='flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-800'>
           <div className='flex items-center space-x-2'>

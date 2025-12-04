@@ -14,6 +14,8 @@ import { User } from '@/app/users/entities/user.entity';
 import { CreateMaterialDto } from './dto/create-material.dto';
 
 import { UsersService } from '@/app/users/users.service';
+import { ConversionService } from '@/app/common/services/conversion.service';
+import axios from 'axios';
 
 import { Queue } from 'bull';
 import { v2 as cloudinary } from 'cloudinary';
@@ -29,6 +31,7 @@ export class MaterialsService {
     private configService: ConfigService,
     @InjectQueue('materials') private materialsQueue: Queue,
     private usersService: UsersService,
+    private conversionService: ConversionService,
   ) {
     cloudinary.config({
       cloud_name: this.configService.get('CLOUD_NAME'),
@@ -268,5 +271,38 @@ export class MaterialsService {
     }
 
     return material;
+  }
+
+  async extractText(id: string) {
+    const material = await this.findOne(id);
+
+    if (material.content) {
+      return { content: material.content };
+    }
+
+    try {
+      // Fetch file buffer
+      const response = await axios.get(material.fileUrl, {
+        responseType: 'arraybuffer',
+      });
+      const buffer = Buffer.from(response.data);
+
+      const text = await this.conversionService.extractText(
+        buffer,
+        material.fileType,
+        material.title, // Use title as filename proxy if needed
+      );
+
+      if (text) {
+        material.content = text;
+        await this.materialRepo.save(material);
+      }
+
+      return { content: text };
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to extract text on demand', error);
+      throw new Error('Failed to extract text');
+    }
   }
 }

@@ -16,6 +16,7 @@ export function Signup({ onSwitch }: SignupProps) {
     lastName: '',
     email: '',
     password: '',
+    school: 'University of Ilorin',
     faculty: '',
     department: '',
     yearOfStudy: 1,
@@ -113,6 +114,29 @@ export function Signup({ onSwitch }: SignupProps) {
 
         <div className='grid grid-cols-2 gap-4'>
           <div className='space-y-2 col-span-2'>
+            <div className='bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800 text-sm text-blue-700 dark:text-blue-300 mb-4'>
+              <p>
+                We need this to connect you with classmates and materials
+                specific to your department.
+              </p>
+            </div>
+
+            <label className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+              School
+            </label>
+            <select
+              required
+              value={formData.school}
+              onChange={(e) =>
+                setFormData({ ...formData, school: e.target.value })
+              }
+              className='w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none'
+            >
+              <option value='University of Ilorin'>University of Ilorin</option>
+            </select>
+          </div>
+
+          <div className='space-y-2 col-span-2'>
             <label className='text-sm font-medium text-gray-700 dark:text-gray-300'>
               Faculty
             </label>
@@ -184,7 +208,12 @@ export function Signup({ onSwitch }: SignupProps) {
         </div>
         <button
           type='submit'
-          disabled={loading}
+          disabled={
+            loading ||
+            !formData.school ||
+            !formData.faculty ||
+            !formData.department
+          }
           className='w-full py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed'
         >
           {loading ? (

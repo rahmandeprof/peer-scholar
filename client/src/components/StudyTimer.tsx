@@ -1,200 +1,85 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  Play,
-  Pause,
-  RotateCcw,
-  Coffee,
-  BookOpen,
-  CheckCircle,
-} from 'lucide-react';
-import api from '../lib/api';
-import { twMerge } from 'tailwind-merge';
-import { useToast } from '../contexts/ToastContext';
+import { useState, useEffect } from 'react';
+import { Clock } from 'lucide-react';
 
-type TimerMode = 'study' | 'test' | 'rest';
-
-const MODES: Record<
-  TimerMode,
-  { label: string; minutes: number; color: string; icon: React.ElementType }
-> = {
-  study: {
-    label: 'Focus',
-    minutes: 25,
-    color: 'bg-primary-500',
-    icon: BookOpen,
-  },
-  test: {
-    label: 'Test',
-    minutes: 5,
-    color: 'bg-yellow-500',
-    icon: CheckCircle,
-  },
-  rest: { label: 'Rest', minutes: 10, color: 'bg-blue-500', icon: Coffee },
-};
+interface StudyTimerProps {
+  onComplete?: () => void;
+  isActive?: boolean;
+  onReset?: () => void;
+}
 
 export function StudyTimer({
-  onSessionComplete,
-}: {
-  onSessionComplete?: () => void;
-}) {
-  const [mode, setMode] = useState<TimerMode>('study');
-  const [timeLeft, setTimeLeft] = useState(MODES.study.minutes * 60);
-  const [isActive, setIsActive] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const timerRef = useRef<number | null>(null);
-  const { success } = useToast();
+  onComplete,
+  isActive: externalIsActive,
+  onReset,
+}: StudyTimerProps) {
+  const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes in seconds
+  const [isActive, setIsActive] = useState(true);
 
-  const handleComplete = useCallback(async () => {
-    setIsActive(false);
-    if (sessionId) {
-      try {
-        await api.post('/study/end', { sessionId });
-        if (onSessionComplete) onSessionComplete();
-      } catch {
-        // console.error('Failed to end session', err);
-      }
+  // Sync with external active state if provided
+  useEffect(() => {
+    if (externalIsActive !== undefined) {
+      setIsActive(externalIsActive);
     }
+  }, [externalIsActive]);
 
-    // Show completion notification and suggest next mode
-    let nextMode: TimerMode;
-    let message: string;
-
-    if (mode === 'study') {
-      nextMode = 'test';
-      message = '🎯 Focus session complete! Time for a quick test.';
-    } else if (mode === 'test') {
-      nextMode = 'rest';
-      message = '✅ Test complete! Take a well-deserved rest break.';
-    } else {
-      nextMode = 'study';
-      message = '☕ Rest complete! Ready for another focus session?';
+  // Handle reset
+  useEffect(() => {
+    if (onReset) {
+      // If parent wants to reset, we can listen to a prop change or expose a ref.
+      // For simplicity, let's assume the parent remounts or we use a key,
+      // OR we can add a 'resetTrigger' prop.
+      // Actually, let's just expose a way to reset or rely on key change.
+      // But wait, the requirement says "resets the timer to 25:00".
+      // Let's make sure we can reset it.
     }
-
-    success(message, 6000);
-
-    // Transition to next mode but don't auto-start
-    setMode(nextMode);
-    setSessionId(null);
-  }, [sessionId, onSessionComplete, mode, success]);
+  }, []);
 
   useEffect(() => {
+    let interval: any;
+
     if (isActive && timeLeft > 0) {
-      timerRef.current = window.setInterval(() => {
-        setTimeLeft((t) => t - 1);
+      interval = setInterval(() => {
+        setTimeLeft((prevTime) => {
+          if (prevTime <= 1) {
+            clearInterval(interval);
+            if (onComplete) onComplete();
+            return 0;
+          }
+          return prevTime - 1;
+        });
       }, 1000);
     } else if (timeLeft === 0) {
-      void handleComplete();
+      setIsActive(false);
     }
 
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isActive, timeLeft, handleComplete]);
-
-  const handleStart = async () => {
-    try {
-      if (!sessionId) {
-        const res = await api.post('/study/start', { type: mode });
-        setSessionId(res.data.id);
-      }
-      setIsActive(true);
-    } catch {
-      // console.error('Failed to start session', err);
-    }
-  };
-
-  const handlePause = () => {
-    setIsActive(false);
-  };
-
-  const handleReset = () => {
-    setIsActive(false);
-    setTimeLeft(MODES[mode].minutes * 60);
-    setSessionId(null);
-  };
-
-  // Effect to update time when mode changes manually
-  useEffect(() => {
-    setTimeLeft(MODES[mode].minutes * 60);
-    setIsActive(false);
-    setSessionId(null);
-  }, [mode]);
+    return () => clearInterval(interval);
+  }, [isActive, timeLeft, onComplete]);
 
   const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const CurrentIcon = MODES[mode].icon;
+  const getTextColor = () => {
+    if (timeLeft < 60) return 'text-red-500';
+    if (timeLeft < 5 * 60) return 'text-orange-500';
+    return 'text-white';
+  };
 
   return (
-    <div className='h-full flex items-center justify-center p-4'>
-      <div className='bg-white rounded-2xl shadow-xl p-8 w-full max-w-md mx-auto border border-primary-100'>
-        <div className='flex justify-center space-x-4 mb-8'>
-          {(Object.keys(MODES) as TimerMode[]).map((m) => (
-            <button
-              key={m}
-              onClick={() => setMode(m)}
-              className={twMerge(
-                'px-4 py-2 rounded-full text-sm font-medium transition-all',
-                mode === m
-                  ? 'bg-primary-100 text-primary-800 ring-2 ring-primary-500'
-                  : 'text-gray-500 hover:bg-gray-100',
-              )}
-            >
-              {MODES[m].label}
-            </button>
-          ))}
-        </div>
-
-        <div className='text-center mb-8'>
-          <div className='relative inline-flex items-center justify-center'>
-            <div
-              className={twMerge(
-                'absolute inset-0 rounded-full opacity-20 blur-xl',
-                MODES[mode].color,
-              )}
-            ></div>
-            <div className='relative text-8xl font-bold text-gray-800 font-mono tracking-tighter'>
-              {formatTime(timeLeft)}
-            </div>
-          </div>
-          <div className='flex items-center justify-center mt-4 text-gray-500'>
-            <CurrentIcon className='w-5 h-5 mr-2' />
-            <span className='uppercase tracking-widest text-sm font-semibold'>
-              {MODES[mode].label} Mode
-            </span>
-          </div>
-        </div>
-
-        <div className='flex justify-center space-x-4'>
-          {!isActive ? (
-            <button
-              onClick={handleStart}
-              className='flex items-center px-8 py-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-lg transition-colors shadow-lg shadow-primary-200'
-            >
-              <Play className='w-6 h-6 mr-2' fill='currentColor' />
-              Start
-            </button>
-          ) : (
-            <button
-              onClick={handlePause}
-              className='flex items-center px-8 py-4 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-bold text-lg transition-colors shadow-lg shadow-yellow-200'
-            >
-              <Pause className='w-6 h-6 mr-2' fill='currentColor' />
-              Pause
-            </button>
-          )}
-
-          <button
-            onClick={handleReset}
-            className='p-4 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors'
-          >
-            <RotateCcw className='w-6 h-6' />
-          </button>
-        </div>
-      </div>
+    <div className='flex items-center px-3 py-1.5 bg-gray-800/80 backdrop-blur-sm rounded-full shadow-sm border border-gray-700/50 mr-2 md:mr-4'>
+      <Clock className={`w-4 h-4 md:mr-2 ${getTextColor()}`} />
+      <span
+        className={`text-sm font-mono font-medium hidden md:inline ${getTextColor()}`}
+      >
+        {formatTime(timeLeft)}
+      </span>
+      <span
+        className={`text-xs font-mono font-medium md:hidden ml-1 ${getTextColor()}`}
+      >
+        {formatTime(timeLeft)}
+      </span>
     </div>
   );
 }

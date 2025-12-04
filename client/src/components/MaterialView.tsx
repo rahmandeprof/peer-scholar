@@ -6,20 +6,27 @@ import {
   Download,
   Share2,
   Brain,
-  PanelRightClose,
-  PanelRightOpen,
+  Sparkles,
 } from 'lucide-react';
 import api from '../lib/api';
 import { AISidebar } from './AISidebar';
 import { QuizModal } from './QuizModal';
 import { TextFileViewer } from './TextFileViewer';
+import { PDFViewer } from './PDFViewer';
+import { ContextMenu } from './ContextMenu';
+import { StudyTimer } from './StudyTimer';
+import { TextSettings } from './TextSettings';
+import { SessionEndModal } from './SessionEndModal';
+import { ReaderSettingsProvider } from '../contexts/ReaderSettingsContext';
 
 interface Material {
   id: string;
   title: string;
   description: string;
   fileUrl: string;
+  pdfUrl?: string;
   fileType: string;
+  content?: string;
   type: string;
   uploader: {
     firstName: string;
@@ -36,16 +43,28 @@ export const MaterialView = () => {
   const [loading, setLoading] = useState(true);
   const [quizOpen, setQuizOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
+  const [viewMode, setViewMode] = useState<'original' | 'text'>('original');
+  const [sessionEndModalOpen, setSessionEndModalOpen] = useState(false);
+  const [timerKey, setTimerKey] = useState(0); // Used to reset timer
+
+  const handleSessionEnd = () => {
+    setSessionEndModalOpen(true);
+  };
+
+  const handleContinueReading = () => {
+    setSessionEndModalOpen(false);
+    setTimerKey((prev) => prev + 1); // Reset timer
+  };
+
+  const handleStartQuiz = () => {
+    setSessionEndModalOpen(false);
+    setQuizOpen(true);
+    setTimerKey((prev) => prev + 1); // Reset timer
+  };
 
   useEffect(() => {
     const fetchMaterial = async () => {
       try {
-        // We might need a specific endpoint for single material or use existing list with filter
-        // Assuming we can fetch by ID. If not, we might need to update backend.
-        // Actually, we don't have a direct "get material by id" endpoint in MaterialsController yet?
-        // Let's check. MaterialsController has findAll, create, remove.
-        // I might need to add findOne to MaterialsController.
-        // For now, I'll try to fetch it.
         const res = await api.get(`/materials/${id}`);
         setMaterial(res.data);
 
@@ -80,6 +99,35 @@ export const MaterialView = () => {
     }
   }, [id]);
 
+  // Background Pre-fetching for Quiz
+  useEffect(() => {
+    if (!material?.id) return;
+
+    const prefetchQuiz = async () => {
+      const cacheKey = `cached_quiz_${material.id}`;
+      const cached = localStorage.getItem(cacheKey);
+
+      // If already cached, don't fetch again
+      if (cached) return;
+
+      try {
+        // console.log('Pre-fetching quiz...');
+        const res = await api.post(`/chat/quiz/${material.id}`);
+        localStorage.setItem(cacheKey, JSON.stringify(res.data));
+        // console.log('Quiz pre-fetched and cached');
+      } catch (err) {
+        console.error('Failed to pre-fetch quiz', err);
+      }
+    };
+
+    // Small delay to prioritize main content load
+    const timer = setTimeout(() => {
+      void prefetchQuiz();
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [material?.id]);
+
   if (loading) {
     return (
       <div className='flex items-center justify-center h-screen'>
@@ -93,32 +141,35 @@ export const MaterialView = () => {
   }
 
   return (
-    <div className='flex h-full bg-gray-50 dark:bg-gray-900 overflow-hidden'>
-      {/* Left Side: Material Viewer */}
-      <div className='flex-1 flex flex-col border-r border-gray-200 dark:border-gray-800 min-w-0'>
+    <ReaderSettingsProvider>
+      <div className='flex flex-col h-full bg-white dark:bg-gray-900 overflow-hidden'>
         {/* Header */}
-        <div className='h-auto md:h-16 flex flex-col md:flex-row items-start md:items-center justify-between px-4 md:px-6 py-3 md:py-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shrink-0 gap-3 md:gap-0'>
-          <div className='flex items-center space-x-4'>
-            <button
-              onClick={() => navigate(-1)}
-              className='p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors'
-            >
-              <ArrowLeft className='w-5 h-5 text-gray-600 dark:text-gray-300' />
-            </button>
-            <div>
-              <h1 className='text-lg font-semibold text-gray-900 dark:text-white truncate max-w-md'>
-                {material.title}
-              </h1>
-              <p className='text-sm text-gray-500 dark:text-gray-400'>
-                Uploaded by {material.uploader.firstName}{' '}
-                {material.uploader.lastName}
-              </p>
+        <div className='flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm z-10'>
+          <div className='flex items-center space-x-3'>
+            <div className='flex items-center space-x-4'>
+              <button
+                onClick={() => navigate(-1)}
+                className='p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors'
+              >
+                <ArrowLeft className='w-5 h-5 text-gray-600 dark:text-gray-300' />
+              </button>
+              <div>
+                <h1 className='text-lg font-semibold text-gray-900 dark:text-white truncate max-w-md'>
+                  {material.title}
+                </h1>
+                <p className='text-sm text-gray-500 dark:text-gray-400'>
+                  Uploaded by {material.uploader.firstName}{' '}
+                  {material.uploader.lastName}
+                </p>
+              </div>
             </div>
           </div>
           <div className='flex items-center space-x-2'>
+            <StudyTimer key={timerKey} onComplete={handleSessionEnd} />
+            <TextSettings />
             <button
               onClick={() => setQuizOpen(true)}
-              className='px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors flex items-center font-medium text-sm'
+              className='hidden md:flex px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors items-center font-medium text-sm'
             >
               <Brain className='w-4 h-4 mr-2' />
               Take Quiz
@@ -138,19 +189,31 @@ export const MaterialView = () => {
             </button>
             <div className='w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2' />
             <button
+              onClick={() =>
+                setViewMode(viewMode === 'original' ? 'text' : 'original')
+              }
+              className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors flex items-center ${
+                viewMode === 'text'
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                  : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              {viewMode === 'text' && (
+                <span className='mr-1.5 text-xs'>⚡</span>
+              )}
+              {viewMode === 'original' ? 'Lite Mode' : 'Saving Data'}
+            </button>
+            <div className='w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2' />
+            <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className={`p-2 rounded-full transition-colors ${
                 sidebarOpen
                   ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
                   : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
-              title={sidebarOpen ? 'Close AI Sidebar' : 'Open AI Sidebar'}
+              title='Open AI Companion'
             >
-              {sidebarOpen ? (
-                <PanelRightClose className='w-5 h-5' />
-              ) : (
-                <PanelRightOpen className='w-5 h-5' />
-              )}
+              <Sparkles className='w-5 h-5' />
             </button>
           </div>
         </div>
@@ -167,20 +230,22 @@ export const MaterialView = () => {
                 </p>
               </div>
             </div>
-          ) : material.fileType.includes('pdf') ||
-            material.fileUrl.endsWith('.pdf') ? (
-            <iframe
-              src={material.fileUrl}
-              className='w-full h-full'
-              title={material.title}
+          ) : viewMode === 'text' ? (
+            <TextFileViewer
+              content={material.content}
+              materialId={material.id}
             />
+          ) : material.pdfUrl ||
+            material.fileType.includes('pdf') ||
+            material.fileUrl.endsWith('.pdf') ? (
+            <PDFViewer url={material.pdfUrl || material.fileUrl} />
           ) : material.fileType.includes('text') ||
             material.fileType.includes('json') ||
             material.fileType.includes('javascript') ||
             material.fileType.includes('typescript') ||
             material.fileUrl.endsWith('.txt') ||
             material.fileUrl.endsWith('.md') ? (
-            <TextFileViewer url={material.fileUrl} />
+            <TextFileViewer url={material.fileUrl} materialId={material.id} />
           ) : material.fileType.includes('word') ||
             material.fileType.includes('presentation') ||
             material.fileType.includes('spreadsheet') ||
@@ -210,24 +275,38 @@ export const MaterialView = () => {
               </div>
             </div>
           )}
+          <ContextMenu />
         </div>
+
+        {/* Right Side: AI Sidebar */}
+        <div
+          className={`transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-[400px]' : 'w-0'} hidden md:block`}
+        />
+        <AISidebar
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          materialId={material.id}
+        />
+
+        {/* Mobile FAB for Quiz */}
+        <button
+          onClick={() => setQuizOpen(true)}
+          className='md:hidden fixed bottom-6 right-6 w-14 h-14 bg-purple-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-purple-700 transition-colors z-40'
+        >
+          <Brain className='w-7 h-7' />
+        </button>
+
+        <QuizModal
+          isOpen={quizOpen}
+          onClose={() => setQuizOpen(false)}
+          materialId={material?.id || ''}
+        />
+        <SessionEndModal
+          isOpen={sessionEndModalOpen}
+          onStartQuiz={handleStartQuiz}
+          onContinueReading={handleContinueReading}
+        />
       </div>
-
-      {/* Right Side: AI Sidebar */}
-      <div
-        className={`transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-[400px]' : 'w-0'} hidden md:block`}
-      />
-      <AISidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        materialId={material.id}
-      />
-
-      <QuizModal
-        isOpen={quizOpen}
-        onClose={() => setQuizOpen(false)}
-        materialId={material?.id || ''}
-      />
-    </div>
+    </ReaderSettingsProvider>
   );
 };

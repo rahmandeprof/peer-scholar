@@ -15,7 +15,9 @@ import { QuizResult } from './entities/quiz-result.entity';
 import { User } from '@/app/users/entities/user.entity';
 
 import { CloudinaryService } from '@/app/common/services/cloudinary.service';
+import { ConversionService } from '@/app/common/services/conversion.service';
 import { UsersService } from '@/app/users/users.service';
+import { ContextActionDto, ContextActionType } from './dto/context-action.dto';
 
 import OpenAI from 'openai';
 import { Repository } from 'typeorm';
@@ -42,6 +44,7 @@ export class ChatService {
     private readonly commentRepo: Repository<Comment>,
     private readonly usersService: UsersService,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly conversionService: ConversionService,
     private readonly configService: ConfigService,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
@@ -53,41 +56,11 @@ export class ChatService {
 
   // Extract text from file (pdf, docx, txt)
   async extractTextFromFile(file: Express.Multer.File): Promise<string> {
-    const mime = file.mimetype || '';
-
-    if (mime.includes('pdf') || file.originalname.endsWith('.pdf')) {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
-        const pdfParse = require('pdf-parse');
-        const data = await pdfParse(file.buffer);
-
-        return data.text;
-      } catch {
-        throw new Error(
-          'pdf-parse is required to extract PDF text. Install pdf-parse.',
-        );
-      }
-    }
-
-    if (
-      mime.includes('officedocument') ||
-      mime.includes('msword') ||
-      file.originalname.endsWith('.docx')
-    ) {
-      try {
-        const mammoth = await import('mammoth');
-        const res = await mammoth.extractRawText({ buffer: file.buffer });
-
-        return res.value || '';
-      } catch {
-        throw new Error(
-          'mammoth is required to extract DOCX text. Install mammoth.',
-        );
-      }
-    }
-
-    // fallback: assume UTF-8 text
-    return file.buffer.toString('utf8');
+    return this.conversionService.extractText(
+      file.buffer,
+      file.mimetype,
+      file.originalname,
+    );
   }
 
   async saveMaterial(
@@ -120,6 +93,35 @@ export class ChatService {
       url = 'https://placeholder.com/file-upload-failed';
     }
 
+    // Convert to PDF if Docx/PPTX
+    let pdfUrl = '';
+    if (
+      file.mimetype.includes('officedocument') ||
+      file.mimetype.includes('msword') ||
+      file.mimetype.includes('presentation') ||
+      file.originalname.endsWith('.docx') ||
+      file.originalname.endsWith('.pptx')
+    ) {
+      try {
+        const pdfBuffer = await this.conversionService.convertToPdf(
+          file.buffer,
+          file.originalname,
+        );
+        // Upload PDF to Cloudinary
+        // Create a mock file object for upload
+        const pdfFile: Express.Multer.File = {
+          ...file,
+          buffer: pdfBuffer,
+          originalname: file.originalname.replace(/\.[^/.]+$/, '.pdf'),
+          mimetype: 'application/pdf',
+        };
+        const pdfUpload = await this.cloudinaryService.uploadFile(pdfFile);
+        pdfUrl = pdfUpload.url;
+      } catch (error) {
+        this.logger.error('Failed to convert/upload PDF', error);
+      }
+    }
+
     const material = this.materialRepo.create({
       title: metadata.title,
       type: metadata.category,
@@ -127,6 +129,7 @@ export class ChatService {
         metadata.isPublic === 'true' ? AccessScope.PUBLIC : AccessScope.COURSE,
       content: text,
       fileUrl: url,
+      pdfUrl: pdfUrl || (file.mimetype === 'application/pdf' ? url : undefined),
       fileType: file.mimetype,
       uploader: user,
     });
@@ -363,13 +366,17 @@ export class ChatService {
 
     if (!this.openai) throw new Error('OPENAI_API_KEY is not set');
 
-    const prompt = `Generate 5 multiple-choice questions based on the following text. 
+    const systemPrompt = `You are a strict API endpoint. You receive text and output ONLY valid JSON. Do not include markdown formatting like \`\`\`json or \`\`\`.`;
+    const userPrompt = `Generate 5 multiple-choice questions based on the following text.
     Return the result as a JSON array of objects with the following structure:
-    {
-      "question": "string",
-      "options": ["string", "string", "string", "string"],
-      "correctAnswer": "string" (must be one of the options)
-    }
+    [
+      {
+        "question": "string",
+        "options": ["string", "string", "string", "string"],
+        "correctAnswer": "string",
+        "explanation": "string"
+      }
+    ]
     
     Text:
     ${material.content?.substring(0, 6000) ?? ''}`;
@@ -380,19 +387,20 @@ export class ChatService {
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful assistant that generates quizzes.',
+            content: systemPrompt,
           },
-          { role: 'user', content: prompt },
+          { role: 'user', content: userPrompt },
         ],
-        response_format: { type: 'json_object' },
+        temperature: 0.1,
       });
 
-      const content = response.choices[0].message.content;
+      let content = response.choices[0].message.content;
 
       if (!content) return [];
 
-      const parsed = JSON.parse(content);
-      const quiz = parsed.questions ?? parsed;
+      content = this.cleanJson(content);
+
+      const quiz = JSON.parse(content);
 
       // Cache the result
       if (quiz) {
@@ -611,5 +619,96 @@ export class ChatService {
       relations: ['user'],
       order: { createdAt: 'DESC' },
     });
+  }
+
+  private cleanJson(text: string): string {
+    // Remove markdown code blocks
+    let cleaned = text.replace(/```json/g, '').replace(/```/g, '');
+    // Find the first '[' or '{'
+    const firstBracket = cleaned.search(/[[{]/);
+    if (firstBracket !== -1) {
+      cleaned = cleaned.substring(firstBracket);
+    }
+    // Find the last ']' or '}'
+    const lastBracket = cleaned.search(/[\]}](?!.*[\]}])/);
+    if (lastBracket !== -1) {
+      cleaned = cleaned.substring(0, lastBracket + 1);
+    }
+    return cleaned.trim();
+  }
+
+  async performContextAction(dto: ContextActionDto) {
+    if (!this.openai) throw new Error('OPENAI_API_KEY is not set');
+
+    let systemPrompt = '';
+    let userPrompt = '';
+    let temperature = 0.7;
+    let isJson = false;
+
+    switch (dto.action) {
+      case ContextActionType.SIMPLIFY:
+        systemPrompt = `You are a clever tutor. The student is reading a complex text.
+Explain the following text to a university student using a simple, real-world analogy.
+Keep it under 100 words.`;
+        userPrompt = dto.text;
+        temperature = 0.7;
+        break;
+
+      case ContextActionType.MNEMONIC:
+        systemPrompt = `Create a catchy acronym or mnemonic phrase to help memorize this list or concept.
+- Make it memorable or slightly funny.
+- List the acronym letters and what they stand for clearly.`;
+        userPrompt = dto.text;
+        temperature = 0.9;
+        break;
+
+      case ContextActionType.KEYWORDS:
+        systemPrompt = `Extract the top 5 technical "Keywords" or "Phrases" that a student MUST include in their answer to get full marks.
+Present them as a bulleted list with brief definitions.`;
+        userPrompt = dto.text;
+        temperature = 0.2;
+        break;
+
+      case ContextActionType.QUIZ:
+        systemPrompt = `You are a strict API endpoint. You receive text and output ONLY valid JSON. Do not include markdown formatting like \`\`\`json or \`\`\`.`;
+        userPrompt = `Generate 3 multiple-choice questions based on this text:
+'${dto.text}'
+
+Return JSON schema:
+[
+  {
+    "id": 1,
+    "question": "Question text?",
+    "options": ["A", "B", "C", "D"],
+    "correctAnswer": "A",
+    "explanation": "Why A is correct..."
+  }
+]`;
+        temperature = 0.1;
+        isJson = true;
+        break;
+    }
+
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature,
+      });
+
+      let content = response.choices[0].message.content ?? '';
+
+      if (isJson) {
+        content = this.cleanJson(content);
+      }
+
+      return { result: content };
+    } catch (error) {
+      this.logger.error('Failed to perform context action', error);
+      throw new Error('Failed to perform context action');
+    }
   }
 }

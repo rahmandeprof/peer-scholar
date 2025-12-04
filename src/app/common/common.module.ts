@@ -8,6 +8,8 @@ import { EmailService } from './services/email.service';
 
 import { EmailProcessor } from './processors/email.processor';
 
+import { ConversionService } from './services/conversion.service';
+
 @Global()
 @Module({
   imports: [
@@ -16,7 +18,12 @@ import { EmailProcessor } from './processors/email.processor';
     }),
     MailModule,
   ],
-  providers: [CloudinaryService, EmailService, EmailProcessor],
-  exports: [CloudinaryService, EmailService, BullModule],
+  providers: [
+    CloudinaryService,
+    EmailService,
+    EmailProcessor,
+    ConversionService,
+  ],
+  exports: [CloudinaryService, EmailService, BullModule, ConversionService],
 })
 export class CommonModule {}

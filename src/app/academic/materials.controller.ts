@@ -67,4 +67,9 @@ export class MaterialsController {
   findOne(@Param('id') id: string) {
     return this.materialsService.findOne(id);
   }
+
+  @Post(':id/extract-text')
+  extractText(@Param('id') id: string) {
+    return this.materialsService.extractText(id);
+  }
 }

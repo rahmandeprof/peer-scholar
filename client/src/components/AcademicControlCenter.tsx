@@ -30,11 +30,12 @@ interface PartnerStats {
   image?: string;
 }
 
-interface Conversation {
+interface RecentMaterial {
   id: string;
   title: string;
-  updatedAt: string;
-  materialId?: string;
+  type: string;
+  courseCode?: string;
+  viewedAt: string;
 }
 
 import { useNavigate, useOutletContext } from 'react-router-dom';
@@ -47,7 +48,7 @@ export function AcademicControlCenter() {
   const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [partners, setPartners] = useState<PartnerStats[]>([]);
-  const [recentChat, setRecentChat] = useState<Conversation | null>(null);
+  const [recentMaterials, setRecentMaterials] = useState<RecentMaterial[]>([]);
   const [streak, setStreak] = useState(0);
   const [stage, setStage] = useState('Novice');
   const [loading, setLoading] = useState(true);
@@ -56,16 +57,15 @@ export function AcademicControlCenter() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [streakRes, historyRes] = await Promise.all([
-          api.get('/study/streak'),
-          api.get('/chat/history'),
-        ]);
+        const [streakRes] = await Promise.all([api.get('/study/streak')]);
 
         setStreak(streakRes.data.currentStreak || 0);
         setStage(streakRes.data.stage || 'Novice');
-        if (historyRes.data && historyRes.data.length > 0) {
-          setRecentChat(historyRes.data[0]);
-        }
+
+        const storedMaterials = JSON.parse(
+          localStorage.getItem('recentMaterials') || '[]',
+        );
+        setRecentMaterials(storedMaterials);
 
         if (user?.department?.id) {
           const coursesRes = await api.get(
@@ -103,6 +103,7 @@ export function AcademicControlCenter() {
 
   // Helper to get top partner
   const topPartner = partners.length > 0 ? partners[0] : null;
+  const lastOpened = recentMaterials.length > 0 ? recentMaterials[0] : null;
 
   return (
     <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full overflow-y-auto space-y-8'>
@@ -138,15 +139,11 @@ export function AcademicControlCenter() {
             <div className='flex items-center justify-between mb-4'>
               <h2 className='text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center'>
                 <Activity className='w-5 h-5 mr-2 text-primary-500' />
-                {recentChat ? 'Resume Reading' : 'Start Reading'}
+                {lastOpened ? 'Resume Reading' : 'Start Reading'}
               </h2>
-              {recentChat && (
+              {lastOpened && (
                 <Link
-                  to={
-                    recentChat.materialId
-                      ? `/materials/${recentChat.materialId}`
-                      : `/chat/${recentChat.id}`
-                  }
+                  to={`/materials/${lastOpened.id}`}
                   className='text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 flex items-center'
                 >
                   Continue <ArrowRight className='w-4 h-4 ml-1' />
@@ -154,36 +151,28 @@ export function AcademicControlCenter() {
               )}
             </div>
 
-            {recentChat ? (
+            {lastOpened ? (
               <div className='cursor-pointer'>
-                <Link
-                  to={
-                    recentChat.materialId
-                      ? `/materials/${recentChat.materialId}`
-                      : `/chat/${recentChat.id}`
-                  }
-                  className='block'
-                >
+                <Link to={`/materials/${lastOpened.id}`} className='block'>
                   <h3 className='text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors'>
-                    {recentChat.title}
+                    {lastOpened.title}
                   </h3>
                   <p className='text-gray-500 dark:text-gray-400 text-sm line-clamp-2'>
-                    {recentChat.materialId
-                      ? 'Continue reading your material.'
-                      : 'Pick up where you left off with your AI study assistant.'}
+                    Last Activity:{' '}
+                    {new Date(lastOpened.viewedAt).toLocaleString()}
                   </p>
                 </Link>
               </div>
             ) : (
               <div className='text-center py-8'>
                 <p className='text-gray-500 dark:text-gray-400 mb-4'>
-                  No recent study sessions.
+                  No recent files opened.
                 </p>
                 <button
-                  onClick={() => setStudyModalOpen(true)}
+                  onClick={openUploadModal}
                   className='px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors'
                 >
-                  Start a New Session
+                  Upload Material
                 </button>
               </div>
             )}
@@ -314,29 +303,25 @@ export function AcademicControlCenter() {
         </div>
 
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6'>
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {JSON.parse(localStorage.getItem('recentMaterials') || '[]')
-            .slice(0, 3)
-            .map((material: any) => (
-              <Link
-                key={material.id}
-                to={`/materials/${material.id}`}
-                className='bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all group'
-              >
-                <div className='w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex items-center justify-center text-primary-600 dark:text-primary-400 mb-4 group-hover:scale-110 transition-transform'>
-                  <FileText className='w-6 h-6' />
-                </div>
-                <h3 className='font-bold text-gray-900 dark:text-gray-100 mb-1 truncate'>
-                  {material.title}
-                </h3>
-                <p className='text-sm text-gray-500 dark:text-gray-400'>
-                  {material.courseCode || 'General'}
-                </p>
-              </Link>
-            ))}
+          {recentMaterials.slice(0, 3).map((material) => (
+            <Link
+              key={material.id}
+              to={`/materials/${material.id}`}
+              className='bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all group'
+            >
+              <div className='w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex items-center justify-center text-primary-600 dark:text-primary-400 mb-4 group-hover:scale-110 transition-transform'>
+                <FileText className='w-6 h-6' />
+              </div>
+              <h3 className='font-bold text-gray-900 dark:text-gray-100 mb-1 truncate'>
+                {material.title}
+              </h3>
+              <p className='text-sm text-gray-500 dark:text-gray-400'>
+                {material.courseCode || 'General'}
+              </p>
+            </Link>
+          ))}
 
-          {JSON.parse(localStorage.getItem('recentMaterials') || '[]')
-            .length === 0 && (
+          {recentMaterials.length === 0 && (
             <div className='col-span-full text-center py-12 bg-gray-50/50 dark:bg-gray-800/30 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700'>
               <BookOpen className='w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4' />
               <h3 className='text-lg font-medium text-gray-900 dark:text-gray-100'>

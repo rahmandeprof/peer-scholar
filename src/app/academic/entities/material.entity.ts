@@ -64,6 +64,9 @@ export class Material extends IDAndTimestamp {
   fileUrl: string;
 
   @Column({ nullable: true })
+  pdfUrl: string;
+
+  @Column({ nullable: true })
   fileType: string;
 
   @Column({ type: 'int', default: 0 })

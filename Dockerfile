@@ -38,6 +38,9 @@ COPY yarn.lock ./
 # Install only production dependencies
 RUN yarn --network-timeout 1000000 --frozen-lockfile --production
 
+# Install LibreOffice for document conversion
+RUN apk add --no-cache libreoffice
+
 # Copy built application from build stage
 COPY --from=build /app/dist ./dist
 

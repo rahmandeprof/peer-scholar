@@ -8,18 +8,19 @@ import { Chatbot } from './components/Chatbot';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { NetworkProvider } from './contexts/NetworkContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Login } from './components/Login';
 import { Signup } from './components/Signup';
 import { GoogleCallback } from './components/GoogleCallback';
-import Onboarding from './components/Onboarding';
 import { CourseView } from './components/CourseView';
 import { MaterialView } from './components/MaterialView';
 import { StudyPartner } from './components/StudyPartner';
+import CompleteProfile from './components/CompleteProfile';
 import { Loader2 } from 'lucide-react';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return (
@@ -33,6 +34,16 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!isAuthenticated) {
     return <Navigate to='/' state={{ from: location }} replace />;
+  }
+
+  // Check for academic profile completion
+  // We allow access to /complete-profile even if incomplete (obviously)
+  // But we block everything else if incomplete
+  const isProfileComplete =
+    user?.department && user?.faculty && user?.yearOfStudy;
+
+  if (!isProfileComplete && location.pathname !== '/complete-profile') {
+    return <Navigate to='/complete-profile' replace />;
   }
 
   return <>{children}</>;
@@ -55,11 +66,12 @@ function AppContent() {
     <div className='min-h-screen bg-gray-50 dark:bg-gray-950'>
       <Routes>
         <Route path='/auth/callback' element={<GoogleCallback />} />
+
         <Route
-          path='/onboarding'
+          path='/complete-profile'
           element={
             <ProtectedRoute>
-              <Onboarding />
+              <CompleteProfile />
             </ProtectedRoute>
           }
         />
@@ -117,7 +129,9 @@ function App() {
       <ThemeProvider>
         <ToastProvider>
           <AuthProvider>
-            <AppContent />
+            <NetworkProvider>
+              <AppContent />
+            </NetworkProvider>
           </AuthProvider>
         </ToastProvider>
       </ThemeProvider>

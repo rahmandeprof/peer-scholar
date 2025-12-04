@@ -13,8 +13,12 @@ import {
   Building,
   GraduationCap,
   Save,
+  Wifi,
+  Zap,
 } from 'lucide-react';
 import api from '../lib/api';
+import { useNetwork } from '../contexts/NetworkContext';
+import { OptimizedImage } from './OptimizedImage';
 
 interface UserProfileProps {
   onClose: () => void;
@@ -26,7 +30,11 @@ export function UserProfile({ onClose }: UserProfileProps) {
   if (!user) return null;
   const toast = useToast();
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'quizzes'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'quizzes' | 'data'>(
+    'profile',
+  );
+  const { preferences, updatePreferences, isLowBandwidth, connectionType } =
+    useNetwork();
 
   const [formData, setFormData] = useState({
     firstName: user?.firstName ?? '',
@@ -138,21 +146,114 @@ export function UserProfile({ onClose }: UserProfileProps) {
               <div className='absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600 dark:bg-primary-400 rounded-t-full' />
             )}
           </button>
+          <button
+            onClick={() => setActiveTab('data')}
+            className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
+              activeTab === 'data'
+                ? 'text-primary-600 dark:text-primary-400'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            Data Usage
+            {activeTab === 'data' && (
+              <div className='absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600 dark:bg-primary-400 rounded-t-full' />
+            )}
+          </button>
         </div>
 
         <div className='p-6'>
           {activeTab === 'quizzes' ? (
             <QuizHistory />
+          ) : activeTab === 'data' ? (
+            <div className='space-y-6'>
+              <div className='bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800'>
+                <div className='flex items-center mb-2'>
+                  <Wifi className='w-5 h-5 text-blue-600 dark:text-blue-400 mr-2' />
+                  <h3 className='font-semibold text-blue-900 dark:text-blue-100'>
+                    Current Network
+                  </h3>
+                </div>
+                <p className='text-sm text-blue-700 dark:text-blue-300 mb-1'>
+                  Connection Type:{' '}
+                  <span className='font-bold uppercase'>{connectionType}</span>
+                </p>
+                <p className='text-sm text-blue-700 dark:text-blue-300'>
+                  Status:{' '}
+                  <span className='font-bold'>
+                    {isLowBandwidth ? 'Low Bandwidth Mode ⚡' : 'Standard Mode'}
+                  </span>
+                </p>
+              </div>
+
+              <div className='space-y-4'>
+                <h3 className='font-medium text-gray-900 dark:text-gray-100'>
+                  Preferences
+                </h3>
+
+                <div className='flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg'>
+                  <div className='flex items-center'>
+                    <Zap className='w-5 h-5 text-yellow-500 mr-3' />
+                    <div>
+                      <p className='text-sm font-medium text-gray-900 dark:text-gray-100'>
+                        High Quality Images
+                      </p>
+                      <p className='text-xs text-gray-500 dark:text-gray-400'>
+                        Always load HD images (uses more data)
+                      </p>
+                    </div>
+                  </div>
+                  <label className='relative inline-flex items-center cursor-pointer'>
+                    <input
+                      type='checkbox'
+                      className='sr-only peer'
+                      checked={preferences.highQualityImages}
+                      onChange={(e) =>
+                        updatePreferences({
+                          highQualityImages: e.target.checked,
+                        })
+                      }
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+                  </label>
+                </div>
+
+                <div className='flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg'>
+                  <div className='flex items-center'>
+                    <div className='w-5 h-5 mr-3 flex items-center justify-center'>
+                      <span className='text-lg'>▶️</span>
+                    </div>
+                    <div>
+                      <p className='text-sm font-medium text-gray-900 dark:text-gray-100'>
+                        Auto-play Videos
+                      </p>
+                      <p className='text-xs text-gray-500 dark:text-gray-400'>
+                        Play videos automatically in feed
+                      </p>
+                    </div>
+                  </div>
+                  <label className='relative inline-flex items-center cursor-pointer'>
+                    <input
+                      type='checkbox'
+                      className='sr-only peer'
+                      checked={preferences.autoPlayVideos}
+                      onChange={(e) =>
+                        updatePreferences({ autoPlayVideos: e.target.checked })
+                      }
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+                  </label>
+                </div>
+              </div>
+            </div>
           ) : (
             <form onSubmit={handleSubmit} className='space-y-4'>
               <div className='flex justify-center mb-6'>
                 <div className='w-24 h-24 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 text-3xl font-bold overflow-hidden'>
                   {user.image ? (
-                    <img
+                    <OptimizedImage
                       src={user.image}
                       alt='Profile'
                       className='w-full h-full object-cover'
-                      referrerPolicy='no-referrer'
                     />
                   ) : (
                     <span>

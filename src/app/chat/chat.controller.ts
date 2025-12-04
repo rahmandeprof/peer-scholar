@@ -19,6 +19,7 @@ import { MaterialType } from '../academic/entities/material.entity';
 import { User } from '@/app/users/entities/user.entity';
 
 import { ChatService } from './chat.service';
+import { ContextActionDto } from './dto/context-action.dto';
 
 import { Request } from 'express';
 
@@ -164,5 +165,10 @@ export class ChatController {
   @Get('material/:id/comments')
   getComments(@Param('id') id: string) {
     return this.chatService.getComments(id);
+  }
+
+  @Post('context-action')
+  performContextAction(@Body() body: ContextActionDto) {
+    return this.chatService.performContextAction(body);
   }
 }
