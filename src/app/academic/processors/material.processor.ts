@@ -5,9 +5,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 
 import axios from 'axios';
 import { Job } from 'bull';
+import * as JSZip from 'jszip';
 import * as mammoth from 'mammoth';
 import OpenAI from 'openai';
 import { Repository } from 'typeorm';
+import { parseStringPromise } from 'xml2js';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
 const pdf = require('pdf-parse');
@@ -75,6 +77,23 @@ export class MaterialProcessor {
         text = result.value;
       } else if (material.fileType === 'text/plain') {
         text = buffer.toString('utf-8');
+      } else if (
+        material.fileType ===
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+      ) {
+        text = await this.extractTextFromPPTX(buffer);
+      }
+
+      // Fallback to OCR if text is empty or too short (likely scanned PDF or image-only PPT)
+      if (!text || text.trim().length < 50) {
+        this.logger.warn(
+          `Low text content detected for ${materialId}. Attempting OCR via Vision...`,
+        );
+        const ocrText = await this.extractTextViaOCR(material.fileUrl);
+
+        if (ocrText) {
+          text = ocrText;
+        }
       }
 
       if (!text) {
@@ -156,6 +175,128 @@ export class MaterialProcessor {
       await this.materialRepo.update(materialId, {
         status: MaterialStatus.FAILED,
       });
+    }
+  }
+
+  private async extractTextFromPPTX(buffer: Buffer): Promise<string> {
+    try {
+      const zip = await JSZip.loadAsync(buffer);
+      const slideFiles = Object.keys(zip.files).filter((fileName) =>
+        /ppt\/slides\/slide\d+\.xml/.exec(fileName),
+      );
+
+      let fullText = '';
+
+      for (const fileName of slideFiles) {
+        // eslint-disable-next-line no-await-in-loop
+        const xmlContent = await zip.files[fileName].async('text');
+        // eslint-disable-next-line no-await-in-loop
+        const result = await parseStringPromise(xmlContent);
+
+        // Traverse XML to find <a:t> tags (text)
+        const extractTextFromObj = (obj: unknown): string => {
+          let text = '';
+
+          if (typeof obj === 'object' && obj !== null) {
+            const typedObj = obj as Record<string, unknown>;
+
+            if (typedObj['a:t']) {
+              if (Array.isArray(typedObj['a:t'])) {
+                text += typedObj['a:t'].join(' ') + ' ';
+              } else {
+                text += String(typedObj['a:t'] as string | number) + ' ';
+              }
+            }
+            for (const key in typedObj) {
+              if (Object.prototype.hasOwnProperty.call(typedObj, key)) {
+                text += extractTextFromObj(typedObj[key]);
+              }
+            }
+          } else if (Array.isArray(obj)) {
+            for (const item of obj) {
+              text += extractTextFromObj(item);
+            }
+          }
+
+          return text;
+        };
+
+        fullText += extractTextFromObj(result) + '\n';
+      }
+
+      return fullText;
+    } catch (error) {
+      this.logger.error('Failed to extract text from PPTX', error);
+
+      return '';
+    }
+  }
+
+  private async extractTextViaOCR(fileUrl: string): Promise<string> {
+    if (!this.openai) return '';
+
+    try {
+      // Cloudinary PDF-to-Image URL construction
+      // We'll grab the first 5 pages to avoid excessive token usage/cost,
+      // or we can try to grab more if needed. For now, let's try 5 pages.
+      const pagesToScan = 5;
+      let combinedText = '';
+
+      // The fileUrl is like: https://res.cloudinary.com/cloudname/image/upload/v12345/folder/file.pdf
+      // To get page 1 as image: https://res.cloudinary.com/cloudname/image/upload/pg_1/v12345/folder/file.jpg
+
+      // Regex to insert pg_X parameter
+      const urlParts = fileUrl.split('/upload/');
+
+      if (urlParts.length !== 2) return '';
+
+      const baseUrl = urlParts[0] + '/upload';
+      const filePart = urlParts[1];
+      // Remove extension and ensure it ends with .jpg for the request
+      const fileId = filePart.substring(0, filePart.lastIndexOf('.'));
+
+      for (let i = 1; i <= pagesToScan; i++) {
+        const imageUrl = `${baseUrl}/pg_${i.toString()}/${fileId}.jpg`;
+
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          const response = await this.openai.chat.completions.create({
+            model: 'gpt-4o',
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: 'Transcribe the text from this document page exactly. Do not add any commentary.',
+                  },
+                  {
+                    type: 'image_url',
+                    image_url: {
+                      url: imageUrl,
+                    },
+                  },
+                ],
+              },
+            ],
+          });
+
+          const pageText = response.choices[0].message.content;
+
+          if (pageText) {
+            combinedText += pageText + '\n\n';
+          }
+        } catch {
+          // If a page fails (e.g., page doesn't exist), we stop
+          break;
+        }
+      }
+
+      return combinedText;
+    } catch (error) {
+      this.logger.error('Failed to perform OCR via Vision', error);
+
+      return '';
     }
   }
 

@@ -54,6 +54,7 @@
     "ejs": "^3.1.10",
     "express": "^4.21.2",
     "handlebars": "^4.7.8",
+    "jszip": "^3.10.1",
     "mammoth": "^1.11.0",
     "nestjs-paginate": "^12.5.0",
     "nodemailer": "^7.0.3",
@@ -68,7 +69,8 @@
     "sqlite3": "^5.1.7",
     "typeorm": "^0.3.24",
     "webpack": "^5.97.1",
-    "winston": "^3.17.0"
+    "winston": "^3.17.0",
+    "xml2js": "^0.6.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.27.0",
