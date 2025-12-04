@@ -78,64 +78,71 @@ export class MaterialProcessor {
       }
 
       if (!text) {
-        throw new Error('No text extracted');
+        this.logger.warn(`No text extracted from material: ${materialId}`);
+        text =
+          'This document appears to be a scanned image or contains no extractable text. AI features like summary and chat may be limited.';
       }
 
-      // 3. Chunk Text
-      const chunks = this.chunkText(text, 1000, 200);
+      // 3. Chunk Text (only if we have meaningful text)
+      if (
+        text !==
+        'This document appears to be a scanned image or contains no extractable text. AI features like summary and chat may be limited.'
+      ) {
+        const chunks = this.chunkText(text, 1000, 200);
 
-      this.logger.debug(`Generated ${chunks.length.toString()} chunks`);
+        this.logger.debug(`Generated ${chunks.length.toString()} chunks`);
 
-      // 4. Generate Embeddings & Save
-      for (let i = 0; i < chunks.length; i++) {
-        const content = chunks[i];
-        let embedding: number[] = [];
+        // 4. Generate Embeddings & Save
+        for (let i = 0; i < chunks.length; i++) {
+          const content = chunks[i];
+          let embedding: number[] = [];
 
-        if (this.openai) {
-          try {
-            // eslint-disable-next-line no-await-in-loop
-            const embeddingResponse = await this.openai.embeddings.create({
-              model: 'text-embedding-3-small',
-              input: content,
-            });
+          if (this.openai) {
+            try {
+              // eslint-disable-next-line no-await-in-loop
+              const embeddingResponse = await this.openai.embeddings.create({
+                model: 'text-embedding-3-small',
+                input: content,
+              });
 
-            embedding = embeddingResponse.data[0].embedding;
-          } catch (e) {
-            this.logger.warn(
-              `Failed to generate embedding for chunk ${i.toString()}`,
-              e,
-            );
+              embedding = embeddingResponse.data[0].embedding;
+            } catch (e) {
+              this.logger.warn(
+                `Failed to generate embedding for chunk ${i.toString()}`,
+                e,
+              );
+            }
           }
+
+          const chunk = this.chunkRepo.create({
+            material,
+            content,
+            chunkIndex: i,
+            embedding: embedding.length > 0 ? embedding : null,
+          });
+
+          // eslint-disable-next-line no-await-in-loop
+          await this.chunkRepo.save(chunk);
         }
 
-        const chunk = this.chunkRepo.create({
-          material,
-          content,
-          chunkIndex: i,
-          embedding: embedding.length > 0 ? embedding : null,
-        });
+        // 5. Extract Topics (using first 2000 chars)
+        if (this.openai) {
+          try {
+            const topicPrompt = `Extract 5-10 relevant academic topics or tags from the following text. Return them as a comma-separated list. Text: ${text.slice(0, 2000)}`;
+            const completion = await this.openai.chat.completions.create({
+              model: 'gpt-4o-mini',
+              messages: [{ role: 'user', content: topicPrompt }],
+            });
+            const tagsText = completion.choices[0].message.content ?? '';
+            const tags = tagsText
+              .split(',')
+              .map((t) => t.trim())
+              .filter((t) => t.length > 0);
 
-        // eslint-disable-next-line no-await-in-loop
-        await this.chunkRepo.save(chunk);
-      }
-
-      // 5. Extract Topics (using first 2000 chars)
-      if (this.openai) {
-        try {
-          const topicPrompt = `Extract 5-10 relevant academic topics or tags from the following text. Return them as a comma-separated list. Text: ${text.slice(0, 2000)}`;
-          const completion = await this.openai.chat.completions.create({
-            model: 'gpt-4o-mini',
-            messages: [{ role: 'user', content: topicPrompt }],
-          });
-          const tagsText = completion.choices[0].message.content ?? '';
-          const tags = tagsText
-            .split(',')
-            .map((t) => t.trim())
-            .filter((t) => t.length > 0);
-
-          material.tags = tags;
-        } catch (e) {
-          this.logger.warn('Failed to extract topics', e);
+            material.tags = tags;
+          } catch (e) {
+            this.logger.warn('Failed to extract topics', e);
+          }
         }
       }
 
