@@ -88,6 +88,7 @@
     "@types/passport-jwt": "^4.0.1",
     "@types/pdf-parse": "^1.1.5",
     "@types/supertest": "^6.0.3",
+    "@types/xml2js": "^0.4.14",
     "cross-env": "^10.1.0",
     "eslint": "^9.27.0",
     "eslint-config-prettier": "^10.1.5",
