@@ -358,7 +358,9 @@ export function UploadModal({
                     Click to upload
                   </span>{' '}
                   or drag and drop
-                  <p className='text-xs mt-1'>PDF, DOCX up to 10MB</p>
+                  <p className='text-xs mt-1'>
+                    Documents and Text files supported
+                  </p>
                 </div>
               )}
             </div>

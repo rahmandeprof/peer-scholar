@@ -12,6 +12,7 @@ import {
 import api from '../lib/api';
 import { AISidebar } from './AISidebar';
 import { QuizModal } from './QuizModal';
+import { TextFileViewer } from './TextFileViewer';
 
 interface Material {
   id: string;
@@ -141,6 +142,26 @@ export const MaterialView = () => {
               className='w-full h-full'
               title={material.title}
             />
+          ) : material.fileType.includes('text') ||
+            material.fileType.includes('json') ||
+            material.fileType.includes('javascript') ||
+            material.fileType.includes('typescript') ||
+            material.fileUrl.endsWith('.txt') ||
+            material.fileUrl.endsWith('.md') ? (
+            <TextFileViewer url={material.fileUrl} />
+          ) : material.fileType.includes('word') ||
+            material.fileType.includes('presentation') ||
+            material.fileType.includes('spreadsheet') ||
+            material.fileUrl.endsWith('.docx') ||
+            material.fileUrl.endsWith('.pptx') ||
+            material.fileUrl.endsWith('.xlsx') ? (
+            <iframe
+              src={`https://docs.google.com/gview?url=${encodeURIComponent(
+                material.fileUrl,
+              )}&embedded=true`}
+              className='w-full h-full'
+              title={material.title}
+            />
           ) : (
             <div className='flex items-center justify-center h-full text-gray-500'>
               <div className='text-center'>
@@ -152,7 +173,7 @@ export const MaterialView = () => {
                   rel='noopener noreferrer'
                   className='text-primary-600 hover:underline mt-2 block'
                 >
-                  Open file
+                  Download file
                 </a>
               </div>
             </div>

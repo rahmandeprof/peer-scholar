@@ -61,8 +61,11 @@ export function Chatbot({
         }),
       );
       setMessages(formattedMessages);
-    } catch {
-      toast.error('Failed to load conversation.');
+    } catch (error: any) {
+      // Ignore 404 (new conversation), only toast on other errors
+      if (error.response?.status !== 404) {
+        toast.error('Failed to load conversation.');
+      }
     } finally {
       setLoading(false);
     }
@@ -153,17 +156,6 @@ export function Chatbot({
     }
   };
 
-  // Auto-trigger summary when opening a material
-  useEffect(() => {
-    if (initialMaterialId && !messages.length && !loading) {
-      // Pass initialMaterialId explicitly to ensure it's used
-      void handleSend(
-        'Please summarize this material and prepare to answer questions about it.',
-        initialMaterialId,
-      );
-    }
-  }, [initialMaterialId]);
-
   const handleNewChat = () => {
     setMessages([]);
     setConversationId(null);
@@ -198,15 +190,52 @@ export function Chatbot({
 
       <div className='flex-1 overflow-y-auto p-4 md:p-8 space-y-4 scroll-smooth'>
         {messages.length === 0 ? (
-          <div className='text-center text-gray-500 dark:text-gray-400 mt-20'>
+          <div className='text-center text-gray-500 dark:text-gray-400 mt-10'>
             <h2 className='text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100'>
               Welcome to peerScholar
             </h2>
-            <p className='mb-4'>Ask me anything about your study materials!</p>
+            <p className='mb-8'>Ask me anything about your study materials!</p>
+
+            <div className='grid grid-cols-1 gap-3 max-w-md mx-auto'>
+              <button
+                onClick={() =>
+                  handleSend(
+                    'Summarize this material',
+                    initialMaterialId || undefined,
+                  )
+                }
+                className='p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-primary-500 dark:hover:border-primary-500 hover:shadow-md transition-all text-left text-sm font-medium text-gray-700 dark:text-gray-300'
+              >
+                📝 Summarize this material
+              </button>
+              <button
+                onClick={() =>
+                  handleSend(
+                    'What are the key concepts here?',
+                    initialMaterialId || undefined,
+                  )
+                }
+                className='p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-primary-500 dark:hover:border-primary-500 hover:shadow-md transition-all text-left text-sm font-medium text-gray-700 dark:text-gray-300'
+              >
+                🔑 What are the key concepts?
+              </button>
+              <button
+                onClick={() =>
+                  handleSend(
+                    'Generate 3 practice questions',
+                    initialMaterialId || undefined,
+                  )
+                }
+                className='p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-primary-500 dark:hover:border-primary-500 hover:shadow-md transition-all text-left text-sm font-medium text-gray-700 dark:text-gray-300'
+              >
+                ❓ Generate 3 practice questions
+              </button>
+            </div>
+
             {conversationId && (
               <button
                 onClick={handleNewChat}
-                className='text-primary-600 hover:underline text-sm'
+                className='text-primary-600 hover:underline text-sm mt-6'
               >
                 Start a new chat
               </button>
