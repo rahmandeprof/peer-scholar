@@ -37,6 +37,8 @@ export function UserProfile({ onClose }: UserProfileProps) {
     yearOfStudy: user?.yearOfStudy ?? 1,
   });
 
+  const [isEditing, setIsEditing] = useState(false);
+
   useEffect(() => {
     if (user && !isEditing) {
       setFormData({
@@ -50,8 +52,6 @@ export function UserProfile({ onClose }: UserProfileProps) {
       });
     }
   }, [user, isEditing]);
-
-  const [isEditing, setIsEditing] = useState(false);
 
   const handleCancel = () => {
     setIsEditing(false);
