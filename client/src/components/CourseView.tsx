@@ -76,7 +76,7 @@ export const CourseView: React.FC = () => {
 
   const fetchTopics = async (id: string) => {
     try {
-      const res = await axios.get(`/academic/materials/course/${id}/topics`);
+      const res = await axios.get(`/materials/course/${id}/topics`);
       setTopics(res.data);
     } catch (error) {
       console.error('Failed to fetch topics', error);

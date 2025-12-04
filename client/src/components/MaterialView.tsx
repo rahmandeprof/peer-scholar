@@ -44,7 +44,7 @@ export const MaterialView = () => {
         // Let's check. MaterialsController has findAll, create, remove.
         // I might need to add findOne to MaterialsController.
         // For now, I'll try to fetch it.
-        const res = await api.get(`/academic/materials/${id}`);
+        const res = await api.get(`/materials/${id}`);
         setMaterial(res.data);
       } catch (error) {
         console.error('Failed to fetch material', error);
