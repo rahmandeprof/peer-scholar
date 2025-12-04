@@ -20,6 +20,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
           redis: {
             host,
             port,
+            username: configService.get<string>('REDIS_USERNAME'),
             password,
             // enableOfflineQueue: false, // Allow offline queue to prevent startup crash
           },

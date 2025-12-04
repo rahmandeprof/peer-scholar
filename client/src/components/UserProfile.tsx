@@ -38,7 +38,7 @@ export function UserProfile({ onClose }: UserProfileProps) {
   });
 
   useEffect(() => {
-    if (user) {
+    if (user && !isEditing) {
       setFormData({
         firstName: user.firstName ?? '',
         lastName: user.lastName ?? '',
@@ -49,7 +49,7 @@ export function UserProfile({ onClose }: UserProfileProps) {
         yearOfStudy: user.yearOfStudy ?? 1,
       });
     }
-  }, [user]);
+  }, [user, isEditing]);
 
   const [isEditing, setIsEditing] = useState(false);
 

@@ -72,28 +72,9 @@ export class MaterialsService {
   }
 
   async create(dto: CreateMaterialDto, user: User) {
-    let course: Course | null = null;
-
-    if (dto.courseId) {
-      course = await this.courseRepo.findOneBy({ id: dto.courseId });
-      if (!course) throw new NotFoundException('Course not found');
-    } else if (dto.courseCode) {
-      // Try to find by code, or create if not exists (optional, or just link by code)
-      course = await this.courseRepo.findOneBy({ code: dto.courseCode });
-      if (!course) {
-        // Create a new course if it doesn't exist
-        // We might need to infer department from user or targetDepartment
-        // For now, let's create it without a department if we can't determine it
-        // Or better, just leave course as null and rely on courseCode string
-        // But the entity has a relation. Let's try to create it.
-        course = this.courseRepo.create({
-          code: dto.courseCode,
-          title: dto.courseCode, // Fallback title
-          // department: ... we don't know the department for sure unless we look it up
-        });
-        course = await this.courseRepo.save(course);
-      }
-    }
+    // We no longer link to a specific Course entity to allow for flexible visibility
+    // based on department/public scope rather than hard database relations.
+    // The courseCode string is used for identification and grouping.
 
     const material = this.materialRepo.create({
       title: dto.title,
@@ -104,7 +85,7 @@ export class MaterialsService {
       size: dto.size,
       scope: dto.scope,
       tags: dto.tags,
-      course: course ?? undefined, // Link if found/created
+      course: undefined, // Explicitly not linking
       courseCode: dto.courseCode,
       targetFaculty: dto.targetFaculty,
       targetDepartment: dto.targetDepartment,
@@ -136,13 +117,18 @@ export class MaterialsService {
     return this.materialRepo.find({
       order: { createdAt: 'DESC' },
       take: 5,
-      relations: ['uploader', 'course'],
+      relations: ['uploader'], // Removed 'course' relation as it might be null
     });
   }
 
   async getCourseTopics(courseId: string) {
+    // We need to find the course code first
+    const course = await this.courseRepo.findOneBy({ id: courseId });
+
+    if (!course) return [];
+
     const materials = await this.materialRepo.find({
-      where: { course: { id: courseId } },
+      where: { courseCode: course.code },
       select: ['tags'],
     });
 
@@ -171,12 +157,22 @@ export class MaterialsService {
   async findAll(user: User, courseId?: string, type?: string, search?: string) {
     const query = this.materialRepo
       .createQueryBuilder('material')
-      .leftJoinAndSelect('material.uploader', 'uploader')
-      .leftJoinAndSelect('material.course', 'course')
-      .leftJoinAndSelect('course.department', 'department');
+      .leftJoinAndSelect('material.uploader', 'uploader');
+    // Removed join with course/department since we rely on stored fields
 
     if (courseId) {
-      query.where('material.courseId = :courseId', { courseId });
+      // Find the course to get its code
+      const course = await this.courseRepo.findOneBy({ id: courseId });
+
+      if (course) {
+        query.andWhere('material.courseCode = :courseCode', {
+          courseCode: course.code,
+        });
+      } else {
+        // If course not found, maybe return empty or ignore?
+        // Let's return empty to be safe
+        query.andWhere('1 = 0');
+      }
     }
 
     if (user.yearOfStudy) {
@@ -200,7 +196,6 @@ export class MaterialsService {
     // Access Control Logic
     // Public: Everyone can see
     // Department: Only users in the same department can see
-    // Course: Only users in the same course (not implemented yet, treating as Dept for now)
     // Private: Only uploader can see
 
     query.andWhere(
@@ -215,8 +210,9 @@ export class MaterialsService {
               ? user.department
               : (user.department as { name: string }).name;
 
+          // Check if material is scoped to department AND matches user's department
           qb.orWhere(
-            '(material.scope = :deptScope AND (department.name = :userDeptName OR material.targetDepartment = :userDeptName))',
+            '(material.scope = :deptScope AND material.targetDepartment = :userDeptName)',
             {
               deptScope: AccessScope.DEPARTMENT,
               userDeptName,
