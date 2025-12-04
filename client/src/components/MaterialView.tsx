@@ -26,6 +26,7 @@ interface Material {
     lastName: string;
   };
   createdAt: string;
+  status: 'pending' | 'processing' | 'ready' | 'failed';
 }
 
 export const MaterialView = () => {
@@ -34,7 +35,7 @@ export const MaterialView = () => {
   const [material, setMaterial] = useState<Material | null>(null);
   const [loading, setLoading] = useState(true);
   const [quizOpen, setQuizOpen] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
 
   useEffect(() => {
     const fetchMaterial = async () => {
@@ -136,7 +137,18 @@ export const MaterialView = () => {
 
         {/* Content Viewer */}
         <div className='flex-1 bg-gray-100 dark:bg-gray-900 overflow-hidden relative'>
-          {material.fileType.includes('pdf') ? (
+          {material.status === 'failed' ? (
+            <div className='flex items-center justify-center h-full text-red-500'>
+              <div className='text-center p-6'>
+                <FileText className='w-16 h-16 mx-auto mb-4 opacity-50' />
+                <p className='text-lg font-semibold'>File processing failed</p>
+                <p className='text-sm mt-2'>
+                  Please try uploading the file again.
+                </p>
+              </div>
+            </div>
+          ) : material.fileType.includes('pdf') ||
+            material.fileUrl.endsWith('.pdf') ? (
             <iframe
               src={material.fileUrl}
               className='w-full h-full'

@@ -13,6 +13,7 @@ interface Message {
 interface ChatbotProps {
   initialConversationId?: string | null;
   initialMaterialId?: string | null;
+  embedded?: boolean;
 }
 
 import { useParams, useNavigate } from 'react-router-dom';
@@ -20,6 +21,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 export function Chatbot({
   initialConversationId,
   initialMaterialId,
+  embedded = false,
 }: ChatbotProps) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -34,8 +36,8 @@ export function Chatbot({
   const [isQuizOpen, setIsQuizOpen] = useState(false);
 
   useEffect(() => {
-    // Priority: URL param > prop > null
-    const targetId = id || initialConversationId;
+    // Priority: URL param (if not embedded) > prop > null
+    const targetId = !embedded && id ? id : initialConversationId;
 
     if (targetId) {
       setConversationId(targetId);
@@ -48,7 +50,7 @@ export function Chatbot({
         setActiveMaterialId(initialMaterialId);
       }
     }
-  }, [id, initialConversationId, initialMaterialId]);
+  }, [id, initialConversationId, initialMaterialId, embedded]);
 
   const fetchMessages = async (id: string) => {
     try {

@@ -110,7 +110,7 @@ export function AISidebar({ isOpen, onClose, materialId }: AISidebarProps) {
       {/* Content */}
       <div className='flex-1 overflow-hidden flex flex-col w-full md:w-[400px]'>
         {activeTab === 'chat' ? (
-          <Chatbot initialMaterialId={materialId} />
+          <Chatbot initialMaterialId={materialId} embedded={true} />
         ) : (
           <div className='p-6 space-y-6 overflow-y-auto'>
             <div className='space-y-4'>

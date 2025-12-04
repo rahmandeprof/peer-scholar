@@ -306,6 +306,11 @@ export class ChatService {
 
     if (!material) throw new NotFoundException('Material not found');
 
+    // Return cached key points if available
+    if (material.keyPoints && material.keyPoints.length > 0) {
+      return material.keyPoints;
+    }
+
     if (!this.openai) throw new Error('OPENAI_API_KEY is not set');
 
     try {
@@ -327,8 +332,16 @@ export class ChatService {
       if (!content) return [];
 
       const parsed = JSON.parse(content);
+      const points =
+        parsed.points ?? parsed.keyPoints ?? parsed.key_points ?? [];
 
-      return parsed.points ?? parsed.keyPoints ?? parsed.key_points ?? [];
+      // Cache the result
+      if (points.length > 0) {
+        material.keyPoints = points;
+        await this.materialRepo.save(material);
+      }
+
+      return points;
     } catch (e) {
       this.logger.error('Failed to extract key points', e);
 
@@ -342,6 +355,11 @@ export class ChatService {
     });
 
     if (!material) throw new NotFoundException('Material not found');
+
+    // Return cached quiz if available
+    if (material.quiz) {
+      return material.quiz;
+    }
 
     if (!this.openai) throw new Error('OPENAI_API_KEY is not set');
 
@@ -374,8 +392,15 @@ export class ChatService {
       if (!content) return [];
 
       const parsed = JSON.parse(content);
+      const quiz = parsed.questions ?? parsed;
 
-      return parsed.questions ?? parsed;
+      // Cache the result
+      if (quiz) {
+        material.quiz = quiz;
+        await this.materialRepo.save(material);
+      }
+
+      return quiz;
     } catch (error) {
       this.logger.error('Failed to generate quiz', error);
       throw new Error('Failed to generate quiz');

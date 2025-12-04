@@ -27,6 +27,12 @@ export enum MaterialStatus {
   FAILED = 'failed',
 }
 
+export interface QuizQuestion {
+  question: string;
+  options: string[];
+  correctAnswer: string;
+}
+
 @Entity()
 export class Material extends IDAndTimestamp {
   @Column()
@@ -47,6 +53,12 @@ export class Material extends IDAndTimestamp {
 
   @Column({ type: 'text', nullable: true })
   summary?: string;
+
+  @Column({ type: 'simple-array', nullable: true })
+  keyPoints?: string[];
+
+  @Column({ type: 'json', nullable: true })
+  quiz?: QuizQuestion[];
 
   @Column({ nullable: true })
   fileUrl: string;
