@@ -43,19 +43,20 @@ const DepartmentView: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
-    if (user.department) {
-      // Always fetch materials as they rely on the department name (string) or public scope
-      fetchTrending();
-      fetchRecent();
+    const loadData = async () => {
+      if (user.department) {
+        const promises = [fetchTrending(), fetchRecent()];
 
-      // Only fetch courses if we have a valid department ID
-      // The API endpoint /academic/departments/:id/courses requires an ID
-      if (typeof user.department !== 'string' && user.department.id) {
-        fetchCourses(user.department.id);
+        if (typeof user.department !== 'string' && user.department.id) {
+          promises.push(fetchCourses(user.department.id));
+        }
+
+        await Promise.all(promises);
       }
-    } else {
       setLoading(false);
-    }
+    };
+
+    loadData();
   }, [user]);
 
   const fetchCourses = async (departmentId: string) => {
@@ -66,8 +67,6 @@ const DepartmentView: React.FC = () => {
       setCourses(res.data);
     } catch (error) {
       console.error('Failed to fetch courses', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -202,51 +201,55 @@ const DepartmentView: React.FC = () => {
         </div>
       )}
 
-      <h2 className='text-xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center'>
-        <BookOpen className='w-6 h-6 mr-3 text-primary-500' />
-        Your Courses
-      </h2>
-      <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-12'>
-        {courses.map((course) => (
-          <div
-            key={course.id}
-            className='bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl overflow-hidden shadow-sm rounded-2xl hover:shadow-md transition-all border border-gray-200/50 dark:border-gray-700/50 group'
-          >
-            <div className='p-6'>
-              <div className='flex items-center mb-4'>
-                <div className='flex-shrink-0'>
-                  <div className='w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400'>
-                    <BookOpen className='h-6 w-6' />
+      {courses.length > 0 && (
+        <>
+          <h2 className='text-xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center'>
+            <BookOpen className='w-6 h-6 mr-3 text-primary-500' />
+            Your Courses
+          </h2>
+          <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-12'>
+            {courses.map((course) => (
+              <div
+                key={course.id}
+                className='bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl overflow-hidden shadow-sm rounded-2xl hover:shadow-md transition-all border border-gray-200/50 dark:border-gray-700/50 group'
+              >
+                <div className='p-6'>
+                  <div className='flex items-center mb-4'>
+                    <div className='flex-shrink-0'>
+                      <div className='w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400'>
+                        <BookOpen className='h-6 w-6' />
+                      </div>
+                    </div>
+                    <div className='ml-4 w-0 flex-1'>
+                      <dl>
+                        <dt className='text-sm font-bold text-gray-500 dark:text-gray-400 truncate uppercase tracking-wider'>
+                          {course.code}
+                        </dt>
+                        <dd>
+                          <div className='text-lg font-bold text-gray-900 dark:text-gray-100 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors'>
+                            {course.title}
+                          </div>
+                        </dd>
+                      </dl>
+                    </div>
                   </div>
                 </div>
-                <div className='ml-4 w-0 flex-1'>
-                  <dl>
-                    <dt className='text-sm font-bold text-gray-500 dark:text-gray-400 truncate uppercase tracking-wider'>
-                      {course.code}
-                    </dt>
-                    <dd>
-                      <div className='text-lg font-bold text-gray-900 dark:text-gray-100 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors'>
-                        {course.title}
-                      </div>
-                    </dd>
-                  </dl>
+                <div className='bg-gray-50/50 dark:bg-gray-700/30 px-6 py-4 border-t border-gray-100 dark:border-gray-700/50'>
+                  <div className='text-sm'>
+                    <Link
+                      to={`/courses/${course.id}`}
+                      className='font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 flex items-center group-hover:translate-x-1 transition-transform'
+                    >
+                      View Materials
+                      <FileText className='ml-2 h-4 w-4' />
+                    </Link>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className='bg-gray-50/50 dark:bg-gray-700/30 px-6 py-4 border-t border-gray-100 dark:border-gray-700/50'>
-              <div className='text-sm'>
-                <Link
-                  to={`/courses/${course.id}`}
-                  className='font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 flex items-center group-hover:translate-x-1 transition-transform'
-                >
-                  View Materials
-                  <FileText className='ml-2 h-4 w-4' />
-                </Link>
-              </div>
-            </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
 
       <h2 className='text-xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center'>
         <FileText className='w-6 h-6 mr-3 text-primary-500' />
