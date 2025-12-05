@@ -160,8 +160,12 @@ export function UploadModal({
       if (err.response?.data) {
         console.error('Cloudinary Error Details:', err.response.data);
       }
-      setError('Failed to upload material. Please try again.');
-      toast.error('Failed to upload material');
+      const errorMessage =
+        err.response?.data?.error?.message ||
+        err.message ||
+        'Failed to upload material';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setUploading(false);
     }
