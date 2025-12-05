@@ -54,14 +54,14 @@ export function UploadModal({
       const presignRes = await api.get(
         `/materials/presign?fileType=${file.type}`,
       );
-      const { url, signature, timestamp, apiKey, folder, uploadPreset } =
+      const { url, signature, cloudTimestamp, apiKey, folder, uploadPreset } =
         presignRes.data;
 
       // 2. Upload to Cloudinary
       const formData = new FormData();
       formData.append('file', file);
       formData.append('api_key', apiKey);
-      formData.append('timestamp', timestamp.toString());
+      formData.append('timestamp', cloudTimestamp.toString());
       formData.append('signature', signature);
       if (folder) {
         formData.append('folder', folder);
