@@ -62,7 +62,9 @@ export function UploadModal({
       formData.append('api_key', apiKey);
       formData.append('timestamp', timestamp.toString());
       formData.append('signature', signature);
-      formData.append('folder', folder);
+      if (folder) {
+        formData.append('folder', folder);
+      }
 
       const uploadRes = await axios.post(url, formData, {
         onUploadProgress: (progressEvent) => {
@@ -135,8 +137,11 @@ export function UploadModal({
         onClose();
         setSuccess(false);
       }, 2000);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Upload failed', err);
+      if (err.response?.data) {
+        console.error('Cloudinary Error Details:', err.response.data);
+      }
       setError('Failed to upload material. Please try again.');
       toast.error('Failed to upload material');
     } finally {
