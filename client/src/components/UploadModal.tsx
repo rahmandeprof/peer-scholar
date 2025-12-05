@@ -93,7 +93,7 @@ export function UploadModal({
             setUploadProgress(percentCompleted);
           }
         },
-        timeout: 60000, // 60 seconds timeout for large files
+        timeout: 300000, // 5 minutes timeout for large files
       });
 
       const uploadData = uploadRes.data;
