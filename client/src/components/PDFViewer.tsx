@@ -74,6 +74,7 @@ export function PDFViewer({ url }: PDFViewerProps) {
         <Document
           file={url}
           onLoadSuccess={onDocumentLoadSuccess}
+          onLoadError={(error) => console.error('Error loading PDF:', error)}
           className='shadow-lg'
           loading={
             <div className='flex items-center justify-center h-64'>
@@ -82,7 +83,7 @@ export function PDFViewer({ url }: PDFViewerProps) {
           }
           error={
             <div className='flex items-center justify-center h-64 text-red-500'>
-              Failed to load PDF.
+              Failed to load PDF. Check console for details.
             </div>
           }
         >
