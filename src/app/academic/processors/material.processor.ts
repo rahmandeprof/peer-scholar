@@ -102,12 +102,21 @@ export class MaterialProcessor {
           console.log('[DEBUG] require failed:', e);
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/prefer-nullish-coalescing
-        const pdfParse = (pdfLib as any).default || pdfLib;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const candidate = (pdfLib as any).default ?? pdfLib;
+
+        const pdfParseFn =
+          typeof candidate === 'function'
+            ? candidate
+            : (candidate.PDFParse ?? candidate);
+
+        // eslint-disable-next-line no-console
+        console.log('[DEBUG] Selected pdfParseFn type:', typeof pdfParseFn);
 
         // eslint-disable-next-line no-console
         console.log('PDF Parsing started...');
-        const data = await pdfParse(buffer);
+
+        const data = await pdfParseFn(buffer);
 
         // eslint-disable-next-line no-console
         console.log('PDF Parsing success!');
