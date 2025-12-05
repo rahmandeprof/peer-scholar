@@ -140,6 +140,10 @@ export function UploadModal({
 
       const uploadRes = await uploadFile();
 
+      if (!uploadRes) {
+        throw new Error('Upload failed: No response from server');
+      }
+
       const uploadData = uploadRes.data;
 
       // 3. Create Material Record
