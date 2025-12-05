@@ -74,6 +74,34 @@ export class MaterialProcessor {
           hasDefault: !!(pdfLib as any).default,
         });
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const def = (pdfLib as any).default;
+
+        // eslint-disable-next-line no-console
+        console.log('[DEBUG] pdfLib.default type:', typeof def);
+        if (typeof def === 'object' && def !== null) {
+          // eslint-disable-next-line no-console
+          console.log('[DEBUG] pdfLib.default keys:', Object.keys(def));
+        }
+
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+          const requiredPdf = require('pdf-parse');
+
+          // eslint-disable-next-line no-console
+          console.log('[DEBUG] require("pdf-parse") type:', typeof requiredPdf);
+          if (typeof requiredPdf === 'object') {
+            // eslint-disable-next-line no-console
+            console.log(
+              '[DEBUG] require("pdf-parse") keys:',
+              Object.keys(requiredPdf),
+            );
+          }
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.log('[DEBUG] require failed:', e);
+        }
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/prefer-nullish-coalescing
         const pdfParse = (pdfLib as any).default || pdfLib;
 
