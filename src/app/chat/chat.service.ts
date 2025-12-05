@@ -14,10 +14,11 @@ import { Message, MessageRole } from './entities/message.entity';
 import { QuizResult } from './entities/quiz-result.entity';
 import { User } from '@/app/users/entities/user.entity';
 
+import { ContextActionDto, ContextActionType } from './dto/context-action.dto';
+
 import { CloudinaryService } from '@/app/common/services/cloudinary.service';
 import { ConversionService } from '@/app/common/services/conversion.service';
 import { UsersService } from '@/app/users/users.service';
-import { ContextActionDto, ContextActionType } from './dto/context-action.dto';
 
 import OpenAI from 'openai';
 import { Repository } from 'typeorm';
@@ -95,6 +96,7 @@ export class ChatService {
 
     // Convert to PDF if Docx/PPTX
     let pdfUrl = '';
+
     if (
       file.mimetype.includes('officedocument') ||
       file.mimetype.includes('msword') ||
@@ -116,6 +118,7 @@ export class ChatService {
           mimetype: 'application/pdf',
         };
         const pdfUpload = await this.cloudinaryService.uploadFile(pdfFile);
+
         pdfUrl = pdfUpload.url;
       } catch (error) {
         this.logger.error('Failed to convert/upload PDF', error);
@@ -264,6 +267,10 @@ export class ChatService {
     });
 
     if (!material) throw new NotFoundException('Material not found');
+    if (!material.content)
+      throw new Error(
+        'Material content is not available. Please re-upload the file.',
+      );
 
     return this.getOrGenerateSummary(material);
   }
@@ -272,6 +279,10 @@ export class ChatService {
     if (material.summary) return material.summary;
 
     if (!this.openai) return '';
+
+    const content = material.content;
+
+    if (!content) return '';
 
     try {
       const response = await this.openai.chat.completions.create({
@@ -282,7 +293,7 @@ export class ChatService {
             content:
               'Summarize the following text concisely but comprehensively for a student.',
           },
-          { role: 'user', content: material.content?.substring(0, 6000) ?? '' },
+          { role: 'user', content: content.substring(0, 6000) },
         ],
         max_tokens: 500,
       });
@@ -309,6 +320,13 @@ export class ChatService {
 
     if (!material) throw new NotFoundException('Material not found');
 
+    const materialContent = material.content;
+
+    if (!materialContent)
+      throw new Error(
+        'Material content is not available. Please re-upload the file.',
+      );
+
     // Return cached key points if available
     if (material.keyPoints && material.keyPoints.length > 0) {
       return material.keyPoints;
@@ -325,7 +343,7 @@ export class ChatService {
             content:
               'Extract 5-7 key bullet points from the following text. Return them as a JSON array of strings.',
           },
-          { role: 'user', content: material.content?.substring(0, 6000) ?? '' },
+          { role: 'user', content: materialContent.substring(0, 6000) },
         ],
         response_format: { type: 'json_object' },
       });
@@ -335,6 +353,7 @@ export class ChatService {
       if (!content) return [];
 
       const parsed = JSON.parse(content);
+
       const points =
         parsed.points ?? parsed.keyPoints ?? parsed.key_points ?? [];
 
@@ -359,6 +378,13 @@ export class ChatService {
 
     if (!material) throw new NotFoundException('Material not found');
 
+    const materialContent = material.content;
+
+    if (!materialContent)
+      throw new Error(
+        'Material content is not available. Please re-upload the file.',
+      );
+
     // Return cached quiz if available
     if (material.quiz) {
       return material.quiz;
@@ -379,7 +405,7 @@ export class ChatService {
     ]
     
     Text:
-    ${material.content?.substring(0, 6000) ?? ''}`;
+    ${materialContent.substring(0, 6000)}`;
 
     try {
       const response = await this.openai.chat.completions.create({
@@ -626,14 +652,17 @@ export class ChatService {
     let cleaned = text.replace(/```json/g, '').replace(/```/g, '');
     // Find the first '[' or '{'
     const firstBracket = cleaned.search(/[[{]/);
+
     if (firstBracket !== -1) {
       cleaned = cleaned.substring(firstBracket);
     }
     // Find the last ']' or '}'
     const lastBracket = cleaned.search(/[\]}](?!.*[\]}])/);
+
     if (lastBracket !== -1) {
       cleaned = cleaned.substring(0, lastBracket + 1);
     }
+
     return cleaned.trim();
   }
 
