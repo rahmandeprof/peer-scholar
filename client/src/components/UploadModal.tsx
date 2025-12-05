@@ -57,7 +57,7 @@ export function UploadModal({
       const {
         url,
         signature,
-        cloudTimestamp,
+        timestamp,
         apiKey,
         folder,
         uploadPreset,
@@ -73,7 +73,7 @@ export function UploadModal({
           const formData = new FormData();
           formData.append('file', file);
           formData.append('api_key', apiKey);
-          formData.append('timestamp', cloudTimestamp.toString());
+          formData.append('timestamp', timestamp.toString());
           formData.append('signature', signature);
           if (folder) formData.append('folder', folder);
           if (uploadPreset) formData.append('upload_preset', uploadPreset);
@@ -105,7 +105,7 @@ export function UploadModal({
             const formData = new FormData();
             formData.append('file', chunk);
             formData.append('api_key', apiKey);
-            formData.append('timestamp', cloudTimestamp.toString());
+            formData.append('timestamp', timestamp.toString());
             formData.append('signature', signature);
             if (folder) formData.append('folder', folder);
             if (uploadPreset) formData.append('upload_preset', uploadPreset);
