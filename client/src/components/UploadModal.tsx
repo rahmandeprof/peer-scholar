@@ -54,7 +54,8 @@ export function UploadModal({
       const presignRes = await api.get(
         `/materials/presign?fileType=${file.type}`,
       );
-      const { url, signature, timestamp, apiKey, folder } = presignRes.data;
+      const { url, signature, timestamp, apiKey, folder, uploadPreset } =
+        presignRes.data;
 
       // 2. Upload to Cloudinary
       const formData = new FormData();
@@ -64,6 +65,9 @@ export function UploadModal({
       formData.append('signature', signature);
       if (folder) {
         formData.append('folder', folder);
+      }
+      if (uploadPreset) {
+        formData.append('upload_preset', uploadPreset);
       }
 
       const uploadRes = await axios.post(url, formData, {

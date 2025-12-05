@@ -60,6 +60,7 @@ export class MaterialsService {
     const params = {
       timestamp,
       folder,
+      upload_preset: 'ml_default',
     };
 
     const apiSecret = this.configService.get<string>('CLOUD_API_SECRET') ?? '';
@@ -73,6 +74,7 @@ export class MaterialsService {
       timestamp,
       apiKey: this.configService.get('CLOUD_API_KEY'),
       folder,
+      uploadPreset: 'ml_default',
     };
   }
 
