@@ -51,7 +51,7 @@ export class RequestLoggingInterceptor implements NestInterceptor {
 
           this.logger.log(
             `HTTP response ${requestHash} +${duration.toString()}ms`,
-            responseBody,
+            { ...responseBody },
           );
           this.logger.log(
             `========= [END] HTTP request ${requestHash} =========`,
