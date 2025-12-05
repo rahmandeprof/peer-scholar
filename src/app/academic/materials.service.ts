@@ -61,6 +61,8 @@ export class MaterialsService {
       timestamp,
       folder,
       upload_preset: 'ml_default',
+      unique_filename: true,
+      overwrite: true,
     };
 
     const apiSecret = this.configService.get<string>('CLOUD_API_SECRET') ?? '';
@@ -75,6 +77,8 @@ export class MaterialsService {
       apiKey: this.configService.get('CLOUD_API_KEY'),
       folder,
       uploadPreset: 'ml_default',
+      uniqueFilename: true,
+      overwrite: true,
     };
   }
 
