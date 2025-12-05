@@ -18,8 +18,9 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { MaterialType } from '../academic/entities/material.entity';
 import { User } from '@/app/users/entities/user.entity';
 
-import { ChatService } from './chat.service';
 import { ContextActionDto } from './dto/context-action.dto';
+
+import { ChatService } from './chat.service';
 
 import { Request } from 'express';
 

@@ -4,8 +4,7 @@ import { exec } from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-import pdfParse = require('pdf-parse');
+import * as pdfLib from 'pdf-parse';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
@@ -65,7 +64,8 @@ export class ConversionService {
     if (mimetype.includes('pdf') || originalname.endsWith('.pdf')) {
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const data = await (pdfParse as any)(buffer);
+        const pdfParse = (pdfLib as any).default ?? pdfLib;
+        const data = await pdfParse(buffer);
 
         return data.text;
       } catch {

@@ -11,8 +11,7 @@ import { Job } from 'bull';
 import * as JSZip from 'jszip';
 import * as mammoth from 'mammoth';
 import OpenAI from 'openai';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-import pdf = require('pdf-parse');
+import * as pdfLib from 'pdf-parse';
 import { Repository } from 'typeorm';
 import { parseStringPromise } from 'xml2js';
 
@@ -64,7 +63,8 @@ export class MaterialProcessor {
 
       if (material.fileType === 'application/pdf') {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const data = await (pdf as any)(buffer);
+        const pdfParse = (pdfLib as any).default ?? pdfLib;
+        const data = await pdfParse(buffer);
 
         text = data.text;
       } else if (
