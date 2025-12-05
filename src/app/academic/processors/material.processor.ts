@@ -61,7 +61,19 @@ export class MaterialProcessor {
       // 2. Extract text
       let text = '';
 
+      // eslint-disable-next-line no-console
+      console.log(`[DEBUG] Processing file type: ${material.fileType}`);
+
       if (material.fileType === 'application/pdf') {
+        // eslint-disable-next-line no-console
+        console.log('[DEBUG] Inspecting pdfLib:', {
+          type: typeof pdfLib,
+          isFunction: typeof pdfLib === 'function',
+          keys: Object.keys(pdfLib),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          hasDefault: !!(pdfLib as any).default,
+        });
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/prefer-nullish-coalescing
         const pdfParse = (pdfLib as any).default || pdfLib;
 
