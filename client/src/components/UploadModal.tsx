@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import { X, Upload as UploadIcon, FileText, Check } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -29,6 +30,7 @@ export function UploadModal({
   const [targetYear, setTargetYear] = useState<number | ''>('');
 
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,19 +64,19 @@ export function UploadModal({
       formData.append('signature', signature);
       formData.append('folder', folder);
 
-      const uploadRes = await fetch(url, {
-        method: 'POST',
-        body: formData,
+      const uploadRes = await axios.post(url, formData, {
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total,
+            );
+            setUploadProgress(percentCompleted);
+          }
+        },
+        timeout: 60000, // 60 seconds timeout for large files
       });
 
-      if (!uploadRes.ok) {
-        const errorData = await uploadRes.text();
-        console.error('Cloudinary upload failed:', errorData);
-        throw new Error(
-          `Failed to upload file to storage: ${uploadRes.statusText}`,
-        );
-      }
-      const uploadData = await uploadRes.json();
+      const uploadData = uploadRes.data;
 
       // 3. Create Material Record
       // Determine scope and targets
@@ -93,12 +95,14 @@ export function UploadModal({
         targetFaculty =
           typeof user?.faculty === 'string'
             ? user.faculty
-            : (user?.faculty as any)?.name;
+            : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (user?.faculty as any)?.name;
       } else if (visibility === 'department') {
         targetDepartment =
           typeof user?.department === 'string'
             ? user.department
-            : (user?.department as any)?.name;
+            : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (user?.department as any)?.name;
       }
 
       await api.post('/materials', {
@@ -124,6 +128,7 @@ export function UploadModal({
       setTopic('');
       setCourseCode('');
       setTargetYear('');
+      setUploadProgress(0);
 
       if (onUploadComplete) onUploadComplete();
       setTimeout(() => {
@@ -222,14 +227,16 @@ export function UploadModal({
                   My Faculty (
                   {typeof user?.faculty === 'string'
                     ? user.faculty
-                    : (user?.faculty as any)?.name || ''}
+                    : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      (user?.faculty as any)?.name || ''}
                   )
                 </option>
                 <option value='department'>
                   My Department (
                   {typeof user?.department === 'string'
                     ? user.department
-                    : (user?.department as any)?.name || ''}
+                    : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      (user?.department as any)?.name || ''}
                   )
                 </option>
                 <option value='specific_faculty'>Specific Faculty</option>
@@ -380,6 +387,20 @@ export function UploadModal({
                 'Upload Material'
               )}
             </button>
+
+            {uploading && (
+              <div className='w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden'>
+                <div
+                  className='bg-primary-600 h-2.5 rounded-full transition-all duration-300 ease-out'
+                  style={{ width: `${uploadProgress}%` }}
+                ></div>
+                <p className='text-xs text-center mt-1 text-gray-500 dark:text-gray-400'>
+                  {uploadProgress < 100
+                    ? `Uploading... ${uploadProgress}%`
+                    : 'Processing...'}
+                </p>
+              </div>
+            )}
           </form>
         </div>
       </div>

@@ -13,10 +13,10 @@ import { User } from '@/app/users/entities/user.entity';
 
 import { CreateMaterialDto } from './dto/create-material.dto';
 
-import { UsersService } from '@/app/users/users.service';
 import { ConversionService } from '@/app/common/services/conversion.service';
-import axios from 'axios';
+import { UsersService } from '@/app/users/users.service';
 
+import axios from 'axios';
 import { Queue } from 'bull';
 import { v2 as cloudinary } from 'cloudinary';
 import { Brackets, Repository, WhereExpressionBuilder } from 'typeorm';
@@ -40,13 +40,14 @@ export class MaterialsService {
     });
   }
 
-  getPresignedUrl(fileType: string) {
+  getPresignedUrl() {
     const timestamp = Math.round(new Date().getTime() / 1000);
     const folder = 'materials';
 
     // Determine resource type based on file type
-    let resourceType = 'auto';
+    const resourceType = 'auto';
 
+    /*
     if (fileType.startsWith('image/')) {
       resourceType = 'image';
     } else if (fileType.startsWith('video/') || fileType.startsWith('audio/')) {
@@ -54,6 +55,7 @@ export class MaterialsService {
     } else {
       resourceType = 'raw';
     }
+    */
 
     const params = {
       timestamp,
