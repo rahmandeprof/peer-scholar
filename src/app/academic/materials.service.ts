@@ -41,7 +41,7 @@ export class MaterialsService {
   }
 
   getPresignedUrl() {
-    const timestamp = Math.round(new Date().getTime() / 1000);
+    const timestamp = Math.floor(new Date().getTime() / 1000);
     const folder = 'materials';
 
     // Determine resource type based on file type
