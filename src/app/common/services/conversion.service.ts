@@ -1,8 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
+
 import { exec } from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import pdfParse from 'pdf-parse';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
@@ -39,6 +41,7 @@ export class ConversionService {
 
       // Read the generated PDF
       const pdfBuffer = await readFileAsync(outputPath);
+
       return pdfBuffer;
     } catch (error) {
       this.logger.error('Failed to convert file to PDF', error);
@@ -60,9 +63,8 @@ export class ConversionService {
   ): Promise<string> {
     if (mimetype.includes('pdf') || originalname.endsWith('.pdf')) {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
-        const pdfParse = require('pdf-parse');
         const data = await pdfParse(buffer);
+
         return data.text;
       } catch {
         throw new Error('pdf-parse is required to extract PDF text.');
@@ -77,6 +79,7 @@ export class ConversionService {
       try {
         const mammoth = await import('mammoth');
         const res = await mammoth.extractRawText({ buffer });
+
         return res.value || '';
       } catch {
         throw new Error('mammoth is required to extract DOCX text.');

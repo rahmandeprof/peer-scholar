@@ -3,19 +3,17 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 
+import { Material, MaterialStatus } from '../entities/material.entity';
+import { MaterialChunk } from '../entities/material-chunk.entity';
+
 import axios from 'axios';
 import { Job } from 'bull';
 import * as JSZip from 'jszip';
 import * as mammoth from 'mammoth';
 import OpenAI from 'openai';
+import pdf from 'pdf-parse';
 import { Repository } from 'typeorm';
 import { parseStringPromise } from 'xml2js';
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
-const pdf = require('pdf-parse');
-
-import { Material, MaterialStatus } from '../entities/material.entity';
-import { MaterialChunk } from '../entities/material-chunk.entity';
 
 @Processor('materials')
 export class MaterialProcessor {
