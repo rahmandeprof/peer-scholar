@@ -57,13 +57,15 @@ export function UploadModal({
       const {
         url,
         signature,
-        timestamp,
+        uploadTimestamp,
         apiKey,
         folder,
         uploadPreset,
         uniqueFilename,
         overwrite,
       } = presignRes.data;
+
+      console.log('Presign Data Received:', presignRes.data);
 
       // 2. Upload to Cloudinary
       const uploadFile = async () => {
@@ -73,7 +75,7 @@ export function UploadModal({
           const formData = new FormData();
           formData.append('file', file);
           formData.append('api_key', apiKey);
-          formData.append('timestamp', timestamp.toString());
+          formData.append('timestamp', uploadTimestamp.toString());
           formData.append('signature', signature);
           if (folder) formData.append('folder', folder);
           if (uploadPreset) formData.append('upload_preset', uploadPreset);
@@ -105,7 +107,7 @@ export function UploadModal({
             const formData = new FormData();
             formData.append('file', chunk);
             formData.append('api_key', apiKey);
-            formData.append('timestamp', timestamp.toString());
+            formData.append('timestamp', uploadTimestamp.toString());
             formData.append('signature', signature);
             if (folder) formData.append('folder', folder);
             if (uploadPreset) formData.append('upload_preset', uploadPreset);

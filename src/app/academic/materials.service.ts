@@ -73,7 +73,7 @@ export class MaterialsService {
     return {
       url: `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
       signature,
-      timestamp,
+      uploadTimestamp: timestamp,
       apiKey: this.configService.get('CLOUD_API_KEY'),
       folder,
       uploadPreset: 'ml_default',
