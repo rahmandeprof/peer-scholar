@@ -62,9 +62,15 @@ export class MaterialProcessor {
       let text = '';
 
       if (material.fileType === 'application/pdf') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const pdfParse = (pdfLib as any).default ?? pdfLib;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/prefer-nullish-coalescing
+        const pdfParse = (pdfLib as any).default || pdfLib;
+
+        // eslint-disable-next-line no-console
+        console.log('PDF Parsing started...');
         const data = await pdfParse(buffer);
+
+        // eslint-disable-next-line no-console
+        console.log('PDF Parsing success!');
 
         text = data.text;
       } else if (

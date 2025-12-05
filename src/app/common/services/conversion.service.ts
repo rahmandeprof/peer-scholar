@@ -63,8 +63,8 @@ export class ConversionService {
   ): Promise<string> {
     if (mimetype.includes('pdf') || originalname.endsWith('.pdf')) {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const pdfParse = (pdfLib as any).default ?? pdfLib;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/prefer-nullish-coalescing
+        const pdfParse = (pdfLib as any).default || pdfLib;
         const data = await pdfParse(buffer);
 
         return data.text;
