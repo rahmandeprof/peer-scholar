@@ -66,35 +66,79 @@ export function UploadModal({
       } = presignRes.data;
 
       // 2. Upload to Cloudinary
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('api_key', apiKey);
-      formData.append('timestamp', cloudTimestamp.toString());
-      formData.append('signature', signature);
-      if (folder) {
-        formData.append('folder', folder);
-      }
-      if (uploadPreset) {
-        formData.append('upload_preset', uploadPreset);
-      }
-      if (uniqueFilename) {
-        formData.append('unique_filename', 'true');
-      }
-      if (overwrite) {
-        formData.append('overwrite', 'true');
-      }
+      const uploadFile = async () => {
+        const CHUNK_SIZE = 6 * 1024 * 1024; // 6MB
+        if (file.size <= 9.5 * 1024 * 1024) {
+          // Small file: Single request
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('api_key', apiKey);
+          formData.append('timestamp', cloudTimestamp.toString());
+          formData.append('signature', signature);
+          if (folder) formData.append('folder', folder);
+          if (uploadPreset) formData.append('upload_preset', uploadPreset);
+          if (uniqueFilename) formData.append('unique_filename', 'true');
+          if (overwrite) formData.append('overwrite', 'true');
 
-      const uploadRes = await axios.post(url, formData, {
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            const percentCompleted = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total,
-            );
-            setUploadProgress(percentCompleted);
+          return await axios.post(url, formData, {
+            onUploadProgress: (progressEvent) => {
+              if (progressEvent.total) {
+                const percentCompleted = Math.round(
+                  (progressEvent.loaded * 100) / progressEvent.total,
+                );
+                setUploadProgress(percentCompleted);
+              }
+            },
+            timeout: 300000,
+          });
+        } else {
+          // Large file: Chunked upload
+          const uniqueUploadId = `scholar_${Date.now()}_${Math.random()
+            .toString(36)
+            .substr(2, 9)}`;
+          let start = 0;
+          let end = Math.min(CHUNK_SIZE, file.size);
+          let response;
+
+          while (start < file.size) {
+            const chunk = file.slice(start, end);
+            const formData = new FormData();
+            formData.append('file', chunk);
+            formData.append('api_key', apiKey);
+            formData.append('timestamp', cloudTimestamp.toString());
+            formData.append('signature', signature);
+            if (folder) formData.append('folder', folder);
+            if (uploadPreset) formData.append('upload_preset', uploadPreset);
+            if (uniqueFilename) formData.append('unique_filename', 'true');
+            if (overwrite) formData.append('overwrite', 'true');
+
+            const headers = {
+              'X-Unique-Upload-Id': uniqueUploadId,
+              'Content-Range': `bytes ${start}-${end - 1}/${file.size}`,
+            };
+
+            response = await axios.post(url, formData, {
+              headers,
+              onUploadProgress: (progressEvent) => {
+                const chunkLoaded = progressEvent.loaded;
+                const totalLoaded = start + chunkLoaded;
+                const percentCompleted = Math.round(
+                  (totalLoaded * 100) / file.size,
+                );
+                setUploadProgress(Math.min(percentCompleted, 99));
+              },
+              timeout: 300000,
+            });
+
+            start = end;
+            end = Math.min(start + CHUNK_SIZE, file.size);
           }
-        },
-        timeout: 300000, // 5 minutes timeout for large files
-      });
+          setUploadProgress(100);
+          return response;
+        }
+      };
+
+      const uploadRes = await uploadFile();
 
       const uploadData = uploadRes.data;
 
