@@ -116,7 +116,37 @@ export class MaterialProcessor {
         // eslint-disable-next-line no-console
         console.log('PDF Parsing started...');
 
-        const data = await pdfParseFn(buffer);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let data: any;
+
+        try {
+          // Try function call first
+
+          data = await pdfParseFn(buffer);
+        } catch (err) {
+          if (
+            err instanceof Error &&
+            err.message.includes(
+              "Class constructors cannot be invoked without 'new'",
+            )
+          ) {
+            // eslint-disable-next-line no-console
+            console.log(
+              '[DEBUG] Caught class constructor error, trying new...',
+            );
+
+            const instance = new pdfParseFn(buffer);
+
+            // Check if instance is a promise or has data
+            if (instance instanceof Promise) {
+              data = await instance;
+            } else {
+              data = instance;
+            }
+          } else {
+            throw err;
+          }
+        }
 
         // eslint-disable-next-line no-console
         console.log('PDF Parsing success!');
