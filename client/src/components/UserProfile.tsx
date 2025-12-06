@@ -27,6 +27,7 @@ import { useNetwork } from '../contexts/NetworkContext';
 import { OptimizedImage } from './OptimizedImage';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
+import { useModalBack } from '../hooks/useModalBack';
 
 interface UserProfileProps {
   onClose: () => void;
@@ -35,6 +36,9 @@ interface UserProfileProps {
 export function UserProfile({ onClose }: UserProfileProps) {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
+  
+  // Handle back button closing
+  useModalBack(true, onClose, 'user-profile');
 
   if (!user) return null;
   const toast = useToast();

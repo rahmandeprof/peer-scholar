@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard as Home,
@@ -19,6 +19,7 @@ import { BottomNav } from './BottomNav';
 import { UserProfile } from './UserProfile';
 import { WelcomeModal } from './WelcomeModal';
 import api from '../lib/api';
+import { useOnClickOutside } from '../hooks/useOnClickOutside';
 
 interface Conversation {
   id: string;
@@ -35,6 +36,9 @@ export function DashboardLayout() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const toolsRef = useRef<HTMLDivElement>(null);
+
+  useOnClickOutside(toolsRef, () => setToolsOpen(false));
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${
@@ -128,7 +132,7 @@ export function DashboardLayout() {
               {toolsOpen && (
                 <>
                   <div className="fixed inset-0 z-[60]" onClick={() => setToolsOpen(false)} />
-                  <div className="fixed left-72 ml-4 top-1/2 -translate-y-1/2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-4 z-[70] animate-in fade-in zoom-in-95 duration-100 grid grid-cols-2 gap-3">
+                  <div ref={toolsRef} className="fixed left-72 ml-4 top-1/2 -translate-y-1/2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-4 z-[70] animate-in fade-in zoom-in-95 duration-100 grid grid-cols-2 gap-3">
                     <NavLink 
                       to='/tools/gp-calculator' 
                       className="flex flex-col items-center justify-center p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-center group"

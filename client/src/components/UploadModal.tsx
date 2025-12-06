@@ -5,6 +5,7 @@ import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { UNILORIN_FACULTIES } from '../data/unilorin-faculties';
+import { useModalBack } from '../hooks/useModalBack';
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -19,6 +20,10 @@ export function UploadModal({
 }: UploadModalProps) {
   const { user } = useAuth();
   const toast = useToast();
+  
+  // Handle back button closing
+  useModalBack(isOpen, onClose, 'upload-modal');
+
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   const [topic, setTopic] = useState('');
