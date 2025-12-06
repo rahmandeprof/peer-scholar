@@ -20,6 +20,7 @@ import { UserProfile } from './UserProfile';
 import { WelcomeModal } from './WelcomeModal';
 import api from '../lib/api';
 import { useOnClickOutside } from '../hooks/useOnClickOutside';
+import { FeatureSpotlightModal } from './FeatureSpotlightModal';
 
 interface Conversation {
   id: string;
@@ -32,6 +33,7 @@ export function DashboardLayout() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [showGpSpotlight, setShowGpSpotlight] = useState(false);
   const [history, setHistory] = useState<Conversation[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { user, logout } = useAuth();
@@ -136,7 +138,17 @@ export function DashboardLayout() {
                     <NavLink 
                       to='/tools/gp-calculator' 
                       className="flex flex-col items-center justify-center p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-center group"
-                      onClick={() => setToolsOpen(false)}
+                      onClick={(e) => {
+                        const hasSeen = localStorage.getItem('has_seen_gp_calculator');
+                        if (!hasSeen) {
+                          e.preventDefault();
+                          setShowGpSpotlight(true);
+                          localStorage.setItem('has_seen_gp_calculator', 'true');
+                          setToolsOpen(false);
+                        } else {
+                          setToolsOpen(false);
+                        }
+                      }}
                     >
                       <div className="w-10 h-10 bg-white dark:bg-gray-700 rounded-full flex items-center justify-center shadow-sm mb-2 group-hover:scale-110 transition-transform">
                         <Calculator className="w-5 h-5" />
@@ -315,7 +327,18 @@ export function DashboardLayout() {
         onUploadComplete={handleUploadComplete}
       />
       {profileOpen && <UserProfile onClose={() => setProfileOpen(false)} />}
+      {profileOpen && <UserProfile onClose={() => setProfileOpen(false)} />}
       <WelcomeModal />
+      <FeatureSpotlightModal
+        isOpen={showGpSpotlight}
+        onClose={() => {
+          setShowGpSpotlight(false);
+          navigate('/tools/gp-calculator');
+        }}
+        title="GP Calculator"
+        description="Calculate your Grade Point Average easily. Set target GPAs and track your academic progress."
+        icon={Calculator}
+      />
     </div>
   );
 }

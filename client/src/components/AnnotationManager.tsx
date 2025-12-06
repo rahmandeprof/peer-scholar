@@ -14,6 +14,7 @@ interface Annotation {
     firstName: string;
     lastName: string;
   };
+  type: 'note' | 'pq';
 }
 
 interface AnnotationManagerProps {
@@ -89,6 +90,7 @@ export function AnnotationManager({
         session,
         contextBefore: selection.contextBefore,
         contextAfter: selection.contextAfter,
+        type: 'pq',
       });
 
       toast.success('Past Question tagged!');
@@ -136,7 +138,7 @@ export function AnnotationManager({
             </h4>
             <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
               {visibleAnnotations.map((ann) => (
-                <div key={ann.id} className="text-xs p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded border border-yellow-100 dark:border-yellow-900/50">
+                <div key={ann.id} className={`text-xs p-2 rounded border ${ann.type === 'pq' ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-100 dark:border-yellow-900/50' : 'bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700'}`}>
                   <p className="font-medium text-gray-800 dark:text-gray-200 line-clamp-2" title={ann.selectedText}>
                     "{ann.selectedText}"
                   </p>

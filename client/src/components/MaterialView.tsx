@@ -26,6 +26,7 @@ import { TTSPlayer } from './TTSPlayer';
 import { Headphones, Layers } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { FlashcardModal } from './FlashcardModal';
+import { FeatureSpotlightModal } from './FeatureSpotlightModal';
 
 interface Material {
   id: string;
@@ -58,6 +59,7 @@ export const MaterialView = () => {
   const [timerKey, setTimerKey] = useState(0); // Used to reset timer
   const [ttsOpen, setTtsOpen] = useState(false);
   const [flashcardModalOpen, setFlashcardModalOpen] = useState(false);
+  const [showFlashcardSpotlight, setShowFlashcardSpotlight] = useState(false);
 
   const [averageRating, setAverageRating] = useState(0);
   const [isFavorited, setIsFavorited] = useState(false);
@@ -287,7 +289,15 @@ export const MaterialView = () => {
             </button>
             
             <button
-              onClick={() => setFlashcardModalOpen(true)}
+              onClick={() => {
+                const hasSeen = localStorage.getItem('has_seen_flashcards');
+                if (!hasSeen) {
+                  setShowFlashcardSpotlight(true);
+                  localStorage.setItem('has_seen_flashcards', 'true');
+                } else {
+                  setFlashcardModalOpen(true);
+                }
+              }}
               className='hidden md:flex px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors items-center font-medium text-sm'
             >
               <Layers className='w-4 h-4 mr-1.5' />
@@ -332,7 +342,17 @@ export const MaterialView = () => {
                           Quiz
                         </button>
                         <button
-                          onClick={() => { setFlashcardModalOpen(true); setMenuOpen(false); }}
+                          onClick={() => { 
+                            const hasSeen = localStorage.getItem('has_seen_flashcards');
+                            if (!hasSeen) {
+                              setShowFlashcardSpotlight(true);
+                              localStorage.setItem('has_seen_flashcards', 'true');
+                              setMenuOpen(false);
+                            } else {
+                              setFlashcardModalOpen(true); 
+                              setMenuOpen(false); 
+                            }
+                          }}
                           className='flex flex-col items-center justify-center p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg text-indigo-600 dark:text-indigo-400 text-xs font-medium'
                         >
                           <Layers className='w-4 h-4 mb-1' />
@@ -519,6 +539,16 @@ export const MaterialView = () => {
             onClose={() => setTtsOpen(false)} 
           />
         )}
+        <FeatureSpotlightModal
+          isOpen={showFlashcardSpotlight}
+          onClose={() => {
+            setShowFlashcardSpotlight(false);
+            setFlashcardModalOpen(true);
+          }}
+          title="Study with Flashcards"
+          description="Transform this material into interactive flashcards instantly. Perfect for memorizing key concepts and definitions."
+          icon={Layers}
+        />
       </div>
     </ReaderSettingsProvider>
   );

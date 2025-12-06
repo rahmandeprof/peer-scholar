@@ -29,4 +29,7 @@ export class MaterialAnnotation extends IDAndTimestamp {
 
   @Column({ type: 'text', nullable: true })
   contextAfter: string;
+
+  @Column({ default: 'note' })
+  type: 'note' | 'pq'; // 'pq' = Past Question
 }

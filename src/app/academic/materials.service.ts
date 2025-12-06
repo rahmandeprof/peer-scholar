@@ -422,6 +422,7 @@ export class MaterialsService {
       session: string;
       contextBefore?: string;
       contextAfter?: string;
+      type?: 'note' | 'pq';
     },
   ) {
     const material = await this.materialRepo.findOneBy({ id: materialId });
@@ -436,6 +437,7 @@ export class MaterialsService {
       material,
       user,
       ...data,
+      type: data.type || 'note',
     });
 
     return this.annotationRepo.save(annotation);
