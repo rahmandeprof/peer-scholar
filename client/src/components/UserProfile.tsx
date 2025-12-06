@@ -322,6 +322,25 @@ export function UserProfile({ onClose }: UserProfileProps) {
                         if (isIOS) {
                           setShowIOSModal(true);
                         } else {
+                          // Check for In-App Browser
+                          const userAgent = window.navigator.userAgent.toLowerCase();
+                          const isInApp =
+                            userAgent.includes('instagram') ||
+                            userAgent.includes('fbav') || // Facebook
+                            userAgent.includes('fban') || // Facebook
+                            userAgent.includes('line') ||
+                            userAgent.includes('wv') || // Android WebView
+                            (userAgent.includes('linkedin') &&
+                              !userAgent.includes('desktop')); // LinkedIn mobile
+
+                          if (isInApp) {
+                            toast.error(
+                              'Browser not supported. Please open this link in Chrome or Safari to install the app.',
+                              { duration: 5000 },
+                            );
+                            return;
+                          }
+
                           // @ts-ignore
                           const promptEvent = window.deferredPrompt;
                           if (promptEvent) {
@@ -334,7 +353,14 @@ export function UserProfile({ onClose }: UserProfileProps) {
                               window.deferredPrompt = null;
                             });
                           } else {
-                            toast.info('Open this link in Chrome or Safari to install.');
+                            // If no prompt event, it might be installed or not supported, 
+                            // but if we are here, we are likely in a browser that supports it but hasn't fired the event yet
+                            // or we are in a standard browser.
+                            // Let's show a helpful message instead of generic error if we suspect IAB but missed the check above,
+                            // or just the standard message.
+                            toast.info(
+                              'Open this link in Chrome or Safari to install.',
+                            );
                           }
                         }
                       }}
