@@ -526,7 +526,9 @@ export function UserProfile({ onClose }: UserProfileProps) {
                   Menu Hub
                 </h3>
                 <button
-                  onClick={() => {
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
                     onClose();
                     navigate('/tools/gp-calculator');
                   }}
@@ -544,7 +546,11 @@ export function UserProfile({ onClose }: UserProfileProps) {
                 </button>
 
                 <button
-                  onClick={() => setActiveTab('quizzes')}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveTab('quizzes');
+                  }}
                   className='w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group'
                 >
                   <div className='flex items-center'>
@@ -559,7 +565,9 @@ export function UserProfile({ onClose }: UserProfileProps) {
                 </button>
 
                 <button
-                  onClick={() => {
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
                     window.location.href = 'mailto:abdulrahmanabdulsalam93@gmail.com';
                   }}
                   className='w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group'

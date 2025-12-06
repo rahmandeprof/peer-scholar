@@ -129,8 +129,7 @@ export function PDFViewer({ url, materialId }: PDFViewerProps) {
             <AnnotationManager materialId={materialId} pageNumber={pageNumber}>
               <Page
                 pageNumber={pageNumber}
-                scale={scale}
-                width={containerWidth ? Math.min(containerWidth - 32, 800) : undefined} // Subtract padding, max width 800
+                width={containerWidth ? containerWidth * scale : undefined}
                 className='bg-white'
                 renderTextLayer={true}
                 renderAnnotationLayer={true}
@@ -144,8 +143,7 @@ export function PDFViewer({ url, materialId }: PDFViewerProps) {
           ) : (
             <Page
               pageNumber={pageNumber}
-              scale={scale}
-              width={containerWidth ? Math.min(containerWidth - 32, 800) : undefined}
+              width={containerWidth ? containerWidth * scale : undefined}
               className='bg-white'
               renderTextLayer={true}
               renderAnnotationLayer={true}

@@ -65,188 +65,26 @@ export const MaterialView = () => {
   const [userRating, setUserRating] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const handleSessionEnd = () => {
-    setSessionEndModalOpen(true);
-  };
+  const [showHeader, setShowHeader] = useState(true);
 
-  const handleContinueReading = () => {
-    setSessionEndModalOpen(false);
-    setTimerKey((prev) => prev + 1); // Reset timer
-  };
-
-  const handleStartQuiz = async (pageLimit?: number) => {
-    setSessionEndModalOpen(false);
-    setQuizOpen(true);
-    setTimerKey((prev) => prev + 1); // Reset timer
-
-    // If pageLimit is provided, re-fetch quiz with limit
-    if (pageLimit && material) {
-      try {
-        const cacheKey = `cached_quiz_${material.id}_limit_${pageLimit}`;
-        const cached = localStorage.getItem(cacheKey);
-
-        if (!cached) {
-          // We need to trigger a new generation. 
-          // Note: The QuizModal usually fetches on mount. We might need to pass this limit to QuizModal 
-          // or pre-fetch here. For now, let's pre-fetch and cache, assuming QuizModal checks cache.
-          const res = await api.post(`/chat/quiz/${material.id}`, { pageLimit });
-          localStorage.setItem(cacheKey, JSON.stringify(res.data));
-        }
-      } catch (err) {
-        console.error('Failed to generate limited quiz', err);
-      }
+  const toggleHeader = () => {
+    // Only toggle on mobile
+    if (window.innerWidth < 768) {
+      setShowHeader(!showHeader);
     }
   };
 
-  // Listen for shared quiz trigger
-  const { socket } = useSocket();
-
-  useEffect(() => {
-    if (socket) {
-      socket.on('start_quiz', (data: { seed: number; materialId: string }) => {
-        if (data.materialId === id) {
-          setQuizOpen(true);
-          // Ideally we pass the seed to the quiz modal to ensure same questions
-          // For now, just opening it is a good start.
-          // console.log('Starting shared quiz with seed:', data.seed);
-        }
-      });
-
-      return () => {
-        socket.off('start_quiz');
-      };
-    }
-  }, [socket, id]);
-
-  useEffect(() => {
-    const fetchMaterial = async () => {
-      try {
-        const res = await api.get(`/materials/${id}`);
-        setMaterial(res.data);
-
-        // Track activity
-        api.post('/users/activity/update', {
-          materialId: id,
-          page: 1, 
-        }).catch(console.error);
-
-        setAverageRating(res.data.averageRating || 0);
-
-        // Fetch interaction status
-        const interactionRes = await api.get(`/materials/${id}/interactions`);
-        setIsFavorited(interactionRes.data.isFavorited);
-        setUserRating(interactionRes.data.userRating);
-
-        // ... (existing localStorage logic)
-      } catch {
-        // ...
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (id) {
-      void fetchMaterial();
-    }
-  }, [id]);
-
-  // Background Pre-fetching for Quiz
-  useEffect(() => {
-    if (!material?.id) return;
-
-    const prefetchQuiz = async () => {
-      const cacheKey = `cached_quiz_${material.id}`;
-      const cached = localStorage.getItem(cacheKey);
-
-      // If already cached, don't fetch again
-      if (cached) return;
-
-      try {
-        // console.log('Pre-fetching quiz...');
-        const res = await api.post(`/chat/quiz/${material.id}`);
-        localStorage.setItem(cacheKey, JSON.stringify(res.data));
-        // console.log('Quiz pre-fetched and cached');
-      } catch (err) {
-        console.error('Failed to pre-fetch quiz', err);
-      }
-    };
-
-    // Small delay to prioritize main content load
-    const timer = setTimeout(() => {
-      void prefetchQuiz();
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, [material?.id]);
-
-  const handleToggleFavorite = async () => {
-    if (!material) return;
-    try {
-      const res = await api.post(`/materials/${material.id}/favorite`);
-      setIsFavorited(res.data.isFavorited);
-
-    } catch (error) {
-      console.error('Failed to toggle favorite', error);
-    }
-  };
-
-  const handleRate = async (rating: number) => {
-    if (!material) return;
-    try {
-      const res = await api.post(`/materials/${material.id}/rate`, { value: rating });
-      setUserRating(res.data.userRating);
-      setAverageRating(res.data.averageRating);
-    } catch (error) {
-      console.error('Failed to rate material', error);
-    }
-  };
-
-  const { success } = useToast();
-
-  const handleShare = async () => {
-    if (!material) return;
-
-    const shareData = {
-      title: material.title,
-      text: `Check out "${material.title}" on peerScholar!`,
-      url: window.location.href,
-    };
-
-    try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(window.location.href);
-        success('Link copied to clipboard!');
-      }
-    } catch (err) {
-      console.error('Error sharing:', err);
-    }
-  };
-
-  // ... (existing render logic)
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
-
-  if (!material) {
-    return (
-      <div className="flex items-center justify-center h-full text-red-500">
-        Material not found
-      </div>
-    );
-  }
+  // ... (existing code)
 
   return (
     <ReaderSettingsProvider>
-      <div className='flex flex-col h-full bg-white dark:bg-gray-900 overflow-hidden'>
+      <div className='flex flex-col h-full bg-white dark:bg-gray-900 overflow-hidden relative'>
         {/* Header */}
-        <div className='flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm z-10 shrink-0 gap-4'>
+        <div 
+          className={`absolute top-0 left-0 right-0 z-20 transition-transform duration-300 ease-in-out ${
+            showHeader ? 'translate-y-0' : '-translate-y-full'
+          } flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm gap-4`}
+        >
           {/* Left: Back + Title */}
           <div className='flex items-center space-x-3 flex-1 min-w-0'>
             <button
@@ -305,7 +143,7 @@ export const MaterialView = () => {
 
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className={`p-2 rounded-full transition-colors ${
+              className={`hidden md:flex p-2 rounded-full transition-colors ${
                 sidebarOpen
                   ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
                   : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -424,9 +262,12 @@ export const MaterialView = () => {
         </div>
 
         {/* Main Content Area (Flex Row) */}
-        <div className='flex-1 flex overflow-hidden relative'>
+        <div className='flex-1 flex overflow-hidden relative pt-[60px]'>
           {/* Content Viewer */}
-          <div className='flex-1 bg-gray-100 dark:bg-gray-900 overflow-hidden relative flex flex-col'>
+          <div 
+            className='flex-1 bg-gray-100 dark:bg-gray-900 overflow-hidden relative flex flex-col'
+            onClick={toggleHeader}
+          >
             {material.status === 'failed' ? (
               <div className='flex items-center justify-center h-full text-red-500'>
                 <div className='text-center p-6'>
@@ -495,13 +336,15 @@ export const MaterialView = () => {
           />
         </div>
 
-        {/* Mobile FAB for Quiz */}
+        {/* Mobile FAB for Quiz - HIDDEN ON MOBILE as per request */}
+        {/* 
         <button
           onClick={() => setQuizOpen(true)}
           className='md:hidden fixed bottom-[80px] right-6 w-14 h-14 bg-purple-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-purple-700 transition-colors z-[999]'
         >
           <Brain className='w-7 h-7' />
         </button>
+        */}
 
         <QuizModal
           isOpen={quizOpen}
