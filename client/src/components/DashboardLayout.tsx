@@ -127,8 +127,8 @@ export function DashboardLayout() {
 
               {toolsOpen && (
                 <>
-                  <div className="fixed inset-0 z-10" onClick={() => setToolsOpen(false)} />
-                  <div className="absolute left-full top-0 ml-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-4 z-20 animate-in fade-in zoom-in-95 duration-100 grid grid-cols-2 gap-3">
+                  <div className="fixed inset-0 z-[60]" onClick={() => setToolsOpen(false)} />
+                  <div className="fixed left-72 ml-4 top-1/2 -translate-y-1/2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-4 z-[70] animate-in fade-in zoom-in-95 duration-100 grid grid-cols-2 gap-3">
                     <NavLink 
                       to='/tools/gp-calculator' 
                       className="flex flex-col items-center justify-center p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-center group"
@@ -178,13 +178,13 @@ export function DashboardLayout() {
             <div className='px-3 mb-2 mt-4 text-xs font-semibold text-gray-500 uppercase tracking-wider'>
               Support
             </div>
-            <button
-              onClick={() => window.location.href = 'mailto:abdulrahmanabdulsalam93@gmail.com'}
+            <a
+              href='mailto:abdulrahmanabdulsalam93@gmail.com'
               className='w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-all duration-200 text-left'
             >
               <HelpCircle className='w-5 h-5 mr-3' />
               Feedback & Support
-            </button>
+            </a>
           </div>
         </div>
 
