@@ -74,7 +74,169 @@ export const MaterialView = () => {
     }
   };
 
-  // ... (existing code)
+  const handleSessionEnd = () => {
+    setSessionEndModalOpen(true);
+  };
+
+  const handleContinueReading = () => {
+    setSessionEndModalOpen(false);
+    setTimerKey((prev) => prev + 1); // Reset timer
+  };
+
+  const handleStartQuiz = async (pageLimit?: number) => {
+    setSessionEndModalOpen(false);
+    setQuizOpen(true);
+    setTimerKey((prev) => prev + 1); // Reset timer
+
+    // If pageLimit is provided, re-fetch quiz with limit
+    if (pageLimit && material) {
+      try {
+        const cacheKey = `cached_quiz_${material.id}_limit_${pageLimit}`;
+        const cached = localStorage.getItem(cacheKey);
+
+        if (!cached) {
+          const res = await api.post(`/chat/quiz/${material.id}`, { pageLimit });
+          localStorage.setItem(cacheKey, JSON.stringify(res.data));
+        }
+      } catch (err) {
+        console.error('Failed to generate limited quiz', err);
+      }
+    }
+  };
+
+  // Listen for shared quiz trigger
+  const { socket } = useSocket();
+
+  useEffect(() => {
+    if (socket) {
+      socket.on('start_quiz', (data: { seed: number; materialId: string }) => {
+        if (data.materialId === id) {
+          setQuizOpen(true);
+        }
+      });
+
+      return () => {
+        socket.off('start_quiz');
+      };
+    }
+  }, [socket, id]);
+
+  useEffect(() => {
+    const fetchMaterial = async () => {
+      try {
+        const res = await api.get(`/materials/${id}`);
+        setMaterial(res.data);
+
+        // Track activity
+        api.post('/users/activity/update', {
+          materialId: id,
+          page: 1, 
+        }).catch(console.error);
+
+        setAverageRating(res.data.averageRating || 0);
+
+        // Fetch interaction status
+        const interactionRes = await api.get(`/materials/${id}/interactions`);
+        setIsFavorited(interactionRes.data.isFavorited);
+        setUserRating(interactionRes.data.userRating);
+
+      } catch {
+        // ...
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      void fetchMaterial();
+    }
+  }, [id]);
+
+  // Background Pre-fetching for Quiz
+  useEffect(() => {
+    if (!material?.id) return;
+
+    const prefetchQuiz = async () => {
+      const cacheKey = `cached_quiz_${material.id}`;
+      const cached = localStorage.getItem(cacheKey);
+
+      if (cached) return;
+
+      try {
+        const res = await api.post(`/chat/quiz/${material.id}`);
+        localStorage.setItem(cacheKey, JSON.stringify(res.data));
+      } catch (err) {
+        console.error('Failed to pre-fetch quiz', err);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      void prefetchQuiz();
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [material?.id]);
+
+  const handleToggleFavorite = async () => {
+    if (!material) return;
+    try {
+      const res = await api.post(`/materials/${material.id}/favorite`);
+      setIsFavorited(res.data.isFavorited);
+
+    } catch (error) {
+      console.error('Failed to toggle favorite', error);
+    }
+  };
+
+  const handleRate = async (rating: number) => {
+    if (!material) return;
+    try {
+      const res = await api.post(`/materials/${material.id}/rate`, { value: rating });
+      setUserRating(res.data.userRating);
+      setAverageRating(res.data.averageRating);
+    } catch (error) {
+      console.error('Failed to rate material', error);
+    }
+  };
+
+  const { success } = useToast();
+
+  const handleShare = async () => {
+    if (!material) return;
+
+    const shareData = {
+      title: material.title,
+      text: `Check out "${material.title}" on peerScholar!`,
+      url: window.location.href,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        success('Link copied to clipboard!');
+      }
+    } catch (err) {
+      console.error('Error sharing:', err);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+
+  if (!material) {
+    return (
+      <div className="flex items-center justify-center h-full text-red-500">
+        Material not found
+      </div>
+    );
+  }
 
   return (
     <ReaderSettingsProvider>
