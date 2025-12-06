@@ -28,6 +28,7 @@ export const AppDataSource = new DataSource(
         configuration.NODE_ENV === 'production'
           ? false
           : configuration.TYPEORM_SYNCHRONIZE,
+      migrationsRun: configuration.NODE_ENV === 'production',
       migrations: [configuration.TYPEORM_MIGRATIONS],
       entities: [configuration.TYPEORM_ENTITIES],
     },
