@@ -65,14 +65,7 @@ export const MaterialView = () => {
   const [userRating, setUserRating] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const [showHeader, setShowHeader] = useState(true);
 
-  const toggleHeader = () => {
-    // Only toggle on mobile
-    if (window.innerWidth < 768) {
-      setShowHeader(!showHeader);
-    }
-  };
 
   const handleSessionEnd = () => {
     setSessionEndModalOpen(true);
@@ -243,9 +236,8 @@ export const MaterialView = () => {
       <div className='flex flex-col h-full bg-white dark:bg-gray-900 overflow-hidden relative'>
         {/* Header */}
         <div 
-          className={`absolute top-0 left-0 right-0 z-20 transition-transform duration-300 ease-in-out ${
-            showHeader ? 'translate-y-0' : '-translate-y-full'
-          } flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm gap-4`}
+        <div 
+          className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm gap-4"
         >
           {/* Left: Back + Title */}
           <div className='flex items-center space-x-3 flex-1 min-w-0'>
@@ -428,7 +420,6 @@ export const MaterialView = () => {
           {/* Content Viewer */}
           <div 
             className='flex-1 bg-gray-100 dark:bg-gray-900 overflow-hidden relative flex flex-col'
-            onClick={toggleHeader}
           >
             {material.status === 'failed' ? (
               <div className='flex items-center justify-center h-full text-red-500'>
