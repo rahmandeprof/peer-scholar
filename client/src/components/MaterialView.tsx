@@ -58,7 +58,7 @@ export const MaterialView = () => {
   const [timerKey, setTimerKey] = useState(0); // Used to reset timer
   const [ttsOpen, setTtsOpen] = useState(false);
   const [flashcardModalOpen, setFlashcardModalOpen] = useState(false);
-  const [favoritesCount, setFavoritesCount] = useState(0);
+
   const [averageRating, setAverageRating] = useState(0);
   const [isFavorited, setIsFavorited] = useState(false);
 
@@ -123,7 +123,7 @@ export const MaterialView = () => {
       try {
         const res = await api.get(`/materials/${id}`);
         setMaterial(res.data);
-        setFavoritesCount(res.data.favoritesCount || 0);
+
         setAverageRating(res.data.averageRating || 0);
 
         // Fetch interaction status
@@ -178,7 +178,7 @@ export const MaterialView = () => {
     try {
       const res = await api.post(`/materials/${material.id}/favorite`);
       setIsFavorited(res.data.isFavorited);
-      setFavoritesCount(res.data.favoritesCount);
+
     } catch (error) {
       console.error('Failed to toggle favorite', error);
     }
