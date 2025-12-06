@@ -22,6 +22,7 @@ export function PDFViewer({ url, materialId }: PDFViewerProps) {
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [scale, setScale] = useState<number>(1.0);
 
+  function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
     setNumPages(numPages);
     setPageNumber(1);
   }
@@ -123,7 +124,6 @@ export function PDFViewer({ url, materialId }: PDFViewerProps) {
             />
           )}
         </Document>
-      </div>
       </div>
     </div>
   );
