@@ -16,7 +16,7 @@ export function GoogleCallback() {
     processed.current = true;
 
     const token = searchParams.get('token');
-    const token = searchParams.get('token');
+
 
     if (token) {
       // Fetch full profile to ensure we have department/faculty info
