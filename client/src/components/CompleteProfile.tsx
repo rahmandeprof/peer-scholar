@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 
 export default function CompleteProfile() {
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, isLoading } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
   const [loading, setLoading] = useState(false);
@@ -29,6 +29,7 @@ export default function CompleteProfile() {
   useEffect(() => {
     // If user already has all data, redirect to dashboard
     if (
+      !isLoading &&
       user?.school &&
       user?.faculty &&
       user?.department &&
@@ -36,32 +37,17 @@ export default function CompleteProfile() {
     ) {
       navigate('/dashboard');
     }
-  }, [user, navigate]);
+  }, [user, navigate, isLoading]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  // ... (handleSubmit)
 
-    try {
-      await api.patch('/users/academic-profile', {
-        schoolId: formData.school, // Backend should handle string or ID
-        facultyId: formData.faculty,
-        departmentId: formData.department,
-        yearOfStudy: formData.yearOfStudy,
-      });
-
-      await refreshUser();
-      toast.success('Profile completed! Welcome to your dashboard.');
-      navigate('/dashboard');
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to update profile. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (!user) return null;
+  if (isLoading || !user) {
+    return (
+      <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950'>
+        <Loader2 className='w-8 h-8 animate-spin text-primary-600' />
+      </div>
+    );
+  }
 
   return (
     <div className='min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col items-center justify-center p-4'>

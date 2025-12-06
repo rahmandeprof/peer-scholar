@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   FileText,
@@ -12,6 +12,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmationModal } from './ConfirmationModal';
 import api from '../lib/api';
+import { useOnClickOutside } from '../hooks/useOnClickOutside';
 
 interface Material {
   id: string;
@@ -44,6 +45,9 @@ export function MaterialCard({ material, onDelete }: MaterialCardProps) {
   const toast = useToast();
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useOnClickOutside(menuRef as React.RefObject<HTMLElement>, () => setMenuOpen(false));
 
   const isOwner = user?.id === material.uploader.id;
 
@@ -132,7 +136,7 @@ export function MaterialCard({ material, onDelete }: MaterialCardProps) {
               )}
 
               {/* Menu Button */}
-              <div className='relative'>
+              <div className='relative' ref={menuRef}>
                 <button
                   onClick={(e) => {
                     e.preventDefault();
@@ -146,47 +150,41 @@ export function MaterialCard({ material, onDelete }: MaterialCardProps) {
 
                 {/* Dropdown Menu */}
                 {menuOpen && (
-                  <>
-                    <div
-                      className='fixed inset-0 z-10'
-                      onClick={() => setMenuOpen(false)}
-                    />
-                    <div className='absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-20 py-1 animate-pop-in'>
+                  <div className='absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-20 py-1 animate-pop-in'>
+                    <button
+                      onClick={handleDownload}
+                      className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
+                    >
+                      <Download className='w-4 h-4 mr-2' />
+                      Download
+                    </button>
+                    <button
+                      onClick={handleShare}
+                      className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
+                    >
+                      <Share2 className='w-4 h-4 mr-2' />
+                      Share
+                    </button>
+                    <button
+                      onClick={handleSummarize}
+                      className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
+                    >
+                      <SummarizeIcon className='w-4 h-4 mr-2' />
+                      Summarize
+                    </button>
+                    {isOwner && (
                       <button
-                        onClick={handleDownload}
-                        className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
+                        onClick={() => {
+                          setMenuOpen(false);
+                          setDeleteModalOpen(true);
+                        }}
+                        className='w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center'
                       >
-                        <Download className='w-4 h-4 mr-2' />
-                        Download
+                        <Trash2 className='w-4 h-4 mr-2' />
+                        Delete
                       </button>
-                      <button
-                        onClick={handleShare}
-                        className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
-                      >
-                        <Share2 className='w-4 h-4 mr-2' />
-                        Share
-                      </button>
-                      <button
-                        onClick={handleSummarize}
-                        className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
-                      >
-                        <SummarizeIcon className='w-4 h-4 mr-2' />
-                        Summarize
-                      </button>
-                      {isOwner && (
-                        <button
-                          onClick={() => {
-                            setMenuOpen(false);
-                            setDeleteModalOpen(true);
-                          }}
-                          className='w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center'
-                        >
-                          <Trash2 className='w-4 h-4 mr-2' />
-                          Delete
-                        </button>
-                      )}
-                    </div>
-                  </>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

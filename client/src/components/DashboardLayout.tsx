@@ -17,6 +17,7 @@ import { StudySessionGoals } from './StudySessionGoals';
 import { UploadModal } from './UploadModal';
 import { BottomNav } from './BottomNav';
 import { UserProfile } from './UserProfile';
+import { WelcomeModal } from './WelcomeModal';
 import api from '../lib/api';
 
 interface Conversation {
@@ -310,6 +311,7 @@ export function DashboardLayout() {
         onUploadComplete={handleUploadComplete}
       />
       {profileOpen && <UserProfile onClose={() => setProfileOpen(false)} />}
+      <WelcomeModal />
     </div>
   );
 }
