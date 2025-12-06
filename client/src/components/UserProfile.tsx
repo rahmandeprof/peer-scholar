@@ -336,7 +336,7 @@ export function UserProfile({ onClose }: UserProfileProps) {
                           if (isInApp) {
                             toast.error(
                               'Browser not supported. Please open this link in Chrome or Safari to install the app.',
-                              { duration: 5000 },
+                              5000,
                             );
                             return;
                           }
