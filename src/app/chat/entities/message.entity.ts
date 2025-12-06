@@ -14,8 +14,7 @@ export class Message extends IDAndTimestamp {
   content!: string;
 
   @Column({
-    type: 'simple-enum',
-    enum: MessageRole,
+    type: 'varchar',
   })
   role!: MessageRole;
 

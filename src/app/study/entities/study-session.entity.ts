@@ -18,8 +18,7 @@ export class StudySession extends IDAndTimestamp {
   userId!: string;
 
   @Column({
-    type: 'simple-enum',
-    enum: StudySessionType,
+    type: 'varchar',
     default: StudySessionType.STUDY,
   })
   type!: StudySessionType;

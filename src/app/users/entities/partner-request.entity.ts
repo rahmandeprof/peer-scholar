@@ -18,8 +18,7 @@ export class PartnerRequest extends IDAndTimestamp {
   receiver: User;
 
   @Column({
-    type: 'simple-enum',
-    enum: PartnerRequestStatus,
+    type: 'varchar',
     default: PartnerRequestStatus.PENDING,
   })
   status: PartnerRequestStatus;

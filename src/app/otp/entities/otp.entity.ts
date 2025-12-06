@@ -7,7 +7,7 @@ import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 
 @Entity('otp')
 export class OTP extends IDAndTimestamp {
-  @Column({ type: 'simple-enum', enum: OTPReason })
+  @Column({ type: 'varchar' })
   reason!: OTPReason;
 
   @Column()
