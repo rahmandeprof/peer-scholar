@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../lib/api';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
@@ -40,6 +40,27 @@ export function PDFViewer({ url, materialId }: PDFViewerProps) {
       return () => clearTimeout(timer);
     }
   }, [pageNumber, materialId]);
+
+  const [containerWidth, setContainerWidth] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect) {
+          setContainerWidth(entry.contentRect.width);
+        }
+      }
+    });
+
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
 
   return (
     <div className='flex flex-col h-full bg-gray-100 dark:bg-gray-900'>
@@ -87,7 +108,7 @@ export function PDFViewer({ url, materialId }: PDFViewerProps) {
       </div>
 
       {/* Document */}
-      <div className='flex-1 overflow-auto flex justify-center p-4'>
+      <div className='flex-1 overflow-auto flex justify-center p-4' ref={containerRef}>
         <Document
           file={url}
           onLoadSuccess={onDocumentLoadSuccess}
@@ -109,18 +130,30 @@ export function PDFViewer({ url, materialId }: PDFViewerProps) {
               <Page
                 pageNumber={pageNumber}
                 scale={scale}
+                width={containerWidth ? Math.min(containerWidth - 32, 800) : undefined} // Subtract padding, max width 800
                 className='bg-white'
                 renderTextLayer={true}
                 renderAnnotationLayer={true}
+                loading={
+                  <div className='flex items-center justify-center h-[800px] bg-white'>
+                     <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600'></div>
+                  </div>
+                }
               />
             </AnnotationManager>
           ) : (
             <Page
               pageNumber={pageNumber}
               scale={scale}
+              width={containerWidth ? Math.min(containerWidth - 32, 800) : undefined}
               className='bg-white'
               renderTextLayer={true}
               renderAnnotationLayer={true}
+              loading={
+                 <div className='flex items-center justify-center h-[800px] bg-white'>
+                    <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600'></div>
+                 </div>
+              }
             />
           )}
         </Document>
