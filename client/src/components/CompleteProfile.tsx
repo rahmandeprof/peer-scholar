@@ -39,7 +39,28 @@ export default function CompleteProfile() {
     }
   }, [user, navigate, isLoading]);
 
-  // ... (handleSubmit)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      await api.patch('/users/academic-profile', {
+        schoolId: formData.school,
+        facultyId: formData.faculty,
+        departmentId: formData.department,
+        yearOfStudy: formData.yearOfStudy,
+      });
+
+      await refreshUser();
+      toast.success('Profile completed successfully!');
+      navigate('/dashboard');
+    } catch (error: any) {
+      console.error('Failed to complete profile', error);
+      toast.error(error.response?.data?.message || 'Failed to update profile');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (isLoading || !user) {
     return (
