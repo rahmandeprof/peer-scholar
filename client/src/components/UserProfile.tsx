@@ -9,12 +9,30 @@ import {
   X,
   Trophy,
   Shield,
+  Mail,
+  Building,
+  GraduationCap,
+  Save,
+  AlertTriangle,
+  Share,
+  Wifi,
+  Zap,
+  ChevronRight,
+  Briefcase,
+  Layers,
+  HelpCircle
+} from 'lucide-react';
+import { useNetwork } from '../contexts/NetworkContext';
+import { OptimizedImage } from './OptimizedImage';
+import { useNavigate } from 'react-router-dom';
+
 interface UserProfileProps {
   onClose: () => void;
 }
 
 export function UserProfile({ onClose }: UserProfileProps) {
   const { user, refreshUser } = useAuth();
+  const navigate = useNavigate();
 
   if (!user) return null;
   const toast = useToast();
@@ -265,6 +283,20 @@ export function UserProfile({ onClose }: UserProfileProps) {
                   <div className='flex items-center'>
                     <div className='w-5 h-5 mr-3 flex items-center justify-center'>
                       <span className='text-lg'>▶️</span>
+                    </div>
+                    <div>
+                      <p className='text-sm font-medium text-gray-900 dark:text-gray-100'>
+                        Auto-play Videos
+                      </p>
+                      <p className='text-xs text-gray-500 dark:text-gray-400'>
+                        Automatically play videos when loaded
+                      </p>
+                    </div>
+                  </div>
+                  <label className='relative inline-flex items-center cursor-pointer'>
+                    <input
+                      type='checkbox'
+                      className='sr-only peer'
                       checked={preferences.autoPlayVideos}
                       onChange={(e) =>
                         updatePreferences({ autoPlayVideos: e.target.checked })
@@ -485,6 +517,62 @@ export function UserProfile({ onClose }: UserProfileProps) {
                     className='w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-500 cursor-not-allowed'
                   />
                 </div>
+              </div>
+
+              {/* Mobile Menu Hub */}
+              <div className='space-y-2 pt-4 border-t border-gray-100 dark:border-gray-800'>
+                <h3 className='text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2'>
+                  Menu Hub
+                </h3>
+                <button
+                  onClick={() => {
+                    onClose();
+                    navigate('/tools/gp-calculator');
+                  }}
+                  className='w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group'
+                >
+                  <div className='flex items-center'>
+                    <div className='w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400 mr-3 group-hover:scale-110 transition-transform'>
+                      <Briefcase className='w-4 h-4' />
+                    </div>
+                    <span className='font-medium text-gray-900 dark:text-gray-100'>
+                      Tools
+                    </span>
+                  </div>
+                  <ChevronRight className='w-4 h-4 text-gray-400' />
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('quizzes')}
+                  className='w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group'
+                >
+                  <div className='flex items-center'>
+                    <div className='w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 mr-3 group-hover:scale-110 transition-transform'>
+                      <Layers className='w-4 h-4' />
+                    </div>
+                    <span className='font-medium text-gray-900 dark:text-gray-100'>
+                      My Flashcards
+                    </span>
+                  </div>
+                  <ChevronRight className='w-4 h-4 text-gray-400' />
+                </button>
+
+                <button
+                  onClick={() => {
+                    window.location.href = 'mailto:abdulrahmanabdulsalam93@gmail.com';
+                  }}
+                  className='w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group'
+                >
+                  <div className='flex items-center'>
+                    <div className='w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 mr-3 group-hover:scale-110 transition-transform'>
+                      <HelpCircle className='w-4 h-4' />
+                    </div>
+                    <span className='font-medium text-gray-900 dark:text-gray-100'>
+                      Feedback & Support
+                    </span>
+                  </div>
+                  <ChevronRight className='w-4 h-4 text-gray-400' />
+                </button>
               </div>
 
               <div>
