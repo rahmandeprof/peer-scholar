@@ -236,7 +236,6 @@ export const MaterialView = () => {
       <div className='flex flex-col h-full bg-white dark:bg-gray-900 overflow-hidden relative'>
         {/* Header */}
         <div 
-        <div 
           className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm gap-4"
         >
           {/* Left: Back + Title */}
