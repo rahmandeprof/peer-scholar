@@ -1,65 +1,12 @@
-import { X, LucideIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { X, type LucideIcon } from 'lucide-react';
 
-interface InfoModalProps {
+interface FeatureSpotlightModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
   description: string;
   icon: LucideIcon;
-  featureId: string; // Unique ID for localStorage
 }
-
-export function InfoModal({
-  isOpen,
-  onClose,
-  title,
-  description,
-  icon: Icon,
-  featureId,
-}: InfoModalProps) {
-  const [show, setShow] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      const hasSeen = localStorage.getItem(`has_seen_feature_${featureId}`);
-      if (!hasSeen) {
-        setShow(true);
-        localStorage.setItem(`has_seen_feature_${featureId}`, 'true');
-      } else {
-        // If already seen, ensure we don't block, but parent controls isOpen.
-        // If parent relies on us to close, we should call onClose immediately?
-        // Or maybe parent shouldn't even render us if seen?
-        // Better pattern: Parent handles trigger. We just handle display.
-        // But requirements say "Trigger it the first time a user clicks".
-        // So parent clicks -> sets isOpen=true.
-        // If we check localStorage here, we might show nothing even if isOpen=true.
-        // Let's assume parent blindly opens, and we decide whether to show.
-        // If seen, we call onClose immediately.
-        onClose();
-      }
-    } else {
-      setShow(false);
-    }
-  }, [isOpen, featureId, onClose]);
-
-  // Wait, if we call onClose immediately in useEffect, it might cause loop if parent resets state.
-  // Better approach: Parent should check localStorage before opening?
-  // Or: This component is "Smart".
-  // Let's adjust: The prompt says "Trigger it the first time".
-  // So the click handler in parent should check.
-  // BUT, to make it reusable and easy, maybe we just export a helper or hook?
-  // Let's stick to a simple Modal that shows if isOpen is true.
-  // The "First Time" logic should be in the parent's click handler or a custom hook.
-  
-  // Re-reading plan: "Internal logic: On mount, check localStorage. If seen, don't show... Actually, better to handle trigger in parent".
-  // Let's make this a dumb component and handle logic in parent or hook.
-  // BUT, to make it easy to drop in:
-  // Let's create a hook `useFeatureSpotlight(featureId)` that returns `[showSpotlight, markAsSeen]`.
-}
-
-// Let's rewrite to be a simple dumb component first, as per standard React patterns.
-// We'll handle the "first time" logic in the parent for explicit control.
 
 export function FeatureSpotlightModal({
   isOpen,
@@ -67,7 +14,7 @@ export function FeatureSpotlightModal({
   title,
   description,
   icon: Icon,
-}: Omit<InfoModalProps, 'featureId'>) {
+}: FeatureSpotlightModalProps) {
   if (!isOpen) return null;
 
   return (

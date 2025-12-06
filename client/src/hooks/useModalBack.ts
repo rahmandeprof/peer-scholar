@@ -14,7 +14,7 @@ export function useModalBack(isOpen: boolean, onClose: () => void, modalId: stri
             // Push a new state to history
             window.history.pushState({ [modalId]: true }, '');
 
-            const handlePopState = (event: PopStateEvent) => {
+            const handlePopState = () => {
                 // If the event was triggered by back button (state is null or different), close modal
                 // We don't strictly check state content because any pop means we should probably close
                 // if we are the top modal.
