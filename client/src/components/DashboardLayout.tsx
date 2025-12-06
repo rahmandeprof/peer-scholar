@@ -16,6 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { StudySessionGoals } from './StudySessionGoals';
 import { UploadModal } from './UploadModal';
 import { BottomNav } from './BottomNav';
+import { UserProfile } from './UserProfile';
 import api from '../lib/api';
 
 interface Conversation {
@@ -26,6 +27,7 @@ interface Conversation {
 
 export function DashboardLayout() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [history, setHistory] = useState<Conversation[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -162,17 +164,20 @@ export function DashboardLayout() {
         </div>
 
         <div className='p-4 border-t border-gray-200/50 dark:border-gray-800/50'>
-          <div className='flex items-center p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 mb-3'>
-            <div className='w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold'>
+          <button
+            onClick={() => setProfileOpen(true)}
+            className='w-full flex items-center p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 mb-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer text-left group'
+          >
+            <div className='w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold group-hover:scale-105 transition-transform'>
               {user?.firstName?.[0]}
             </div>
             <div className='ml-3 overflow-hidden'>
-              <div className='font-medium truncate'>
+              <div className='font-medium truncate text-gray-900 dark:text-gray-100'>
                 {user?.firstName} {user?.lastName}
               </div>
               <div className='text-xs text-gray-500 truncate'>{user?.email}</div>
             </div>
-          </div>
+          </button>
           <button
             onClick={handleLogout}
             className='w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors'
@@ -283,6 +288,7 @@ export function DashboardLayout() {
         onClose={() => setUploadModalOpen(false)}
         onUploadComplete={handleUploadComplete}
       />
+      {profileOpen && <UserProfile onClose={() => setProfileOpen(false)} />}
     </div>
   );
 }
