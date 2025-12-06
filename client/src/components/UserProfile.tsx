@@ -16,6 +16,7 @@ import {
   Wifi,
   Zap,
   AlertTriangle,
+  Share,
 } from 'lucide-react';
 import api from '../lib/api';
 import { useNetwork } from '../contexts/NetworkContext';
@@ -48,6 +49,28 @@ export function UserProfile({ onClose }: UserProfileProps) {
 
   const [isEditing, setIsEditing] = useState(false);
   const [showWarningModal, setShowWarningModal] = useState(false);
+  const [showIOSModal, setShowIOSModal] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+
+  useEffect(() => {
+    // Check if app is in standalone mode
+    const checkStandalone = () => {
+      const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || 
+                               (window.navigator as any).standalone || 
+                               document.referrer.includes('android-app://');
+      setIsStandalone(isStandaloneMode);
+    };
+
+    // Check if device is iOS
+    const checkIOS = () => {
+      const userAgent = window.navigator.userAgent.toLowerCase();
+      setIsIOS(/iphone|ipad|ipod/.test(userAgent));
+    };
+
+    checkStandalone();
+    checkIOS();
+  }, []);
 
   useEffect(() => {
     if (user && !isEditing) {
@@ -279,42 +302,48 @@ export function UserProfile({ onClose }: UserProfileProps) {
                 </div>
 
                 {/* Install App Button */}
-                <div className='flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg'>
-                  <div className='flex items-center'>
-                    <div className='w-5 h-5 mr-3 flex items-center justify-center'>
-                      <span className='text-lg'>📱</span>
+                {!isStandalone && (
+                  <div className='flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg'>
+                    <div className='flex items-center'>
+                      <div className='w-5 h-5 mr-3 flex items-center justify-center'>
+                        <span className='text-lg'>📱</span>
+                      </div>
+                      <div>
+                        <p className='text-sm font-medium text-gray-900 dark:text-gray-100'>
+                          Install App
+                        </p>
+                        <p className='text-xs text-gray-500 dark:text-gray-400'>
+                          Add to home screen for offline access
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className='text-sm font-medium text-gray-900 dark:text-gray-100'>
-                        Install App
-                      </p>
-                      <p className='text-xs text-gray-500 dark:text-gray-400'>
-                        Add to home screen for offline access
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => {
-                      // @ts-ignore
-                      const promptEvent = window.deferredPrompt;
-                      if (promptEvent) {
-                        promptEvent.prompt();
-                        promptEvent.userChoice.then((choiceResult: any) => {
-                          if (choiceResult.outcome === 'accepted') {
-                            console.log('User accepted the install prompt');
-                          }
+                    <button
+                      onClick={() => {
+                        if (isIOS) {
+                          setShowIOSModal(true);
+                        } else {
                           // @ts-ignore
-                          window.deferredPrompt = null;
-                        });
-                      } else {
-                        toast.info('App is already installed or not supported');
-                      }
-                    }}
-                    className='px-3 py-1.5 bg-primary-600 text-white text-xs font-bold rounded-lg hover:bg-primary-700 transition-colors'
-                  >
-                    Install
-                  </button>
-                </div>
+                          const promptEvent = window.deferredPrompt;
+                          if (promptEvent) {
+                            promptEvent.prompt();
+                            promptEvent.userChoice.then((choiceResult: any) => {
+                              if (choiceResult.outcome === 'accepted') {
+                                console.log('User accepted the install prompt');
+                              }
+                              // @ts-ignore
+                              window.deferredPrompt = null;
+                            });
+                          } else {
+                            toast.info('Open this link in Chrome or Safari to install.');
+                          }
+                        }
+                      }}
+                      className='px-3 py-1.5 bg-primary-600 text-white text-xs font-bold rounded-lg hover:bg-primary-700 transition-colors'
+                    >
+                      Install
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -604,6 +633,39 @@ export function UserProfile({ onClose }: UserProfileProps) {
                         {loading ? 'Saving...' : 'Confirm & Save'}
                     </button>
                 </div>
+            </div>
+        </div>
+      )}
+
+      {/* iOS Install Modal */}
+      {showIOSModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-in fade-in zoom-in duration-200">
+                <div className="text-center mb-6">
+                    <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span className="text-3xl">📱</span>
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Install on iOS</h3>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                        To install peerStudent on your iPhone or iPad:
+                    </p>
+                    <ol className="text-left text-sm text-gray-600 dark:text-gray-400 space-y-3 bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl">
+                        <li className="flex items-start">
+                            <span className="font-bold mr-2">1.</span>
+                            <span>Tap the <Share className="w-4 h-4 inline mx-1" /> Share button in your browser toolbar.</span>
+                        </li>
+                        <li className="flex items-start">
+                            <span className="font-bold mr-2">2.</span>
+                            <span>Scroll down and select <strong>"Add to Home Screen"</strong>.</span>
+                        </li>
+                    </ol>
+                </div>
+                <button
+                    onClick={() => setShowIOSModal(false)}
+                    className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold transition-colors"
+                >
+                    Got it
+                </button>
             </div>
         </div>
       )}
