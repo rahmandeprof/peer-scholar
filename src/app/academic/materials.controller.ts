@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Param,
   Patch,
@@ -8,7 +9,6 @@ import {
   Query,
   Req,
   UseGuards,
-  ForbiddenException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
@@ -19,7 +19,7 @@ import { MaterialsService } from './materials.service';
 @Controller('materials')
 @UseGuards(AuthGuard('jwt'))
 export class MaterialsController {
-  constructor(private readonly materialsService: MaterialsService) { }
+  constructor(private readonly materialsService: MaterialsService) {}
 
   @Get('presign')
   getPresignedUrl() {
@@ -30,8 +30,11 @@ export class MaterialsController {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   create(@Body() dto: CreateMaterialDto, @Req() req: any) {
     if (!req.user.isVerified) {
-      throw new ForbiddenException('You must verify your email to upload materials.');
+      throw new ForbiddenException(
+        'You must verify your email to upload materials.',
+      );
     }
+
     return this.materialsService.create(dto, req.user);
   }
 
@@ -116,7 +119,8 @@ export class MaterialsController {
   @Post(':id/annotations')
   addAnnotation(
     @Param('id') id: string,
-    @Body() body: {
+    @Body()
+    body: {
       selectedText: string;
       pageNumber?: number;
       year: string;

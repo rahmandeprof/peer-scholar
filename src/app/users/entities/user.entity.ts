@@ -80,5 +80,5 @@ export class User extends IDAndTimestamp {
   lastProfileUpdate: Date;
 
   @Column({ nullable: true })
-  verificationToken: string;
+  verificationToken: string | null;
 }

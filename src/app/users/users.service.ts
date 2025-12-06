@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -366,8 +370,13 @@ export class UsersService {
       const timeSinceLastUpdate = Date.now() - user.lastProfileUpdate.getTime();
 
       if (timeSinceLastUpdate < nineMonthsInMs) {
-        const remainingTime = Math.ceil((nineMonthsInMs - timeSinceLastUpdate) / (1000 * 60 * 60 * 24));
-        throw new ForbiddenException(`You can only update your academic profile once every 9 months. Please wait ${remainingTime} more days.`);
+        const remainingTime = Math.ceil(
+          (nineMonthsInMs - timeSinceLastUpdate) / (1000 * 60 * 60 * 24),
+        );
+
+        throw new ForbiddenException(
+          `You can only update your academic profile once every 9 months. Please wait ${remainingTime} more days.`,
+        );
       }
     }
 

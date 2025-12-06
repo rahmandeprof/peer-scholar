@@ -160,7 +160,8 @@ export class EmailService {
 
     try {
       await this.transporter.sendMail({
-        from: process.env.SMTP_FROM ?? '"peerStudent" <noreply@peerstudent.com>',
+        from:
+          process.env.SMTP_FROM ?? '"peerStudent" <noreply@peerstudent.com>',
         to: user.email,
         subject: 'Verify your email address',
         html: `
@@ -177,7 +178,10 @@ export class EmailService {
       });
       this.logger.log(`Verification email sent to ${user.email}`);
     } catch (error) {
-      this.logger.error(`Failed to send verification email to ${user.email}`, error);
+      this.logger.error(
+        `Failed to send verification email to ${user.email}`,
+        error,
+      );
     }
   }
 }

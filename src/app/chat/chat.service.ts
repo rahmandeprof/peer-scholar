@@ -19,6 +19,7 @@ import { ContextActionDto, ContextActionType } from './dto/context-action.dto';
 import { CloudinaryService } from '@/app/common/services/cloudinary.service';
 import { ConversionService } from '@/app/common/services/conversion.service';
 import { UsersService } from '@/app/users/users.service';
+
 import { REPUTATION_REWARDS } from '@/app/common/constants/reputation.constants';
 
 import OpenAI from 'openai';
@@ -140,7 +141,10 @@ export class ChatService {
 
     const savedMaterial = await this.materialRepo.save(material);
 
-    await this.usersService.increaseReputation(user.id, REPUTATION_REWARDS.HIGH);
+    await this.usersService.increaseReputation(
+      user.id,
+      REPUTATION_REWARDS.HIGH,
+    );
 
     return savedMaterial;
   }
@@ -390,6 +394,7 @@ export class ChatService {
     // Approximation: 3000 characters per page
     if (pageLimit && pageLimit > 0) {
       const charLimit = pageLimit * 3000;
+
       if (materialContent.length > charLimit) {
         materialContent = materialContent.substring(0, charLimit);
       }

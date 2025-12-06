@@ -8,9 +8,9 @@ import {
   Material,
   MaterialStatus,
 } from './entities/material.entity';
+import { MaterialAnnotation } from './entities/material-annotation.entity';
 import { MaterialFavorite } from './entities/material-favorite.entity';
 import { MaterialRating } from './entities/material-rating.entity';
-import { MaterialAnnotation } from './entities/material-annotation.entity';
 import { Course } from '@/app/academic/entities/course.entity';
 import { User } from '@/app/users/entities/user.entity';
 
@@ -73,11 +73,14 @@ export class MaterialsService {
       uploader: user,
       status: MaterialStatus.PENDING,
       fileHash: dto.fileHash, // Add fileHash
-      parent: dto.parentMaterialId ? { id: dto.parentMaterialId } as Material : undefined,
+      parent: dto.parentMaterialId
+        ? ({ id: dto.parentMaterialId } as Material)
+        : undefined,
     });
 
     // ... (rest of create)
     const savedMaterial = await this.materialRepo.save(material);
+
     // ...
     return savedMaterial;
   }
@@ -124,6 +127,7 @@ export class MaterialsService {
 
   async getCourseTopics(courseId: string) {
     const course = await this.courseRepo.findOneBy({ id: courseId });
+
     if (!course) return [];
 
     const materials = await this.materialRepo.find({
@@ -132,10 +136,12 @@ export class MaterialsService {
     });
 
     const topicCounts: Record<string, number> = {};
+
     materials.forEach((material) => {
       if (material.tags) {
         material.tags.forEach((tag) => {
           const normalizedTag = tag.trim().toLowerCase();
+
           if (normalizedTag) {
             topicCounts[normalizedTag] = (topicCounts[normalizedTag] || 0) + 1;
           }
@@ -156,6 +162,7 @@ export class MaterialsService {
 
     if (courseId) {
       const course = await this.courseRepo.findOneBy({ id: courseId });
+
       if (course) {
         query.andWhere('material.courseCode = :courseCode', {
           courseCode: course.code,
@@ -226,17 +233,26 @@ export class MaterialsService {
 
   async updateScope(id: string, scope: AccessScope, userId: string) {
     const material = await this.findOne(id);
+
     if (material.uploader.id !== userId) {
       throw new Error('Only the uploader can update the scope');
     }
     material.scope = scope;
+
     return this.materialRepo.save(material);
   }
 
   async findOne(id: string) {
     const material = await this.materialRepo.findOne({
       where: { id },
-      relations: ['uploader', 'course', 'versions', 'versions.uploader', 'parent', 'contributors'],
+      relations: [
+        'uploader',
+        'course',
+        'versions',
+        'versions.uploader',
+        'parent',
+        'contributors',
+      ],
     });
 
     if (!material) {
@@ -248,6 +264,7 @@ export class MaterialsService {
 
   async extractText(id: string) {
     const material = await this.findOne(id);
+
     if (material.content) {
       return { content: material.content };
     }
@@ -282,6 +299,7 @@ export class MaterialsService {
     });
 
     const material = await this.materialRepo.findOneBy({ id: materialId });
+
     if (!material) throw new NotFoundException('Material not found');
 
     if (existing) {
@@ -292,16 +310,19 @@ export class MaterialsService {
         material: { id: materialId },
         user: { id: userId },
       });
+
       await this.favoriteRepo.save(favorite);
       material.favoritesCount += 1;
     }
 
     await this.materialRepo.save(material);
+
     return { isFavorited: !existing, favoritesCount: material.favoritesCount };
   }
 
   async rateMaterial(materialId: string, userId: string, value: number) {
-    if (value < 1 || value > 5) throw new Error('Rating must be between 1 and 5');
+    if (value < 1 || value > 5)
+      throw new Error('Rating must be between 1 and 5');
 
     let rating = await this.ratingRepo.findOne({
       where: { material: { id: materialId }, user: { id: userId } },
@@ -327,6 +348,7 @@ export class MaterialsService {
       .getRawOne();
 
     const material = await this.materialRepo.findOneBy({ id: materialId });
+
     if (material) {
       material.averageRating = parseFloat(Number(avg).toFixed(1));
       await this.materialRepo.save(material);
@@ -338,7 +360,8 @@ export class MaterialsService {
   async checkDuplicate(hash: string, department?: string) {
     if (!hash) return null;
 
-    const query = this.materialRepo.createQueryBuilder('material')
+    const query = this.materialRepo
+      .createQueryBuilder('material')
       .where('material.fileHash = :hash', { hash })
       .leftJoinAndSelect('material.uploader', 'uploader');
 
@@ -348,6 +371,7 @@ export class MaterialsService {
     }
 
     const duplicate = await query.getOne();
+
     return duplicate;
   }
 
@@ -372,6 +396,7 @@ export class MaterialsService {
     if (!material) throw new NotFoundException('Material not found');
 
     const user = await this.usersService.getOne(userId);
+
     if (!user) throw new NotFoundException('User not found');
 
     // Check if already a contributor or uploader
@@ -400,9 +425,11 @@ export class MaterialsService {
     },
   ) {
     const material = await this.materialRepo.findOneBy({ id: materialId });
+
     if (!material) throw new NotFoundException('Material not found');
 
     const user = await this.usersService.getOne(userId);
+
     if (!user) throw new NotFoundException('User not found');
 
     const annotation = this.annotationRepo.create({

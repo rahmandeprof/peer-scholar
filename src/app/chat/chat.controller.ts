@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Param,
   ParseUUIDPipe,
@@ -11,7 +12,6 @@ import {
   UploadedFile,
   UseGuards,
   UseInterceptors,
-  ForbiddenException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -32,7 +32,7 @@ interface RequestWithUser extends Request {
 @Controller('chat')
 @UseGuards(AuthGuard('jwt'))
 export class ChatController {
-  constructor(private readonly chatService: ChatService) { }
+  constructor(private readonly chatService: ChatService) {}
 
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
@@ -170,8 +170,11 @@ export class ChatController {
     @Req() req: RequestWithUser,
   ) {
     if (!req.user.isVerified) {
-      throw new ForbiddenException('You must verify your email to post comments.');
+      throw new ForbiddenException(
+        'You must verify your email to post comments.',
+      );
     }
+
     return this.chatService.addComment(req.user, id, content);
   }
 

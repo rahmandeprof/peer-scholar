@@ -1,11 +1,18 @@
 import { MaterialChunk } from './material-chunk.entity';
+import { MaterialFavorite } from './material-favorite.entity';
+import { MaterialRating } from './material-rating.entity';
 import { Course } from '@/app/academic/entities/course.entity';
 import { User } from '@/app/users/entities/user.entity';
 import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
-import { MaterialFavorite } from './material-favorite.entity';
-import { MaterialRating } from './material-rating.entity';
 
-import { Column, Entity, ManyToOne, OneToMany, ManyToMany, JoinTable } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+  OneToMany,
+} from 'typeorm';
 
 export enum MaterialType {
   NOTE = 'note',
@@ -139,7 +146,9 @@ export class Material extends IDAndTimestamp {
   @Column({ nullable: true })
   fileHash: string;
 
-  @ManyToOne(() => Material, (material) => material.versions, { nullable: true })
+  @ManyToOne(() => Material, (material) => material.versions, {
+    nullable: true,
+  })
   parent?: Material;
 
   @OneToMany(() => Material, (material) => material.parent)

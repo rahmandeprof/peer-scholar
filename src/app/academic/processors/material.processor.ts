@@ -72,14 +72,20 @@ export class MaterialProcessor {
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let data: any;
+
         try {
           // Try function call first
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          data = await (pdfParseFn as any)(buffer);
+
+          data = await pdfParseFn(buffer);
         } catch (err) {
-          if (err instanceof Error && err.message.includes("Class constructors cannot be invoked without 'new'")) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const instance = new (pdfParseFn as any)(buffer);
+          if (
+            err instanceof Error &&
+            err.message.includes(
+              "Class constructors cannot be invoked without 'new'",
+            )
+          ) {
+            const instance = new pdfParseFn(buffer);
+
             // Check if instance is a promise or has data
             if (instance instanceof Promise) {
               data = await instance;

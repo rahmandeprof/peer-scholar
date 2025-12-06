@@ -42,4 +42,4 @@ import { MaterialProcessor } from './processors/material.processor';
   providers: [AcademicService, MaterialsService, MaterialProcessor],
   exports: [TypeOrmModule, AcademicService, MaterialsService],
 })
-export class AcademicModule { }
+export class AcademicModule {}
