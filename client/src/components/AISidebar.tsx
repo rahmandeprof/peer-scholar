@@ -59,7 +59,7 @@ export function AISidebar({ isOpen, onClose, materialId }: AISidebarProps) {
 
   return (
     <div
-      className={`bg-white dark:bg-gray-800 flex flex-col shrink-0 shadow-2xl z-20 border-l border-gray-200 dark:border-gray-700 h-full transition-all duration-300 ease-in-out fixed inset-y-0 right-0 md:relative md:inset-auto ${
+      className={`bg-white dark:bg-gray-800 flex flex-col shrink-0 shadow-2xl z-[800] border-l border-gray-200 dark:border-gray-700 h-full transition-all duration-300 ease-in-out fixed inset-y-0 right-0 md:relative md:inset-auto ${
         isOpen
           ? 'w-full md:w-[400px] translate-x-0'
           : 'w-0 translate-x-full md:translate-x-0 md:w-0'

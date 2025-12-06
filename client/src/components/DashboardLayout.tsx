@@ -190,7 +190,7 @@ export function DashboardLayout() {
 
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
-        <div className='fixed inset-0 z-50 md:hidden'>
+        <div className='fixed inset-0 z-[900] md:hidden'>
            <div 
              className='absolute inset-0 bg-black/20 backdrop-blur-sm'
              onClick={() => setSidebarOpen(false)}
@@ -258,7 +258,7 @@ export function DashboardLayout() {
       {/* Main Content */}
       <main className='flex-1 flex flex-col overflow-hidden relative z-0 mb-16 md:mb-0'>
         {/* Mobile Header */}
-        <div className='md:hidden h-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 flex items-center justify-between px-4 z-20'>
+        <div className='md:hidden h-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 flex items-center justify-between px-4 z-[100]'>
           <span className='font-bold text-lg bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-purple-600'>
             peerStudent
           </span>
