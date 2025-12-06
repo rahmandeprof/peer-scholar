@@ -14,4 +14,4 @@ export class FixBrokenRLSTrigger1765037744045 implements MigrationInterface {
     }
 }
 
-}
+

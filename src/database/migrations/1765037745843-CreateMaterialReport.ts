@@ -33,4 +33,4 @@ export class CreateMaterialReport1765037745843 implements MigrationInterface {
     }
 }
 
-}
+
