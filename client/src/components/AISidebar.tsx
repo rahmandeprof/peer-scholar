@@ -49,9 +49,41 @@ export function AISidebar({ isOpen, onClose, materialId }: AISidebarProps) {
     setKeyPoints(null);
     try {
       const res = await api.get(`/chat/key-points/${materialId}`);
-      setKeyPoints(res.data);
-    } catch {
-      toast.error('Failed to extract key points');
+      let points = res.data;
+
+      // Handle object wrapper
+      if (points && typeof points === 'object' && !Array.isArray(points) && points.keyPoints) {
+        points = points.keyPoints;
+      }
+
+      // Handle string response
+      if (typeof points === 'string') {
+        try {
+          // Try parsing as JSON first
+          const parsed = JSON.parse(points);
+          if (Array.isArray(parsed)) {
+            points = parsed;
+          } else if (parsed.keyPoints && Array.isArray(parsed.keyPoints)) {
+            points = parsed.keyPoints;
+          }
+        } catch {
+          // If not JSON, split by newlines and clean up
+          points = points
+            .split('\n')
+            .map((p: string) => p.trim())
+            .filter((p: string) => p.length > 0)
+            .map((p: string) => p.replace(/^[•-]\s*/, '')); // Remove bullet points if present
+        }
+      }
+
+      if (Array.isArray(points) && points.length > 0) {
+        setKeyPoints(points);
+      } else {
+        throw new Error('Invalid response format');
+      }
+    } catch (err) {
+      console.error('Key Points Error:', err);
+      toast.error('Failed to extract key points. Please try again.');
     } finally {
       setLoading(false);
     }
