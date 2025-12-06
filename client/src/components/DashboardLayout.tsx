@@ -10,6 +10,7 @@ import {
   Users,
   Upload,
   Calculator,
+  HelpCircle,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { StudySessionGoals } from './StudySessionGoals';
@@ -72,7 +73,7 @@ export function DashboardLayout() {
               <BookOpen className='w-6 h-6 text-white' />
             </div>
             <span className='text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-purple-600'>
-              Scholar
+              peerStudent
             </span>
           </div>
         </div>
@@ -145,6 +146,19 @@ export function DashboardLayout() {
               </div>
             </div>
           )}
+
+          <div className='mt-auto px-3 pb-4'>
+            <div className='px-3 mb-2 mt-4 text-xs font-semibold text-gray-500 uppercase tracking-wider'>
+              Support
+            </div>
+            <a
+              href='mailto:abdulrahmanabdulsalam93@gmail.com'
+              className='flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-all duration-200'
+            >
+              <HelpCircle className='w-5 h-5 mr-3' />
+              Feedback & Support
+            </a>
+          </div>
         </div>
 
         <div className='p-4 border-t border-gray-200/50 dark:border-gray-800/50'>
@@ -179,7 +193,7 @@ export function DashboardLayout() {
            <aside className='absolute left-0 top-0 bottom-0 w-72 bg-white/90 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl flex flex-col animate-slide-right border-r border-gray-200/50 dark:border-gray-800/50'>
             <div className='p-6 flex items-center justify-between'>
               <span className='text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-purple-600'>
-                Scholar
+                peerStudent
               </span>
               <button onClick={() => setSidebarOpen(false)}>
                 <X className='w-6 h-6 text-gray-500' />
@@ -220,6 +234,16 @@ export function DashboardLayout() {
                   <Upload className='w-5 h-5 mr-3' />
                   Upload
                 </button>
+
+                <div className='pt-4 border-t border-gray-100 dark:border-gray-800 mt-4'>
+                  <a
+                    href='mailto:abdulrahmanabdulsalam93@gmail.com'
+                    className='flex items-center px-4 py-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200'
+                  >
+                    <HelpCircle className='w-5 h-5 mr-3' />
+                    Feedback & Support
+                  </a>
+                </div>
               </nav>
             </div>
           </aside>
@@ -231,7 +255,7 @@ export function DashboardLayout() {
         {/* Mobile Header */}
         <div className='md:hidden h-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 flex items-center justify-between px-4 z-20'>
           <span className='font-bold text-lg bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-purple-600'>
-            Scholar
+            peerStudent
           </span>
           <button 
             onClick={() => setUploadModalOpen(true)}
