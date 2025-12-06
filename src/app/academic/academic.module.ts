@@ -11,6 +11,7 @@ import { Material } from './entities/material.entity';
 import { MaterialChunk } from './entities/material-chunk.entity';
 import { MaterialFavorite } from './entities/material-favorite.entity';
 import { MaterialRating } from './entities/material-rating.entity';
+import { MaterialAnnotation } from './entities/material-annotation.entity';
 import { School } from './entities/school.entity';
 
 import { AcademicController } from './academic.controller';
@@ -32,6 +33,7 @@ import { MaterialProcessor } from './processors/material.processor';
       MaterialChunk,
       MaterialRating,
       MaterialFavorite,
+      MaterialAnnotation,
     ]),
     BullModule.registerQueue({
       name: 'materials',
@@ -42,4 +44,4 @@ import { MaterialProcessor } from './processors/material.processor';
   providers: [AcademicService, MaterialsService, MaterialProcessor],
   exports: [TypeOrmModule, AcademicService, MaterialsService],
 })
-export class AcademicModule {}
+export class AcademicModule { }
