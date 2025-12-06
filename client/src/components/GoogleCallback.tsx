@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import axios from '../lib/api';
 import { Loader2 } from 'lucide-react';
 
 export function GoogleCallback() {
@@ -17,22 +18,40 @@ export function GoogleCallback() {
     const token = searchParams.get('token');
     const userStr = searchParams.get('user');
 
-    if (token && userStr) {
-      try {
-        const user = JSON.parse(decodeURIComponent(userStr));
-        login(token, user);
+    if (token) {
+      // Fetch full profile to ensure we have department/faculty info
+      // This prevents the "University Modal" flicker by ensuring we know the true profile state
+      axios
+        .get('/users/profile', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        .then((res) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const fullUser = (res.data as any).data || res.data;
+          
+          login(token, fullUser);
 
-        const redirect = localStorage.getItem('login_redirect');
-        if (redirect) {
-          localStorage.removeItem('login_redirect');
-          navigate(redirect);
-        } else {
-          navigate('/');
-        }
-      } catch {
-        // console.error('Failed to parse user data', err);
-        navigate('/login?error=auth_failed');
-      }
+          const isProfileComplete =
+            fullUser.department && fullUser.faculty && fullUser.yearOfStudy;
+
+          if (isProfileComplete) {
+            const redirect = localStorage.getItem('login_redirect');
+            if (redirect) {
+              localStorage.removeItem('login_redirect');
+              navigate(redirect);
+            } else {
+              navigate('/');
+            }
+          } else {
+            navigate('/complete-profile');
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to fetch profile during google callback', err);
+          navigate('/login?error=auth_failed');
+        });
     } else {
       navigate('/login?error=no_token');
     }
