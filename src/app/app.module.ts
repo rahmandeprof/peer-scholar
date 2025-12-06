@@ -65,6 +65,8 @@ import configuration from '@/config/configuration';
       storage: new ThrottlerStorageRedisService({
         host: process.env.REDIS_HOST ?? 'localhost',
         port: parseInt(process.env.REDIS_PORT ?? '6379'),
+        password: process.env.REDIS_PASSWORD,
+        username: process.env.REDIS_USERNAME,
       }),
     }),
   ],

@@ -91,7 +91,7 @@ export class User extends IDAndTimestamp {
   @Column({ type: String, nullable: true })
   verificationToken: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   resetPasswordToken: string | null;
 
   @Column({ type: 'timestamp', nullable: true })
