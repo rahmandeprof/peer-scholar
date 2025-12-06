@@ -79,6 +79,6 @@ export class User extends IDAndTimestamp {
   @Column({ type: 'timestamp', nullable: true })
   lastProfileUpdate: Date;
 
-  @Column({ nullable: true })
+  @Column({ type: String, nullable: true })
   verificationToken: string | null;
 }
