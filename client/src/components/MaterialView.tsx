@@ -248,16 +248,16 @@ export const MaterialView = () => {
         {/* Header */}
         <div className='flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm z-10 shrink-0 gap-4'>
           {/* Left: Back + Title */}
-          <div className='flex items-center space-x-3 min-w-0'>
+          <div className='flex items-center space-x-3 flex-1 min-w-0'>
             <button
               onClick={() => navigate(-1)}
               className='p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors shrink-0'
             >
               <ArrowLeft className='w-5 h-5 text-gray-600 dark:text-gray-300' />
             </button>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <h1 className='text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2'>
-                <span className="truncate max-w-[200px] md:max-w-md">{material.title}</span>
+                <span className="truncate md:max-w-md">{material.title}</span>
                 <div className='flex items-center shrink-0'>
                   <StarRating rating={averageRating} size={12} readonly />
                   <span className='text-xs text-gray-500 ml-1'>({averageRating})</span>
@@ -273,7 +273,9 @@ export const MaterialView = () => {
           {/* Right: Actions */}
           <div className='flex items-center space-x-2 shrink-0'>
             {/* Visible Items */}
-            <StudyTimer key={timerKey} onComplete={handleSessionEnd} />
+            <div className="hidden md:flex">
+              <StudyTimer key={timerKey} onComplete={handleSessionEnd} />
+            </div>
             
             <button
               onClick={() => setQuizOpen(true)}
@@ -317,6 +319,9 @@ export const MaterialView = () => {
                   <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
                   <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-20 animate-in fade-in zoom-in-95 duration-100">
                      {/* Mobile Only Actions */}
+                     <div className="md:hidden px-4 py-2 border-b border-gray-100 dark:border-gray-700 flex justify-center">
+                        <StudyTimer key={`mobile-${timerKey}`} onComplete={handleSessionEnd} />
+                     </div>
                      <div className="md:hidden px-2 pb-2 mb-2 border-b border-gray-100 dark:border-gray-700 grid grid-cols-2 gap-2">
                         <button
                           onClick={() => { setQuizOpen(true); setMenuOpen(false); }}
@@ -483,7 +488,7 @@ export const MaterialView = () => {
         {/* Mobile FAB for Quiz */}
         <button
           onClick={() => setQuizOpen(true)}
-          className='md:hidden fixed bottom-6 right-6 w-14 h-14 bg-purple-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-purple-700 transition-colors z-40'
+          className='md:hidden fixed bottom-[80px] right-6 w-14 h-14 bg-purple-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-purple-700 transition-colors z-[999]'
         >
           <Brain className='w-7 h-7' />
         </button>
