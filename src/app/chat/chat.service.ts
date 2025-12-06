@@ -357,7 +357,13 @@ export class ChatService {
 
       if (!content) return [];
 
-      const parsed = JSON.parse(content);
+      let parsed;
+      try {
+        parsed = JSON.parse(content);
+      } catch (e) {
+        this.logger.error(`Failed to parse key points JSON: ${content}`, e);
+        throw e;
+      }
 
       const points =
         parsed.points ?? parsed.keyPoints ?? parsed.key_points ?? [];
@@ -445,7 +451,13 @@ export class ChatService {
 
       content = this.cleanJson(content);
 
-      const parsed = JSON.parse(content);
+      let parsed;
+      try {
+        parsed = JSON.parse(content);
+      } catch (e) {
+        this.logger.error(`Failed to parse quiz JSON: ${content}`, e);
+        throw e;
+      }
       const quiz = parsed.questions || [];
 
       // Cache the result ONLY if it's a full quiz (no page limit)
@@ -517,7 +529,13 @@ export class ChatService {
 
       content = this.cleanJson(content);
 
-      const parsed = JSON.parse(content);
+      let parsed;
+      try {
+        parsed = JSON.parse(content);
+      } catch (e) {
+        this.logger.error(`Failed to parse flashcards JSON: ${content}`, e);
+        throw e;
+      }
       const flashcards = parsed.flashcards || [];
 
       // Cache the result
@@ -740,20 +758,39 @@ export class ChatService {
   }
 
   private cleanJson(text: string): string {
-    // Remove markdown code blocks (case insensitive, optional json tag)
+    // Remove markdown code blocks
     let cleaned = text.replace(/```(?:json)?/gi, '').trim();
 
-    // Find the first '[' or '{'
-    const firstBracket = cleaned.search(/[[{]/);
+    const firstBrace = cleaned.indexOf('{');
+    const firstBracket = cleaned.indexOf('[');
 
-    if (firstBracket !== -1) {
-      cleaned = cleaned.substring(firstBracket);
+    let start = -1;
+    if (firstBrace !== -1 && firstBracket !== -1) {
+      start = Math.min(firstBrace, firstBracket);
+    } else if (firstBrace !== -1) {
+      start = firstBrace;
+    } else {
+      start = firstBracket;
     }
-    // Find the last ']' or '}'
-    const lastBracket = cleaned.search(/[\]}](?!.*[\]}])/);
 
-    if (lastBracket !== -1) {
-      cleaned = cleaned.substring(0, lastBracket + 1);
+    if (start !== -1) {
+      cleaned = cleaned.substring(start);
+    }
+
+    const lastBrace = cleaned.lastIndexOf('}');
+    const lastBracket = cleaned.lastIndexOf(']');
+
+    let end = -1;
+    if (lastBrace !== -1 && lastBracket !== -1) {
+      end = Math.max(lastBrace, lastBracket);
+    } else if (lastBrace !== -1) {
+      end = lastBrace;
+    } else {
+      end = lastBracket;
+    }
+
+    if (end !== -1) {
+      cleaned = cleaned.substring(0, end + 1);
     }
 
     return cleaned.trim();
