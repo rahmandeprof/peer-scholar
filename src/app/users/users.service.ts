@@ -510,4 +510,26 @@ export class UsersService {
     user.reputation += amount;
     await this.userRepository.save(user);
   }
+
+  async updateActivity(userId: string, materialId: string, page: number) {
+    await this.userRepository.update(userId, {
+      lastReadMaterialId: materialId,
+      lastReadPage: page,
+    });
+  }
+
+  async getActivity(userId: string) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['lastReadMaterial'],
+    });
+
+    if (!user) throw new NotFoundException('User not found');
+
+    return {
+      lastReadMaterialId: user.lastReadMaterialId,
+      lastReadMaterial: user.lastReadMaterial,
+      lastReadPage: user.lastReadPage,
+    };
+  }
 }

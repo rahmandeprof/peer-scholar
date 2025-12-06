@@ -124,6 +124,12 @@ export const MaterialView = () => {
         const res = await api.get(`/materials/${id}`);
         setMaterial(res.data);
 
+        // Track activity
+        api.post('/users/activity/update', {
+          materialId: id,
+          page: 1, 
+        }).catch(console.error);
+
         setAverageRating(res.data.averageRating || 0);
 
         // Fetch interaction status

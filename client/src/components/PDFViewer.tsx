@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import api from '../lib/api';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
@@ -21,10 +22,23 @@ export function PDFViewer({ url, materialId }: PDFViewerProps) {
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [scale, setScale] = useState<number>(1.0);
 
-  function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
     setNumPages(numPages);
     setPageNumber(1);
   }
+
+  // Track page changes
+  useEffect(() => {
+    if (materialId) {
+      const timer = setTimeout(() => {
+        api.post('/users/activity/update', {
+          materialId,
+          page: pageNumber,
+        }).catch(console.error);
+      }, 1000); // Debounce updates
+
+      return () => clearTimeout(timer);
+    }
+  }, [pageNumber, materialId]);
 
   return (
     <div className='flex flex-col h-full bg-gray-100 dark:bg-gray-900'>

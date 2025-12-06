@@ -67,6 +67,15 @@ export class User extends IDAndTimestamp {
   @OneToMany('Material', 'uploader')
   materials: import('../../academic/entities/material.entity').Material[];
 
+  @Column({ nullable: true })
+  lastReadMaterialId: string;
+
+  @ManyToOne('Material', { nullable: true })
+  lastReadMaterial: import('../../academic/entities/material.entity').Material;
+
+  @Column({ type: 'int', default: 1 })
+  lastReadPage: number;
+
   @Column({ default: 0 })
   reputation: number;
 

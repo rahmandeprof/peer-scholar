@@ -22,7 +22,7 @@ import { Paginate, PaginateQuery } from 'nestjs-paginate';
 @Controller('users')
 @UseGuards(AuthGuard('jwt'))
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
   @Post()
   create(@Body() createUserDto: CreateUserDto) {
@@ -124,5 +124,24 @@ export class UsersController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
+  }
+
+  @Get('activity/recent')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getActivity(@Req() req: any) {
+    return this.usersService.getActivity(req.user.id);
+  }
+
+  @Post('activity/update')
+  updateActivity(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    @Req() req: any,
+    @Body() body: { materialId: string; page: number },
+  ) {
+    return this.usersService.updateActivity(
+      req.user.id,
+      body.materialId,
+      body.page,
+    );
   }
 }

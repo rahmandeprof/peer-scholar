@@ -57,15 +57,22 @@ export function AcademicControlCenter() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [streakRes] = await Promise.all([api.get('/study/streak')]);
+        const [streakRes, activityRes] = await Promise.all([
+          api.get('/study/streak'),
+          api.get('/users/activity/recent'),
+        ]);
 
         setStreak(streakRes.data.currentStreak || 0);
         setStage(streakRes.data.stage || 'Novice');
 
-        const storedMaterials = JSON.parse(
-          localStorage.getItem('recentMaterials') || '[]',
-        );
-        setRecentMaterials(storedMaterials);
+        if (activityRes.data.lastReadMaterial) {
+          setRecentMaterials([
+            {
+              ...activityRes.data.lastReadMaterial,
+              viewedAt: new Date().toISOString(), // Or add lastViewedAt to backend
+            },
+          ]);
+        }
 
         if (user?.department?.id) {
           const coursesRes = await api.get(
@@ -158,8 +165,8 @@ export function AcademicControlCenter() {
                     {lastOpened.title}
                   </h3>
                   <p className='text-gray-500 dark:text-gray-400 text-sm line-clamp-2'>
-                    Last Activity:{' '}
-                    {new Date(lastOpened.viewedAt).toLocaleString()}
+                    {lastOpened.courseCode ? `${lastOpened.courseCode} • ` : ''}
+                    {lastOpened.type}
                   </p>
                 </Link>
               </div>
