@@ -30,6 +30,7 @@ interface Material {
   course?: {
     code: string;
   };
+  versions?: Material[];
 }
 
 interface MaterialCardProps {
@@ -98,6 +99,37 @@ export function MaterialCard({ material, onDelete }: MaterialCardProps) {
               <span className='inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 border border-primary-100 dark:border-primary-800'>
                 {material.type}
               </span>
+
+              {/* Versions Badge */}
+              {material.versions && material.versions.length > 0 && (
+                <div className='relative group/versions'>
+                  <span className='inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 border border-green-100 dark:border-green-800 cursor-pointer'>
+                    {material.versions.length + 1} Versions
+                  </span>
+                  
+                  {/* Versions Dropdown */}
+                  <div className='absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-30 py-1 hidden group-hover/versions:block'>
+                    <div className='px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700'>
+                      Select Version
+                    </div>
+                    <Link
+                      to={`/materials/${material.id}`}
+                      className='block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    >
+                      Latest (Current)
+                    </Link>
+                    {material.versions.map((version) => (
+                      <Link
+                        key={version.id}
+                        to={`/materials/${version.id}`}
+                        className='block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      >
+                        {version.title}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Menu Button */}
               <div className='relative'>

@@ -15,6 +15,7 @@ import {
   Save,
   Wifi,
   Zap,
+  AlertTriangle,
 } from 'lucide-react';
 import api from '../lib/api';
 import { useNetwork } from '../contexts/NetworkContext';
@@ -46,6 +47,7 @@ export function UserProfile({ onClose }: UserProfileProps) {
   });
 
   const [isEditing, setIsEditing] = useState(false);
+  const [showWarningModal, setShowWarningModal] = useState(false);
 
   useEffect(() => {
     if (user && !isEditing) {
@@ -59,6 +61,18 @@ export function UserProfile({ onClose }: UserProfileProps) {
         yearOfStudy: user.yearOfStudy ?? 1,
       });
     }
+
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      // @ts-ignore
+      window.deferredPrompt = e;
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, [user, isEditing]);
 
   const handleCancel = () => {
@@ -76,8 +90,26 @@ export function UserProfile({ onClose }: UserProfileProps) {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleEditClick = () => {
+      if (user.lastProfileUpdate) {
+          const nineMonthsInMs = 9 * 30 * 24 * 60 * 60 * 1000;
+          const timeSinceLastUpdate = Date.now() - new Date(user.lastProfileUpdate).getTime();
+          
+          if (timeSinceLastUpdate < nineMonthsInMs) {
+              const remainingDays = Math.ceil((nineMonthsInMs - timeSinceLastUpdate) / (1000 * 60 * 60 * 24));
+              toast.error(`You can only change your academic details once per academic session. Please wait ${remainingDays} days.`);
+              return;
+          }
+      }
+      setIsEditing(true);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setShowWarningModal(true);
+  };
+
+  const confirmUpdate = async () => {
     setLoading(true);
     try {
       await api.patch('/users/profile', {
@@ -94,9 +126,11 @@ export function UserProfile({ onClose }: UserProfileProps) {
       toast.success('Profile updated successfully');
       await refreshUser();
       setIsEditing(false);
+      setShowWarningModal(false);
       onClose();
-    } catch {
-      toast.error('Failed to update profile');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to update profile');
+      setShowWarningModal(false);
     } finally {
       setLoading(false);
     }
@@ -243,6 +277,44 @@ export function UserProfile({ onClose }: UserProfileProps) {
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
                   </label>
                 </div>
+
+                {/* Install App Button */}
+                <div className='flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg'>
+                  <div className='flex items-center'>
+                    <div className='w-5 h-5 mr-3 flex items-center justify-center'>
+                      <span className='text-lg'>📱</span>
+                    </div>
+                    <div>
+                      <p className='text-sm font-medium text-gray-900 dark:text-gray-100'>
+                        Install App
+                      </p>
+                      <p className='text-xs text-gray-500 dark:text-gray-400'>
+                        Add to home screen for offline access
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      // @ts-ignore
+                      const promptEvent = window.deferredPrompt;
+                      if (promptEvent) {
+                        promptEvent.prompt();
+                        promptEvent.userChoice.then((choiceResult: any) => {
+                          if (choiceResult.outcome === 'accepted') {
+                            console.log('User accepted the install prompt');
+                          }
+                          // @ts-ignore
+                          window.deferredPrompt = null;
+                        });
+                      } else {
+                        toast.info('App is already installed or not supported');
+                      }
+                    }}
+                    className='px-3 py-1.5 bg-primary-600 text-white text-xs font-bold rounded-lg hover:bg-primary-700 transition-colors'
+                  >
+                    Install
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
@@ -303,7 +375,7 @@ export function UserProfile({ onClose }: UserProfileProps) {
                       setFormData({ ...formData, firstName: e.target.value })
                     }
                     disabled={!isEditing}
-                    className='w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed'
+                    className='w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all'
                     required
                   />
                 </div>
@@ -318,7 +390,7 @@ export function UserProfile({ onClose }: UserProfileProps) {
                       setFormData({ ...formData, lastName: e.target.value })
                     }
                     disabled={!isEditing}
-                    className='w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed'
+                    className='w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all'
                     required
                   />
                 </div>
@@ -334,9 +406,42 @@ export function UserProfile({ onClose }: UserProfileProps) {
                     type='email'
                     value={user.email}
                     disabled
-                    className='w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-500 cursor-not-allowed'
+                    className='w-full pl-10 pr-10 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-500 cursor-not-allowed'
                   />
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    {user.isVerified ? (
+                      <div className="group relative">
+                        <Shield className="w-5 h-5 text-green-500" />
+                        <div className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                          Verified
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="group relative">
+                        <AlertTriangle className="w-5 h-5 text-red-500" />
+                        <div className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                          Unverified
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
+                {!user.isVerified && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await api.post('/auth/resend-verification');
+                        toast.success('Verification email sent!');
+                      } catch (err) {
+                        toast.error('Failed to send verification email');
+                      }
+                    }}
+                    className="mt-2 text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center"
+                  >
+                    Resend Verification Link
+                  </button>
+                )}
               </div>
 
               <div>
@@ -436,7 +541,7 @@ export function UserProfile({ onClose }: UserProfileProps) {
                     </button>
                     <button
                       type='button'
-                      onClick={() => setIsEditing(true)}
+                      onClick={handleEditClick}
                       className='px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors flex items-center'
                     >
                       Edit Profile
@@ -466,6 +571,42 @@ export function UserProfile({ onClose }: UserProfileProps) {
           )}
         </div>
       </div>
+
+
+      {/* Warning Modal */}
+      {showWarningModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-red-500/50 animate-in fade-in zoom-in duration-200">
+                <div className="text-center mb-6">
+                    <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600 dark:text-red-400">
+                        <AlertTriangle className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Are you sure?</h3>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm">
+                        You will <strong>not</strong> be able to change your Faculty, Department, or Year of Study again for <strong>9 months</strong>.
+                    </p>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm mt-2">
+                        Please check your details carefully before confirming.
+                    </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                    <button
+                        onClick={() => setShowWarningModal(false)}
+                        className="py-3 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={confirmUpdate}
+                        disabled={loading}
+                        className="py-3 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-red-500/30 flex items-center justify-center"
+                    >
+                        {loading ? 'Saving...' : 'Confirm & Save'}
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 }

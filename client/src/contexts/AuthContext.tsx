@@ -21,6 +21,7 @@ interface User {
   reputation?: number;
   isVerified?: boolean;
   image?: string;
+  lastProfileUpdate?: string;
 }
 
 interface AuthContextType {

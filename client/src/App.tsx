@@ -3,7 +3,6 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { DashboardLayout } from './components/DashboardLayout';
 import { AcademicControlCenter } from './components/AcademicControlCenter';
 import DepartmentView from './components/DepartmentView';
-import { StudyTimer } from './components/StudyTimer';
 import { Chatbot } from './components/Chatbot';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -16,7 +15,10 @@ import { GoogleCallback } from './components/GoogleCallback';
 import { CourseView } from './components/CourseView';
 import { MaterialView } from './components/MaterialView';
 import { StudyPartner } from './components/StudyPartner';
+import { TargetGPCalculator } from './components/TargetGPCalculator';
 import CompleteProfile from './components/CompleteProfile';
+import { QuizArena } from './components/QuizArena';
+import { VerifyEmail } from './components/VerifyEmail';
 import { Loader2 } from 'lucide-react';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -66,6 +68,7 @@ function AppContent() {
     <div className='min-h-screen bg-gray-50 dark:bg-gray-950'>
       <Routes>
         <Route path='/auth/callback' element={<GoogleCallback />} />
+        <Route path='/verify-email' element={<VerifyEmail />} />
 
         <Route
           path='/complete-profile'
@@ -91,11 +94,12 @@ function AppContent() {
             path='/partner'
             element={<Navigate to='/study-partner' replace />}
           />
-          <Route path='/study-timer' element={<StudyTimer />} />
           <Route path='/chat' element={<Chatbot />} />
           <Route path='/chat/:id' element={<Chatbot />} />
           <Route path='/courses/:courseId' element={<CourseView />} />
           <Route path='/materials/:id' element={<MaterialView />} />
+          <Route path='/tools/gp-calculator' element={<TargetGPCalculator />} />
+          <Route path='/arena/:challengeId' element={<QuizArena />} />
         </Route>
 
         <Route

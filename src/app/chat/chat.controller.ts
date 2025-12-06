@@ -11,6 +11,7 @@ import {
   UploadedFile,
   UseGuards,
   UseInterceptors,
+  ForbiddenException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -31,7 +32,7 @@ interface RequestWithUser extends Request {
 @Controller('chat')
 @UseGuards(AuthGuard('jwt'))
 export class ChatController {
-  constructor(private readonly chatService: ChatService) {}
+  constructor(private readonly chatService: ChatService) { }
 
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
@@ -117,8 +118,16 @@ export class ChatController {
   }
 
   @Post('quiz/:id')
-  generateQuiz(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.chatService.generateQuiz(id);
+  generateQuiz(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body('pageLimit') pageLimit?: number,
+  ) {
+    return this.chatService.generateQuiz(id, pageLimit);
+  }
+
+  @Post('flashcards/:id')
+  generateFlashcards(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.chatService.generateFlashcards(id);
   }
 
   @Get('summary/:id')
@@ -160,6 +169,9 @@ export class ChatController {
     @Body('content') content: string,
     @Req() req: RequestWithUser,
   ) {
+    if (!req.user.isVerified) {
+      throw new ForbiddenException('You must verify your email to post comments.');
+    }
     return this.chatService.addComment(req.user, id, content);
   }
 

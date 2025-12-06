@@ -3,6 +3,7 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
+import { AnnotationManager } from './AnnotationManager';
 
 // Configure worker
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -12,9 +13,10 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 
 interface PDFViewerProps {
   url: string;
+  materialId?: string;
 }
 
-export function PDFViewer({ url }: PDFViewerProps) {
+export function PDFViewer({ url, materialId }: PDFViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [scale, setScale] = useState<number>(1.0);
@@ -74,7 +76,6 @@ export function PDFViewer({ url }: PDFViewerProps) {
         <Document
           file={url}
           onLoadSuccess={onDocumentLoadSuccess}
-          onLoadError={(error) => console.error('Error loading PDF:', error)}
           className='shadow-lg'
           loading={
             <div className='flex items-center justify-center h-64'>
@@ -83,17 +84,30 @@ export function PDFViewer({ url }: PDFViewerProps) {
           }
           error={
             <div className='flex items-center justify-center h-64 text-red-500'>
-              Failed to load PDF. Check console for details.
+              Failed to load PDF.
             </div>
           }
         >
-          <Page
-            pageNumber={pageNumber}
-            scale={scale}
-            className='bg-white'
-            renderTextLayer={true}
-            renderAnnotationLayer={true}
-          />
+
+          {materialId ? (
+            <AnnotationManager materialId={materialId} pageNumber={pageNumber}>
+              <Page
+                pageNumber={pageNumber}
+                scale={scale}
+                className='bg-white'
+                renderTextLayer={true}
+                renderAnnotationLayer={true}
+              />
+            </AnnotationManager>
+          ) : (
+            <Page
+              pageNumber={pageNumber}
+              scale={scale}
+              className='bg-white'
+              renderTextLayer={true}
+              renderAnnotationLayer={true}
+            />
+          )}
         </Document>
       </div>
     </div>

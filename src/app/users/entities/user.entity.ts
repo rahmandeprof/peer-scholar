@@ -72,4 +72,13 @@ export class User extends IDAndTimestamp {
 
   @Column({ default: false })
   isVerified: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  lastSeen: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  lastProfileUpdate: Date;
+
+  @Column({ nullable: true })
+  verificationToken: string;
 }

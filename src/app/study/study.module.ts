@@ -11,10 +11,13 @@ import { StudyService } from './study.service';
 
 import { StudyProcessor } from './processors/study.processor';
 
+import { StudyGateway } from './study.gateway';
+import { User } from '@/app/users/entities/user.entity';
+
 @Module({
-  imports: [TypeOrmModule.forFeature([StudySession]), UsersModule],
+  imports: [TypeOrmModule.forFeature([StudySession, User]), UsersModule],
   controllers: [StudyController],
-  providers: [StudyService, StudyProcessor],
+  providers: [StudyService, StudyProcessor, StudyGateway],
   exports: [StudyService],
 })
-export class StudyModule {}
+export class StudyModule { }

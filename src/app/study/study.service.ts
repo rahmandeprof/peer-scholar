@@ -7,6 +7,7 @@ import {
 } from './entities/study-session.entity';
 
 import { UsersService } from '@/app/users/users.service';
+import { REPUTATION_REWARDS } from '@/app/common/constants/reputation.constants';
 
 import { Repository } from 'typeorm';
 
@@ -16,7 +17,7 @@ export class StudyService {
     @InjectRepository(StudySession)
     private readonly studySessionRepo: Repository<StudySession>,
     private readonly usersService: UsersService,
-  ) {}
+  ) { }
 
   startSession(userId: string, type: StudySessionType) {
     const session = this.studySessionRepo.create({
@@ -51,7 +52,7 @@ export class StudyService {
       session.type === StudySessionType.TEST
     ) {
       await this.usersService.updateStreak(userId);
-      await this.usersService.increaseReputation(userId, 5);
+      await this.usersService.increaseReputation(userId, REPUTATION_REWARDS.LOW);
     }
 
     return session;

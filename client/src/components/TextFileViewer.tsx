@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Loader2 } from 'lucide-react';
 import api from '../lib/api';
+import { AnnotationManager } from './AnnotationManager';
 
 export function TextFileViewer({
   url,
@@ -105,16 +106,31 @@ export function TextFileViewer({
 
   return (
     <div className='h-full overflow-auto p-8 bg-white dark:bg-gray-900'>
-      <pre
-        className='whitespace-pre-wrap text-gray-800 dark:text-gray-200 transition-all duration-300'
-        style={{
-          fontFamily: 'var(--reader-font-family)',
-          fontSize: 'var(--reader-font-size)',
-          lineHeight: 'var(--reader-line-height)',
-        }}
-      >
-        {content}
-      </pre>
+      {materialId ? (
+        <AnnotationManager materialId={materialId}>
+          <pre
+            className='whitespace-pre-wrap text-gray-800 dark:text-gray-200 transition-all duration-300'
+            style={{
+              fontFamily: 'var(--reader-font-family)',
+              fontSize: 'var(--reader-font-size)',
+              lineHeight: 'var(--reader-line-height)',
+            }}
+          >
+            {content}
+          </pre>
+        </AnnotationManager>
+      ) : (
+        <pre
+          className='whitespace-pre-wrap text-gray-800 dark:text-gray-200 transition-all duration-300'
+          style={{
+            fontFamily: 'var(--reader-font-family)',
+            fontSize: 'var(--reader-font-size)',
+            lineHeight: 'var(--reader-line-height)',
+          }}
+        >
+          {content}
+        </pre>
+      )}
     </div>
   );
 }

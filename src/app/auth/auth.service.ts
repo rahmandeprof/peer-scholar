@@ -8,13 +8,15 @@ import { CreateUserDto } from '@/app/users/dto/create-user.dto';
 import { UsersService } from '@/app/users/users.service';
 
 import * as bcrypt from 'bcrypt';
+import { v4 as uuidv4 } from 'uuid';
+import { EmailService } from '@/app/common/services/email.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
-  ) {}
+  ) { }
 
   async validateUser(
     email: string,
@@ -55,13 +57,13 @@ export class AuthService {
       | User
       | Omit<User, 'password'>
       | {
-          id: string;
-          email: string;
-          firstName: string;
-          lastName: string;
-          department: string;
-          yearOfStudy: number;
-        },
+        id: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+        department: string;
+        yearOfStudy: number;
+      },
   ) {
     const payload = {
       email: user.email,
@@ -83,53 +85,120 @@ export class AuthService {
     };
   }
 
-  async register(userData: CreateUserDto) {
-    const hashedPassword = await bcrypt.hash(userData.password, 10);
-    const userDataPlain = {
-      firstName: userData.firstName,
-      lastName: userData.lastName,
-      email: userData.email,
-      department: userData.department,
-      faculty: userData.faculty,
-      yearOfStudy: userData.yearOfStudy,
-      password: hashedPassword,
-    };
-    const newUser = await this.usersService.create(userDataPlain);
+  const hashedPassword = await bcrypt.hash(userData.password, 10);
+  const verificationToken = uuidv4();
 
-    return this.login(newUser);
+  const userDataPlain = {
+    firstName: userData.firstName,
+    lastName: userData.lastName,
+    email: userData.email,
+    department: userData.department,
+    faculty: userData.faculty,
+    yearOfStudy: userData.yearOfStudy,
+    password: hashedPassword,
+    verificationToken,
+    isVerified: false,
+  };
+  const newUser = await this.usersService.create(userDataPlain);
+
+    await this.emailService.sendEmailVerificationDirect(newUser, verificationToken);
+
+return this.login(newUser);
   }
+
+  async verifyEmail(token: string) {
+  const user = await this.usersService.findByVerificationToken(token);
+  if (!user) {
+    throw new Error('Invalid verification token');
+  }
+
+  user.emailVerified = true;
+  user.isVerified = true;
+  user.verificationToken = null;
+
+  await this.usersService.save(user);
+
+  return { success: true, message: 'Email verified successfully' };
+}
+
+  async resendVerification(userId: string) {
+  const user = await this.usersService.getOne(userId);
+
+  if (user.isVerified) {
+    throw new Error('Email already verified');
+  }
+
+  const verificationToken = uuidv4();
+  user.verificationToken = verificationToken;
+  await this.usersService.save(user);
+
+  await this.emailService.sendEmailVerificationDirect(user, verificationToken);
+
+  return { success: true, message: 'Verification email sent' };
+}
+
+  async verifyEmail(token: string) {
+  const user = await this.usersService.findByVerificationToken(token);
+  if (!user) {
+    throw new Error('Invalid verification token');
+  }
+
+  user.emailVerified = true;
+  user.isVerified = true;
+  user.verificationToken = null; // Clear token
+
+  await this.usersService.save(user);
+
+  return { success: true, message: 'Email verified successfully' };
+}
+
+  async resendVerification(userId: string) {
+  const user = await this.usersService.getOne(userId);
+
+  if (user.isVerified) {
+    throw new Error('Email already verified');
+  }
+
+  const verificationToken = uuidv4();
+  user.verificationToken = verificationToken;
+  await this.usersService.save(user);
+
+  await this.emailService.sendEmailVerificationDirect(user, verificationToken);
+
+  return { success: true, message: 'Verification email sent' };
+}
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async googleLogin(req: any) {
-    if (!req.user) {
-      return 'No user from google';
-    }
-
-    const { email, firstName, lastName, picture, googleId } = req.user;
-
-    let user = await this.usersService.findByEmail(email);
-
-    if (!user) {
-      // Create new user
-      const userData = {
-        email,
-        firstName,
-        lastName,
-        image: picture,
-        googleId,
-        password: '', // No password for google users
-        department: 'General', // Default
-        yearOfStudy: 1, // Default
-      };
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      user = await this.usersService.create(userData as any);
-    } else if (!user.googleId) {
-      // Link existing user
-      await this.usersService.update(user.id, { googleId, image: picture });
-      user.googleId = googleId;
-    }
-
-    return this.login(user);
+  if (!req.user) {
+    return 'No user from google';
   }
+
+  const { email, firstName, lastName, picture, googleId } = req.user;
+
+  let user = await this.usersService.findByEmail(email);
+
+  if (!user) {
+    // Create new user
+    const userData = {
+      email,
+      firstName,
+      lastName,
+      image: picture,
+      googleId,
+      password: '', // No password for google users
+      department: 'General', // Default
+      yearOfStudy: 1, // Default
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    user = await this.usersService.create(userData as any);
+  } else if (!user.googleId) {
+    // Link existing user
+    await this.usersService.update(user.id, { googleId, image: picture });
+    user.googleId = googleId;
+  }
+
+  return this.login(user);
+}
 }

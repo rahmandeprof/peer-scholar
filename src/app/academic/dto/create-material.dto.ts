@@ -64,4 +64,12 @@ export class CreateMaterialDto {
   @IsNumber()
   @IsOptional()
   targetYear?: number;
+
+  @IsString()
+  @IsOptional()
+  fileHash?: string;
+
+  @IsString()
+  @IsOptional()
+  parentMaterialId?: string;
 }

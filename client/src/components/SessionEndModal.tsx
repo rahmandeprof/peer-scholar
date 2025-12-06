@@ -1,9 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Trophy, BookOpen, ArrowRight } from 'lucide-react';
 
 interface SessionEndModalProps {
   isOpen: boolean;
-  onStartQuiz: () => void;
+  onStartQuiz: (pageLimit?: number) => void;
   onContinueReading: () => void;
 }
 
@@ -13,6 +13,7 @@ export function SessionEndModal({
   onContinueReading,
 }: SessionEndModalProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [pageLimit, setPageLimit] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -40,17 +41,33 @@ export function SessionEndModal({
         </div>
 
         <h2 className='text-2xl font-bold text-gray-900 dark:text-white mb-3'>
-          Great Work! 25 Minutes Complete.
+          Great Work! Session Complete.
         </h2>
 
-        <p className='text-gray-600 dark:text-gray-300 mb-8 leading-relaxed'>
+        <p className='text-gray-600 dark:text-gray-300 mb-6 leading-relaxed'>
           You've earned a break, but first—let's lock in what you just read with
           a 5-minute active recall session.
         </p>
 
+        <div className='mb-6'>
+          <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+            Which page did you reach? (Optional)
+          </label>
+          <input
+            type='number'
+            value={pageLimit}
+            onChange={(e) => setPageLimit(e.target.value)}
+            placeholder='e.g. 10'
+            className='w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 outline-none'
+          />
+          <p className='text-xs text-gray-500 mt-1'>
+            We'll limit the quiz to content up to this page.
+          </p>
+        </div>
+
         <div className='space-y-3'>
           <button
-            onClick={onStartQuiz}
+            onClick={() => onStartQuiz(pageLimit ? parseInt(pageLimit) : undefined)}
             className='w-full py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold shadow-lg shadow-purple-500/30 transition-all flex items-center justify-center'
           >
             <BookOpen className='w-5 h-5 mr-2' />

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -313,6 +313,14 @@ export class UsersService {
     return this.userRepository.findOne({ where: { email } });
   }
 
+  findByVerificationToken(token: string) {
+    return this.userRepository.findOne({ where: { verificationToken: token } });
+  }
+
+  save(user: User) {
+    return this.userRepository.save(user);
+  }
+
   async findOneProfile(id: string) {
     const user = await this.userRepository
       .createQueryBuilder('user')
@@ -352,6 +360,17 @@ export class UsersService {
     );
     const user = await this.getOne(id);
 
+    // Check for 9-month restriction
+    if (user.lastProfileUpdate) {
+      const nineMonthsInMs = 9 * 30 * 24 * 60 * 60 * 1000; // Approx 9 months
+      const timeSinceLastUpdate = Date.now() - user.lastProfileUpdate.getTime();
+
+      if (timeSinceLastUpdate < nineMonthsInMs) {
+        const remainingTime = Math.ceil((nineMonthsInMs - timeSinceLastUpdate) / (1000 * 60 * 60 * 24));
+        throw new ForbiddenException(`You can only update your academic profile once every 9 months. Please wait ${remainingTime} more days.`);
+      }
+    }
+
     if (dto.schoolId) {
       user.school = dto.schoolId;
     }
@@ -367,6 +386,8 @@ export class UsersService {
     if (dto.yearOfStudy) {
       user.yearOfStudy = dto.yearOfStudy;
     }
+
+    user.lastProfileUpdate = new Date();
 
     const savedUser = await this.userRepository.save(user);
 

@@ -61,47 +61,7 @@ export class MaterialProcessor {
       // 2. Extract text
       let text = '';
 
-      // eslint-disable-next-line no-console
-      console.log(`[DEBUG] Processing file type: ${material.fileType}`);
-
       if (material.fileType === 'application/pdf') {
-        // eslint-disable-next-line no-console
-        console.log('[DEBUG] Inspecting pdfLib:', {
-          type: typeof pdfLib,
-          isFunction: typeof pdfLib === 'function',
-          keys: Object.keys(pdfLib),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          hasDefault: !!(pdfLib as any).default,
-        });
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const def = (pdfLib as any).default;
-
-        // eslint-disable-next-line no-console
-        console.log('[DEBUG] pdfLib.default type:', typeof def);
-        if (typeof def === 'object' && def !== null) {
-          // eslint-disable-next-line no-console
-          console.log('[DEBUG] pdfLib.default keys:', Object.keys(def));
-        }
-
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-          const requiredPdf = require('pdf-parse');
-
-          // eslint-disable-next-line no-console
-          console.log('[DEBUG] require("pdf-parse") type:', typeof requiredPdf);
-          if (typeof requiredPdf === 'object') {
-            // eslint-disable-next-line no-console
-            console.log(
-              '[DEBUG] require("pdf-parse") keys:',
-              Object.keys(requiredPdf),
-            );
-          }
-        } catch (e) {
-          // eslint-disable-next-line no-console
-          console.log('[DEBUG] require failed:', e);
-        }
-
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const candidate = (pdfLib as any).default ?? pdfLib;
 
@@ -110,33 +70,16 @@ export class MaterialProcessor {
             ? candidate
             : (candidate.PDFParse ?? candidate);
 
-        // eslint-disable-next-line no-console
-        console.log('[DEBUG] Selected pdfParseFn type:', typeof pdfParseFn);
-
-        // eslint-disable-next-line no-console
-        console.log('PDF Parsing started...');
-
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let data: any;
-
         try {
           // Try function call first
-
-          data = await pdfParseFn(buffer);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data = await (pdfParseFn as any)(buffer);
         } catch (err) {
-          if (
-            err instanceof Error &&
-            err.message.includes(
-              "Class constructors cannot be invoked without 'new'",
-            )
-          ) {
-            // eslint-disable-next-line no-console
-            console.log(
-              '[DEBUG] Caught class constructor error, trying new...',
-            );
-
-            const instance = new pdfParseFn(buffer);
-
+          if (err instanceof Error && err.message.includes("Class constructors cannot be invoked without 'new'")) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const instance = new (pdfParseFn as any)(buffer);
             // Check if instance is a promise or has data
             if (instance instanceof Promise) {
               data = await instance;
@@ -147,9 +90,6 @@ export class MaterialProcessor {
             throw err;
           }
         }
-
-        // eslint-disable-next-line no-console
-        console.log('PDF Parsing success!');
 
         text = data.text;
       } else if (

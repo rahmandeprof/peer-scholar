@@ -19,6 +19,7 @@ import { ContextActionDto, ContextActionType } from './dto/context-action.dto';
 import { CloudinaryService } from '@/app/common/services/cloudinary.service';
 import { ConversionService } from '@/app/common/services/conversion.service';
 import { UsersService } from '@/app/users/users.service';
+import { REPUTATION_REWARDS } from '@/app/common/constants/reputation.constants';
 
 import OpenAI from 'openai';
 import { Repository } from 'typeorm';
@@ -139,7 +140,7 @@ export class ChatService {
 
     const savedMaterial = await this.materialRepo.save(material);
 
-    await this.usersService.increaseReputation(user.id, 10);
+    await this.usersService.increaseReputation(user.id, REPUTATION_REWARDS.HIGH);
 
     return savedMaterial;
   }
@@ -371,45 +372,57 @@ export class ChatService {
     }
   }
 
-  async generateQuiz(materialId: string) {
+  async generateQuiz(materialId: string, pageLimit?: number) {
     const material = await this.materialRepo.findOne({
       where: { id: materialId },
     });
 
     if (!material) throw new NotFoundException('Material not found');
 
-    const materialContent = material.content;
+    let materialContent = material.content;
 
     if (!materialContent)
       throw new Error(
         'Material content is not available. Please re-upload the file.',
       );
 
-    // Return cached quiz if available
-    if (material.quiz) {
+    // If pageLimit is provided, truncate content
+    // Approximation: 3000 characters per page
+    if (pageLimit && pageLimit > 0) {
+      const charLimit = pageLimit * 3000;
+      if (materialContent.length > charLimit) {
+        materialContent = materialContent.substring(0, charLimit);
+      }
+    }
+
+    // Return cached quiz if available AND no page limit was requested
+    // If page limit is requested, we always generate fresh (or we could cache with a key, but for now fresh)
+    if (!pageLimit && material.quiz) {
       return material.quiz;
     }
 
     if (!this.openai) throw new Error('OPENAI_API_KEY is not set');
 
-    const systemPrompt = `You are a strict API endpoint. You receive text and output ONLY valid JSON. Do not include markdown formatting like \`\`\`json or \`\`\`.`;
+    const systemPrompt = `You are a strict API endpoint. You receive text and output ONLY valid JSON.`;
     const userPrompt = `Generate 5 multiple-choice questions based on the following text.
-    Return the result as a JSON array of objects with the following structure:
-    [
-      {
-        "question": "string",
-        "options": ["string", "string", "string", "string"],
-        "correctAnswer": "string",
-        "explanation": "string"
-      }
-    ]
+    Return the result as a JSON object with a "questions" key containing an array of objects with the following structure:
+    {
+      "questions": [
+        {
+          "question": "string",
+          "options": ["string", "string", "string", "string"],
+          "correctAnswer": "string",
+          "explanation": "string"
+        }
+      ]
+    }
     
     Text:
-    ${materialContent.substring(0, 6000)}`;
+    ${materialContent.substring(0, 6000)}`; // Still cap at 6000 for token limits if pageLimit is huge
 
     try {
       const response = await this.openai.chat.completions.create({
-        model: COMPLETION_MODEL,
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
@@ -418,6 +431,7 @@ export class ChatService {
           { role: 'user', content: userPrompt },
         ],
         temperature: 0.1,
+        response_format: { type: 'json_object' },
       });
 
       let content = response.choices[0].message.content;
@@ -426,10 +440,11 @@ export class ChatService {
 
       content = this.cleanJson(content);
 
-      const quiz = JSON.parse(content);
+      const parsed = JSON.parse(content);
+      const quiz = parsed.questions || [];
 
-      // Cache the result
-      if (quiz) {
+      // Cache the result ONLY if it's a full quiz (no page limit)
+      if (!pageLimit && quiz.length > 0) {
         material.quiz = quiz;
         await this.materialRepo.save(material);
       }
@@ -438,6 +453,78 @@ export class ChatService {
     } catch (error) {
       this.logger.error('Failed to generate quiz', error);
       throw new Error('Failed to generate quiz');
+    }
+  }
+
+  async generateFlashcards(materialId: string) {
+    const material = await this.materialRepo.findOne({
+      where: { id: materialId },
+    });
+
+    if (!material) throw new NotFoundException('Material not found');
+
+    // Return cached flashcards if available
+    if (material.flashcards && material.flashcards.length > 0) {
+      return material.flashcards;
+    }
+
+    const materialContent = material.content;
+
+    if (!materialContent)
+      throw new Error(
+        'Material content is not available. Please re-upload the file.',
+      );
+
+    if (!this.openai) throw new Error('OPENAI_API_KEY is not set');
+
+    const systemPrompt = `You are a strict API endpoint. You receive text and output ONLY valid JSON.`;
+    const userPrompt = `Extract 10-15 key terms and their definitions from the following text.
+    Return the result as a JSON object with a "flashcards" key containing an array of objects with the following structure:
+    {
+      "flashcards": [
+        {
+          "term": "string",
+          "definition": "string"
+        }
+      ]
+    }
+    
+    Text:
+    ${materialContent.substring(0, 6000)}`;
+
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt,
+          },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.1,
+        response_format: { type: 'json_object' },
+      });
+
+      let content = response.choices[0].message.content;
+
+      if (!content) return [];
+
+      content = this.cleanJson(content);
+
+      const parsed = JSON.parse(content);
+      const flashcards = parsed.flashcards || [];
+
+      // Cache the result
+      if (flashcards.length > 0) {
+        material.flashcards = flashcards;
+        await this.materialRepo.save(material);
+      }
+
+      return flashcards;
+    } catch (error) {
+      this.logger.error('Failed to generate flashcards', error);
+      throw new Error('Failed to generate flashcards');
     }
   }
 
@@ -648,8 +735,9 @@ export class ChatService {
   }
 
   private cleanJson(text: string): string {
-    // Remove markdown code blocks
-    let cleaned = text.replace(/```json/g, '').replace(/```/g, '');
+    // Remove markdown code blocks (case insensitive, optional json tag)
+    let cleaned = text.replace(/```(?:json)?/gi, '').trim();
+
     // Find the first '[' or '{'
     const firstBracket = cleaned.search(/[[{]/);
 

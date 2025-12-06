@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Users, UserPlus, Check, X, Mail, Shield } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Users, UserPlus, Check, X, Mail, Shield, Clock, Swords } from 'lucide-react';
 import api from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
 import confetti from 'canvas-confetti';
+import { useSocket } from '../contexts/SocketContext';
+import { useAuth } from '../contexts/AuthContext';
 
 interface PartnerData {
   id: string;
@@ -13,6 +16,7 @@ interface PartnerData {
   currentStreak: number;
   lastActivity: string;
   combinedStreak: number;
+  lastSeen?: string;
 }
 
 interface PartnerRequest {
@@ -30,8 +34,12 @@ export function StudyPartner() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const toast = useToast();
+  const { socket } = useSocket();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [sentRequests, setSentRequests] = useState<PartnerRequest[]>([]);
+  const [pendingChallenge, setPendingChallenge] = useState<{ senderId: string; materialId: string } | null>(null);
 
   const fetchData = async () => {
     try {
@@ -40,14 +48,11 @@ export function StudyPartner() {
         api.get('/users/partner/requests'),
         api.get('/users/partner/sent'),
       ]);
-      // Ensure we handle both array (new) and object (old cache?) if any
-      // But we changed backend, so it should be array.
       setPartners(Array.isArray(partnersRes.data) ? partnersRes.data : []);
       setRequests(requestsRes.data);
       setSentRequests(sentRes.data);
     } catch {
       // console.error('Failed to fetch partner data', err);
-      // toast.error('Failed to load partner data');
     }
   };
 
@@ -55,14 +60,60 @@ export function StudyPartner() {
     void fetchData();
   }, []);
 
+  useEffect(() => {
+    if (socket) {
+      socket.on('receive_invite', () => {
+        toast.info('You received a study invite!');
+        fetchData();
+      });
+
+      socket.on('receive_challenge', (data: { senderId: string; materialId: string }) => {
+          // Show a custom toast or modal to accept
+          // For simplicity, using a toast with action (if library supports) or just a confirm dialog
+          // Since standard toast might not support buttons easily without custom component,
+          // I'll use a simple window.confirm for MVP or a custom toast if I can.
+          // Let's try a custom toast content if the context allows, or just a separate state for "challengeRequest".
+          
+          // Actually, let's use a state to show a modal/alert in the UI.
+          // But since this might happen anywhere, a global toast is better.
+          // Let's assume toast supports it or we just auto-redirect to a "Challenge Pending" state?
+          // No, "When accepted, redirect".
+          
+          // I'll trigger a browser notification or just a simple confirm for now to be robust.
+          // "User X challenges you! Accept?"
+          // If yes -> emit 'challenge_response'
+          
+          // Better: Set a state "pendingChallenge" and render a modal.
+          setPendingChallenge(data);
+      });
+
+      socket.on('start_challenge', (data: { challengeId: string; materialId: string; questions: any[] }) => {
+          toast.success('Challenge Accepted! Entering Arena...');
+          navigate(`/arena/${data.challengeId}`, { state: { questions: data.questions } });
+      });
+
+      return () => {
+        socket.off('receive_invite');
+        socket.off('receive_challenge');
+        socket.off('start_challenge');
+      };
+    }
+  }, [socket, toast]);
+
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteEmail.trim()) return;
 
     setLoading(true);
     try {
-      await api.post('/users/partner/invite', { email: inviteEmail });
+      const res = await api.post('/users/partner/invite', { email: inviteEmail });
       toast.success('Invite sent successfully!');
+      
+      // Notify via socket if connected
+      if (socket && res.data.receiverId) {
+        socket.emit('invite_user', { senderId: user?.id, receiverId: res.data.receiverId });
+      }
+
       setInviteEmail('');
       fetchData();
     } catch (err: unknown) {
@@ -111,6 +162,18 @@ export function StudyPartner() {
     }
   };
 
+  const formatLastSeen = (dateString?: string) => {
+    if (!dateString) return 'Offline';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    
+    if (diff < 5 * 60 * 1000) return 'Online now';
+    if (diff < 60 * 60 * 1000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 24 * 60 * 60 * 1000) return `${Math.floor(diff / 3600000)}h ago`;
+    return date.toLocaleDateString();
+  };
+
   return (
     <div className='max-w-4xl mx-auto p-6 space-y-8 h-full overflow-y-auto'>
       {partners.length > 0 ? (
@@ -148,31 +211,103 @@ export function StudyPartner() {
 
               <div className='space-y-6 relative z-10'>
                 <div className='bg-white/10 rounded-2xl p-6 backdrop-blur-md border border-white/10'>
-                  <h3 className='text-lg font-bold mb-4 flex items-center'>
-                    <Shield className='w-5 h-5 mr-2' />
-                    {partner.firstName} {partner.lastName}
-                  </h3>
+                  <div className='flex justify-between items-start mb-4'>
+                    <h3 className='text-lg font-bold flex items-center'>
+                      <Shield className='w-5 h-5 mr-2' />
+                      {partner.firstName} {partner.lastName}
+                    </h3>
+                    <div className='flex items-center text-xs bg-black/20 px-2 py-1 rounded-full'>
+                      <Clock className='w-3 h-3 mr-1' />
+                      {formatLastSeen(partner.lastSeen)}
+                    </div>
+                  </div>
+                  
                   <div className='space-y-2'>
                     <div className='flex items-center text-primary-100 font-medium'>
                       <span className='w-2.5 h-2.5 bg-green-400 rounded-full mr-2 shadow-[0_0_8px_rgba(74,222,128,0.6)]'></span>
                       {partner.currentStreak} day streak
                     </div>
                   </div>
-                  <button
-                    onClick={async () => {
-                      try {
-                        await api.post(`/users/partner/nudge/${partner.id}`);
-                        toast.success('Nudge sent successfully! ⚡');
-                      } catch (err: any) {
-                        toast.error(
-                          err.response?.data?.message || 'Failed to send nudge',
-                        );
-                      }
-                    }}
-                    className='mt-4 w-full py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl font-bold transition-colors flex items-center justify-center'
-                  >
-                    Send Nudge ⚡
-                  </button>
+                  
+                  <div className='grid grid-cols-2 gap-3 mt-4'>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await api.post(`/users/partner/nudge/${partner.id}`);
+                          toast.success('Nudge sent successfully! ⚡');
+                        } catch (err: any) {
+                          toast.error(
+                            err.response?.data?.message || 'Failed to send nudge',
+                          );
+                        }
+                      }}
+                      className='py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl font-bold transition-colors flex items-center justify-center text-sm'
+                    >
+                      Send Nudge ⚡
+                    </button>
+                    <button
+                      onClick={() => {
+                        // Invite to study logic
+                        // Generate a room ID (e.g., sorted user IDs)
+                        const roomId = [user?.id, partner.id].sort().join('_');
+                        if (socket) {
+                          socket.emit('join_study_room', roomId);
+                          // Notify partner to join (could be a specific event or just rely on them joining)
+                          // For now, let's assume we just join and wait/notify
+                          toast.success('Joined study room. Waiting for partner...');
+                        }
+                      }}
+                      className='py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl font-bold transition-colors flex items-center justify-center text-sm'
+                    >
+                      Study Together 📚
+                    </button>
+                    <button
+                      onClick={() => {
+                        // Challenge logic
+                        // We need a materialId to challenge on.
+                        // Since StudyPartner is a page, we might not have a material context unless passed or in URL.
+                        // However, the user flow is: Open Material -> Open Sidebar/Partner -> Challenge.
+                        // If we are on /materials/:id, we can grab it.
+                        // But StudyPartner is currently a full page route /study-partner.
+                        // It should probably be a sidebar component too, but for now let's assume
+                        // we can only challenge if we are "in a material context" or we prompt to select one?
+                        // Simplified: Check if we have a materialId in localStorage or context?
+                        // Or just prompt "Go to a material to challenge".
+                        
+                        // Actually, let's check if we are in a material view context if this component is used there.
+                        // If not, maybe disable or show tooltip.
+                        
+                        // For this implementation, let's assume the user navigates to the material first,
+                        // then opens the "Study Partner" sidebar (which we haven't fully implemented as a sidebar yet, it's a page).
+                        // BUT, the requirements say "In the Peer Sidebar, add a 'Challenge' button".
+                        // So I should probably assume this component is used in the sidebar or I should make it usable there.
+                        
+                        // Let's just emit the event. If no materialId, the backend/frontend should handle it.
+                        // Wait, the backend needs materialId to generate the quiz.
+                        // I'll grab it from the URL if possible (if this component is rendered in a sidebar on /materials/:id).
+                        
+                        const pathParts = window.location.pathname.split('/');
+                        const materialId = pathParts.includes('materials') ? pathParts[pathParts.indexOf('materials') + 1] : null;
+
+                        if (!materialId) {
+                            toast.error('Open a material to challenge a friend!');
+                            return;
+                        }
+
+                        if (socket) {
+                            socket.emit('challenge_request', {
+                                senderId: user?.id,
+                                receiverId: partner.id,
+                                materialId
+                            });
+                            toast.success('Challenge sent! Waiting for acceptance...');
+                        }
+                      }}
+                      className='py-2 bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white rounded-xl font-bold transition-colors flex items-center justify-center text-sm shadow-lg'
+                    >
+                      Challenge ⚔️
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -302,6 +437,51 @@ export function StudyPartner() {
           </button>
         </form>
       </div>
+
+      {/* Challenge Request Modal */}
+      {pendingChallenge && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-yellow-500/50 animate-in fade-in zoom-in duration-200">
+                <div className="text-center mb-6">
+                    <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-yellow-600 dark:text-yellow-400">
+                        <Swords className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Challenge Incoming!</h3>
+                    <p className="text-gray-600 dark:text-gray-400">
+                        You have been challenged to a quiz battle! Do you accept?
+                    </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                    <button
+                        onClick={() => {
+                            setPendingChallenge(null);
+                            // Reject logic if needed
+                        }}
+                        className="py-3 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    >
+                        Decline
+                    </button>
+                    <button
+                        onClick={() => {
+                            if (socket) {
+                                socket.emit('challenge_response', {
+                                    senderId: pendingChallenge.senderId,
+                                    receiverId: user?.id,
+                                    materialId: pendingChallenge.materialId,
+                                    accept: true
+                                });
+                                toast.success('Challenge Accepted! Preparing arena...');
+                                setPendingChallenge(null);
+                            }
+                        }}
+                        className="py-3 px-4 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-bold transition-colors shadow-lg shadow-yellow-500/30"
+                    >
+                        Accept Battle!
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 }

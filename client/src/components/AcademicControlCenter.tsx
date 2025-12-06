@@ -8,11 +8,11 @@ import {
   ArrowRight,
   TrendingUp,
   Activity,
-  FileText,
 } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { StudySessionModal } from './StudySessionModal';
+import { MaterialCard } from './MaterialCard';
 
 interface Course {
   id: string;
@@ -304,21 +304,19 @@ export function AcademicControlCenter() {
 
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6'>
           {recentMaterials.slice(0, 3).map((material) => (
-            <Link
-              key={material.id}
-              to={`/materials/${material.id}`}
-              className='bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all group'
-            >
-              <div className='w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex items-center justify-center text-primary-600 dark:text-primary-400 mb-4 group-hover:scale-110 transition-transform'>
-                <FileText className='w-6 h-6' />
-              </div>
-              <h3 className='font-bold text-gray-900 dark:text-gray-100 mb-1 truncate'>
-                {material.title}
-              </h3>
-              <p className='text-sm text-gray-500 dark:text-gray-400'>
-                {material.courseCode || 'General'}
-              </p>
-            </Link>
+            <MaterialCard 
+              key={material.id} 
+              material={{
+                ...material,
+                description: '',
+                fileUrl: '',
+                fileType: 'pdf',
+                size: 0,
+                createdAt: material.viewedAt,
+                uploader: { id: '', firstName: '', lastName: '' },
+                course: { code: material.courseCode || '' }
+              }} 
+            />
           ))}
 
           {recentMaterials.length === 0 && (

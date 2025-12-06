@@ -33,8 +33,9 @@ interface Material {
 }
 
 const DepartmentView: React.FC = () => {
-  const { openUploadModal } = useOutletContext<{
+  const { openUploadModal, refreshTrigger } = useOutletContext<{
     openUploadModal: () => void;
+    refreshTrigger: number;
   }>();
   const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
@@ -48,6 +49,11 @@ const DepartmentView: React.FC = () => {
     if (!user) return;
 
     const loadData = async () => {
+      // Keep loading true only on initial load or if we want a spinner on refresh
+      // For UX, maybe silent refresh is better, or just set loading=true if we want to show it updating
+      // Let's set loading=true to show it's updating, as the user asked for "refresh"
+      setLoading(true);
+      
       if (user.department) {
         const promises = [fetchTrending(), fetchRecent()];
 
@@ -61,7 +67,7 @@ const DepartmentView: React.FC = () => {
     };
 
     void loadData();
-  }, [user]);
+  }, [user, refreshTrigger]);
 
   const fetchCourses = async (departmentId: string) => {
     try {

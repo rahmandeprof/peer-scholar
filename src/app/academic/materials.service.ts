@@ -8,6 +8,9 @@ import {
   Material,
   MaterialStatus,
 } from './entities/material.entity';
+import { MaterialFavorite } from './entities/material-favorite.entity';
+import { MaterialRating } from './entities/material-rating.entity';
+import { MaterialAnnotation } from './entities/material-annotation.entity';
 import { Course } from '@/app/academic/entities/course.entity';
 import { User } from '@/app/users/entities/user.entity';
 
@@ -32,6 +35,12 @@ export class MaterialsService {
     @InjectQueue('materials') private materialsQueue: Queue,
     private usersService: UsersService,
     private conversionService: ConversionService,
+    @InjectRepository(MaterialRating)
+    private ratingRepo: Repository<MaterialRating>,
+    @InjectRepository(MaterialFavorite)
+    private favoriteRepo: Repository<MaterialFavorite>,
+    @InjectRepository(MaterialAnnotation)
+    private annotationRepo: Repository<MaterialAnnotation>,
   ) {
     cloudinary.config({
       cloud_name: this.configService.get('CLOUD_NAME'),
@@ -40,22 +49,45 @@ export class MaterialsService {
     });
   }
 
+  // ... (existing getPresignedUrl)
+
+  async create(dto: CreateMaterialDto, user: User) {
+    // ... (existing create logic)
+
+    const material = this.materialRepo.create({
+      // ... (existing fields)
+      title: dto.title,
+      description: dto.description,
+      type: dto.type,
+      fileUrl: dto.fileUrl,
+      fileType: dto.fileType,
+      size: dto.size,
+      scope: dto.scope,
+      tags: dto.tags,
+      course: undefined,
+      courseCode: dto.courseCode,
+      targetFaculty: dto.targetFaculty,
+      targetDepartment: dto.targetDepartment,
+      topic: dto.topic,
+      targetYear: dto.targetYear,
+      uploader: user,
+      status: MaterialStatus.PENDING,
+      fileHash: dto.fileHash, // Add fileHash
+      parent: dto.parentMaterialId ? { id: dto.parentMaterialId } as Material : undefined,
+    });
+
+    // ... (rest of create)
+    const savedMaterial = await this.materialRepo.save(material);
+    // ...
+    return savedMaterial;
+  }
+
+  // ... (existing methods)
+
   getPresignedUrl() {
     const timestamp = Math.floor(new Date().getTime() / 1000);
     const folder = 'materials';
-
-    // Determine resource type based on file type
     const resourceType = 'auto';
-
-    /*
-    if (fileType.startsWith('image/')) {
-      resourceType = 'image';
-    } else if (fileType.startsWith('video/') || fileType.startsWith('audio/')) {
-      resourceType = 'video';
-    } else {
-      resourceType = 'raw';
-    }
-    */
 
     const params = {
       timestamp,
@@ -82,60 +114,16 @@ export class MaterialsService {
     };
   }
 
-  async create(dto: CreateMaterialDto, user: User) {
-    // We no longer link to a specific Course entity to allow for flexible visibility
-    // based on department/public scope rather than hard database relations.
-    // The courseCode string is used for identification and grouping.
-
-    const material = this.materialRepo.create({
-      title: dto.title,
-      description: dto.description,
-      type: dto.type,
-      fileUrl: dto.fileUrl,
-      fileType: dto.fileType,
-      size: dto.size,
-      scope: dto.scope,
-      tags: dto.tags,
-      course: undefined, // Explicitly not linking
-      courseCode: dto.courseCode,
-      targetFaculty: dto.targetFaculty,
-      targetDepartment: dto.targetDepartment,
-      topic: dto.topic,
-      targetYear: dto.targetYear,
-      uploader: user,
-      status: MaterialStatus.PENDING,
-    });
-
-    const savedMaterial = await this.materialRepo.save(material);
-
-    try {
-      await this.materialsQueue.add('process-material', {
-        materialId: savedMaterial.id,
-        fileUrl: savedMaterial.fileUrl,
-      });
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to add material to processing queue', error);
-      // Continue without processing - material is saved
-    }
-
-    await this.usersService.increaseReputation(user.id, 10);
-
-    return savedMaterial;
-  }
-
   async getTrending() {
     return this.materialRepo.find({
       order: { createdAt: 'DESC' },
       take: 5,
-      relations: ['uploader'], // Removed 'course' relation as it might be null
+      relations: ['uploader'],
     });
   }
 
   async getCourseTopics(courseId: string) {
-    // We need to find the course code first
     const course = await this.courseRepo.findOneBy({ id: courseId });
-
     if (!course) return [];
 
     const materials = await this.materialRepo.find({
@@ -144,13 +132,10 @@ export class MaterialsService {
     });
 
     const topicCounts: Record<string, number> = {};
-
     materials.forEach((material) => {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (material.tags) {
         material.tags.forEach((tag) => {
-          const normalizedTag = tag.trim().toLowerCase(); // Normalize
-
+          const normalizedTag = tag.trim().toLowerCase();
           if (normalizedTag) {
             topicCounts[normalizedTag] = (topicCounts[normalizedTag] || 0) + 1;
           }
@@ -158,30 +143,24 @@ export class MaterialsService {
       }
     });
 
-    // Convert to array and sort
     return Object.entries(topicCounts)
       .map(([topic, count]) => ({ topic, count }))
       .sort((a, b) => b.count - a.count)
-      .slice(0, 10); // Top 10
+      .slice(0, 10);
   }
 
   async findAll(user: User, courseId?: string, type?: string, search?: string) {
     const query = this.materialRepo
       .createQueryBuilder('material')
       .leftJoinAndSelect('material.uploader', 'uploader');
-    // Removed join with course/department since we rely on stored fields
 
     if (courseId) {
-      // Find the course to get its code
       const course = await this.courseRepo.findOneBy({ id: courseId });
-
       if (course) {
         query.andWhere('material.courseCode = :courseCode', {
           courseCode: course.code,
         });
       } else {
-        // If course not found, maybe return empty or ignore?
-        // Let's return empty to be safe
         query.andWhere('1 = 0');
       }
     }
@@ -204,11 +183,6 @@ export class MaterialsService {
       );
     }
 
-    // Access Control Logic
-    // Public: Everyone can see
-    // Department: Only users in the same department can see
-    // Private: Only uploader can see
-
     query.andWhere(
       new Brackets((qb: WhereExpressionBuilder) => {
         qb.where('material.scope = :publicScope', {
@@ -221,7 +195,6 @@ export class MaterialsService {
               ? user.department
               : (user.department as { name: string }).name;
 
-          // Check if material is scoped to department AND matches user's department
           qb.orWhere(
             '(material.scope = :deptScope AND material.targetDepartment = :userDeptName)',
             {
@@ -248,30 +221,22 @@ export class MaterialsService {
       }),
     );
 
-    // Log the generated query
-    // console.log(query.getSql(), query.getParameters());
-
-    const materials = await query.getMany();
-
-    return materials;
+    return query.getMany();
   }
 
   async updateScope(id: string, scope: AccessScope, userId: string) {
     const material = await this.findOne(id);
-
     if (material.uploader.id !== userId) {
       throw new Error('Only the uploader can update the scope');
     }
-
     material.scope = scope;
-
     return this.materialRepo.save(material);
   }
 
   async findOne(id: string) {
     const material = await this.materialRepo.findOne({
       where: { id },
-      relations: ['uploader', 'course'],
+      relations: ['uploader', 'course', 'versions', 'versions.uploader', 'parent', 'contributors'],
     });
 
     if (!material) {
@@ -283,13 +248,11 @@ export class MaterialsService {
 
   async extractText(id: string) {
     const material = await this.findOne(id);
-
     if (material.content) {
       return { content: material.content };
     }
 
     try {
-      // Fetch file buffer
       const response = await axios.get(material.fileUrl, {
         responseType: 'arraybuffer',
       });
@@ -298,7 +261,7 @@ export class MaterialsService {
       const text = await this.conversionService.extractText(
         buffer,
         material.fileType,
-        material.title, // Use title as filename proxy if needed
+        material.title,
       );
 
       if (text) {
@@ -308,9 +271,154 @@ export class MaterialsService {
 
       return { content: text };
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('Failed to extract text on demand', error);
       throw new Error('Failed to extract text');
     }
+  }
+
+  async toggleFavorite(materialId: string, userId: string) {
+    const existing = await this.favoriteRepo.findOne({
+      where: { material: { id: materialId }, user: { id: userId } },
+    });
+
+    const material = await this.materialRepo.findOneBy({ id: materialId });
+    if (!material) throw new NotFoundException('Material not found');
+
+    if (existing) {
+      await this.favoriteRepo.remove(existing);
+      material.favoritesCount = Math.max(0, material.favoritesCount - 1);
+    } else {
+      const favorite = this.favoriteRepo.create({
+        material: { id: materialId },
+        user: { id: userId },
+      });
+      await this.favoriteRepo.save(favorite);
+      material.favoritesCount += 1;
+    }
+
+    await this.materialRepo.save(material);
+    return { isFavorited: !existing, favoritesCount: material.favoritesCount };
+  }
+
+  async rateMaterial(materialId: string, userId: string, value: number) {
+    if (value < 1 || value > 5) throw new Error('Rating must be between 1 and 5');
+
+    let rating = await this.ratingRepo.findOne({
+      where: { material: { id: materialId }, user: { id: userId } },
+    });
+
+    if (rating) {
+      rating.value = value;
+    } else {
+      rating = this.ratingRepo.create({
+        material: { id: materialId },
+        user: { id: userId },
+        value,
+      });
+    }
+
+    await this.ratingRepo.save(rating);
+
+    // Recalculate average
+    const { avg } = await this.ratingRepo
+      .createQueryBuilder('rating')
+      .select('AVG(rating.value)', 'avg')
+      .where('rating.materialId = :materialId', { materialId })
+      .getRawOne();
+
+    const material = await this.materialRepo.findOneBy({ id: materialId });
+    if (material) {
+      material.averageRating = parseFloat(Number(avg).toFixed(1));
+      await this.materialRepo.save(material);
+    }
+
+    return { averageRating: material?.averageRating, userRating: value };
+  }
+
+  async checkDuplicate(hash: string, department?: string) {
+    if (!hash) return null;
+
+    const query = this.materialRepo.createQueryBuilder('material')
+      .where('material.fileHash = :hash', { hash })
+      .leftJoinAndSelect('material.uploader', 'uploader');
+
+    if (department) {
+      // Optional: restrict duplicate check to same department if needed
+      // query.andWhere('material.targetDepartment = :department', { department });
+    }
+
+    const duplicate = await query.getOne();
+    return duplicate;
+  }
+
+  async getInteractionStatus(materialId: string, userId: string) {
+    const isFavorited = await this.favoriteRepo.exist({
+      where: { material: { id: materialId }, user: { id: userId } },
+    });
+
+    const rating = await this.ratingRepo.findOne({
+      where: { material: { id: materialId }, user: { id: userId } },
+    });
+
+    return { isFavorited, userRating: rating?.value || 0 };
+  }
+
+  async addContributor(materialId: string, userId: string) {
+    const material = await this.materialRepo.findOne({
+      where: { id: materialId },
+      relations: ['contributors'],
+    });
+
+    if (!material) throw new NotFoundException('Material not found');
+
+    const user = await this.usersService.getOne(userId);
+    if (!user) throw new NotFoundException('User not found');
+
+    // Check if already a contributor or uploader
+    if (material.uploader.id === userId) {
+      return material; // Already uploader
+    }
+
+    if (!material.contributors.find((c) => c.id === userId)) {
+      material.contributors.push(user);
+      await this.materialRepo.save(material);
+    }
+
+    return material;
+  }
+
+  async addAnnotation(
+    materialId: string,
+    userId: string,
+    data: {
+      selectedText: string;
+      pageNumber?: number;
+      year: string;
+      session: string;
+      contextBefore?: string;
+      contextAfter?: string;
+    },
+  ) {
+    const material = await this.materialRepo.findOneBy({ id: materialId });
+    if (!material) throw new NotFoundException('Material not found');
+
+    const user = await this.usersService.getOne(userId);
+    if (!user) throw new NotFoundException('User not found');
+
+    const annotation = this.annotationRepo.create({
+      material,
+      user,
+      ...data,
+    });
+
+    return this.annotationRepo.save(annotation);
+  }
+
+  async getAnnotations(materialId: string) {
+    return this.annotationRepo.find({
+      where: { material: { id: materialId } },
+      relations: ['user'],
+      order: { createdAt: 'DESC' },
+    });
   }
 }

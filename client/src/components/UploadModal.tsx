@@ -29,17 +29,28 @@ export function UploadModal({
   const [specificDepartment, setSpecificDepartment] = useState('');
   const [targetYear, setTargetYear] = useState<number | ''>('');
 
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicateMaterial, setDuplicateMaterial] = useState<any>(null);
+
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!isOpen) return null;
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
     }
+  };
+
+  // ... (existing handlers)
+
+  const calculateFileHash = async (file: File): Promise<string> => {
+    const buffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,10 +61,48 @@ export function UploadModal({
     setError(null);
 
     try {
+      // 0. Check for duplicates
+      const hash = await calculateFileHash(file);
+      // console.log('File Hash:', hash);
+
+      try {
+        const duplicateRes = await api.post('/materials/check-duplicate', {
+          hash,
+          department: specificDepartment || (typeof user?.department === 'string' ? user.department : (user?.department as any)?.name),
+        });
+
+        if (duplicateRes.data) {
+          setDuplicateMaterial(duplicateRes.data);
+          setShowDuplicateModal(true);
+          setUploading(false);
+          return; // Stop upload flow
+        }
+      } catch (err) {
+        console.error('Duplicate check failed', err);
+        // Continue with upload if check fails? Or block?
+        // Let's log and continue for now, assuming it's a non-blocking error
+      }
+
+      await proceedWithUpload(hash);
+    } catch (err: any) {
+      console.error('Upload failed', err);
+      // ... (error handling)
+      const errorMessage =
+        err.response?.data?.error?.message ||
+        err.message ||
+        'Failed to upload material';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      setUploading(false);
+    }
+  };
+
+  const proceedWithUpload = async (fileHash: string, parentMaterialId?: string) => {
       // 1. Get presigned URL
       const presignRes = await api.get(
-        `/materials/presign?fileType=${file.type}`,
+        `/materials/presign?fileType=${file!.type}`,
       );
+      // ... (destructure presignRes.data)
       const {
         url,
         signature,
@@ -65,24 +114,23 @@ export function UploadModal({
         overwrite,
       } = presignRes.data;
 
-      console.log('Presign Data Received:', presignRes.data);
-
       // 2. Upload to Cloudinary
       const uploadFile = async () => {
+        // ... (existing upload logic, using 'file' from state)
         const CHUNK_SIZE = 6 * 1024 * 1024; // 6MB
-        if (file.size <= 9.5 * 1024 * 1024) {
-          // Small file: Single request
-          const formData = new FormData();
-          formData.append('file', file);
-          formData.append('api_key', apiKey);
-          formData.append('timestamp', uploadTimestamp.toString());
-          formData.append('signature', signature);
-          if (folder) formData.append('folder', folder);
-          if (uploadPreset) formData.append('upload_preset', uploadPreset);
-          if (uniqueFilename) formData.append('unique_filename', 'true');
-          if (overwrite) formData.append('overwrite', 'true');
+        if (file!.size <= 9.5 * 1024 * 1024) {
+           // ... (single request)
+           const formData = new FormData();
+           formData.append('file', file!);
+           formData.append('api_key', apiKey);
+           formData.append('timestamp', uploadTimestamp.toString());
+           formData.append('signature', signature);
+           if (folder) formData.append('folder', folder);
+           if (uploadPreset) formData.append('upload_preset', uploadPreset);
+           if (uniqueFilename) formData.append('unique_filename', 'true');
+           if (overwrite) formData.append('overwrite', 'true');
 
-          return await axios.post(url, formData, {
+           return await axios.post(url, formData, {
             onUploadProgress: (progressEvent) => {
               if (progressEvent.total) {
                 const percentCompleted = Math.round(
@@ -94,16 +142,16 @@ export function UploadModal({
             timeout: 300000,
           });
         } else {
-          // Large file: Chunked upload
+          // ... (chunked upload)
           const uniqueUploadId = `scholar_${Date.now()}_${Math.random()
             .toString(36)
             .substr(2, 9)}`;
           let start = 0;
-          let end = Math.min(CHUNK_SIZE, file.size);
+          let end = Math.min(CHUNK_SIZE, file!.size);
           let response;
 
-          while (start < file.size) {
-            const chunk = file.slice(start, end);
+          while (start < file!.size) {
+            const chunk = file!.slice(start, end);
             const formData = new FormData();
             formData.append('file', chunk);
             formData.append('api_key', apiKey);
@@ -116,7 +164,7 @@ export function UploadModal({
 
             const headers = {
               'X-Unique-Upload-Id': uniqueUploadId,
-              'Content-Range': `bytes ${start}-${end - 1}/${file.size}`,
+              'Content-Range': `bytes ${start}-${end - 1}/${file!.size}`,
             };
 
             response = await axios.post(url, formData, {
@@ -125,7 +173,7 @@ export function UploadModal({
                 const chunkLoaded = progressEvent.loaded;
                 const totalLoaded = start + chunkLoaded;
                 const percentCompleted = Math.round(
-                  (totalLoaded * 100) / file.size,
+                  (totalLoaded * 100) / file!.size,
                 );
                 setUploadProgress(Math.min(percentCompleted, 99));
               },
@@ -133,7 +181,7 @@ export function UploadModal({
             });
 
             start = end;
-            end = Math.min(start + CHUNK_SIZE, file.size);
+            end = Math.min(start + CHUNK_SIZE, file!.size);
           }
           setUploadProgress(100);
           return response;
@@ -180,8 +228,8 @@ export function UploadModal({
         description: topic,
         type: category,
         fileUrl: uploadData.secure_url,
-        fileType: file.type,
-        size: file.size,
+        fileType: file!.type,
+        size: file!.size,
         courseCode: courseCode || undefined,
         topic: topic || undefined,
         scope,
@@ -189,6 +237,8 @@ export function UploadModal({
         targetDepartment,
         targetYear: targetYear || undefined,
         tags: topic ? [topic] : [],
+        fileHash, // Send hash to backend
+        parentMaterialId, // Send parent ID if versioning
       });
 
       setSuccess(true);
@@ -205,25 +255,67 @@ export function UploadModal({
         onClose();
         setSuccess(false);
       }, 2000);
-    } catch (err: any) {
-      console.error('Upload failed', err);
-      if (err.response?.data) {
-        console.error('Cloudinary Error Details:', err.response.data);
-      }
-      const errorMessage =
-        err.response?.data?.error?.message ||
-        err.message ||
-        'Failed to upload material';
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setUploading(false);
-    }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'>
+      {showDuplicateModal ? (
+        <div className='bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full p-6'>
+           <h3 className='text-xl font-bold text-gray-900 dark:text-gray-100 mb-4'>Duplicate Material Found</h3>
+           <p className='text-gray-600 dark:text-gray-400 mb-6'>
+             A material with the same content already exists: <br/>
+             <strong>{duplicateMaterial?.title}</strong> uploaded by {duplicateMaterial?.uploader?.firstName} {duplicateMaterial?.uploader?.lastName}.
+           </p>
+           <div className='flex flex-col space-y-3'>
+             <button
+               onClick={async () => {
+                 try {
+                   await api.post(`/materials/${duplicateMaterial.id}/contributor`);
+                   toast.success('You have been added as a contributor!');
+                   setShowDuplicateModal(false);
+                   onClose();
+                 } catch (err) {
+                   toast.error('Failed to link to material');
+                 }
+               }}
+               className='w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors'
+             >
+               Link to Existing (Add me as Contributor)
+             </button>
+             <button
+               onClick={() => {
+                 setShowDuplicateModal(false);
+                 // Proceed with upload but pass parentMaterialId
+                 void proceedWithUpload(duplicateMaterial?.fileHash, duplicateMaterial?.id);
+               }}
+               className='w-full py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors'
+             >
+               Upload as New Version
+             </button>
+             <a 
+               href={`/materials/${duplicateMaterial?.id}`}
+               target='_blank'
+               rel='noreferrer'
+               className='w-full py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg font-medium text-center transition-colors'
+             >
+               View Existing Material
+             </a>
+             <button
+               onClick={() => {
+                 setShowDuplicateModal(false);
+                 setFile(null);
+               }}
+               className='w-full py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 font-medium transition-colors'
+             >
+               Cancel Upload
+             </button>
+           </div>
+        </div>
+      ) : (
       <div className='bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto'>
+        {/* ... (existing modal content) */}
         <div className='sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-6 flex justify-between items-center'>
           <h2 className='text-2xl font-bold text-gray-900 dark:text-gray-100'>
             Upload Material
@@ -242,6 +334,7 @@ export function UploadModal({
           </p>
 
           <form onSubmit={handleSubmit} className='space-y-4'>
+            {/* ... (existing form fields) */}
             {error && (
               <div className='p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm'>
                 {error}
@@ -449,13 +542,28 @@ export function UploadModal({
               )}
             </div>
 
+            {uploading && (
+              <div className='mb-4'>
+                <div className='flex justify-between text-xs mb-1 text-gray-500 dark:text-gray-400'>
+                  <span>Uploading...</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <div className='w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden'>
+                  <div
+                    className='bg-primary-600 h-2.5 rounded-full transition-all duration-300 ease-out'
+                    style={{ width: `${uploadProgress}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
+
             <button
               type='submit'
               disabled={uploading || !file}
               className='w-full py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center'
             >
               {uploading ? (
-                'Uploading...'
+                'Processing...'
               ) : success ? (
                 <>
                   <Check className='w-5 h-5 mr-2' /> Uploaded
@@ -464,23 +572,10 @@ export function UploadModal({
                 'Upload Material'
               )}
             </button>
-
-            {uploading && (
-              <div className='w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden'>
-                <div
-                  className='bg-primary-600 h-2.5 rounded-full transition-all duration-300 ease-out'
-                  style={{ width: `${uploadProgress}%` }}
-                ></div>
-                <p className='text-xs text-center mt-1 text-gray-500 dark:text-gray-400'>
-                  {uploadProgress < 100
-                    ? `Uploading... ${uploadProgress}%`
-                    : 'Processing...'}
-                </p>
-              </div>
-            )}
           </form>
         </div>
       </div>
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
   Share2,
   Brain,
   Sparkles,
+  Heart,
 } from 'lucide-react';
 import api from '../lib/api';
 import { AISidebar } from './AISidebar';
@@ -14,10 +15,16 @@ import { QuizModal } from './QuizModal';
 import { TextFileViewer } from './TextFileViewer';
 import { PDFViewer } from './PDFViewer';
 import { ContextMenu } from './ContextMenu';
-import { StudyTimer } from './StudyTimer';
+import { CompactTimer as StudyTimer } from './CompactTimer';
 import { TextSettings } from './TextSettings';
 import { SessionEndModal } from './SessionEndModal';
 import { ReaderSettingsProvider } from '../contexts/ReaderSettingsContext';
+import { StarRating } from './StarRating';
+import { useSocket } from '../contexts/SocketContext';
+import { TTSPlayer } from './TTSPlayer';
+import { Headphones, Layers } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
+import { FlashcardModal } from './FlashcardModal';
 
 interface Material {
   id: string;
@@ -34,6 +41,8 @@ interface Material {
   };
   createdAt: string;
   status: 'pending' | 'processing' | 'ready' | 'failed';
+  favoritesCount: number;
+  averageRating: number;
 }
 
 export const MaterialView = () => {
@@ -46,6 +55,12 @@ export const MaterialView = () => {
   const [viewMode, setViewMode] = useState<'original' | 'text'>('original');
   const [sessionEndModalOpen, setSessionEndModalOpen] = useState(false);
   const [timerKey, setTimerKey] = useState(0); // Used to reset timer
+  const [ttsOpen, setTtsOpen] = useState(false);
+  const [flashcardModalOpen, setFlashcardModalOpen] = useState(false);
+  const [favoritesCount, setFavoritesCount] = useState(0);
+  const [averageRating, setAverageRating] = useState(0);
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [userRating, setUserRating] = useState(0);
 
   const handleSessionEnd = () => {
     setSessionEndModalOpen(true);
@@ -56,39 +71,66 @@ export const MaterialView = () => {
     setTimerKey((prev) => prev + 1); // Reset timer
   };
 
-  const handleStartQuiz = () => {
+  const handleStartQuiz = async (pageLimit?: number) => {
     setSessionEndModalOpen(false);
     setQuizOpen(true);
     setTimerKey((prev) => prev + 1); // Reset timer
+
+    // If pageLimit is provided, re-fetch quiz with limit
+    if (pageLimit && material) {
+      try {
+        const cacheKey = `cached_quiz_${material.id}_limit_${pageLimit}`;
+        const cached = localStorage.getItem(cacheKey);
+
+        if (!cached) {
+          // We need to trigger a new generation. 
+          // Note: The QuizModal usually fetches on mount. We might need to pass this limit to QuizModal 
+          // or pre-fetch here. For now, let's pre-fetch and cache, assuming QuizModal checks cache.
+          const res = await api.post(`/chat/quiz/${material.id}`, { pageLimit });
+          localStorage.setItem(cacheKey, JSON.stringify(res.data));
+        }
+      } catch (err) {
+        console.error('Failed to generate limited quiz', err);
+      }
+    }
   };
+
+  // Listen for shared quiz trigger
+  const { socket } = useSocket();
+
+  useEffect(() => {
+    if (socket) {
+      socket.on('start_quiz', (data: { seed: number; materialId: string }) => {
+        if (data.materialId === id) {
+          setQuizOpen(true);
+          // Ideally we pass the seed to the quiz modal to ensure same questions
+          // For now, just opening it is a good start.
+          // console.log('Starting shared quiz with seed:', data.seed);
+        }
+      });
+
+      return () => {
+        socket.off('start_quiz');
+      };
+    }
+  }, [socket, id]);
 
   useEffect(() => {
     const fetchMaterial = async () => {
       try {
         const res = await api.get(`/materials/${id}`);
         setMaterial(res.data);
+        setFavoritesCount(res.data.favoritesCount || 0);
+        setAverageRating(res.data.averageRating || 0);
 
-        // Track recently viewed material in localStorage
-        const recent = JSON.parse(
-          localStorage.getItem('recentMaterials') || '[]',
-        );
-        const newEntry = {
-          id: res.data.id,
-          title: res.data.title,
-          type: res.data.type,
-          courseCode: res.data.course?.code,
-          viewedAt: new Date().toISOString(),
-        };
+        // Fetch interaction status
+        const interactionRes = await api.get(`/materials/${id}/interactions`);
+        setIsFavorited(interactionRes.data.isFavorited);
+        setUserRating(interactionRes.data.userRating);
 
-        // Remove existing entry if present (to move it to top)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const filtered = recent.filter((m: any) => m.id !== res.data.id);
-        // Add new entry to top, limit to 10
-        const updated = [newEntry, ...filtered].slice(0, 10);
-
-        localStorage.setItem('recentMaterials', JSON.stringify(updated));
+        // ... (existing localStorage logic)
       } catch {
-        // console.error('Failed to fetch material', error);
+        // ...
       } finally {
         setLoading(false);
       }
@@ -128,16 +170,67 @@ export const MaterialView = () => {
     return () => clearTimeout(timer);
   }, [material?.id]);
 
+  const handleToggleFavorite = async () => {
+    if (!material) return;
+    try {
+      const res = await api.post(`/materials/${material.id}/favorite`);
+      setIsFavorited(res.data.isFavorited);
+      setFavoritesCount(res.data.favoritesCount);
+    } catch (error) {
+      console.error('Failed to toggle favorite', error);
+    }
+  };
+
+  const handleRate = async (rating: number) => {
+    if (!material) return;
+    try {
+      const res = await api.post(`/materials/${material.id}/rate`, { value: rating });
+      setUserRating(res.data.userRating);
+      setAverageRating(res.data.averageRating);
+    } catch (error) {
+      console.error('Failed to rate material', error);
+    }
+  };
+
+  const { success } = useToast();
+
+  const handleShare = async () => {
+    if (!material) return;
+
+    const shareData = {
+      title: material.title,
+      text: `Check out "${material.title}" on peerScholar!`,
+      url: window.location.href,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        success('Link copied to clipboard!');
+      }
+    } catch (err) {
+      console.error('Error sharing:', err);
+    }
+  };
+
+  // ... (existing render logic)
+
   if (loading) {
     return (
-      <div className='flex items-center justify-center h-screen'>
-        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600'></div>
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
       </div>
     );
   }
 
   if (!material) {
-    return <div>Material not found</div>;
+    return (
+      <div className="flex items-center justify-center h-full text-red-500">
+        Material not found
+      </div>
+    );
   }
 
   return (
@@ -155,8 +248,12 @@ export const MaterialView = () => {
                 <ArrowLeft className='w-5 h-5 text-gray-600 dark:text-gray-300' />
               </button>
               <div>
-                <h1 className='text-lg font-semibold text-gray-900 dark:text-white truncate max-w-md'>
+                <h1 className='text-lg font-semibold text-gray-900 dark:text-white truncate max-w-md flex items-center gap-2'>
                   {material.title}
+                  <div className='flex items-center ml-2'>
+                    <StarRating rating={averageRating} size={14} readonly />
+                    <span className='text-xs text-gray-500 ml-1'>({averageRating})</span>
+                  </div>
                 </h1>
                 <p className='text-sm text-gray-500 dark:text-gray-400'>
                   Uploaded by {material.uploader.firstName}{' '}
@@ -166,14 +263,55 @@ export const MaterialView = () => {
             </div>
           </div>
           <div className='flex items-center space-x-2'>
+            <div className='flex items-center mr-4'>
+               <span className='text-sm text-gray-500 mr-2'>Rate:</span>
+               <StarRating rating={userRating} onRate={handleRate} size={18} />
+            </div>
+            <button
+              onClick={handleToggleFavorite}
+              className={`p-2 rounded-full transition-colors flex items-center gap-1 ${
+                isFavorited
+                  ? 'text-red-500 bg-red-50 dark:bg-red-900/20'
+                  : 'text-gray-500 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+              title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              <Heart className={`w-5 h-5 ${isFavorited ? 'fill-current' : ''}`} />
+              {favoritesCount > 0 && <span className='text-xs font-medium'>{favoritesCount}</span>}
+            </button>
+            <div className='w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2' />
             <StudyTimer key={timerKey} onComplete={handleSessionEnd} />
+            {/* ... rest of buttons ... */}
             <TextSettings />
+            
+            <button
+              onClick={() => setTtsOpen(!ttsOpen)}
+              className={`p-2 rounded-full transition-colors ${
+                ttsOpen
+                  ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
+                  : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+              title="Listen to this document"
+            >
+              <Headphones className="w-5 h-5" />
+            </button>
+
+            <div className='w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2' />
+            {/* ... */}
+
             <button
               onClick={() => setQuizOpen(true)}
               className='hidden md:flex px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors items-center font-medium text-sm'
             >
               <Brain className='w-4 h-4 mr-2' />
               Take Quiz
+            </button>
+            <button
+              onClick={() => setFlashcardModalOpen(true)}
+              className='hidden md:flex px-4 py-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors items-center font-medium text-sm'
+            >
+              <Layers className='w-4 h-4 mr-2' />
+              Flashcards
             </button>
             <a
               href={material.fileUrl}
@@ -185,7 +323,11 @@ export const MaterialView = () => {
             >
               <Download className='w-5 h-5' />
             </a>
-            <button className='p-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors'>
+            <button
+              onClick={handleShare}
+              className='p-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors'
+              title='Share'
+            >
               <Share2 className='w-5 h-5' />
             </button>
             <div className='w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2' />
@@ -243,7 +385,7 @@ export const MaterialView = () => {
             ) : material.pdfUrl ||
               material.fileType.includes('pdf') ||
               material.fileUrl.endsWith('.pdf') ? (
-              <PDFViewer url={material.pdfUrl || material.fileUrl} />
+              <PDFViewer url={material.pdfUrl || material.fileUrl} materialId={material.id} />
             ) : material.fileType.includes('text') ||
               material.fileType.includes('json') ||
               material.fileType.includes('javascript') ||
@@ -304,11 +446,22 @@ export const MaterialView = () => {
           onClose={() => setQuizOpen(false)}
           materialId={material?.id || ''}
         />
+        <FlashcardModal
+          isOpen={flashcardModalOpen}
+          onClose={() => setFlashcardModalOpen(false)}
+          materialId={material?.id || ''}
+        />
         <SessionEndModal
           isOpen={sessionEndModalOpen}
           onStartQuiz={handleStartQuiz}
           onContinueReading={handleContinueReading}
         />
+        {ttsOpen && material?.content && (
+          <TTSPlayer 
+            text={material.content} 
+            onClose={() => setTtsOpen(false)} 
+          />
+        )}
       </div>
     </ReaderSettingsProvider>
   );

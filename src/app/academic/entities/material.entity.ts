@@ -2,8 +2,10 @@ import { MaterialChunk } from './material-chunk.entity';
 import { Course } from '@/app/academic/entities/course.entity';
 import { User } from '@/app/users/entities/user.entity';
 import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
+import { MaterialFavorite } from './material-favorite.entity';
+import { MaterialRating } from './material-rating.entity';
 
-import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany, ManyToMany, JoinTable } from 'typeorm';
 
 export enum MaterialType {
   NOTE = 'note',
@@ -59,6 +61,9 @@ export class Material extends IDAndTimestamp {
 
   @Column({ type: 'json', nullable: true })
   quiz?: QuizQuestion[];
+
+  @Column({ type: 'json', nullable: true })
+  flashcards?: { term: string; definition: string }[];
 
   @Column({ nullable: true })
   fileUrl: string;
@@ -118,4 +123,29 @@ export class Material extends IDAndTimestamp {
 
   @OneToMany(() => MaterialChunk, (chunk) => chunk.material)
   chunks: MaterialChunk[];
+
+  @OneToMany(() => MaterialRating, (rating) => rating.material)
+  ratings: MaterialRating[];
+
+  @OneToMany(() => MaterialFavorite, (fav) => fav.material)
+  favorites: MaterialFavorite[];
+
+  @Column({ type: 'float', default: 0 })
+  averageRating: number;
+
+  @Column({ type: 'int', default: 0 })
+  favoritesCount: number;
+
+  @Column({ nullable: true })
+  fileHash: string;
+
+  @ManyToOne(() => Material, (material) => material.versions, { nullable: true })
+  parent?: Material;
+
+  @OneToMany(() => Material, (material) => material.parent)
+  versions: Material[];
+
+  @ManyToMany(() => User)
+  @JoinTable()
+  contributors: User[];
 }

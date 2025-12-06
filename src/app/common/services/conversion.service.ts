@@ -63,13 +63,37 @@ export class ConversionService {
   ): Promise<string> {
     if (mimetype.includes('pdf') || originalname.endsWith('.pdf')) {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/prefer-nullish-coalescing
-        const pdfParse = (pdfLib as any).default || pdfLib;
-        const data = await pdfParse(buffer);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const candidate = (pdfLib as any).default ?? pdfLib;
+        const pdfParseFn =
+          typeof candidate === 'function'
+            ? candidate
+            : (candidate.PDFParse ?? candidate);
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let data: any;
+        try {
+          // Try function call first
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data = await (pdfParseFn as any)(buffer);
+        } catch (err) {
+          if (err instanceof Error && err.message.includes("Class constructors cannot be invoked without 'new'")) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const instance = new (pdfParseFn as any)(buffer);
+            // Check if instance is a promise or has data
+            if (instance instanceof Promise) {
+              data = await instance;
+            } else {
+              data = instance;
+            }
+          } else {
+            throw err;
+          }
+        }
 
         return data.text;
-      } catch {
-        throw new Error('pdf-parse is required to extract PDF text.');
+      } catch (error) {
+        throw new Error(`pdf-parse failed: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
 

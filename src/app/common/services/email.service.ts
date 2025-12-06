@@ -153,4 +153,31 @@ export class EmailService {
       verificationToken,
     });
   }
+
+  async sendEmailVerificationDirect(user: User, verificationToken: string) {
+    const clientUrl = process.env.CLIENT_URL ?? 'http://localhost:5173';
+    const link = `${clientUrl}/verify-email?token=${verificationToken}`;
+
+    try {
+      await this.transporter.sendMail({
+        from: process.env.SMTP_FROM ?? '"peerStudent" <noreply@peerstudent.com>',
+        to: user.email,
+        subject: 'Verify your email address',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h2 style="color: #4F46E5;">Welcome to peerStudent!</h2>
+            <p>Hi ${user.firstName},</p>
+            <p>Please verify your email address to unlock full access to peerStudent features like uploading materials and commenting.</p>
+            <div style="margin: 30px 0;">
+              <a href="${link}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Verify Email</a>
+            </div>
+            <p style="color: #666; font-size: 12px;">If you didn't create an account, you can safely ignore this email.</p>
+          </div>
+        `,
+      });
+      this.logger.log(`Verification email sent to ${user.email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send verification email to ${user.email}`, error);
+    }
+  }
 }
