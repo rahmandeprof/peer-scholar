@@ -124,6 +124,7 @@ export function PDFViewer({ url, materialId }: PDFViewerProps) {
           )}
         </Document>
       </div>
+      </div>
     </div>
   );
 }
