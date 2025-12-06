@@ -184,4 +184,30 @@ export class EmailService {
       );
     }
   }
+
+  async sendForgotPasswordDirect(to: string, name: string, link: string) {
+    try {
+      await this.transporter.sendMail({
+        from:
+          process.env.SMTP_FROM ?? '"peerStudent" <noreply@peerstudent.com>',
+        to,
+        subject: 'Reset your password',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h2 style="color: #4F46E5;">Reset Password</h2>
+            <p>Hi ${name},</p>
+            <p>You requested to reset your password.</p>
+            <div style="margin: 30px 0;">
+              <a href="${link}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Reset Password</a>
+            </div>
+            <p>This link will expire in 1 hour.</p>
+            <p style="color: #666; font-size: 12px;">If you didn't request this, please ignore this email.</p>
+          </div>
+        `,
+      });
+      this.logger.log(`Forgot password email sent to ${to}`);
+    } catch (error) {
+      this.logger.error(`Failed to send forgot password email to ${to}`, error);
+    }
+  }
 }

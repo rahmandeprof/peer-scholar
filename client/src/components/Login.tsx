@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import api from '../lib/api';
@@ -74,6 +74,15 @@ export function Login({ onSwitch }: LoginProps) {
             className='w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none transition-all'
             placeholder='••••••••'
           />
+        </div>
+
+        <div className='flex justify-end'>
+          <Link
+            to='/forgot-password'
+            className='text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300'
+          >
+            Forgot Password?
+          </Link>
         </div>
 
         <button

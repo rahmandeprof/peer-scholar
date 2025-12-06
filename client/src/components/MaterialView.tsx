@@ -9,6 +9,7 @@ import {
   Sparkles,
   Heart,
   MoreVertical,
+  AlertTriangle,
 } from 'lucide-react';
 import api from '../lib/api';
 import { AISidebar } from './AISidebar';
@@ -27,6 +28,7 @@ import { Headphones, Layers } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { FlashcardModal } from './FlashcardModal';
 import { FeatureSpotlightModal } from './FeatureSpotlightModal';
+import { ReportModal } from './ReportModal';
 
 interface Material {
   id: string;
@@ -56,6 +58,7 @@ export const MaterialView = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'original' | 'text'>('original');
   const [sessionEndModalOpen, setSessionEndModalOpen] = useState(false);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
   const [timerKey, setTimerKey] = useState(0); // Used to reset timer
   const [ttsOpen, setTtsOpen] = useState(false);
   const [flashcardModalOpen, setFlashcardModalOpen] = useState(false);
@@ -66,8 +69,6 @@ export const MaterialView = () => {
 
   const [userRating, setUserRating] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
-
-
 
   const handleSessionEnd = () => {
     setSessionEndModalOpen(true);
@@ -90,7 +91,9 @@ export const MaterialView = () => {
         const cached = localStorage.getItem(cacheKey);
 
         if (!cached) {
-          const res = await api.post(`/chat/quiz/${material.id}`, { pageLimit });
+          const res = await api.post(`/chat/quiz/${material.id}`, {
+            pageLimit,
+          });
           localStorage.setItem(cacheKey, JSON.stringify(res.data));
         }
       } catch (err) {
@@ -123,10 +126,12 @@ export const MaterialView = () => {
         setMaterial(res.data);
 
         // Track activity
-        api.post('/users/activity/update', {
-          materialId: id,
-          page: 1, 
-        }).catch(console.error);
+        api
+          .post('/users/activity/update', {
+            materialId: id,
+            page: 1,
+          })
+          .catch(console.error);
 
         setAverageRating(res.data.averageRating || 0);
 
@@ -134,7 +139,6 @@ export const MaterialView = () => {
         const interactionRes = await api.get(`/materials/${id}/interactions`);
         setIsFavorited(interactionRes.data.isFavorited);
         setUserRating(interactionRes.data.userRating);
-
       } catch {
         // ...
       } finally {
@@ -177,7 +181,6 @@ export const MaterialView = () => {
     try {
       const res = await api.post(`/materials/${material.id}/favorite`);
       setIsFavorited(res.data.isFavorited);
-
     } catch (error) {
       console.error('Failed to toggle favorite', error);
     }
@@ -186,7 +189,9 @@ export const MaterialView = () => {
   const handleRate = async (rating: number) => {
     if (!material) return;
     try {
-      const res = await api.post(`/materials/${material.id}/rate`, { value: rating });
+      const res = await api.post(`/materials/${material.id}/rate`, {
+        value: rating,
+      });
       setUserRating(res.data.userRating);
       setAverageRating(res.data.averageRating);
     } catch (error) {
@@ -219,15 +224,15 @@ export const MaterialView = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      <div className='flex items-center justify-center h-full'>
+        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600'></div>
       </div>
     );
   }
 
   if (!material) {
     return (
-      <div className="flex items-center justify-center h-full text-red-500">
+      <div className='flex items-center justify-center h-full text-red-500'>
         Material not found
       </div>
     );
@@ -237,9 +242,7 @@ export const MaterialView = () => {
     <ReaderSettingsProvider>
       <div className='flex flex-col h-full bg-white dark:bg-gray-900 overflow-hidden relative'>
         {/* Header */}
-        <div 
-          className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm gap-4"
-        >
+        <div className='absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm gap-4'>
           {/* Left: Back + Title */}
           <div className='flex items-center space-x-3 flex-1 min-w-0'>
             <button
@@ -248,21 +251,23 @@ export const MaterialView = () => {
             >
               <ArrowLeft className='w-5 h-5 text-gray-600 dark:text-gray-300' />
             </button>
-            <div className="min-w-0 flex-1 overflow-hidden">
+            <div className='min-w-0 flex-1 overflow-hidden'>
               <h1 className='text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2 overflow-hidden'>
-                <div className="relative overflow-hidden w-full">
-                  <span className="whitespace-nowrap md:animate-none animate-marquee md:w-auto block">
+                <div className='relative overflow-hidden w-full'>
+                  <span className='whitespace-nowrap md:animate-none animate-marquee md:w-auto block'>
                     {material.title}
                   </span>
                 </div>
                 {/* Desktop Rating */}
                 <div className='hidden md:flex items-center shrink-0'>
                   <StarRating rating={averageRating} size={12} readonly />
-                  <span className='text-xs text-gray-500 ml-1'>({averageRating})</span>
+                  <span className='text-xs text-gray-500 ml-1'>
+                    ({averageRating})
+                  </span>
                 </div>
                 {/* Mobile Rating */}
                 <div className='flex md:hidden items-center shrink-0 bg-yellow-50 dark:bg-yellow-900/20 px-1.5 py-0.5 rounded text-xs font-medium text-yellow-700 dark:text-yellow-400'>
-                  <span className="mr-1">★</span>
+                  <span className='mr-1'>★</span>
                   {averageRating.toFixed(1)}
                 </div>
               </h1>
@@ -276,10 +281,10 @@ export const MaterialView = () => {
           {/* Right: Actions */}
           <div className='flex items-center space-x-2 shrink-0'>
             {/* Visible Items */}
-            <div className="hidden md:flex">
+            <div className='hidden md:flex'>
               <StudyTimer key={timerKey} onComplete={handleSessionEnd} />
             </div>
-            
+
             <button
               onClick={() => setQuizOpen(true)}
               className='hidden md:flex px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors items-center font-medium text-sm'
@@ -287,7 +292,7 @@ export const MaterialView = () => {
               <Brain className='w-4 h-4 mr-1.5' />
               Quiz
             </button>
-            
+
             <button
               onClick={() => {
                 const hasSeen = localStorage.getItem('has_seen_flashcards');
@@ -317,116 +322,161 @@ export const MaterialView = () => {
             </button>
 
             {/* Dropdown Menu */}
-            <div className="relative">
-              <button 
-                onClick={() => setMenuOpen(!menuOpen)} 
+            <div className='relative'>
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
                 className={`p-2 rounded-full transition-colors ${menuOpen ? 'bg-gray-100 dark:bg-gray-700' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`}
               >
-                <MoreVertical className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                <MoreVertical className='w-5 h-5 text-gray-600 dark:text-gray-300' />
               </button>
-              
+
               {menuOpen && (
                 <>
-                  <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-20 animate-in fade-in zoom-in-95 duration-100">
-                     {/* Mobile Only Actions */}
-                     <div className="md:hidden px-4 py-2 border-b border-gray-100 dark:border-gray-700 flex justify-center">
-                        <StudyTimer key={`mobile-${timerKey}`} onComplete={handleSessionEnd} />
-                     </div>
-                     <div className="md:hidden px-2 pb-2 mb-2 border-b border-gray-100 dark:border-gray-700 grid grid-cols-2 gap-2">
+                  <div
+                    className='fixed inset-0 z-10'
+                    onClick={() => setMenuOpen(false)}
+                  />
+                  <div className='absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-20 animate-in fade-in zoom-in-95 duration-100'>
+                    {/* Mobile Only Actions */}
+                    <div className='md:hidden px-4 py-2 border-b border-gray-100 dark:border-gray-700 flex justify-center'>
+                      <StudyTimer
+                        key={`mobile-${timerKey}`}
+                        onComplete={handleSessionEnd}
+                      />
+                    </div>
+                    <div className='md:hidden px-2 pb-2 mb-2 border-b border-gray-100 dark:border-gray-700 grid grid-cols-2 gap-2'>
+                      <button
+                        onClick={() => {
+                          setQuizOpen(true);
+                          setMenuOpen(false);
+                        }}
+                        className='flex flex-col items-center justify-center p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-purple-600 dark:text-purple-400 text-xs font-medium'
+                      >
+                        <Brain className='w-4 h-4 mb-1' />
+                        Quiz
+                      </button>
+                      <button
+                        onClick={() => {
+                          const hasSeen = localStorage.getItem(
+                            'has_seen_flashcards',
+                          );
+                          if (!hasSeen) {
+                            setShowFlashcardSpotlight(true);
+                            localStorage.setItem('has_seen_flashcards', 'true');
+                            setMenuOpen(false);
+                          } else {
+                            setFlashcardModalOpen(true);
+                            setMenuOpen(false);
+                          }
+                        }}
+                        className='flex flex-col items-center justify-center p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg text-indigo-600 dark:text-indigo-400 text-xs font-medium'
+                      >
+                        <Layers className='w-4 h-4 mb-1' />
+                        Cards
+                      </button>
+                    </div>
+
+                    {/* Rating */}
+                    <div className='px-4 py-2 border-b border-gray-100 dark:border-gray-700'>
+                      <span className='text-xs text-gray-500 block mb-1'>
+                        Your Rating
+                      </span>
+                      <StarRating
+                        rating={userRating}
+                        onRate={handleRate}
+                        size={20}
+                      />
+                    </div>
+
+                    {/* Actions List */}
+                    <div className='py-1'>
+                      <button
+                        onClick={handleToggleFavorite}
+                        className='w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200'
+                      >
+                        <Heart
+                          className={`w-4 h-4 mr-3 ${isFavorited ? 'fill-red-500 text-red-500' : ''}`}
+                        />
+                        {isFavorited
+                          ? 'Remove from Favorites'
+                          : 'Add to Favorites'}
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setTtsOpen(!ttsOpen);
+                          setMenuOpen(false);
+                        }}
+                        className='w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200'
+                      >
+                        <Headphones className='w-4 h-4 mr-3' />
+                        {ttsOpen ? 'Hide Reader' : 'Read Aloud'}
+                      </button>
+
+                      <div className='px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200'>
+                        <TextSettings />
+                        <span className='ml-3'>Text Settings</span>
+                      </div>
+
+                      <a
+                        href={material.fileUrl}
+                        download
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        className='block px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200'
+                      >
+                        <Download className='w-4 h-4 mr-3' />
+                        Download File
+                      </a>
+
+                      <button
+                        onClick={() => {
+                          handleShare();
+                          setMenuOpen(false);
+                        }}
+                        className='w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200'
+                      >
+                        <Share2 className='w-4 h-4 mr-3' />
+                        Share
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setReportModalOpen(true);
+                          setMenuOpen(false);
+                        }}
+                        className='w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-red-600 dark:text-red-400'
+                      >
+                        <AlertTriangle className='w-4 h-4 mr-3' />
+                        Report
+                      </button>
+
+                      <div className='border-t border-gray-100 dark:border-gray-700 mt-1 pt-1'>
                         <button
-                          onClick={() => { setQuizOpen(true); setMenuOpen(false); }}
-                          className='flex flex-col items-center justify-center p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-purple-600 dark:text-purple-400 text-xs font-medium'
-                        >
-                          <Brain className='w-4 h-4 mb-1' />
-                          Quiz
-                        </button>
-                        <button
-                          onClick={() => { 
-                            const hasSeen = localStorage.getItem('has_seen_flashcards');
-                            if (!hasSeen) {
-                              setShowFlashcardSpotlight(true);
-                              localStorage.setItem('has_seen_flashcards', 'true');
-                              setMenuOpen(false);
-                            } else {
-                              setFlashcardModalOpen(true); 
-                              setMenuOpen(false); 
-                            }
+                          onClick={() => {
+                            setViewMode(
+                              viewMode === 'original' ? 'text' : 'original',
+                            );
+                            setMenuOpen(false);
                           }}
-                          className='flex flex-col items-center justify-center p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg text-indigo-600 dark:text-indigo-400 text-xs font-medium'
+                          className='w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200'
                         >
-                          <Layers className='w-4 h-4 mb-1' />
-                          Cards
+                          {viewMode === 'original' ? (
+                            <>
+                              <span className='w-4 h-4 mr-3 flex items-center justify-center text-xs font-bold'>
+                                ⚡
+                              </span>
+                              Switch to Lite Mode
+                            </>
+                          ) : (
+                            <>
+                              <FileText className='w-4 h-4 mr-3' />
+                              Switch to Original
+                            </>
+                          )}
                         </button>
-                     </div>
-
-                     {/* Rating */}
-                     <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700">
-                       <span className="text-xs text-gray-500 block mb-1">Your Rating</span>
-                       <StarRating rating={userRating} onRate={handleRate} size={20} />
-                     </div>
-
-                     {/* Actions List */}
-                     <div className="py-1">
-                       <button 
-                          onClick={handleToggleFavorite} 
-                          className="w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200"
-                       >
-                          <Heart className={`w-4 h-4 mr-3 ${isFavorited ? 'fill-red-500 text-red-500' : ''}`} />
-                          {isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}
-                       </button>
-
-                       <button 
-                          onClick={() => { setTtsOpen(!ttsOpen); setMenuOpen(false); }} 
-                          className="w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200"
-                       >
-                          <Headphones className="w-4 h-4 mr-3" />
-                          {ttsOpen ? 'Hide Reader' : 'Read Aloud'}
-                       </button>
-                       
-                       <div className="px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200">
-                          <TextSettings /> 
-                          <span className="ml-3">Text Settings</span>
-                       </div>
-
-                       <a 
-                          href={material.fileUrl} 
-                          download 
-                          target='_blank'
-                          rel='noopener noreferrer'
-                          className="block px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200"
-                       >
-                          <Download className="w-4 h-4 mr-3" />
-                          Download File
-                       </a>
-
-                       <button 
-                          onClick={() => { handleShare(); setMenuOpen(false); }}
-                          className="w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200"
-                       >
-                          <Share2 className="w-4 h-4 mr-3" />
-                          Share
-                       </button>
-                       
-                       <div className="border-t border-gray-100 dark:border-gray-700 mt-1 pt-1">
-                         <button 
-                            onClick={() => { setViewMode(viewMode === 'original' ? 'text' : 'original'); setMenuOpen(false); }}
-                            className="w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200"
-                         >
-                            {viewMode === 'original' ? (
-                              <>
-                                <span className="w-4 h-4 mr-3 flex items-center justify-center text-xs font-bold">⚡</span>
-                                Switch to Lite Mode
-                              </>
-                            ) : (
-                              <>
-                                <FileText className="w-4 h-4 mr-3" />
-                                Switch to Original
-                              </>
-                            )}
-                         </button>
-                       </div>
-                     </div>
+                      </div>
+                    </div>
                   </div>
                 </>
               )}
@@ -437,9 +487,7 @@ export const MaterialView = () => {
         {/* Main Content Area (Flex Row) */}
         <div className='flex-1 flex overflow-hidden relative pt-[60px]'>
           {/* Content Viewer */}
-          <div 
-            className='flex-1 bg-gray-100 dark:bg-gray-900 overflow-hidden relative flex flex-col'
-          >
+          <div className='flex-1 bg-gray-100 dark:bg-gray-900 overflow-hidden relative flex flex-col'>
             {material.status === 'failed' ? (
               <div className='flex items-center justify-center h-full text-red-500'>
                 <div className='text-center p-6'>
@@ -460,7 +508,10 @@ export const MaterialView = () => {
             ) : material.pdfUrl ||
               material.fileType.includes('pdf') ||
               material.fileUrl.endsWith('.pdf') ? (
-              <PDFViewer url={material.pdfUrl || material.fileUrl} materialId={material.id} />
+              <PDFViewer
+                url={material.pdfUrl || material.fileUrl}
+                materialId={material.id}
+              />
             ) : material.fileType.includes('text') ||
               material.fileType.includes('json') ||
               material.fileType.includes('javascript') ||
@@ -534,9 +585,9 @@ export const MaterialView = () => {
           onContinueReading={handleContinueReading}
         />
         {ttsOpen && material?.content && (
-          <TTSPlayer 
-            text={material.content} 
-            onClose={() => setTtsOpen(false)} 
+          <TTSPlayer
+            text={material.content}
+            onClose={() => setTtsOpen(false)}
           />
         )}
         <FeatureSpotlightModal
@@ -545,9 +596,14 @@ export const MaterialView = () => {
             setShowFlashcardSpotlight(false);
             setFlashcardModalOpen(true);
           }}
-          title="Study with Flashcards"
-          description="Transform this material into interactive flashcards instantly. Perfect for memorizing key concepts and definitions."
+          title='Study with Flashcards'
+          description='Transform this material into interactive flashcards instantly. Perfect for memorizing key concepts and definitions.'
           icon={Layers}
+        />
+        <ReportModal
+          isOpen={reportModalOpen}
+          onClose={() => setReportModalOpen(false)}
+          materialId={material?.id || ''}
         />
       </div>
     </ReaderSettingsProvider>

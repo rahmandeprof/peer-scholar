@@ -11,6 +11,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { Throttle } from '@nestjs/throttler';
+
+import { RateLimitGuard } from '@/app/auth/guards/rate-limit.guard';
 
 import { CreateMaterialDto } from './dto/create-material.dto';
 
@@ -27,6 +30,8 @@ export class MaterialsController {
   }
 
   @Post()
+  @UseGuards(RateLimitGuard)
+  @Throttle({ upload: { limit: 5, ttl: 3600000 } })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   create(@Body() dto: CreateMaterialDto, @Req() req: any) {
     if (!req.user.isVerified) {
@@ -137,5 +142,19 @@ export class MaterialsController {
   @Get(':id/annotations')
   getAnnotations(@Param('id') id: string) {
     return this.materialsService.getAnnotations(id);
+  }
+  @Post(':id/report')
+  async reportMaterial(
+    @Param('id') id: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    @Req() req: any,
+    @Body() body: { reason: string; description?: string },
+  ) {
+    return this.materialsService.reportMaterial(
+      id,
+      req.user.id,
+      body.reason,
+      body.description,
+    );
   }
 }

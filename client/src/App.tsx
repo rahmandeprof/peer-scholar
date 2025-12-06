@@ -19,6 +19,8 @@ import { TargetGPCalculator } from './components/TargetGPCalculator';
 import CompleteProfile from './components/CompleteProfile';
 import { QuizArena } from './components/QuizArena';
 import { VerifyEmail } from './components/VerifyEmail';
+import { ForgotPassword } from './components/ForgotPassword';
+import { ResetPassword } from './components/ResetPassword';
 import { Loader2 } from 'lucide-react';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -69,6 +71,22 @@ function AppContent() {
       <Routes>
         <Route path='/auth/callback' element={<GoogleCallback />} />
         <Route path='/verify-email' element={<VerifyEmail />} />
+        <Route
+          path='/forgot-password'
+          element={
+            <div className='min-h-screen flex items-center justify-center px-4 py-12'>
+              <ForgotPassword />
+            </div>
+          }
+        />
+        <Route
+          path='/reset-password'
+          element={
+            <div className='min-h-screen flex items-center justify-center px-4 py-12'>
+              <ResetPassword />
+            </div>
+          }
+        />
 
         <Route
           path='/complete-profile'

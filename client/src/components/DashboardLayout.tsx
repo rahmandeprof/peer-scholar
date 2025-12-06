@@ -4,7 +4,6 @@ import {
   LayoutDashboard as Home,
   BookOpen,
   LogOut,
-
   X,
   Users,
   Upload,
@@ -94,7 +93,7 @@ export function DashboardLayout() {
               <Home className='w-5 h-5 mr-3' />
               Home
             </NavLink>
-            
+
             <div className='px-3 mb-2 mt-4 text-xs font-semibold text-gray-500 uppercase tracking-wider'>
               Community
             </div>
@@ -117,8 +116,8 @@ export function DashboardLayout() {
             <div className='px-3 mb-2 mt-4 text-xs font-semibold text-gray-500 uppercase tracking-wider'>
               Tools
             </div>
-            
-            <div className="relative">
+
+            <div className='relative'>
               <button
                 onClick={() => setToolsOpen(!toolsOpen)}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${
@@ -133,31 +132,42 @@ export function DashboardLayout() {
 
               {toolsOpen && (
                 <>
-                  <div className="fixed inset-0 z-[60]" onClick={() => setToolsOpen(false)} />
-                  <div ref={toolsRef} className="fixed left-72 ml-4 top-1/2 -translate-y-1/2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-4 z-[70] animate-in fade-in zoom-in-95 duration-100 grid grid-cols-2 gap-3">
-                    <NavLink 
-                      to='/tools/gp-calculator' 
-                      className="flex flex-col items-center justify-center p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-center group"
+                  <div
+                    className='fixed inset-0 z-[60]'
+                    onClick={() => setToolsOpen(false)}
+                  />
+                  <div
+                    ref={toolsRef}
+                    className='fixed left-72 ml-4 top-1/2 -translate-y-1/2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-4 z-[70] animate-in fade-in zoom-in-95 duration-100 grid grid-cols-2 gap-3'
+                  >
+                    <NavLink
+                      to='/tools/gp-calculator'
+                      className='flex flex-col items-center justify-center p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-center group'
                       onClick={(e) => {
-                        const hasSeen = localStorage.getItem('has_seen_gp_calculator');
+                        const hasSeen = localStorage.getItem(
+                          'has_seen_gp_calculator',
+                        );
                         if (!hasSeen) {
                           e.preventDefault();
                           setShowGpSpotlight(true);
-                          localStorage.setItem('has_seen_gp_calculator', 'true');
+                          localStorage.setItem(
+                            'has_seen_gp_calculator',
+                            'true',
+                          );
                           setToolsOpen(false);
                         } else {
                           setToolsOpen(false);
                         }
                       }}
                     >
-                      <div className="w-10 h-10 bg-white dark:bg-gray-700 rounded-full flex items-center justify-center shadow-sm mb-2 group-hover:scale-110 transition-transform">
-                        <Calculator className="w-5 h-5" />
+                      <div className='w-10 h-10 bg-white dark:bg-gray-700 rounded-full flex items-center justify-center shadow-sm mb-2 group-hover:scale-110 transition-transform'>
+                        <Calculator className='w-5 h-5' />
                       </div>
-                      <span className="text-xs font-medium">GP Calculator</span>
+                      <span className='text-xs font-medium'>GP Calculator</span>
                     </NavLink>
 
-                    <div className="col-span-2">
-                       <StudySessionGoals />
+                    <div className='col-span-2'>
+                      <StudySessionGoals />
                     </div>
                   </div>
                 </>
@@ -194,13 +204,18 @@ export function DashboardLayout() {
             <div className='px-3 mb-2 mt-4 text-xs font-semibold text-gray-500 uppercase tracking-wider'>
               Support
             </div>
-            <a
-              href='mailto:abdulrahmanabdulsalam93@gmail.com'
+            <button
+              onClick={() =>
+                window.open(
+                  'mailto:abdulrahmanabdulsalam93@gmail.com',
+                  '_blank',
+                )
+              }
               className='w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-all duration-200 text-left'
             >
               <HelpCircle className='w-5 h-5 mr-3' />
               Feedback & Support
-            </a>
+            </button>
           </div>
         </div>
 
@@ -216,7 +231,9 @@ export function DashboardLayout() {
               <div className='font-medium truncate text-gray-900 dark:text-gray-100'>
                 {user?.firstName} {user?.lastName}
               </div>
-              <div className='text-xs text-gray-500 truncate'>{user?.email}</div>
+              <div className='text-xs text-gray-500 truncate'>
+                {user?.email}
+              </div>
             </div>
           </button>
           <button
@@ -232,11 +249,11 @@ export function DashboardLayout() {
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div className='fixed inset-0 z-[900] md:hidden'>
-           <div 
-             className='absolute inset-0 bg-black/20 backdrop-blur-sm'
-             onClick={() => setSidebarOpen(false)}
-           />
-           <aside className='absolute left-0 top-0 bottom-0 w-72 bg-white/90 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl flex flex-col animate-slide-right border-r border-gray-200/50 dark:border-gray-800/50'>
+          <div
+            className='absolute inset-0 bg-black/20 backdrop-blur-sm'
+            onClick={() => setSidebarOpen(false)}
+          />
+          <aside className='absolute left-0 top-0 bottom-0 w-72 bg-white/90 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl flex flex-col animate-slide-right border-r border-gray-200/50 dark:border-gray-800/50'>
             <div className='p-6 flex items-center justify-between'>
               <span className='text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-purple-600'>
                 peerStudent
@@ -245,27 +262,37 @@ export function DashboardLayout() {
                 <X className='w-6 h-6 text-gray-500' />
               </button>
             </div>
-            
+
             <div className='flex-1 overflow-y-auto py-4'>
               <nav className='px-4 space-y-2'>
-                <NavLink to='/dashboard' className={navLinkClass} onClick={() => setSidebarOpen(false)}>
+                <NavLink
+                  to='/dashboard'
+                  className={navLinkClass}
+                  onClick={() => setSidebarOpen(false)}
+                >
                   <Home className='w-5 h-5 mr-3' />
                   Home
                 </NavLink>
-                <NavLink to='/department' className={navLinkClass} onClick={() => setSidebarOpen(false)}>
+                <NavLink
+                  to='/department'
+                  className={navLinkClass}
+                  onClick={() => setSidebarOpen(false)}
+                >
                   <BookOpen className='w-5 h-5 mr-3' />
                   Library
                 </NavLink>
-                <NavLink to='/study-partner' className={navLinkClass} onClick={() => setSidebarOpen(false)}>
+                <NavLink
+                  to='/study-partner'
+                  className={navLinkClass}
+                  onClick={() => setSidebarOpen(false)}
+                >
                   <Users className='w-5 h-5 mr-3' />
                   Study Partner
                 </NavLink>
-                
+
                 <div className='py-2'>
                   <StudySessionGoals />
                 </div>
-
-
 
                 <button
                   onClick={() => {
@@ -300,7 +327,7 @@ export function DashboardLayout() {
           <span className='font-bold text-lg bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-purple-600'>
             peerStudent
           </span>
-          <button 
+          <button
             onClick={() => setUploadModalOpen(true)}
             className='p-2 bg-primary-50 dark:bg-primary-900/20 rounded-full text-primary-600 dark:text-primary-400'
           >
@@ -311,14 +338,14 @@ export function DashboardLayout() {
         {/* Content Area */}
         <div className='flex-1 overflow-hidden relative animate-fade-in'>
           <Outlet
-            context={{ 
+            context={{
               openUploadModal: () => setUploadModalOpen(true),
-              refreshTrigger 
+              refreshTrigger,
             }}
           />
         </div>
       </main>
-      
+
       <BottomNav />
 
       <UploadModal
@@ -335,8 +362,8 @@ export function DashboardLayout() {
           setShowGpSpotlight(false);
           navigate('/tools/gp-calculator');
         }}
-        title="GP Calculator"
-        description="Calculate your Grade Point Average easily. Set target GPAs and track your academic progress."
+        title='GP Calculator'
+        description='Calculate your Grade Point Average easily. Set target GPAs and track your academic progress.'
         icon={Calculator}
       />
     </div>

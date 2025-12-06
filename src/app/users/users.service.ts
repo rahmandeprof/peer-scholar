@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
+/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 import {
   ForbiddenException,
   Injectable,
@@ -321,6 +323,12 @@ export class UsersService {
     return this.userRepository.findOne({ where: { verificationToken: token } });
   }
 
+  findByResetToken(token: string) {
+    return this.userRepository.findOne({
+      where: { resetPasswordToken: token },
+    });
+  }
+
   save(user: User) {
     return this.userRepository.save(user);
   }
@@ -375,7 +383,7 @@ export class UsersService {
         );
 
         throw new ForbiddenException(
-          `You can only update your academic profile once every 9 months. Please wait ${remainingTime} more days.`,
+          `You can only update your academic profile once every 9 months. Please wait ${String(remainingTime)} more days.`,
         );
       }
     }
@@ -461,6 +469,7 @@ export class UsersService {
       } else if (diffDays === 1) {
         // Consecutive day
         streak.currentStreak += 1;
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (streak.currentStreak > streak.longestStreak) {
           streak.longestStreak = streak.currentStreak;
         }
@@ -521,7 +530,7 @@ export class UsersService {
   async getActivity(userId: string) {
     const user = await this.userRepository.findOne({
       where: { id: userId },
-      relations: ['lastReadMaterial'],
+      relations: ['lastReadMaterial', 'lastReadMaterial.uploader'],
     });
 
     if (!user) throw new NotFoundException('User not found');

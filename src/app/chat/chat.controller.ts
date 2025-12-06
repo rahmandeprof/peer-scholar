@@ -15,6 +15,9 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Throttle } from '@nestjs/throttler';
+
+import { RateLimitGuard } from '@/app/auth/guards/rate-limit.guard';
 
 import { MaterialType } from '../academic/entities/material.entity';
 import { User } from '@/app/users/entities/user.entity';
@@ -118,6 +121,8 @@ export class ChatController {
   }
 
   @Post('quiz/:id')
+  @UseGuards(RateLimitGuard)
+  @Throttle({ quiz: { limit: 10, ttl: 86400000 } })
   generateQuiz(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body('pageLimit') pageLimit?: number,

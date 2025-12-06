@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
 
 import { AcademicModule } from '@/app/academic/academic.module';
 import { AdminModule } from '@/app/admin/admin.module';
@@ -47,6 +49,24 @@ import configuration from '@/config/configuration';
     CommonModule,
     AcademicModule,
     ScheduleModule.forRoot(),
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          name: 'quiz',
+          ttl: 86400000, // 24 hours
+          limit: 10,
+        },
+        {
+          name: 'upload',
+          ttl: 3600000, // 1 hour
+          limit: 5,
+        },
+      ],
+      storage: new ThrottlerStorageRedisService({
+        host: process.env.REDIS_HOST ?? 'localhost',
+        port: parseInt(process.env.REDIS_PORT ?? '6379'),
+      }),
+    }),
   ],
   controllers: [AppController],
   providers: [
@@ -62,4 +82,4 @@ import configuration from '@/config/configuration';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

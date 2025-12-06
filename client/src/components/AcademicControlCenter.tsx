@@ -311,8 +311,8 @@ export function AcademicControlCenter() {
 
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6'>
           {recentMaterials.slice(0, 3).map((material) => (
-            <MaterialCard 
-              key={material.id} 
+            <MaterialCard
+              key={material.id}
               material={{
                 ...material,
                 description: '',
@@ -320,9 +320,13 @@ export function AcademicControlCenter() {
                 fileType: 'pdf',
                 size: 0,
                 createdAt: material.viewedAt,
-                uploader: { id: '', firstName: '', lastName: '' },
-                course: { code: material.courseCode || '' }
-              }} 
+                uploader: {
+                  id: (material as any).uploader?.id || '',
+                  firstName: (material as any).uploader?.firstName || '',
+                  lastName: (material as any).uploader?.lastName || '',
+                },
+                course: { code: material.courseCode || '' },
+              }}
             />
           ))}
 

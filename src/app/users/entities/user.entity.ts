@@ -86,8 +86,14 @@ export class User extends IDAndTimestamp {
   lastSeen: Date;
 
   @Column({ type: 'timestamp', nullable: true })
-  lastProfileUpdate: Date;
+  lastProfileUpdate: Date | null;
 
   @Column({ type: String, nullable: true })
   verificationToken: string | null;
+
+  @Column({ nullable: true })
+  resetPasswordToken: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  resetPasswordExpires: Date | null;
 }

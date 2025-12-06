@@ -11,6 +11,7 @@ import {
 import { MaterialAnnotation } from './entities/material-annotation.entity';
 import { MaterialFavorite } from './entities/material-favorite.entity';
 import { MaterialRating } from './entities/material-rating.entity';
+import { MaterialReport } from './entities/material-report.entity';
 import { Course } from '@/app/academic/entities/course.entity';
 import { User } from '@/app/users/entities/user.entity';
 
@@ -41,6 +42,8 @@ export class MaterialsService {
     private favoriteRepo: Repository<MaterialFavorite>,
     @InjectRepository(MaterialAnnotation)
     private annotationRepo: Repository<MaterialAnnotation>,
+    @InjectRepository(MaterialReport)
+    private reportRepo: Repository<MaterialReport>,
   ) {
     cloudinary.config({
       cloud_name: this.configService.get('CLOUD_NAME'),
@@ -449,5 +452,27 @@ export class MaterialsService {
       relations: ['user'],
       order: { createdAt: 'DESC' },
     });
+  }
+
+  async reportMaterial(
+    materialId: string,
+    userId: string,
+    reason: string,
+    description?: string,
+  ) {
+    const material = await this.materialRepo.findOneBy({ id: materialId });
+    if (!material) throw new NotFoundException('Material not found');
+
+    const user = await this.usersService.getOne(userId);
+    if (!user) throw new NotFoundException('User not found');
+
+    const report = this.reportRepo.create({
+      material,
+      reporter: user,
+      reason,
+      description,
+    });
+
+    return this.reportRepo.save(report);
   }
 }

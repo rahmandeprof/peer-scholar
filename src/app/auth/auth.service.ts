@@ -146,6 +146,59 @@ export class AuthService {
     return { success: true, message: 'Verification email sent' };
   }
 
+  async forgotPassword(email: string) {
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      return {
+        success: true,
+        message:
+          'If your email is registered, you will receive a password reset link.',
+      };
+    }
+
+    const token = uuidv4();
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour
+
+    await this.usersService.save(user);
+
+    const clientUrl = process.env.CLIENT_URL ?? 'http://localhost:5173';
+    const link = `${clientUrl}/reset-password?token=${token}`;
+
+    await this.emailService.sendForgotPasswordDirect(
+      user.email,
+      user.firstName,
+      link,
+    );
+
+    return {
+      success: true,
+      message:
+        'If your email is registered, you will receive a password reset link.',
+    };
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    const user = await this.usersService.findByResetToken(token);
+
+    if (
+      !user ||
+      !user.resetPasswordExpires ||
+      user.resetPasswordExpires < new Date()
+    ) {
+      throw new Error('Invalid or expired password reset token');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+
+    await this.usersService.save(user);
+
+    return { success: true, message: 'Password reset successfully' };
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async googleLogin(req: any) {
     if (!req.user) {
