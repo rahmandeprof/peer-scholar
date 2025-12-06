@@ -25,6 +25,7 @@ import {
 import { useNetwork } from '../contexts/NetworkContext';
 import { OptimizedImage } from './OptimizedImage';
 import { useNavigate } from 'react-router-dom';
+import api from '../lib/api';
 
 interface UserProfileProps {
   onClose: () => void;
