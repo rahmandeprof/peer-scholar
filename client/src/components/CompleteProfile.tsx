@@ -62,7 +62,13 @@ export default function CompleteProfile() {
     }
   };
 
-  if (isLoading || !user) {
+  const isProfileComplete = 
+    user?.school &&
+    user?.faculty &&
+    user?.department &&
+    user?.yearOfStudy;
+
+  if (isLoading || !user || isProfileComplete) {
     return (
       <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950'>
         <Loader2 className='w-8 h-8 animate-spin text-primary-600' />

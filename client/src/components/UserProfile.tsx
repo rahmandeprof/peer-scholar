@@ -20,7 +20,8 @@ import {
   ChevronRight,
   Briefcase,
   Layers,
-  HelpCircle
+  HelpCircle,
+  MoreVertical
 } from 'lucide-react';
 import { useNetwork } from '../contexts/NetworkContext';
 import { OptimizedImage } from './OptimizedImage';
@@ -56,6 +57,7 @@ export function UserProfile({ onClose }: UserProfileProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [showIOSModal, setShowIOSModal] = useState(false);
+  const [showManualInstall, setShowManualInstall] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
 
@@ -362,11 +364,8 @@ export function UserProfile({ onClose }: UserProfileProps) {
                             // If no prompt event, it might be installed or not supported, 
                             // but if we are here, we are likely in a browser that supports it but hasn't fired the event yet
                             // or we are in a standard browser.
-                            // Let's show a helpful message instead of generic error if we suspect IAB but missed the check above,
-                            // or just the standard message.
-                            toast.info(
-                              'Open this link in Chrome or Safari to install.',
-                            );
+                            // Show the manual install guide.
+                            setShowManualInstall(true);
                           }
                         }
                       }}
@@ -733,31 +732,38 @@ export function UserProfile({ onClose }: UserProfileProps) {
         </div>
       )}
 
-      {/* iOS Install Modal */}
-      {showIOSModal && (
+      {/* Manual Install Modal (iOS & Android Fallback) */}
+      {(showIOSModal || showManualInstall) && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-in fade-in zoom-in duration-200">
                 <div className="text-center mb-6">
                     <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
                         <span className="text-3xl">📱</span>
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Install on iOS</h3>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                      {isIOS ? 'Install on iOS' : 'Install App'}
+                    </h3>
                     <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-                        To install peerStudent on your iPhone or iPad:
+                        {isIOS 
+                          ? 'To install peerStudent on your iPhone or iPad:' 
+                          : 'To install peerStudent on your device:'}
                     </p>
                     <ol className="text-left text-sm text-gray-600 dark:text-gray-400 space-y-3 bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl">
                         <li className="flex items-start">
                             <span className="font-bold mr-2">1.</span>
-                            <span>Tap the <Share className="w-4 h-4 inline mx-1" /> Share button in your browser toolbar.</span>
+                            <span>Tap the <Share className="w-4 h-4 inline mx-1" /> or <MoreVertical className="w-4 h-4 inline mx-1" /> menu button in your browser.</span>
                         </li>
                         <li className="flex items-start">
                             <span className="font-bold mr-2">2.</span>
-                            <span>Scroll down and select <strong>"Add to Home Screen"</strong>.</span>
+                            <span>Scroll down and select <strong>"Add to Home Screen"</strong> or <strong>"Install App"</strong>.</span>
                         </li>
                     </ol>
                 </div>
                 <button
-                    onClick={() => setShowIOSModal(false)}
+                    onClick={() => {
+                      setShowIOSModal(false);
+                      setShowManualInstall(false);
+                    }}
                     className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold transition-colors"
                 >
                     Got it
