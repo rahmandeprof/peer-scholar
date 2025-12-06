@@ -8,15 +8,14 @@ import { AppDataSource } from '@/database/ormconfig';
     TypeOrmModule.forRootAsync({
       useFactory: () => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { migrations, entities, ...rest } = AppDataSource.options;
+        const { entities, ...rest } = AppDataSource.options;
 
         return {
           ...rest,
-          migrationsRun: true,
           autoLoadEntities: true,
         };
       },
     }),
   ],
 })
-export class PostgresDatabaseProviderModule {}
+export class PostgresDatabaseProviderModule { }
