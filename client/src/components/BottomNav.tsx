@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Users, MessageSquare, User } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Users, User } from 'lucide-react';
 import { useState } from 'react';
 import { UserProfile } from './UserProfile';
 
@@ -28,10 +28,7 @@ export function BottomNav() {
           <Users className='w-6 h-6' />
           <span className='text-[10px] font-medium'>Partner</span>
         </NavLink>
-        <NavLink to='/chat' className={navLinkClass}>
-          <MessageSquare className='w-6 h-6' />
-          <span className='text-[10px] font-medium'>AI Chat</span>
-        </NavLink>
+
         <button
           onClick={() => setProfileOpen(true)}
           className='flex flex-col items-center justify-center w-full h-full space-y-1 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'

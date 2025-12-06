@@ -6,11 +6,11 @@ import {
   LogOut,
 
   X,
-  MessageSquare,
   Users,
   Upload,
   Calculator,
   HelpCircle,
+  Briefcase,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { StudySessionGoals } from './StudySessionGoals';
@@ -29,6 +29,7 @@ export function DashboardLayout() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const [history, setHistory] = useState<Conversation[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { user, logout } = useAuth();
@@ -106,22 +107,45 @@ export function DashboardLayout() {
               Upload Material
             </button>
 
-            <div className='px-3 mt-6 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider'>
+            <div className='px-3 mb-2 mt-4 text-xs font-semibold text-gray-500 uppercase tracking-wider'>
               Tools
             </div>
-            <div className='px-1 mb-4'>
-               <StudySessionGoals />
-            </div>
             
-            <NavLink to='/tools/gp-calculator' className={navLinkClass}>
-              <Calculator className='w-5 h-5 mr-3' />
-              GP Calculator
-            </NavLink>
+            <div className="relative">
+              <button
+                onClick={() => setToolsOpen(!toolsOpen)}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                  toolsOpen
+                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
+                }`}
+              >
+                <Briefcase className='w-5 h-5 mr-3' />
+                <span>Tools</span>
+              </button>
 
-            <NavLink to='/chat' className={navLinkClass}>
-              <MessageSquare className='w-5 h-5 mr-3' />
-              AI Assistant
-            </NavLink>
+              {toolsOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setToolsOpen(false)} />
+                  <div className="absolute left-full top-0 ml-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-4 z-20 animate-in fade-in zoom-in-95 duration-100 grid grid-cols-2 gap-3">
+                    <NavLink 
+                      to='/tools/gp-calculator' 
+                      className="flex flex-col items-center justify-center p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-center group"
+                      onClick={() => setToolsOpen(false)}
+                    >
+                      <div className="w-10 h-10 bg-white dark:bg-gray-700 rounded-full flex items-center justify-center shadow-sm mb-2 group-hover:scale-110 transition-transform">
+                        <Calculator className="w-5 h-5" />
+                      </div>
+                      <span className="text-xs font-medium">GP Calculator</span>
+                    </NavLink>
+
+                    <div className="col-span-2">
+                       <StudySessionGoals />
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </nav>
 
           {history.length > 0 && (
@@ -224,10 +248,7 @@ export function DashboardLayout() {
                   <StudySessionGoals />
                 </div>
 
-                <NavLink to='/chat' className={navLinkClass} onClick={() => setSidebarOpen(false)}>
-                  <MessageSquare className='w-5 h-5 mr-3' />
-                  AI Assistant
-                </NavLink>
+
 
                 <button
                   onClick={() => {
