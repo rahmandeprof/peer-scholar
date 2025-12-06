@@ -8,6 +8,7 @@ import {
   Brain,
   Sparkles,
   Heart,
+  MoreVertical,
 } from 'lucide-react';
 import api from '../lib/api';
 import { AISidebar } from './AISidebar';
@@ -60,7 +61,9 @@ export const MaterialView = () => {
   const [favoritesCount, setFavoritesCount] = useState(0);
   const [averageRating, setAverageRating] = useState(0);
   const [isFavorited, setIsFavorited] = useState(false);
+
   const [userRating, setUserRating] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const handleSessionEnd = () => {
     setSessionEndModalOpen(true);
@@ -237,116 +240,51 @@ export const MaterialView = () => {
     <ReaderSettingsProvider>
       <div className='flex flex-col h-full bg-white dark:bg-gray-900 overflow-hidden'>
         {/* Header */}
-        <div className='flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm z-10 shrink-0'>
-          {/* ... Header content ... */}
-          <div className='flex items-center space-x-3'>
-            <div className='flex items-center space-x-4'>
-              <button
-                onClick={() => navigate(-1)}
-                className='p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors'
-              >
-                <ArrowLeft className='w-5 h-5 text-gray-600 dark:text-gray-300' />
-              </button>
-              <div>
-                <h1 className='text-lg font-semibold text-gray-900 dark:text-white truncate max-w-md flex items-center gap-2'>
-                  {material.title}
-                  <div className='flex items-center ml-2'>
-                    <StarRating rating={averageRating} size={14} readonly />
-                    <span className='text-xs text-gray-500 ml-1'>({averageRating})</span>
-                  </div>
-                </h1>
-                <p className='text-sm text-gray-500 dark:text-gray-400'>
-                  Uploaded by {material.uploader.firstName}{' '}
-                  {material.uploader.lastName}
-                </p>
-              </div>
+        <div className='flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm z-10 shrink-0 gap-4'>
+          {/* Left: Back + Title */}
+          <div className='flex items-center space-x-3 min-w-0'>
+            <button
+              onClick={() => navigate(-1)}
+              className='p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors shrink-0'
+            >
+              <ArrowLeft className='w-5 h-5 text-gray-600 dark:text-gray-300' />
+            </button>
+            <div className="min-w-0">
+              <h1 className='text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2'>
+                <span className="truncate max-w-[200px] md:max-w-md">{material.title}</span>
+                <div className='flex items-center shrink-0'>
+                  <StarRating rating={averageRating} size={12} readonly />
+                  <span className='text-xs text-gray-500 ml-1'>({averageRating})</span>
+                </div>
+              </h1>
+              <p className='text-sm text-gray-500 dark:text-gray-400 truncate'>
+                Uploaded by {material.uploader.firstName}{' '}
+                {material.uploader.lastName}
+              </p>
             </div>
           </div>
-          <div className='flex items-center space-x-2'>
-            <div className='flex items-center mr-4'>
-               <span className='text-sm text-gray-500 mr-2'>Rate:</span>
-               <StarRating rating={userRating} onRate={handleRate} size={18} />
-            </div>
-            <button
-              onClick={handleToggleFavorite}
-              className={`p-2 rounded-full transition-colors flex items-center gap-1 ${
-                isFavorited
-                  ? 'text-red-500 bg-red-50 dark:bg-red-900/20'
-                  : 'text-gray-500 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-              title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
-            >
-              <Heart className={`w-5 h-5 ${isFavorited ? 'fill-current' : ''}`} />
-              {favoritesCount > 0 && <span className='text-xs font-medium'>{favoritesCount}</span>}
-            </button>
-            <div className='w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2' />
+
+          {/* Right: Actions */}
+          <div className='flex items-center space-x-2 shrink-0'>
+            {/* Visible Items */}
             <StudyTimer key={timerKey} onComplete={handleSessionEnd} />
-            {/* ... rest of buttons ... */}
-            <TextSettings />
             
             <button
-              onClick={() => setTtsOpen(!ttsOpen)}
-              className={`p-2 rounded-full transition-colors ${
-                ttsOpen
-                  ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
-                  : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-              title="Listen to this document"
-            >
-              <Headphones className="w-5 h-5" />
-            </button>
-
-            <div className='w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2' />
-            {/* ... */}
-
-            <button
               onClick={() => setQuizOpen(true)}
-              className='hidden md:flex px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors items-center font-medium text-sm'
+              className='hidden md:flex px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors items-center font-medium text-sm'
             >
-              <Brain className='w-4 h-4 mr-2' />
-              Take Quiz
+              <Brain className='w-4 h-4 mr-1.5' />
+              Quiz
             </button>
+            
             <button
               onClick={() => setFlashcardModalOpen(true)}
-              className='hidden md:flex px-4 py-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors items-center font-medium text-sm'
+              className='hidden md:flex px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors items-center font-medium text-sm'
             >
-              <Layers className='w-4 h-4 mr-2' />
-              Flashcards
+              <Layers className='w-4 h-4 mr-1.5' />
+              Cards
             </button>
-            <a
-              href={material.fileUrl}
-              download
-              target='_blank'
-              rel='noopener noreferrer'
-              className='p-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors'
-              title='Download'
-            >
-              <Download className='w-5 h-5' />
-            </a>
-            <button
-              onClick={handleShare}
-              className='p-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors'
-              title='Share'
-            >
-              <Share2 className='w-5 h-5' />
-            </button>
-            <div className='w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2' />
-            <button
-              onClick={() =>
-                setViewMode(viewMode === 'original' ? 'text' : 'original')
-              }
-              className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors flex items-center ${
-                viewMode === 'text'
-                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                  : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-            >
-              {viewMode === 'text' && (
-                <span className='mr-1.5 text-xs'>⚡</span>
-              )}
-              {viewMode === 'original' ? 'Lite Mode' : 'Saving Data'}
-            </button>
-            <div className='w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2' />
+
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className={`p-2 rounded-full transition-colors ${
@@ -358,6 +296,109 @@ export const MaterialView = () => {
             >
               <Sparkles className='w-5 h-5' />
             </button>
+
+            {/* Dropdown Menu */}
+            <div className="relative">
+              <button 
+                onClick={() => setMenuOpen(!menuOpen)} 
+                className={`p-2 rounded-full transition-colors ${menuOpen ? 'bg-gray-100 dark:bg-gray-700' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+              >
+                <MoreVertical className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+              </button>
+              
+              {menuOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-20 animate-in fade-in zoom-in-95 duration-100">
+                     {/* Mobile Only Actions */}
+                     <div className="md:hidden px-2 pb-2 mb-2 border-b border-gray-100 dark:border-gray-700 grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => { setQuizOpen(true); setMenuOpen(false); }}
+                          className='flex flex-col items-center justify-center p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-purple-600 dark:text-purple-400 text-xs font-medium'
+                        >
+                          <Brain className='w-4 h-4 mb-1' />
+                          Quiz
+                        </button>
+                        <button
+                          onClick={() => { setFlashcardModalOpen(true); setMenuOpen(false); }}
+                          className='flex flex-col items-center justify-center p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg text-indigo-600 dark:text-indigo-400 text-xs font-medium'
+                        >
+                          <Layers className='w-4 h-4 mb-1' />
+                          Cards
+                        </button>
+                     </div>
+
+                     {/* Rating */}
+                     <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700">
+                       <span className="text-xs text-gray-500 block mb-1">Your Rating</span>
+                       <StarRating rating={userRating} onRate={handleRate} size={20} />
+                     </div>
+
+                     {/* Actions List */}
+                     <div className="py-1">
+                       <button 
+                          onClick={handleToggleFavorite} 
+                          className="w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200"
+                       >
+                          <Heart className={`w-4 h-4 mr-3 ${isFavorited ? 'fill-red-500 text-red-500' : ''}`} />
+                          {isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}
+                       </button>
+
+                       <button 
+                          onClick={() => { setTtsOpen(!ttsOpen); setMenuOpen(false); }} 
+                          className="w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200"
+                       >
+                          <Headphones className="w-4 h-4 mr-3" />
+                          {ttsOpen ? 'Hide Reader' : 'Read Aloud'}
+                       </button>
+                       
+                       <div className="px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200">
+                          <TextSettings /> 
+                          <span className="ml-3">Text Settings</span>
+                       </div>
+
+                       <a 
+                          href={material.fileUrl} 
+                          download 
+                          target='_blank'
+                          rel='noopener noreferrer'
+                          className="block px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200"
+                       >
+                          <Download className="w-4 h-4 mr-3" />
+                          Download File
+                       </a>
+
+                       <button 
+                          onClick={() => { handleShare(); setMenuOpen(false); }}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200"
+                       >
+                          <Share2 className="w-4 h-4 mr-3" />
+                          Share
+                       </button>
+                       
+                       <div className="border-t border-gray-100 dark:border-gray-700 mt-1 pt-1">
+                         <button 
+                            onClick={() => { setViewMode(viewMode === 'original' ? 'text' : 'original'); setMenuOpen(false); }}
+                            className="w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200"
+                         >
+                            {viewMode === 'original' ? (
+                              <>
+                                <span className="w-4 h-4 mr-3 flex items-center justify-center text-xs font-bold">⚡</span>
+                                Switch to Lite Mode
+                              </>
+                            ) : (
+                              <>
+                                <FileText className="w-4 h-4 mr-3" />
+                                Switch to Original
+                              </>
+                            )}
+                         </button>
+                       </div>
+                     </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 

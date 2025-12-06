@@ -120,59 +120,59 @@ export function CompactTimer({ onComplete }: { onComplete?: () => void }) {
   };
 
   return (
-    <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-3 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm transition-all hover:shadow-md relative">
+    <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-full px-3 py-1.5 border border-gray-200 dark:border-gray-700 transition-all hover:border-primary-500/50 relative group">
       {isSynced && (
-        <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900" title="Synced with partner" />
+        <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white dark:border-gray-900" title="Synced with partner" />
       )}
-      <div className="flex items-center space-x-4">
-        <div className="flex flex-col">
-          <button 
-            onClick={() => {
-              const modes: TimerMode[] = ['study', 'test', 'rest'];
-              const nextIdx = (modes.indexOf(mode) + 1) % modes.length;
-              const nextMode = modes[nextIdx];
-              setMode(nextMode);
-              setTimeLeft(MODES[nextMode].minutes * 60);
-              setIsActive(false);
-            }}
-            className={`text-xs font-medium uppercase tracking-wider hover:opacity-80 ${MODES[mode].color}`}
+      
+      <button
+        onClick={toggleTimer}
+        className={`mr-2 flex items-center justify-center transition-colors ${
+          isActive 
+            ? 'text-red-500' 
+            : 'text-primary-600 dark:text-primary-400'
+        }`}
+      >
+        {isActive ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+      </button>
+
+      <div className="flex items-center">
+        {isEditing ? (
+          <form onSubmit={handleTimeSubmit} className="w-12">
+            <input
+              ref={inputRef}
+              type="number"
+              value={customMinutes}
+              onChange={(e) => setCustomMinutes(e.target.value)}
+              onBlur={() => handleTimeSubmit()}
+              className="w-full text-sm font-bold font-mono text-gray-900 dark:text-gray-100 bg-transparent border-b border-primary-500 outline-none p-0"
+              min="1"
+            />
+          </form>
+        ) : (
+          <span 
+            onClick={handleTimeClick}
+            className={`text-sm font-bold font-mono ${MODES[mode].color} ${!isActive ? 'cursor-pointer hover:opacity-80' : ''}`}
+            title={`${MODES[mode].label} - Click to edit`}
           >
-            {MODES[mode].label}
-          </button>
-          {isEditing ? (
-            <form onSubmit={handleTimeSubmit} className="w-16">
-              <input
-                ref={inputRef}
-                type="number"
-                value={customMinutes}
-                onChange={(e) => setCustomMinutes(e.target.value)}
-                onBlur={() => handleTimeSubmit()}
-                className="w-full text-xl font-bold font-mono text-gray-900 dark:text-gray-100 bg-transparent border-b border-primary-500 outline-none p-0"
-                min="1"
-              />
-            </form>
-          ) : (
-            <span 
-              onClick={handleTimeClick}
-              className={`text-xl font-bold font-mono text-gray-900 dark:text-gray-100 ${!isActive ? 'cursor-pointer hover:text-primary-600 dark:hover:text-primary-400' : ''}`}
-              title={!isActive ? "Click to edit duration" : ""}
-            >
-              {formatTime(timeLeft)}
-            </span>
-          )}
-        </div>
-        
-        <button
-          onClick={toggleTimer}
-          className={`h-10 w-10 rounded-full flex items-center justify-center transition-colors ${
-            isActive 
-              ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' 
-              : 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
-          }`}
-        >
-          {isActive ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
-        </button>
+            {formatTime(timeLeft)}
+          </span>
+        )}
       </div>
+
+      {/* Hidden Mode Toggle (Visible on Hover or via small dot) */}
+      <button 
+        onClick={() => {
+          const modes: TimerMode[] = ['study', 'test', 'rest'];
+          const nextIdx = (modes.indexOf(mode) + 1) % modes.length;
+          const nextMode = modes[nextIdx];
+          setMode(nextMode);
+          setTimeLeft(MODES[nextMode].minutes * 60);
+          setIsActive(false);
+        }}
+        className="ml-2 w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 hover:bg-primary-500 transition-colors"
+        title={`Current: ${MODES[mode].label} (Click to switch)`}
+      />
     </div>
   );
 }
