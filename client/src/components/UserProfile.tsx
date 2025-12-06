@@ -9,19 +9,6 @@ import {
   X,
   Trophy,
   Shield,
-  Mail,
-  Building,
-  GraduationCap,
-  Save,
-  Wifi,
-  Zap,
-  AlertTriangle,
-  Share,
-} from 'lucide-react';
-import api from '../lib/api';
-import { useNetwork } from '../contexts/NetworkContext';
-import { OptimizedImage } from './OptimizedImage';
-
 interface UserProfileProps {
   onClose: () => void;
 }
@@ -278,20 +265,6 @@ export function UserProfile({ onClose }: UserProfileProps) {
                   <div className='flex items-center'>
                     <div className='w-5 h-5 mr-3 flex items-center justify-center'>
                       <span className='text-lg'>▶️</span>
-                    </div>
-                    <div>
-                      <p className='text-sm font-medium text-gray-900 dark:text-gray-100'>
-                        Auto-play Videos
-                      </p>
-                      <p className='text-xs text-gray-500 dark:text-gray-400'>
-                        Play videos automatically in feed
-                      </p>
-                    </div>
-                  </div>
-                  <label className='relative inline-flex items-center cursor-pointer'>
-                    <input
-                      type='checkbox'
-                      className='sr-only peer'
                       checked={preferences.autoPlayVideos}
                       onChange={(e) =>
                         updatePreferences({ autoPlayVideos: e.target.checked })
