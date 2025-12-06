@@ -17,7 +17,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private emailService: EmailService,
-  ) {}
+  ) { }
 
   async validateUser(
     email: string,
@@ -57,13 +57,13 @@ export class AuthService {
       | User
       | Omit<User, 'password'>
       | {
-          id: string;
-          email: string;
-          firstName: string;
-          lastName: string;
-          department: string;
-          yearOfStudy: number;
-        },
+        id: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+        department: string;
+        yearOfStudy: number;
+      },
   ) {
     const payload = {
       email: user.email,
@@ -212,14 +212,15 @@ export class AuthService {
     if (!user) {
       // Create new user
       const userData = {
-        email,
-        firstName,
-        lastName,
-        image: picture,
+        email: email || '',
+        firstName: firstName || 'User',
+        lastName: lastName || '',
+        image: picture || null,
         googleId,
-        password: '', // No password for google users
+        password: null, // No password for google users
         department: 'General', // Default
         yearOfStudy: 1, // Default
+        isVerified: true, // Google users are verified by default
       };
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
