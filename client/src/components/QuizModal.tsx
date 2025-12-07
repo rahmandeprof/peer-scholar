@@ -145,7 +145,7 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
         }
       `}</style>
 
-      <div className='bg-white dark:bg-gray-900 rounded-none md:rounded-3xl shadow-2xl w-full md:max-w-2xl h-full md:h-auto md:max-h-[90vh] overflow-hidden relative flex flex-col animate-pop-in'>
+      <div className='bg-white dark:bg-gray-900 rounded-2xl md:rounded-3xl shadow-2xl w-[95%] md:max-w-2xl max-h-[90vh] overflow-hidden relative flex flex-col animate-pop-in'>
         {/* Header */}
         <div className='flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-800'>
           <div className='flex items-center space-x-2'>
