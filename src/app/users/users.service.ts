@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition */
-/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 import {
   ForbiddenException,
   Injectable,
@@ -469,7 +467,7 @@ export class UsersService {
       } else if (diffDays === 1) {
         // Consecutive day
         streak.currentStreak += 1;
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+
         if (streak.currentStreak > streak.longestStreak) {
           streak.longestStreak = streak.currentStreak;
         }
@@ -491,6 +489,11 @@ export class UsersService {
       longestStreak: streak.longestStreak,
       lastStudyDate: now,
     });
+
+    return {
+      currentStreak: streak.currentStreak,
+      longestStreak: streak.longestStreak,
+    };
   }
 
   private getStage(streak: number): string {

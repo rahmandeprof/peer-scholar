@@ -17,7 +17,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private emailService: EmailService,
-  ) { }
+  ) {}
 
   async validateUser(
     email: string,
@@ -52,19 +52,22 @@ export class AuthService {
     return null;
   }
 
-  login(
+  async login(
     user:
       | User
       | Omit<User, 'password'>
       | {
-        id: string;
-        email: string;
-        firstName: string;
-        lastName: string;
-        department: string;
-        yearOfStudy: number;
-      },
+          id: string;
+          email: string;
+          firstName: string;
+          lastName: string;
+          department: string;
+          yearOfStudy: number;
+        },
   ) {
+    // Update streak on login and get fresh values
+    const streak = await this.usersService.updateStreak(user.id);
+
     const payload = {
       email: user.email,
       sub: user.id,
@@ -81,6 +84,8 @@ export class AuthService {
         lastName: user.lastName,
         department: user.department,
         yearOfStudy: user.yearOfStudy,
+        currentStreak: streak.currentStreak,
+        longestStreak: streak.longestStreak,
       },
     };
   }
@@ -148,6 +153,7 @@ export class AuthService {
 
   async forgotPassword(email: string) {
     const user = await this.usersService.findByEmail(email);
+
     if (!user) {
       return {
         success: true,
@@ -157,6 +163,7 @@ export class AuthService {
     }
 
     const token = uuidv4();
+
     user.resetPasswordToken = token;
     user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour
 
@@ -181,15 +188,12 @@ export class AuthService {
   async resetPassword(token: string, newPassword: string) {
     const user = await this.usersService.findByResetToken(token);
 
-    if (
-      !user ||
-      !user.resetPasswordExpires ||
-      user.resetPasswordExpires < new Date()
-    ) {
+    if (!user?.resetPasswordExpires || user.resetPasswordExpires < new Date()) {
       throw new Error('Invalid or expired password reset token');
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
+
     user.password = hashedPassword;
     user.resetPasswordToken = null;
     user.resetPasswordExpires = null;
@@ -212,10 +216,10 @@ export class AuthService {
     if (!user) {
       // Create new user
       const userData = {
-        email: email || '',
-        firstName: firstName || 'User',
-        lastName: lastName || '',
-        image: picture || null,
+        email: email ?? '',
+        firstName: firstName ?? 'User',
+        lastName: lastName ?? '',
+        image: picture ?? null,
         googleId,
         password: null, // No password for google users
         department: 'General', // Default
