@@ -51,19 +51,32 @@ export function AcademicControlCenter() {
   const [recentMaterials, setRecentMaterials] = useState<RecentMaterial[]>([]);
   const [streak, setStreak] = useState(0);
   const [stage, setStage] = useState('Novice');
+  const [weeklyStats, setWeeklyStats] = useState({
+    current: 0,
+    goal: 18000,
+    percent: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [studyModalOpen, setStudyModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [streakRes, activityRes] = await Promise.all([
+        const [streakRes, activityRes, weeklyRes] = await Promise.all([
           api.get('/study/streak'),
           api.get('/users/activity/recent'),
+          api.get('/study/stats/weekly'),
         ]);
 
         setStreak(streakRes.data.currentStreak || 0);
         setStage(streakRes.data.stage || 'Novice');
+
+        setWeeklyStats({
+          current: weeklyRes.data.totalSeconds,
+          goal: weeklyRes.data.goalSeconds,
+          percent:
+            (weeklyRes.data.totalSeconds / weeklyRes.data.goalSeconds) * 100,
+        });
 
         if (activityRes.data.lastReadMaterial) {
           setRecentMaterials([
@@ -255,7 +268,7 @@ export function AcademicControlCenter() {
           <div className='flex items-center justify-between mb-6'>
             <h2 className='text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center'>
               <TrendingUp className='w-5 h-5 mr-2 text-green-500' />
-              Study Progress
+              Weekly Goal
             </h2>
             <button
               onClick={() => navigate('/study-timer')}
@@ -265,29 +278,78 @@ export function AcademicControlCenter() {
             </button>
           </div>
 
-          <div className='grid grid-cols-2 md:grid-cols-3 gap-4'>
-            <div className='bg-gray-50 dark:bg-gray-700/30 rounded-xl p-4 text-center'>
-              <div className='text-2xl font-bold text-gray-900 dark:text-gray-100'>
-                {streak}
-              </div>
-              <div className='text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1'>
-                Current Streak
+          <div className='flex items-center space-x-8'>
+            {/* Circular Progress */}
+            <div className='relative w-32 h-32 flex-shrink-0'>
+              <svg className='w-full h-full transform -rotate-90'>
+                <circle
+                  cx='64'
+                  cy='64'
+                  r='56'
+                  stroke='currentColor'
+                  strokeWidth='12'
+                  fill='transparent'
+                  className='text-gray-200 dark:text-gray-700'
+                />
+                <circle
+                  cx='64'
+                  cy='64'
+                  r='56'
+                  stroke='currentColor'
+                  strokeWidth='12'
+                  fill='transparent'
+                  strokeDasharray={2 * Math.PI * 56}
+                  strokeDashoffset={
+                    2 *
+                    Math.PI *
+                    56 *
+                    (1 - Math.min(weeklyStats.percent / 100, 1))
+                  }
+                  className={`transition-all duration-1000 ease-out ${
+                    weeklyStats.percent >= 100
+                      ? 'text-green-500'
+                      : 'text-primary-600'
+                  }`}
+                  strokeLinecap='round'
+                />
+              </svg>
+              <div className='absolute inset-0 flex flex-col items-center justify-center'>
+                <span className='text-2xl font-bold text-gray-900 dark:text-gray-100'>
+                  {Math.round(weeklyStats.percent)}%
+                </span>
               </div>
             </div>
-            <div className='bg-gray-50 dark:bg-gray-700/30 rounded-xl p-4 text-center hidden md:block'>
-              <div className='text-2xl font-bold text-gray-900 dark:text-gray-100'>
-                {courses.length}
+
+            <div className='flex-1 space-y-4'>
+              <div>
+                <div className='text-3xl font-bold text-gray-900 dark:text-gray-100'>
+                  {(weeklyStats.current / 3600).toFixed(1)}{' '}
+                  <span className='text-lg text-gray-500 font-medium'>
+                    / {(weeklyStats.goal / 3600).toFixed(0)} Hrs
+                  </span>
+                </div>
+                <p className='text-sm text-gray-500 dark:text-gray-400'>
+                  Studied this week
+                </p>
               </div>
-              <div className='text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1'>
-                Active Courses
-              </div>
-            </div>
-            <div className='bg-gray-50 dark:bg-gray-700/30 rounded-xl p-4 text-center'>
-              <div className='text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 truncate px-2'>
-                {stage}
-              </div>
-              <div className='text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1'>
-                Current Level
+
+              <div className='grid grid-cols-2 gap-4'>
+                <div className='bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3'>
+                  <div className='text-lg font-bold text-gray-900 dark:text-gray-100'>
+                    {streak}
+                  </div>
+                  <div className='text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
+                    Streak
+                  </div>
+                </div>
+                <div className='bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3'>
+                  <div className='text-lg font-bold text-gray-900 dark:text-gray-100 truncate'>
+                    {stage}
+                  </div>
+                  <div className='text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
+                    Level
+                  </div>
+                </div>
               </div>
             </div>
           </div>

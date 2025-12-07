@@ -65,4 +65,31 @@ export class StudyService {
   getStreak(userId: string) {
     return this.usersService.getInsights(userId);
   }
+
+  async getWeeklyStats(userId: string) {
+    const now = new Date();
+    // Get start of week (Monday)
+    const startOfWeek = new Date(now);
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+
+    startOfWeek.setDate(diff);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const sessions = await this.studySessionRepo
+      .createQueryBuilder('session')
+      .where('session.userId = :userId', { userId })
+      .andWhere('session.startTime >= :startOfWeek', { startOfWeek })
+      .getMany();
+
+    const totalSeconds = sessions.reduce(
+      (acc, session) => acc + (session.durationSeconds || 0),
+      0,
+    );
+
+    return {
+      totalSeconds,
+      goalSeconds: 5 * 60 * 60, // 5 Hours
+    };
+  }
 }

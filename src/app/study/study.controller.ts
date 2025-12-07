@@ -49,4 +49,13 @@ export class StudyController {
 
     return this.studyService.getStreak(req.user.id);
   }
+
+  @Get('stats/weekly')
+  getWeeklyStats(@Req() req: RequestWithUser) {
+    if (!req.user) {
+      throw new Error('User not found');
+    }
+
+    return this.studyService.getWeeklyStats(req.user.id);
+  }
 }

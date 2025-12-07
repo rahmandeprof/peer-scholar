@@ -450,12 +450,31 @@ export function UserProfile({ onClose }: UserProfileProps) {
                 <div className='bg-yellow-50 dark:bg-yellow-900/20 px-4 py-2 rounded-xl border border-yellow-200 dark:border-yellow-800 flex items-center'>
                   <Trophy className='w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2' />
                   <div>
-                    <p className='text-xs text-yellow-600 dark:text-yellow-400 font-medium uppercase tracking-wider'>
-                      Reputation
-                    </p>
-                    <p className='text-lg font-bold text-yellow-700 dark:text-yellow-300'>
-                      {user.reputation || 0}
-                    </p>
+                    <div className='w-full'>
+                      <div className='flex justify-between items-end mb-1'>
+                        <p className='text-xs text-yellow-600 dark:text-yellow-400 font-medium uppercase tracking-wider'>
+                          Reputation
+                        </p>
+                        <span className='text-xs font-bold text-yellow-700 dark:text-yellow-300'>
+                          {(user.reputation || 0) % 500} / 500 XP
+                        </span>
+                      </div>
+                      <p className='text-lg font-bold text-yellow-700 dark:text-yellow-300 leading-none mb-2'>
+                        {user.reputation || 0}
+                      </p>
+                      {/* Level Progress Bar */}
+                      <div className='w-full h-1.5 bg-yellow-200 dark:bg-yellow-900/50 rounded-full overflow-hidden'>
+                        <div
+                          className='h-full bg-yellow-500 rounded-full transition-all duration-500'
+                          style={{
+                            width: `${((user.reputation || 0) % 500) / 5}%`,
+                          }}
+                        />
+                      </div>
+                      <p className='text-[10px] text-yellow-600/80 dark:text-yellow-400/80 mt-1 text-right'>
+                        To Level {Math.floor((user.reputation || 0) / 500) + 1}
+                      </p>
+                    </div>
                   </div>
                 </div>
                 {user.isVerified && (
