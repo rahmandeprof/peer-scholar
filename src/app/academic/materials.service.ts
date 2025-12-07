@@ -12,6 +12,7 @@ import { MaterialAnnotation } from './entities/material-annotation.entity';
 import { MaterialFavorite } from './entities/material-favorite.entity';
 import { MaterialRating } from './entities/material-rating.entity';
 import { MaterialReport } from './entities/material-report.entity';
+import { Note } from './entities/note.entity';
 import { Course } from '@/app/academic/entities/course.entity';
 import { User } from '@/app/users/entities/user.entity';
 
@@ -44,6 +45,8 @@ export class MaterialsService {
     private annotationRepo: Repository<MaterialAnnotation>,
     @InjectRepository(MaterialReport)
     private reportRepo: Repository<MaterialReport>,
+    @InjectRepository(Note)
+    private noteRepo: Repository<Note>,
   ) {
     cloudinary.config({
       cloud_name: this.configService.get('CLOUD_NAME'),
@@ -141,15 +144,13 @@ export class MaterialsService {
     const topicCounts: Record<string, number> = {};
 
     materials.forEach((material) => {
-      if (material.tags) {
-        material.tags.forEach((tag) => {
-          const normalizedTag = tag.trim().toLowerCase();
+      material.tags.forEach((tag) => {
+        const normalizedTag = tag.trim().toLowerCase();
 
-          if (normalizedTag) {
-            topicCounts[normalizedTag] = (topicCounts[normalizedTag] || 0) + 1;
-          }
-        });
-      }
+        if (normalizedTag) {
+          topicCounts[normalizedTag] = (topicCounts[normalizedTag] || 0) + 1;
+        }
+      });
     });
 
     return Object.entries(topicCounts)
@@ -290,8 +291,8 @@ export class MaterialsService {
       }
 
       return { content: text };
-    } catch (error) {
-      console.error('Failed to extract text on demand', error);
+    } catch {
+      // console.error('Failed to extract text on demand', error);
       throw new Error('Failed to extract text');
     }
   }
@@ -379,7 +380,7 @@ export class MaterialsService {
   }
 
   async getInteractionStatus(materialId: string, userId: string) {
-    const isFavorited = await this.favoriteRepo.exist({
+    const isFavorited = await this.favoriteRepo.exists({
       where: { material: { id: materialId }, user: { id: userId } },
     });
 
@@ -387,7 +388,7 @@ export class MaterialsService {
       where: { material: { id: materialId }, user: { id: userId } },
     });
 
-    return { isFavorited, userRating: rating?.value || 0 };
+    return { isFavorited, userRating: rating?.value ?? 0 };
   }
 
   async addContributor(materialId: string, userId: string) {
@@ -399,8 +400,6 @@ export class MaterialsService {
     if (!material) throw new NotFoundException('Material not found');
 
     const user = await this.usersService.getOne(userId);
-
-    if (!user) throw new NotFoundException('User not found');
 
     // Check if already a contributor or uploader
     if (material.uploader.id === userId) {
@@ -434,13 +433,11 @@ export class MaterialsService {
 
     const user = await this.usersService.getOne(userId);
 
-    if (!user) throw new NotFoundException('User not found');
-
     const annotation = this.annotationRepo.create({
       material,
       user,
       ...data,
-      type: data.type || 'note',
+      type: data.type ?? 'note',
     });
 
     return this.annotationRepo.save(annotation);
@@ -461,10 +458,10 @@ export class MaterialsService {
     description?: string,
   ) {
     const material = await this.materialRepo.findOneBy({ id: materialId });
+
     if (!material) throw new NotFoundException('Material not found');
 
     const user = await this.usersService.getOne(userId);
-    if (!user) throw new NotFoundException('User not found');
 
     const report = this.reportRepo.create({
       material,
@@ -474,5 +471,29 @@ export class MaterialsService {
     });
 
     return this.reportRepo.save(report);
+  }
+
+  async saveNote(userId: string, materialId: string, content: string) {
+    let note = await this.noteRepo.findOne({
+      where: { userId, materialId },
+    });
+
+    if (note) {
+      note.content = content;
+    } else {
+      note = this.noteRepo.create({
+        userId,
+        materialId,
+        content,
+      });
+    }
+
+    return this.noteRepo.save(note);
+  }
+
+  async getNote(userId: string, materialId: string) {
+    return this.noteRepo.findOne({
+      where: { userId, materialId },
+    });
   }
 }

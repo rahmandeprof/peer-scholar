@@ -32,6 +32,8 @@ import { useToast } from '../contexts/ToastContext';
 import { FlashcardModal } from './FlashcardModal';
 import { FeatureSpotlightModal } from './FeatureSpotlightModal';
 import { ReportModal } from './ReportModal';
+import { Jotter } from './Jotter';
+import { PenTool } from 'lucide-react';
 
 interface Material {
   id: string;
@@ -65,7 +67,9 @@ export const MaterialView = () => {
   const [timerKey, setTimerKey] = useState(0); // Used to reset timer
   const [ttsOpen, setTtsOpen] = useState(false);
   const [flashcardModalOpen, setFlashcardModalOpen] = useState(false);
+  const [flashcardModalOpen, setFlashcardModalOpen] = useState(false);
   const [showFlashcardSpotlight, setShowFlashcardSpotlight] = useState(false);
+  const [jotterOpen, setJotterOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
 
   const [averageRating, setAverageRating] = useState(0);
@@ -314,6 +318,18 @@ export const MaterialView = () => {
             </button>
 
             <button
+              onClick={() => setJotterOpen(!jotterOpen)}
+              className={`hidden md:flex px-3 py-1.5 rounded-full transition-colors items-center font-medium text-sm ${
+                jotterOpen
+                  ? 'bg-yellow-200 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-400'
+                  : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-200 dark:hover:bg-yellow-900/50'
+              }`}
+            >
+              <PenTool className='w-4 h-4 mr-1.5' />
+              Jotter
+            </button>
+
+            <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className={`hidden md:flex p-2 rounded-full transition-colors ${
                 sidebarOpen
@@ -348,7 +364,7 @@ export const MaterialView = () => {
                         onComplete={handleSessionEnd}
                       />
                     </div>
-                    <div className='md:hidden px-2 pb-2 mb-2 border-b border-gray-100 dark:border-gray-700 grid grid-cols-2 gap-2'>
+                    <div className='md:hidden px-2 pb-2 mb-2 border-b border-gray-100 dark:border-gray-700 grid grid-cols-3 gap-2'>
                       <button
                         onClick={() => {
                           setQuizOpen(true);
@@ -377,6 +393,16 @@ export const MaterialView = () => {
                       >
                         <Layers className='w-4 h-4 mb-1' />
                         Cards
+                      </button>
+                      <button
+                        onClick={() => {
+                          setJotterOpen(true);
+                          setMenuOpen(false);
+                        }}
+                        className='flex flex-col items-center justify-center p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg text-yellow-600 dark:text-yellow-400 text-xs font-medium'
+                      >
+                        <PenTool className='w-4 h-4 mb-1' />
+                        Jotter
                       </button>
                     </div>
 
@@ -629,6 +655,11 @@ export const MaterialView = () => {
           isOpen={reportModalOpen}
           onClose={() => setReportModalOpen(false)}
           materialId={material?.id || ''}
+        />
+        <Jotter
+          materialId={material?.id || ''}
+          isOpen={jotterOpen}
+          onClose={() => setJotterOpen(false)}
         />
       </div>
     </ReaderSettingsProvider>

@@ -8,11 +8,12 @@ import { Course } from './entities/course.entity';
 import { Department } from './entities/department.entity';
 import { Faculty } from './entities/faculty.entity';
 import { Material } from './entities/material.entity';
+import { MaterialAnnotation } from './entities/material-annotation.entity';
 import { MaterialChunk } from './entities/material-chunk.entity';
 import { MaterialFavorite } from './entities/material-favorite.entity';
 import { MaterialRating } from './entities/material-rating.entity';
-import { MaterialAnnotation } from './entities/material-annotation.entity';
 import { MaterialReport } from './entities/material-report.entity';
+import { Note } from './entities/note.entity';
 import { School } from './entities/school.entity';
 
 import { AcademicController } from './academic.controller';
@@ -35,7 +36,9 @@ import { MaterialProcessor } from './processors/material.processor';
       MaterialRating,
       MaterialFavorite,
       MaterialAnnotation,
+      MaterialAnnotation,
       MaterialReport,
+      Note,
     ]),
     BullModule.registerQueue({
       name: 'materials',

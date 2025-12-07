@@ -157,4 +157,23 @@ export class MaterialsController {
       body.description,
     );
   }
+
+  @Post(':id/note')
+  saveNote(
+    @Param('id') id: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    @Req() req: any,
+    @Body('content') content: string,
+  ) {
+    return this.materialsService.saveNote(req.user.id, id, content);
+  }
+
+  @Get(':id/note')
+  getNote(
+    @Param('id') id: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    @Req() req: any,
+  ) {
+    return this.materialsService.getNote(req.user.id, id);
+  }
 }
