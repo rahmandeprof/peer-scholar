@@ -161,9 +161,62 @@ export class ChatService {
       throw new NotFoundException('You can only delete your own materials');
     }
 
+    // Delete from Cloudinary
+    if (material.fileUrl) {
+      const publicId = this.extractPublicIdFromUrl(material.fileUrl);
+
+      if (publicId) {
+        await this.cloudinaryService.deleteFile(publicId);
+      }
+    }
+
+    // Delete PDF version if exists and different
+    if (material.pdfUrl && material.pdfUrl !== material.fileUrl) {
+      const publicId = this.extractPublicIdFromUrl(material.pdfUrl);
+
+      if (publicId) {
+        await this.cloudinaryService.deleteFile(publicId);
+      }
+    }
+
     await this.materialRepo.remove(material);
 
     return { success: true };
+  }
+
+  private extractPublicIdFromUrl(url: string): string | null {
+    try {
+      // Example URL: https://res.cloudinary.com/demo/image/upload/v1570979139/scholar-app/my_file.jpg
+      const parts = url.split('/');
+      const filenameWithExt = parts[parts.length - 1];
+      const folder = parts[parts.length - 2];
+      const filename = filenameWithExt.split('.')[0];
+
+      // Assuming folder structure 'scholar-app'
+      if (folder === 'scholar-app') {
+        return `${folder}/${filename}`;
+      }
+
+      // Fallback: try to find version 'v12345' and take everything after
+      const versionIndex = parts.findIndex(
+        (p) => p.startsWith('v') && !isNaN(Number(p.substring(1))),
+      );
+
+      if (versionIndex !== -1 && versionIndex < parts.length - 1) {
+        const publicIdParts = parts.slice(versionIndex + 1);
+        const lastPart = publicIdParts[publicIdParts.length - 1];
+
+        publicIdParts[publicIdParts.length - 1] = lastPart.split('.')[0];
+
+        return publicIdParts.join('/');
+      }
+
+      return null;
+    } catch (e) {
+      this.logger.error(`Failed to extract publicId from URL: ${url}`, e);
+
+      return null;
+    }
   }
 
   createConversation(user: User, title: string) {
@@ -358,6 +411,7 @@ export class ChatService {
       if (!content) return [];
 
       let parsed;
+
       try {
         parsed = JSON.parse(content);
       } catch (e) {
@@ -452,13 +506,14 @@ export class ChatService {
       content = this.cleanJson(content);
 
       let parsed;
+
       try {
         parsed = JSON.parse(content);
       } catch (e) {
         this.logger.error(`Failed to parse quiz JSON: ${content}`, e);
         throw e;
       }
-      const quiz = parsed.questions || [];
+      const quiz = parsed.questions ?? [];
 
       // Cache the result ONLY if it's a full quiz (no page limit)
       if (!pageLimit && quiz.length > 0) {
@@ -530,13 +585,14 @@ export class ChatService {
       content = this.cleanJson(content);
 
       let parsed;
+
       try {
         parsed = JSON.parse(content);
       } catch (e) {
         this.logger.error(`Failed to parse flashcards JSON: ${content}`, e);
         throw e;
       }
-      const flashcards = parsed.flashcards || [];
+      const flashcards = parsed.flashcards ?? [];
 
       // Cache the result
       if (flashcards.length > 0) {
@@ -765,6 +821,7 @@ export class ChatService {
     const firstBracket = cleaned.indexOf('[');
 
     let start = -1;
+
     if (firstBrace !== -1 && firstBracket !== -1) {
       start = Math.min(firstBrace, firstBracket);
     } else if (firstBrace !== -1) {
@@ -781,6 +838,7 @@ export class ChatService {
     const lastBracket = cleaned.lastIndexOf(']');
 
     let end = -1;
+
     if (lastBrace !== -1 && lastBracket !== -1) {
       end = Math.max(lastBrace, lastBracket);
     } else if (lastBrace !== -1) {
