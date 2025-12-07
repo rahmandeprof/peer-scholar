@@ -47,7 +47,9 @@ export function MaterialCard({ material, onDelete }: MaterialCardProps) {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  useOnClickOutside(menuRef as React.RefObject<HTMLElement>, () => setMenuOpen(false));
+  useOnClickOutside(menuRef as React.RefObject<HTMLElement>, () =>
+    setMenuOpen(false),
+  );
 
   const isOwner = user?.id === material.uploader.id;
 
@@ -110,7 +112,7 @@ export function MaterialCard({ material, onDelete }: MaterialCardProps) {
                   <span className='inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 border border-green-100 dark:border-green-800 cursor-pointer'>
                     {material.versions.length + 1} Versions
                   </span>
-                  
+
                   {/* Versions Dropdown */}
                   <div className='absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-30 py-1 hidden group-hover/versions:block'>
                     <div className='px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700'>
@@ -150,7 +152,12 @@ export function MaterialCard({ material, onDelete }: MaterialCardProps) {
 
                 {/* Dropdown Menu */}
                 {menuOpen && (
-                  <div className='absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-20 py-1 animate-pop-in'>
+                  <div
+                    className='absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-20 py-1 animate-pop-in overscroll-contain'
+                    onScroll={(e) => e.stopPropagation()}
+                    onTouchMove={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <button
                       onClick={handleDownload}
                       className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
