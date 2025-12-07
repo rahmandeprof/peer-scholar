@@ -10,8 +10,11 @@ import {
   Heart,
   MoreVertical,
   AlertTriangle,
+  Moon,
+  Sun,
 } from 'lucide-react';
 import api from '../lib/api';
+import { useTheme } from '../contexts/ThemeContext';
 import { AISidebar } from './AISidebar';
 import { QuizModal } from './QuizModal';
 import { TextFileViewer } from './TextFileViewer';
@@ -63,6 +66,7 @@ export const MaterialView = () => {
   const [ttsOpen, setTtsOpen] = useState(false);
   const [flashcardModalOpen, setFlashcardModalOpen] = useState(false);
   const [showFlashcardSpotlight, setShowFlashcardSpotlight] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   const [averageRating, setAverageRating] = useState(0);
   const [isFavorited, setIsFavorited] = useState(false);
@@ -472,6 +476,27 @@ export const MaterialView = () => {
                             <>
                               <FileText className='w-4 h-4 mr-3' />
                               Switch to Original
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      <div className='border-t border-gray-100 dark:border-gray-700 mt-1 pt-1'>
+                        <button
+                          onClick={() => {
+                            toggleTheme();
+                          }}
+                          className='w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200'
+                        >
+                          {theme === 'dark' ? (
+                            <>
+                              <Sun className='w-4 h-4 mr-3' />
+                              Light Mode
+                            </>
+                          ) : (
+                            <>
+                              <Moon className='w-4 h-4 mr-3' />
+                              Dark Mode
                             </>
                           )}
                         </button>

@@ -21,9 +21,15 @@ import {
   Briefcase,
   Layers,
   HelpCircle,
-  MoreVertical
+  Briefcase,
+  Layers,
+  HelpCircle,
+  MoreVertical,
+  Moon,
+  Sun,
 } from 'lucide-react';
 import { useNetwork } from '../contexts/NetworkContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { OptimizedImage } from './OptimizedImage';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
@@ -36,7 +42,7 @@ interface UserProfileProps {
 export function UserProfile({ onClose }: UserProfileProps) {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
-  
+
   // Handle back button closing
   useModalBack(true, onClose, 'user-profile');
 
@@ -48,6 +54,7 @@ export function UserProfile({ onClose }: UserProfileProps) {
   );
   const { preferences, updatePreferences, isLowBandwidth, connectionType } =
     useNetwork();
+  const { theme, toggleTheme } = useTheme();
 
   const [formData, setFormData] = useState({
     firstName: user?.firstName ?? '',
@@ -68,9 +75,10 @@ export function UserProfile({ onClose }: UserProfileProps) {
   useEffect(() => {
     // Check if app is in standalone mode
     const checkStandalone = () => {
-      const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || 
-                               (window.navigator as any).standalone || 
-                               document.referrer.includes('android-app://');
+      const isStandaloneMode =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as any).standalone ||
+        document.referrer.includes('android-app://');
       setIsStandalone(isStandaloneMode);
     };
 
@@ -106,7 +114,10 @@ export function UserProfile({ onClose }: UserProfileProps) {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener(
+        'beforeinstallprompt',
+        handleBeforeInstallPrompt,
+      );
     };
   }, [user, isEditing]);
 
@@ -126,17 +137,22 @@ export function UserProfile({ onClose }: UserProfileProps) {
   };
 
   const handleEditClick = () => {
-      if (user.lastProfileUpdate) {
-          const nineMonthsInMs = 9 * 30 * 24 * 60 * 60 * 1000;
-          const timeSinceLastUpdate = Date.now() - new Date(user.lastProfileUpdate).getTime();
-          
-          if (timeSinceLastUpdate < nineMonthsInMs) {
-              const remainingDays = Math.ceil((nineMonthsInMs - timeSinceLastUpdate) / (1000 * 60 * 60 * 24));
-              toast.error(`You can only change your academic details once per academic session. Please wait ${remainingDays} days.`);
-              return;
-          }
+    if (user.lastProfileUpdate) {
+      const nineMonthsInMs = 9 * 30 * 24 * 60 * 60 * 1000;
+      const timeSinceLastUpdate =
+        Date.now() - new Date(user.lastProfileUpdate).getTime();
+
+      if (timeSinceLastUpdate < nineMonthsInMs) {
+        const remainingDays = Math.ceil(
+          (nineMonthsInMs - timeSinceLastUpdate) / (1000 * 60 * 60 * 24),
+        );
+        toast.error(
+          `You can only change your academic details once per academic session. Please wait ${remainingDays} days.`,
+        );
+        return;
       }
-      setIsEditing(true);
+    }
+    setIsEditing(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -313,6 +329,35 @@ export function UserProfile({ onClose }: UserProfileProps) {
                   </label>
                 </div>
 
+                <div className='flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg'>
+                  <div className='flex items-center'>
+                    <div className='w-5 h-5 mr-3 flex items-center justify-center'>
+                      {theme === 'dark' ? (
+                        <Moon className='w-4 h-4 text-blue-400' />
+                      ) : (
+                        <Sun className='w-4 h-4 text-orange-400' />
+                      )}
+                    </div>
+                    <div>
+                      <p className='text-sm font-medium text-gray-900 dark:text-gray-100'>
+                        Dark Mode
+                      </p>
+                      <p className='text-xs text-gray-500 dark:text-gray-400'>
+                        {theme === 'dark' ? 'On' : 'Off'}
+                      </p>
+                    </div>
+                  </div>
+                  <label className='relative inline-flex items-center cursor-pointer'>
+                    <input
+                      type='checkbox'
+                      className='sr-only peer'
+                      checked={theme === 'dark'}
+                      onChange={toggleTheme}
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+                  </label>
+                </div>
+
                 {/* Install App Button */}
                 {!isStandalone && (
                   <div className='flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg'>
@@ -335,7 +380,8 @@ export function UserProfile({ onClose }: UserProfileProps) {
                           setShowIOSModal(true);
                         } else {
                           // Check for In-App Browser
-                          const userAgent = window.navigator.userAgent.toLowerCase();
+                          const userAgent =
+                            window.navigator.userAgent.toLowerCase();
                           const isInApp =
                             userAgent.includes('instagram') ||
                             userAgent.includes('fbav') || // Facebook
@@ -365,7 +411,7 @@ export function UserProfile({ onClose }: UserProfileProps) {
                               window.deferredPrompt = null;
                             });
                           } else {
-                            // If no prompt event, it might be installed or not supported, 
+                            // If no prompt event, it might be installed or not supported,
                             // but if we are here, we are likely in a browser that supports it but hasn't fired the event yet
                             // or we are in a standard browser.
                             // Show the manual install guide.
@@ -472,18 +518,18 @@ export function UserProfile({ onClose }: UserProfileProps) {
                     disabled
                     className='w-full pl-10 pr-10 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-500 cursor-not-allowed'
                   />
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <div className='absolute right-3 top-1/2 transform -translate-y-1/2'>
                     {user.isVerified ? (
-                      <div className="group relative">
-                        <Shield className="w-5 h-5 text-green-500" />
-                        <div className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                      <div className='group relative'>
+                        <Shield className='w-5 h-5 text-green-500' />
+                        <div className='absolute bottom-full right-0 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap'>
                           Verified
                         </div>
                       </div>
                     ) : (
-                      <div className="group relative">
-                        <AlertTriangle className="w-5 h-5 text-red-500" />
-                        <div className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                      <div className='group relative'>
+                        <AlertTriangle className='w-5 h-5 text-red-500' />
+                        <div className='absolute bottom-full right-0 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap'>
                           Unverified
                         </div>
                       </div>
@@ -492,7 +538,7 @@ export function UserProfile({ onClose }: UserProfileProps) {
                 </div>
                 {!user.isVerified && (
                   <button
-                    type="button"
+                    type='button'
                     onClick={async () => {
                       try {
                         await api.post('/auth/resend-verification');
@@ -501,7 +547,7 @@ export function UserProfile({ onClose }: UserProfileProps) {
                         toast.error('Failed to send verification email');
                       }
                     }}
-                    className="mt-2 text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center"
+                    className='mt-2 text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center'
                   >
                     Resend Verification Link
                   </button>
@@ -529,7 +575,7 @@ export function UserProfile({ onClose }: UserProfileProps) {
                   Menu Hub
                 </h3>
                 <button
-                  type="button"
+                  type='button'
                   onClick={(e) => {
                     e.stopPropagation();
                     onClose();
@@ -549,7 +595,7 @@ export function UserProfile({ onClose }: UserProfileProps) {
                 </button>
 
                 <button
-                  type="button"
+                  type='button'
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveTab('quizzes');
@@ -568,10 +614,11 @@ export function UserProfile({ onClose }: UserProfileProps) {
                 </button>
 
                 <button
-                  type="button"
+                  type='button'
                   onClick={(e) => {
                     e.stopPropagation();
-                    window.location.href = 'mailto:abdulrahmanabdulsalam93@gmail.com';
+                    window.location.href =
+                      'mailto:abdulrahmanabdulsalam93@gmail.com';
                   }}
                   className='w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group'
                 >
@@ -700,79 +747,89 @@ export function UserProfile({ onClose }: UserProfileProps) {
         </div>
       </div>
 
-
       {/* Warning Modal */}
       {showWarningModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-red-500/50 animate-in fade-in zoom-in duration-200">
-                <div className="text-center mb-6">
-                    <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600 dark:text-red-400">
-                        <AlertTriangle className="w-8 h-8" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Are you sure?</h3>
-                    <p className="text-gray-600 dark:text-gray-400 text-sm">
-                        You will <strong>not</strong> be able to change your Faculty, Department, or Year of Study again for <strong>9 months</strong>.
-                    </p>
-                    <p className="text-gray-600 dark:text-gray-400 text-sm mt-2">
-                        Please check your details carefully before confirming.
-                    </p>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                    <button
-                        onClick={() => setShowWarningModal(false)}
-                        className="py-3 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={confirmUpdate}
-                        disabled={loading}
-                        className="py-3 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-red-500/30 flex items-center justify-center"
-                    >
-                        {loading ? 'Saving...' : 'Confirm & Save'}
-                    </button>
-                </div>
+        <div className='fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4'>
+          <div className='bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-red-500/50 animate-in fade-in zoom-in duration-200'>
+            <div className='text-center mb-6'>
+              <div className='w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600 dark:text-red-400'>
+                <AlertTriangle className='w-8 h-8' />
+              </div>
+              <h3 className='text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2'>
+                Are you sure?
+              </h3>
+              <p className='text-gray-600 dark:text-gray-400 text-sm'>
+                You will <strong>not</strong> be able to change your Faculty,
+                Department, or Year of Study again for <strong>9 months</strong>
+                .
+              </p>
+              <p className='text-gray-600 dark:text-gray-400 text-sm mt-2'>
+                Please check your details carefully before confirming.
+              </p>
             </div>
+            <div className='grid grid-cols-2 gap-3'>
+              <button
+                onClick={() => setShowWarningModal(false)}
+                className='py-3 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors'
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmUpdate}
+                disabled={loading}
+                className='py-3 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-red-500/30 flex items-center justify-center'
+              >
+                {loading ? 'Saving...' : 'Confirm & Save'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Manual Install Modal (iOS & Android Fallback) */}
       {(showIOSModal || showManualInstall) && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-in fade-in zoom-in duration-200">
-                <div className="text-center mb-6">
-                    <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="text-3xl">📱</span>
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                      {isIOS ? 'Install on iOS' : 'Install App'}
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-                        {isIOS 
-                          ? 'To install peerStudent on your iPhone or iPad:' 
-                          : 'To install peerStudent on your device:'}
-                    </p>
-                    <ol className="text-left text-sm text-gray-600 dark:text-gray-400 space-y-3 bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl">
-                        <li className="flex items-start">
-                            <span className="font-bold mr-2">1.</span>
-                            <span>Tap the <Share className="w-4 h-4 inline mx-1" /> or <MoreVertical className="w-4 h-4 inline mx-1" /> menu button in your browser.</span>
-                        </li>
-                        <li className="flex items-start">
-                            <span className="font-bold mr-2">2.</span>
-                            <span>Scroll down and select <strong>"Add to Home Screen"</strong> or <strong>"Install App"</strong>.</span>
-                        </li>
-                    </ol>
-                </div>
-                <button
-                    onClick={() => {
-                      setShowIOSModal(false);
-                      setShowManualInstall(false);
-                    }}
-                    className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold transition-colors"
-                >
-                    Got it
-                </button>
+        <div className='fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4'>
+          <div className='bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-in fade-in zoom-in duration-200'>
+            <div className='text-center mb-6'>
+              <div className='w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4'>
+                <span className='text-3xl'>📱</span>
+              </div>
+              <h3 className='text-xl font-bold text-gray-900 dark:text-gray-100 mb-2'>
+                {isIOS ? 'Install on iOS' : 'Install App'}
+              </h3>
+              <p className='text-gray-600 dark:text-gray-400 text-sm mb-4'>
+                {isIOS
+                  ? 'To install peerStudent on your iPhone or iPad:'
+                  : 'To install peerStudent on your device:'}
+              </p>
+              <ol className='text-left text-sm text-gray-600 dark:text-gray-400 space-y-3 bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl'>
+                <li className='flex items-start'>
+                  <span className='font-bold mr-2'>1.</span>
+                  <span>
+                    Tap the <Share className='w-4 h-4 inline mx-1' /> or{' '}
+                    <MoreVertical className='w-4 h-4 inline mx-1' /> menu button
+                    in your browser.
+                  </span>
+                </li>
+                <li className='flex items-start'>
+                  <span className='font-bold mr-2'>2.</span>
+                  <span>
+                    Scroll down and select <strong>"Add to Home Screen"</strong>{' '}
+                    or <strong>"Install App"</strong>.
+                  </span>
+                </li>
+              </ol>
             </div>
+            <button
+              onClick={() => {
+                setShowIOSModal(false);
+                setShowManualInstall(false);
+              }}
+              className='w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold transition-colors'
+            >
+              Got it
+            </button>
+          </div>
         </div>
       )}
     </div>

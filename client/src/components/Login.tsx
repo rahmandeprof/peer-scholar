@@ -39,7 +39,7 @@ export function Login({ onSwitch }: LoginProps) {
   };
 
   return (
-    <div className='w-full max-w-md p-8 space-y-6 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700'>
+    <div className='w-full max-w-md p-6 md:p-8 space-y-6 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700'>
       <div className='text-center space-y-2'>
         <h1 className='text-3xl font-bold text-gray-900 dark:text-white'>
           Welcome Back
@@ -76,10 +76,10 @@ export function Login({ onSwitch }: LoginProps) {
           />
         </div>
 
-        <div className='flex justify-end'>
+        <div className='w-full flex justify-end'>
           <Link
             to='/forgot-password'
-            className='text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300'
+            className='text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 block py-1'
           >
             Forgot Password?
           </Link>
