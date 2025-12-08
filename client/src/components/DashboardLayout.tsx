@@ -79,7 +79,11 @@ export function DashboardLayout() {
         <div className='p-6 mb-6 flex items-center justify-between'>
           <div className='flex items-center space-x-3'>
             <div className='flex items-center justify-center'>
-              <BookOpen className='w-8 h-8 text-black dark:text-white' />
+              <img
+                src='/logo.jpg'
+                alt='PeerToLearn Logo'
+                className='w-10 h-10 object-contain'
+              />
             </div>
             <span className='text-xl font-bold text-gray-900 dark:text-white tracking-tight'>
               PeerToLearn
@@ -336,9 +340,16 @@ export function DashboardLayout() {
       <main className='flex-1 flex flex-col overflow-hidden relative z-0 mb-16 md:mb-0'>
         {/* Mobile Header */}
         <div className='md:hidden h-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 flex items-center justify-between px-4 z-[100]'>
-          <span className='font-bold text-lg text-gray-900 dark:text-gray-100 tracking-tight'>
-            PeerToLearn
-          </span>
+          <div className='flex items-center space-x-2'>
+            <img
+              src='/logo.jpg'
+              alt='Logo'
+              className='w-8 h-8 object-contain'
+            />
+            <span className='font-bold text-lg text-gray-900 dark:text-gray-100 tracking-tight'>
+              PeerToLearn
+            </span>
+          </div>
           <button
             onClick={() => setUploadModalOpen(true)}
             className='p-2 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-colors shadow-lg shadow-primary-500/20'

@@ -1,6 +1,6 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { VitePWA } from 'vite-plugin-pwa'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -10,22 +10,22 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'peerStudent',
-        short_name: 'peerStudent',
+        name: 'PeerToLearn',
+        short_name: 'PeerToLearn',
         description: 'Your academic companion for peer learning.',
-        theme_color: '#4F46E5',
+        theme_color: '#3F86F7',
         icons: [
           {
-            src: 'pwa-192x192.png',
+            src: '/logo.jpg',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/jpeg',
           },
           {
-            src: 'pwa-512x512.png',
+            src: '/logo.jpg',
             sizes: '512x512',
-            type: 'image/png'
-          }
-        ]
+            type: 'image/jpeg',
+          },
+        ],
       },
       workbox: {
         runtimeCaching: [
@@ -36,9 +36,9 @@ export default defineConfig({
               cacheName: 'cloudinary-images',
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 Days
-              }
-            }
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 Days
+              },
+            },
           },
           {
             urlPattern: /\.(?:png|jpg|jpeg|svg|gif|pdf)$/i,
@@ -47,9 +47,9 @@ export default defineConfig({
               cacheName: 'static-files',
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 Days
-              }
-            }
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 Days
+              },
+            },
           },
           {
             urlPattern: /^http:\/\/localhost:3000\/api\/.*/i,
@@ -58,13 +58,13 @@ export default defineConfig({
               cacheName: 'api-cache',
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 // 1 Day
+                maxAgeSeconds: 60 * 60 * 24, // 1 Day
               },
-              networkTimeoutSeconds: 10
-            }
-          }
-        ]
-      }
-    })
+              networkTimeoutSeconds: 10,
+            },
+          },
+        ],
+      },
+    }),
   ],
-})
+});
