@@ -323,24 +323,8 @@ export function AcademicControlCenter() {
             )}
           </div>
         </div>
-      </div>
 
-      <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
-        {/* Upload Button */}
-        <div
-          onClick={openUploadModal}
-          className='bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl p-6 text-white shadow-lg cursor-pointer hover:scale-[1.02] transition-transform flex flex-col items-center justify-center text-center min-h-[200px]'
-        >
-          <div className='w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mb-4 backdrop-blur-sm'>
-            <Upload className='w-8 h-8' />
-          </div>
-          <h3 className='text-xl font-bold mb-2'>Upload Material</h3>
-          <p className='text-primary-100 text-sm max-w-[200px]'>
-            Add notes, slides, or books to start studying
-          </p>
-        </div>
-
-        {/* Heatmap Highlights (Placeholder for now, or simplified stats) */}
+        {/* Heatmap Highlights (Stats) */}
         <div className='md:col-span-2 bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm'>
           <div className='flex items-center justify-between mb-6'>
             <h2 className='text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center'>
