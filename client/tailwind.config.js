@@ -5,21 +5,34 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Outfit', 'sans-serif'],
+        sans: ['Jost', 'sans-serif'],
       },
       colors: {
         primary: {
-          50: '#f7fee7',
-          100: '#ecfccb',
-          200: '#d9f99d',
-          300: '#bef264',
-          400: '#a3e635',
-          500: '#84cc16',
-          600: '#65a30d',
-          700: '#4d7c0f',
-          800: '#3f6212',
-          900: '#365314',
-          950: '#1a2e05',
+          50: '#ecf6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3F86F7', // Dodger Blue (Brand)
+          600: '#2563eb',
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
+          950: '#172554',
+        },
+        gray: {
+          50: '#FDFDFE', // Pale Gray
+          100: '#F0F3F8', // Child of Light
+          200: '#E2E4E9', // Silver City
+          300: '#C4CAD3', // Light Spirit
+          400: '#9F9FA3', // Suzu Grey
+          500: '#6b7280', // Default tailwind mid-grays for text balance
+          600: '#4b5563',
+          700: '#374151',
+          800: '#1f2937',
+          900: '#111827',
+          950: '#030712',
         },
       },
       animation: {

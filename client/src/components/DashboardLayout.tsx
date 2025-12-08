@@ -44,8 +44,8 @@ export function DashboardLayout() {
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${
       isActive
-        ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/30'
-        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
+        ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/30'
+        : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
     }`;
 
   const handleLogout = () => {
@@ -76,13 +76,13 @@ export function DashboardLayout() {
     <div className='flex h-[100dvh] bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 overflow-hidden relative'>
       {/* Sidebar - Desktop */}
       <aside className='hidden md:flex md:flex-col w-72 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-800/50 z-50 shadow-sm'>
-        <div className='p-6 flex items-center justify-between'>
+        <div className='p-6 mb-6 flex items-center justify-between'>
           <div className='flex items-center space-x-3'>
-            <div className='w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-600/20'>
-              <BookOpen className='w-6 h-6 text-white' />
+            <div className='flex items-center justify-center'>
+              <BookOpen className='w-8 h-8 text-black dark:text-white' />
             </div>
-            <span className='text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-purple-600'>
-              peerStudent
+            <span className='text-xl font-bold text-gray-900 dark:text-white tracking-tight'>
+              PeerToLearn
             </span>
           </div>
         </div>
@@ -113,9 +113,9 @@ export function DashboardLayout() {
                 </NavLink>
                 <button
                   onClick={() => setUploadModalOpen(true)}
-                  className='w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-all duration-200'
+                  className='w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left font-medium bg-primary-500 text-white hover:bg-primary-600 transition-all duration-200 shadow-lg shadow-primary-500/20'
                 >
-                  <Upload className='w-5 h-5 mr-3 text-gray-400' />
+                  <Upload className='w-5 h-5 mr-3 text-white' />
                   Upload Material
                 </button>
               </div>
@@ -336,12 +336,12 @@ export function DashboardLayout() {
       <main className='flex-1 flex flex-col overflow-hidden relative z-0 mb-16 md:mb-0'>
         {/* Mobile Header */}
         <div className='md:hidden h-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 flex items-center justify-between px-4 z-[100]'>
-          <span className='font-bold text-lg bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-purple-600'>
-            peerStudent
+          <span className='font-bold text-lg text-gray-900 dark:text-gray-100 tracking-tight'>
+            PeerToLearn
           </span>
           <button
             onClick={() => setUploadModalOpen(true)}
-            className='p-2 bg-primary-50 dark:bg-primary-900/20 rounded-full text-primary-600 dark:text-primary-400'
+            className='p-2 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-colors shadow-lg shadow-primary-500/20'
           >
             <Upload className='w-5 h-5' />
           </button>

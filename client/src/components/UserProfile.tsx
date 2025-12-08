@@ -733,7 +733,7 @@ export function UserProfile({ onClose }: UserProfileProps) {
                     <button
                       type='button'
                       onClick={handleEditClick}
-                      className='px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors flex items-center'
+                      className='px-4 py-2 text-sm font-medium text-white bg-primary-500 hover:bg-primary-600 rounded-xl transition-colors flex items-center shadow-lg shadow-primary-500/20'
                     >
                       Edit Profile
                     </button>
@@ -750,7 +750,7 @@ export function UserProfile({ onClose }: UserProfileProps) {
                     <button
                       type='submit'
                       disabled={loading}
-                      className='px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors flex items-center disabled:opacity-50'
+                      className='px-4 py-2 text-sm font-medium text-white bg-primary-500 hover:bg-primary-600 rounded-xl transition-colors flex items-center disabled:opacity-50 shadow-lg shadow-primary-500/20'
                     >
                       <Save className='w-4 h-4 mr-2' />
                       {loading ? 'Saving...' : 'Save Changes'}

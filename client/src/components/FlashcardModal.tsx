@@ -13,7 +13,11 @@ interface FlashcardModalProps {
   materialId: string;
 }
 
-export function FlashcardModal({ isOpen, onClose, materialId }: FlashcardModalProps) {
+export function FlashcardModal({
+  isOpen,
+  onClose,
+  materialId,
+}: FlashcardModalProps) {
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -61,7 +65,7 @@ export function FlashcardModal({ isOpen, onClose, materialId }: FlashcardModalPr
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200'>
-      <div className='bg-white dark:bg-gray-900 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]'>
+      <div className='bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]'>
         {/* Header */}
         <div className='flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800'>
           <div className='flex items-center space-x-3'>
@@ -163,13 +167,12 @@ export function FlashcardModal({ isOpen, onClose, materialId }: FlashcardModalPr
               onClick={handleNext}
               className='flex items-center px-8 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 transition-all hover:scale-105'
             >
-              <Check className='w-5 h-5 mr-2' />
-              I Know This
+              <Check className='w-5 h-5 mr-2' />I Know This
             </button>
           </div>
         )}
       </div>
-      
+
       <style>{`
         .perspective-1000 {
           perspective: 1000px;
