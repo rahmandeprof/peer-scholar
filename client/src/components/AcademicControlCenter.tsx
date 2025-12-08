@@ -86,7 +86,9 @@ export function AcademicControlCenter() {
           current: weeklyRes.data.totalSeconds,
           goal: weeklyRes.data.goalSeconds,
           percent:
-            (weeklyRes.data.totalSeconds / weeklyRes.data.goalSeconds) * 100,
+            weeklyRes.data.goalSeconds > 0
+              ? (weeklyRes.data.totalSeconds / weeklyRes.data.goalSeconds) * 100
+              : 0,
         });
 
         if (activityRes.data.lastReadMaterial) {
@@ -272,9 +274,23 @@ export function AcademicControlCenter() {
         </div>
       </div>
 
-      <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+      <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+        {/* Upload Button (Restored) */}
+        <div
+          onClick={openUploadModal}
+          className='bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl p-6 text-white shadow-lg cursor-pointer hover:scale-[1.02] transition-transform flex flex-col items-center justify-center text-center min-h-[200px]'
+        >
+          <div className='w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mb-4 backdrop-blur-sm'>
+            <Upload className='w-8 h-8' />
+          </div>
+          <h3 className='text-xl font-bold mb-2'>Upload Material</h3>
+          <p className='text-primary-100 text-sm max-w-[200px]'>
+            Add notes, slides, or books to start studying
+          </p>
+        </div>
+
         {/* Partner Status */}
-        <div className='bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden transition-transform h-full'>
+        <div className='bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden transition-transform h-full min-h-[200px]'>
           <div className='absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 pointer-events-none' />
 
           <div className='relative z-10 h-full flex flex-col justify-between'>
@@ -323,97 +339,112 @@ export function AcademicControlCenter() {
             )}
           </div>
         </div>
+      </div>
 
-        {/* Heatmap Highlights (Stats) */}
-        <div className='md:col-span-2 bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm'>
-          <div className='flex items-center justify-between mb-6'>
-            <h2 className='text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center'>
-              <TrendingUp className='w-5 h-5 mr-2 text-green-500' />
-              Weekly Goal
-            </h2>
-            <button
-              onClick={() => setStudyModalOpen(true)}
-              className='text-sm font-medium text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400'
-            >
-              Start Timer
-            </button>
-          </div>
+      {/* Heatmap Highlights (Stats) - Full Width */}
+      <div className='bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm'>
+        <div className='flex items-center justify-between mb-6'>
+          <h2 className='text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center'>
+            <TrendingUp className='w-5 h-5 mr-2 text-green-500' />
+            Weekly Goal
+          </h2>
+          <button
+            onClick={() => setStudyModalOpen(true)}
+            className='text-sm font-medium text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400'
+          >
+            Start Timer
+          </button>
+        </div>
 
-          <div className='flex items-center space-x-8'>
-            {/* Circular Progress */}
-            <div className='relative w-32 h-32 flex-shrink-0'>
-              <svg className='w-full h-full transform -rotate-90'>
-                <circle
-                  cx='64'
-                  cy='64'
-                  r='56'
-                  stroke='currentColor'
-                  strokeWidth='12'
-                  fill='transparent'
-                  className='text-gray-200 dark:text-gray-700'
-                />
-                <circle
-                  cx='64'
-                  cy='64'
-                  r='56'
-                  stroke='currentColor'
-                  strokeWidth='12'
-                  fill='transparent'
-                  strokeDasharray={2 * Math.PI * 56}
-                  strokeDashoffset={
-                    2 *
-                    Math.PI *
-                    56 *
-                    (1 - Math.min(weeklyStats.percent / 100, 1))
-                  }
-                  className={`transition-all duration-1000 ease-out ${
-                    weeklyStats.percent >= 100
-                      ? 'text-green-500'
-                      : 'text-primary-600'
-                  }`}
-                  strokeLinecap='round'
-                />
-              </svg>
-              <div className='absolute inset-0 flex flex-col items-center justify-center'>
-                <span className='text-2xl font-bold text-gray-900 dark:text-gray-100'>
-                  {Math.round(weeklyStats.percent)}%
-                </span>
-              </div>
-            </div>
+        <div className='flex items-center space-x-8'>
+          {(() => {
+            const baseStep = 5 * 3600; // 5 Hours step
+            const currentSeconds = weeklyStats.current;
+            // Goal is next multiple of 5h
+            const dynamicGoal = Math.max(
+              baseStep,
+              Math.ceil((currentSeconds + 1) / baseStep) * baseStep,
+            );
+            const percent = Math.min((currentSeconds / dynamicGoal) * 100, 100);
+            // Calculate Goal Level (1 = 0-5h, 2 = 5-10h, etc.)
+            const goalLevel = Math.floor(dynamicGoal / baseStep);
 
-            <div className='flex-1 space-y-4'>
-              <div>
-                <div className='text-3xl font-bold text-gray-900 dark:text-gray-100'>
-                  {(weeklyStats.current / 3600).toFixed(1)}{' '}
-                  <span className='text-lg text-gray-500 font-medium'>
-                    / {(weeklyStats.goal / 3600).toFixed(0)} Hrs
-                  </span>
-                </div>
-                <p className='text-sm text-gray-500 dark:text-gray-400'>
-                  Studied this week
-                </p>
-              </div>
-
-              <div className='grid grid-cols-2 gap-4'>
-                <div className='bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3'>
-                  <div className='text-lg font-bold text-gray-900 dark:text-gray-100 truncate'>
-                    {streak}
-                  </div>
-                  <div className='text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap'>
-                    Streak
+            return (
+              <>
+                <div className='relative w-32 h-32 flex-shrink-0'>
+                  <svg className='w-full h-full transform -rotate-90'>
+                    <circle
+                      cx='64'
+                      cy='64'
+                      r='56'
+                      stroke='currentColor'
+                      strokeWidth='12'
+                      fill='transparent'
+                      className='text-gray-200 dark:text-gray-700'
+                    />
+                    <circle
+                      cx='64'
+                      cy='64'
+                      r='56'
+                      stroke='currentColor'
+                      strokeWidth='12'
+                      fill='transparent'
+                      strokeDasharray={2 * Math.PI * 56}
+                      strokeDashoffset={2 * Math.PI * 56 * (1 - percent / 100)}
+                      className={`transition-all duration-1000 ease-out ${
+                        percent >= 100 ? 'text-green-500' : 'text-primary-600'
+                      }`}
+                      strokeLinecap='round'
+                    />
+                  </svg>
+                  <div className='absolute inset-0 flex flex-col items-center justify-center'>
+                    <span className='text-2xl font-bold text-gray-900 dark:text-gray-100'>
+                      {Math.round(percent)}%
+                    </span>
+                    {goalLevel > 1 && (
+                      <span className='text-xs font-bold text-orange-500 bg-orange-100 dark:bg-orange-900/30 px-1.5 py-0.5 rounded-full mt-1'>
+                        Level {goalLevel}
+                      </span>
+                    )}
                   </div>
                 </div>
-                <div className='bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3'>
-                  <div className='text-lg font-bold text-gray-900 dark:text-gray-100 truncate'>
-                    {stage}
+
+                <div className='flex-1 space-y-4'>
+                  <div>
+                    <div className='text-3xl font-bold text-gray-900 dark:text-gray-100'>
+                      {(currentSeconds / 3600).toFixed(1)}{' '}
+                      <span className='text-lg text-gray-500 font-medium'>
+                        / {(dynamicGoal / 3600).toFixed(0)} Hrs
+                      </span>
+                    </div>
+                    <p className='text-sm text-gray-500 dark:text-gray-400'>
+                      Studied this week
+                      {goalLevel > 1 && ` (Milestone ${goalLevel} Unlocked!)`}
+                    </p>
                   </div>
-                  <div className='text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
-                    Level
+
+                  <div className='grid grid-cols-2 gap-4'>
+                    <div className='bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3'>
+                      <div className='text-lg font-bold text-gray-900 dark:text-gray-100 truncate'>
+                        {streak}
+                      </div>
+                      <div className='text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap'>
+                        Streak
+                      </div>
+                    </div>
+                    <div className='bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3'>
+                      <div className='text-lg font-bold text-gray-900 dark:text-gray-100 truncate'>
+                        {stage}
+                      </div>
+                      <div className='text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
+                        Level
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
+              </>
+            );
+          })()}
         </div>
       </div>
 
