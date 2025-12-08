@@ -107,7 +107,7 @@ export function DashboardLayout() {
             </NavLink>
             <button
               onClick={() => setUploadModalOpen(true)}
-              className='w-full px-3 py-2.5 rounded-xl text-left font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-200 transition-all duration-200 flex items-center'
+              className='w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-all duration-200'
             >
               <Upload className='w-5 h-5 mr-3 text-gray-400' />
               Upload Material

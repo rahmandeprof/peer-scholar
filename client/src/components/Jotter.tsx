@@ -140,6 +140,8 @@ export function Jotter({ materialId, isOpen, onClose }: JotterProps) {
     </div>
   );
 
+  const nodeRef = useRef(null);
+
   if (isMobile) {
     return (
       <div className='fixed bottom-0 left-0 right-0 h-[40vh] z-[60] animate-slide-up'>
@@ -150,11 +152,14 @@ export function Jotter({ materialId, isOpen, onClose }: JotterProps) {
 
   return (
     <Draggable
+      nodeRef={nodeRef}
       handle='.handle'
       defaultPosition={{ x: 20, y: 100 }}
       bounds='parent'
     >
-      <div className='absolute z-[60]'>{JotterContent}</div>
+      <div ref={nodeRef} className='absolute z-[60]'>
+        {JotterContent}
+      </div>
     </Draggable>
   );
 }

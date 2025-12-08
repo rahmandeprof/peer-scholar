@@ -199,10 +199,7 @@ export function AcademicControlCenter() {
         </div>
 
         {/* Partner Status */}
-        <div
-          onClick={() => navigate('/study-partner')}
-          className='bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform'
-        >
+        <div className='bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden transition-transform'>
           <div className='absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 pointer-events-none' />
 
           <div className='relative z-10 h-full flex flex-col justify-between'>
@@ -219,7 +216,10 @@ export function AcademicControlCenter() {
             </div>
 
             {topPartner ? (
-              <div>
+              <div
+                onClick={() => navigate('/study-partner')}
+                className='cursor-pointer'
+              >
                 <div className='text-2xl font-bold mb-1'>
                   {topPartner.firstName}
                   {partners.length > 1 && (
@@ -238,9 +238,12 @@ export function AcademicControlCenter() {
                 <p className='text-indigo-100 mb-4 text-sm'>
                   Find a study partner to boost your motivation!
                 </p>
-                <div className='bg-white/20 rounded-lg py-2 px-4 text-sm font-bold text-center'>
+                <button
+                  onClick={() => navigate('/study-partner')}
+                  className='bg-white/20 hover:bg-white/30 transition-colors rounded-lg py-2 px-4 text-sm font-bold text-center w-full'
+                >
                   Find Partner
-                </div>
+                </button>
               </div>
             )}
           </div>
@@ -270,10 +273,10 @@ export function AcademicControlCenter() {
               Weekly Goal
             </h2>
             <button
-              onClick={() => navigate('/study-timer')}
+              onClick={() => setStudyModalOpen(true)}
               className='text-sm font-medium text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400'
             >
-              View Timer
+              Start Timer
             </button>
           </div>
 
