@@ -67,7 +67,6 @@ export const MaterialView = () => {
   const [timerKey, setTimerKey] = useState(0); // Used to reset timer
   const [ttsOpen, setTtsOpen] = useState(false);
   const [flashcardModalOpen, setFlashcardModalOpen] = useState(false);
-  const [flashcardModalOpen, setFlashcardModalOpen] = useState(false);
   const [showFlashcardSpotlight, setShowFlashcardSpotlight] = useState(false);
   const [jotterOpen, setJotterOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();

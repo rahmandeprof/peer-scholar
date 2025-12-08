@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import Draggable from 'react-draggable';
 import { X, Save, GripHorizontal } from 'lucide-react';
 import api from '../lib/api';
-import { useToast } from '../contexts/ToastContext';
+// import { useToast } from '../contexts/ToastContext';
 
 interface JotterProps {
   materialId: string;
@@ -14,8 +14,8 @@ export function Jotter({ materialId, isOpen, onClose }: JotterProps) {
   const [content, setContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const toast = useToast();
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // const toast = useToast();
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);

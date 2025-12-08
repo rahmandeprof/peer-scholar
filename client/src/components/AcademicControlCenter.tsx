@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import {
   BookOpen,
   Flame,
@@ -38,15 +38,14 @@ interface RecentMaterial {
   viewedAt: string;
 }
 
-import { useNavigate, useOutletContext } from 'react-router-dom';
-
 export function AcademicControlCenter() {
   const { openUploadModal } = useOutletContext<{
     openUploadModal: () => void;
   }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [courses, setCourses] = useState<Course[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [, setCourses] = useState<Course[]>([]);
   const [partners, setPartners] = useState<PartnerStats[]>([]);
   const [recentMaterials, setRecentMaterials] = useState<RecentMaterial[]>([]);
   const [streak, setStreak] = useState(0);
