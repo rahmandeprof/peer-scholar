@@ -14,13 +14,16 @@ import { MaterialFavorite } from './entities/material-favorite.entity';
 import { MaterialRating } from './entities/material-rating.entity';
 import { MaterialReport } from './entities/material-report.entity';
 import { Note } from './entities/note.entity';
+import { PersonalCourse } from './entities/personal-course.entity';
 import { School } from './entities/school.entity';
 
 import { AcademicController } from './academic.controller';
 import { MaterialsController } from './materials.controller';
+import { PersonalCoursesController } from './personal-courses.controller';
 
 import { AcademicService } from './academic.service';
 import { MaterialsService } from './materials.service';
+import { PersonalCoursesService } from './personal-courses.service';
 
 import { MaterialProcessor } from './processors/material.processor';
 
@@ -39,14 +42,29 @@ import { MaterialProcessor } from './processors/material.processor';
       MaterialAnnotation,
       MaterialReport,
       Note,
+      PersonalCourse,
     ]),
     BullModule.registerQueue({
       name: 'materials',
     }),
     UsersModule,
   ],
-  controllers: [AcademicController, MaterialsController],
-  providers: [AcademicService, MaterialsService, MaterialProcessor],
-  exports: [TypeOrmModule, AcademicService, MaterialsService],
+  controllers: [
+    AcademicController,
+    MaterialsController,
+    PersonalCoursesController,
+  ],
+  providers: [
+    AcademicService,
+    MaterialsService,
+    MaterialProcessor,
+    PersonalCoursesService,
+  ],
+  exports: [
+    TypeOrmModule,
+    AcademicService,
+    MaterialsService,
+    PersonalCoursesService,
+  ],
 })
 export class AcademicModule {}

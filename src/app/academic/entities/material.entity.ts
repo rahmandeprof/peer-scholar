@@ -2,6 +2,7 @@ import { MaterialChunk } from './material-chunk.entity';
 import { MaterialFavorite } from './material-favorite.entity';
 import { MaterialRating } from './material-rating.entity';
 import { Course } from '@/app/academic/entities/course.entity';
+import { PersonalCourse } from '@/app/academic/entities/personal-course.entity';
 import { User } from '@/app/users/entities/user.entity';
 import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
 
@@ -139,6 +140,9 @@ export class Material extends IDAndTimestamp {
 
   @Column({ type: 'int', default: 0 })
   favoritesCount: number;
+
+  @ManyToMany(() => PersonalCourse, (course) => course.materials)
+  personalCourses: PersonalCourse[];
 
   @Column({ nullable: true })
   fileHash: string;

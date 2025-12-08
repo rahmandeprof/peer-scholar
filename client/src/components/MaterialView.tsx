@@ -33,7 +33,8 @@ import { FlashcardModal } from './FlashcardModal';
 import { FeatureSpotlightModal } from './FeatureSpotlightModal';
 import { ReportModal } from './ReportModal';
 import { Jotter } from './Jotter';
-import { PenTool } from 'lucide-react';
+import { CollectionModal } from './CollectionModal';
+import { PenTool, Folder } from 'lucide-react';
 
 interface Material {
   id: string;
@@ -76,6 +77,7 @@ export const MaterialView = () => {
 
   const [userRating, setUserRating] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [collectionModalOpen, setCollectionModalOpen] = useState(false);
 
   const handleSessionEnd = () => {
     setSessionEndModalOpen(true);
@@ -131,6 +133,7 @@ export const MaterialView = () => {
       try {
         const res = await api.get(`/materials/${id}`);
         setMaterial(res.data);
+        setIsFavorited(res.data.isFavorited || false);
 
         // Track activity
         api
@@ -442,6 +445,17 @@ export const MaterialView = () => {
                         {ttsOpen ? 'Hide Reader' : 'Read Aloud'}
                       </button>
 
+                      <button
+                        onClick={() => {
+                          setCollectionModalOpen(true);
+                          setMenuOpen(false);
+                        }}
+                        className='w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200'
+                      >
+                        <Folder className='w-4 h-4 mr-3' />
+                        Add to Collection
+                      </button>
+
                       <div className='px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200'>
                         <TextSettings />
                         <span className='ml-3'>Text Settings</span>
@@ -659,6 +673,11 @@ export const MaterialView = () => {
           materialId={material?.id || ''}
           isOpen={jotterOpen}
           onClose={() => setJotterOpen(false)}
+        />
+        <CollectionModal
+          isOpen={collectionModalOpen}
+          onClose={() => setCollectionModalOpen(false)}
+          materialId={material?.id}
         />
       </div>
     </ReaderSettingsProvider>

@@ -241,34 +241,6 @@ export class MaterialsService {
     if (material.uploader.id !== userId) {
       throw new Error('Only the uploader can update the scope');
     }
-    material.scope = scope;
-
-    return this.materialRepo.save(material);
-  }
-
-  async findOne(id: string) {
-    const material = await this.materialRepo.findOne({
-      where: { id },
-      relations: [
-        'uploader',
-        'course',
-        'versions',
-        'versions.uploader',
-        'parent',
-        'contributors',
-      ],
-    });
-
-    if (!material) {
-      throw new NotFoundException('Material not found');
-    }
-
-    return material;
-  }
-
-  async extractText(id: string) {
-    const material = await this.findOne(id);
-
     if (material.content) {
       return { content: material.content };
     }
@@ -293,6 +265,68 @@ export class MaterialsService {
       return { content: text };
     } catch {
       // console.error('Failed to extract text on demand', error);
+      throw new Error('Failed to extract text');
+    }
+  }
+
+  async findOne(id: string, userId?: string) {
+    const material = await this.materialRepo.findOne({
+      where: { id },
+      relations: [
+        'uploader',
+        'course',
+        'versions',
+        'versions.uploader',
+        'parent',
+        'contributors',
+      ],
+    });
+
+    if (!material) {
+      throw new NotFoundException('Material not found');
+    }
+
+    let isFavorited = false;
+
+    if (userId) {
+      const fav = await this.favoriteRepo.findOne({
+        where: { material: { id }, user: { id: userId } },
+      });
+
+      isFavorited = !!fav;
+    }
+
+    return Object.assign({}, material, { isFavorited });
+  }
+
+  async extractText(id: string) {
+    const material = await this.materialRepo.findOneBy({ id }); // Direct repo call to get Entity
+
+    if (!material) throw new NotFoundException('Material not found');
+
+    if (material.content) {
+      return { content: material.content };
+    }
+
+    try {
+      const response = await axios.get(material.fileUrl, {
+        responseType: 'arraybuffer',
+      });
+      const buffer = Buffer.from(response.data);
+
+      const text = await this.conversionService.extractText(
+        buffer,
+        material.fileType,
+        material.title,
+      );
+
+      if (text) {
+        await this.materialRepo.update(id, { content: text });
+      }
+
+      return { content: text };
+    } catch {
+      // console.error('Extraction failed', error);
       throw new Error('Failed to extract text');
     }
   }

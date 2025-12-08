@@ -76,8 +76,9 @@ export class MaterialsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.materialsService.findOne(id);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  findOne(@Param('id') id: string, @Req() req: any) {
+    return this.materialsService.findOne(id, req.user?.id);
   }
 
   @Post(':id/extract-text')

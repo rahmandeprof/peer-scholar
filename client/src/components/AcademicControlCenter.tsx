@@ -13,6 +13,10 @@ import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { StudySessionModal } from './StudySessionModal';
 import { MaterialCard } from './MaterialCard';
+import { FolderCard } from './FolderCard';
+import { FolderView } from './FolderView';
+import { CollectionModal } from './CollectionModal';
+import { Plus } from 'lucide-react';
 
 interface Course {
   id: string;
@@ -39,6 +43,7 @@ interface RecentMaterial {
 }
 
 export function AcademicControlCenter() {
+  /* eslint-disable @typescript-eslint/no-unused-vars */
   const { openUploadModal } = useOutletContext<{
     openUploadModal: () => void;
   }>();
@@ -57,6 +62,13 @@ export function AcademicControlCenter() {
   });
   const [loading, setLoading] = useState(true);
   const [studyModalOpen, setStudyModalOpen] = useState(false);
+  const [folderView, setFolderView] = useState<{
+    id: string;
+    title: string;
+    type: 'collection' | 'favorites';
+  } | null>(null);
+  const [collections, setCollections] = useState<any[]>([]);
+  const [collectionModalOpen, setCollectionModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -99,6 +111,14 @@ export function AcademicControlCenter() {
           setPartners(Array.isArray(partnerRes.data) ? partnerRes.data : []);
         } catch {
           // Ignore if no partner
+        }
+
+        // Fetch collections
+        try {
+          const collectionsRes = await api.get('/academic/collections');
+          setCollections(collectionsRes.data);
+        } catch {
+          console.warn('Failed to fetch collections');
         }
       } catch (error) {
         console.error('Failed to fetch dashboard data', error);
@@ -147,6 +167,47 @@ export function AcademicControlCenter() {
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Collections & Favorites */}
+      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
+        <FolderCard
+          id='favorites'
+          title='Favorites'
+          count={0} // To implement count logic later
+          isFavorite={true}
+          onClick={() =>
+            setFolderView({
+              id: 'favorites',
+              title: 'Favorites',
+              type: 'favorites',
+            })
+          }
+        />
+        {collections.map((col) => (
+          <FolderCard
+            key={col.id}
+            id={col.id}
+            title={col.title}
+            count={col.count || 0}
+            color={col.color}
+            onClick={() =>
+              setFolderView({
+                id: col.id,
+                title: col.title,
+                type: 'collection',
+              })
+            }
+          />
+        ))}
+        {/* Add New Collection Card */}
+        <button
+          onClick={() => setCollectionModalOpen(true)}
+          className='p-4 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-gray-800/50 transition-all flex flex-col items-center justify-center text-gray-400 hover:text-primary-600 h-full min-h-[140px]'
+        >
+          <Plus className='w-8 h-8 mb-2' />
+          <span className='font-medium text-sm'>New Collection</span>
+        </button>
       </div>
 
       <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
@@ -412,6 +473,24 @@ export function AcademicControlCenter() {
         isOpen={studyModalOpen}
         onClose={() => setStudyModalOpen(false)}
         onUpload={openUploadModal}
+      />
+
+      {folderView && (
+        <FolderView
+          folder={folderView}
+          onClose={() => setFolderView(null)}
+          onUpdate={() => {
+            // Refresh collections count if needed
+            api
+              .get('/academic/collections')
+              .then((res) => setCollections(res.data));
+          }}
+        />
+      )}
+
+      <CollectionModal
+        isOpen={collectionModalOpen}
+        onClose={() => setCollectionModalOpen(false)}
       />
     </div>
   );
