@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import Draggable from 'react-draggable';
 import { X, Save, GripHorizontal } from 'lucide-react';
 import api from '../lib/api';
-// import { useToast } from '../contexts/ToastContext';
 
 interface JotterProps {
   materialId: string;
@@ -14,8 +13,8 @@ export function Jotter({ materialId, isOpen, onClose }: JotterProps) {
   const [content, setContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  // const toast = useToast();
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const nodeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -25,7 +24,7 @@ export function Jotter({ materialId, isOpen, onClose }: JotterProps) {
 
   // Load note from backend on open
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && materialId) {
       const fetchNote = async () => {
         try {
           const res = await api.get(`/materials/${materialId}/note`);
@@ -33,12 +32,10 @@ export function Jotter({ materialId, isOpen, onClose }: JotterProps) {
             setContent(res.data.content);
             localStorage.setItem(`jotter_${materialId}`, res.data.content);
           } else {
-            // Try local storage fallback
             const local = localStorage.getItem(`jotter_${materialId}`);
             if (local) setContent(local);
           }
         } catch (error) {
-          // Fallback to local storage if offline or error
           const local = localStorage.getItem(`jotter_${materialId}`);
           if (local) setContent(local);
         }
@@ -49,7 +46,7 @@ export function Jotter({ materialId, isOpen, onClose }: JotterProps) {
 
   // Auto-save to localStorage
   useEffect(() => {
-    if (content) {
+    if (content && materialId) {
       localStorage.setItem(`jotter_${materialId}`, content);
     }
   }, [content, materialId]);
@@ -58,7 +55,7 @@ export function Jotter({ materialId, isOpen, onClose }: JotterProps) {
   useEffect(() => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
 
-    if (content) {
+    if (content && materialId) {
       saveTimeoutRef.current = setTimeout(() => {
         saveNote();
       }, 5000);
@@ -67,9 +64,10 @@ export function Jotter({ materialId, isOpen, onClose }: JotterProps) {
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
-  }, [content]);
+  }, [content, materialId]);
 
   const saveNote = async () => {
+    if (!materialId) return;
     setIsSaving(true);
     try {
       await api.post(`/materials/${materialId}/note`, { content });
@@ -82,7 +80,7 @@ export function Jotter({ materialId, isOpen, onClose }: JotterProps) {
 
   if (!isOpen) return null;
 
-  const JotterContent = (
+  const contentElement = (
     <div
       className={`flex flex-col h-full bg-yellow-50 dark:bg-gray-800 shadow-2xl border border-yellow-200 dark:border-gray-700 ${isMobile ? 'rounded-t-3xl' : 'rounded-xl w-80 h-96'}`}
     >
@@ -109,7 +107,6 @@ export function Jotter({ materialId, isOpen, onClose }: JotterProps) {
 
       {/* Editor */}
       <div className='flex-1 p-0 overflow-hidden relative'>
-        {/* Simple Lined Paper Background Effect */}
         <div
           className='absolute inset-0 pointer-events-none opacity-10'
           style={{
@@ -140,12 +137,10 @@ export function Jotter({ materialId, isOpen, onClose }: JotterProps) {
     </div>
   );
 
-  const nodeRef = useRef(null);
-
   if (isMobile) {
     return (
       <div className='fixed bottom-0 left-0 right-0 h-[40vh] z-[60] animate-slide-up'>
-        {JotterContent}
+        {contentElement}
       </div>
     );
   }
@@ -158,7 +153,7 @@ export function Jotter({ materialId, isOpen, onClose }: JotterProps) {
       bounds='parent'
     >
       <div ref={nodeRef} className='absolute z-[60]'>
-        {JotterContent}
+        {contentElement}
       </div>
     </Draggable>
   );

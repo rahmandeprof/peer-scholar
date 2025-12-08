@@ -7,6 +7,7 @@ interface FolderCardProps {
   count: number;
   color?: string;
   isFavorite?: boolean; // Special styling for Favorites folder
+  compact?: boolean;
   onClick: () => void;
   onDelete?: () => void; // Optional delete action
 }
@@ -16,6 +17,7 @@ export function FolderCard({
   count,
   color = '#4F46E5', // Default Indigo
   isFavorite = false,
+  compact = false,
   onClick,
   onDelete,
 }: FolderCardProps) {
@@ -24,15 +26,17 @@ export function FolderCard({
   return (
     <div
       onClick={onClick}
-      className={`relative group p-4 rounded-2xl border transition-all cursor-pointer hover:shadow-md ${
+      className={`relative group ${compact ? 'p-3 min-h-[80px] flex items-center gap-3' : 'p-4 min-h-[140px] flex flex-col justify-between'} rounded-2xl border transition-all cursor-pointer hover:shadow-md ${
         isFavorite
           ? 'bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800/30'
           : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-primary-500/50'
       }`}
     >
-      <div className='flex items-start justify-between mb-4'>
+      <div
+        className={`flex items-start justify-between ${compact ? 'mb-0' : 'mb-4'}`}
+      >
         <div
-          className={`p-3 rounded-xl ${
+          className={`rounded-xl ${compact ? 'p-2' : 'p-3'} ${
             isFavorite
               ? 'bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400'
               : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
@@ -79,8 +83,10 @@ export function FolderCard({
         )}
       </div>
 
-      <div>
-        <h3 className='font-bold text-gray-900 dark:text-gray-100 truncate'>
+      <div className={compact ? 'flex-1' : ''}>
+        <h3
+          className={`font-bold text-gray-900 dark:text-gray-100 truncate ${compact ? 'text-sm' : ''}`}
+        >
           {title}
         </h3>
         <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>

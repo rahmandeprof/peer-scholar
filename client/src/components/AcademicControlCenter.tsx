@@ -169,98 +169,112 @@ export function AcademicControlCenter() {
         </div>
       </div>
 
-      {/* Collections & Favorites */}
-      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
-        <FolderCard
-          id='favorites'
-          title='Favorites'
-          count={0} // To implement count logic later
-          isFavorite={true}
-          onClick={() =>
-            setFolderView({
-              id: 'favorites',
-              title: 'Favorites',
-              type: 'favorites',
-            })
-          }
-        />
-        {collections.map((col) => (
-          <FolderCard
-            key={col.id}
-            id={col.id}
-            title={col.title}
-            count={col.count || 0}
-            color={col.color}
-            onClick={() =>
-              setFolderView({
-                id: col.id,
-                title: col.title,
-                type: 'collection',
-              })
-            }
-          />
-        ))}
-        {/* Add New Collection Card */}
-        <button
-          onClick={() => setCollectionModalOpen(true)}
-          className='p-4 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-gray-800/50 transition-all flex flex-col items-center justify-center text-gray-400 hover:text-primary-600 h-full min-h-[140px]'
-        >
-          <Plus className='w-8 h-8 mb-2' />
-          <span className='font-medium text-sm'>New Collection</span>
-        </button>
-      </div>
+      {/* Hero: Resume Reading / Start Reading */}
+      <div className='bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-all group relative overflow-hidden'>
+        <div className='absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none' />
 
-      <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
-        {/* Resume Reading / Recent Activity */}
-        <div className='md:col-span-2 bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-all group relative overflow-hidden'>
-          <div className='absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none' />
+        <div className='relative z-10'>
+          <div className='flex items-center justify-between mb-2'>
+            <h2 className='text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center'>
+              <Activity className='w-5 h-5 mr-2 text-primary-500' />
+              {lastOpened ? 'Resume Reading' : 'Start Reading'}
+            </h2>
+            {lastOpened && (
+              <span className='text-xs font-semibold text-primary-600 bg-primary-50 dark:bg-primary-900/20 px-2 py-0.5 rounded-full'>
+                Jump back in
+              </span>
+            )}
+          </div>
 
-          <div className='relative z-10'>
-            <div className='flex items-center justify-between mb-4'>
-              <h2 className='text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center'>
-                <Activity className='w-5 h-5 mr-2 text-primary-500' />
-                {lastOpened ? 'Resume Reading' : 'Start Reading'}
-              </h2>
-              {lastOpened && (
-                <Link
-                  to={`/materials/${lastOpened.id}`}
-                  className='text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 flex items-center'
-                >
-                  Continue <ArrowRight className='w-4 h-4 ml-1' />
-                </Link>
-              )}
-            </div>
-
-            {lastOpened ? (
-              <div className='cursor-pointer'>
+          {lastOpened ? (
+            <div className='flex items-center justify-between mt-4'>
+              <div className='cursor-pointer flex-1'>
                 <Link to={`/materials/${lastOpened.id}`} className='block'>
-                  <h3 className='text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors'>
+                  <h3 className='text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors'>
                     {lastOpened.title}
                   </h3>
-                  <p className='text-gray-500 dark:text-gray-400 text-sm line-clamp-2'>
+                  <p className='text-gray-500 dark:text-gray-400 text-sm line-clamp-1'>
                     {lastOpened.courseCode ? `${lastOpened.courseCode} • ` : ''}
                     {lastOpened.type}
                   </p>
                 </Link>
               </div>
-            ) : (
-              <div className='text-center py-8'>
-                <p className='text-gray-500 dark:text-gray-400 mb-4'>
-                  No recent files opened.
-                </p>
-                <button
-                  onClick={openUploadModal}
-                  className='px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors'
-                >
-                  Upload Material
-                </button>
-              </div>
-            )}
-          </div>
+              <Link
+                to={`/materials/${lastOpened.id}`}
+                className='hidden md:flex ml-4 px-6 py-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium transition-colors items-center shadow-lg shadow-primary-500/20'
+              >
+                Continue
+                <ArrowRight className='w-4 h-4 ml-2' />
+              </Link>
+            </div>
+          ) : (
+            <div className='text-center py-8'>
+              <p className='text-gray-500 dark:text-gray-400 mb-4'>
+                No recent files opened.
+              </p>
+              <button
+                onClick={openUploadModal}
+                className='px-6 py-2.5 bg-primary-500 text-white rounded-xl text-sm font-medium hover:bg-primary-600 transition-colors shadow-lg shadow-primary-500/20'
+              >
+                Upload Material
+              </button>
+            </div>
+          )}
         </div>
+      </div>
 
+      {/* Quick Access: Favorites & Collections */}
+      <div className='space-y-4'>
+        <div className='flex items-center justify-between'>
+          <h2 className='text-lg font-bold text-gray-900 dark:text-gray-100'>
+            Quick Access
+          </h2>
+        </div>
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
+          <FolderCard
+            id='favorites'
+            title='Favorites'
+            count={0} // To implement count logic later
+            isFavorite={true}
+            compact={true} // Always compact if empty, logic to be refined with real data
+            onClick={() =>
+              setFolderView({
+                id: 'favorites',
+                title: 'Favorites',
+                type: 'favorites',
+              })
+            }
+          />
+          {collections.map((col) => (
+            <FolderCard
+              key={col.id}
+              id={col.id}
+              title={col.title}
+              count={col.count || 0}
+              color={col.color}
+              onClick={() =>
+                setFolderView({
+                  id: col.id,
+                  title: col.title,
+                  type: 'collection',
+                })
+              }
+            />
+          ))}
+          {/* Add New Collection Card */}
+          <button
+            onClick={() => setCollectionModalOpen(true)}
+            className='p-4 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-gray-800/50 transition-all flex items-center justify-center text-gray-400 hover:text-primary-600 min-h-[80px]'
+          >
+            <Plus className='w-5 h-5 mr-2' />
+            <span className='font-medium text-sm'>New Collection</span>
+          </button>
+        </div>
+      </div>
+
+      <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
         {/* Partner Status */}
-        <div className='bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden transition-transform'>
+        <div className='bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden transition-transform h-full'>
           <div className='absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 pointer-events-none' />
 
           <div className='relative z-10 h-full flex flex-col justify-between'>
@@ -398,10 +412,10 @@ export function AcademicControlCenter() {
 
               <div className='grid grid-cols-2 gap-4'>
                 <div className='bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3'>
-                  <div className='text-lg font-bold text-gray-900 dark:text-gray-100'>
+                  <div className='text-lg font-bold text-gray-900 dark:text-gray-100 truncate'>
                     {streak}
                   </div>
-                  <div className='text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
+                  <div className='text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap'>
                     Streak
                   </div>
                 </div>
