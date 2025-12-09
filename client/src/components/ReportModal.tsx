@@ -44,7 +44,7 @@ export function ReportModal({ isOpen, onClose, materialId }: ReportModalProps) {
 
   return (
     <div className='fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200'>
-      <div className='bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200 relative'>
+      <div className='bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200 relative'>
         <div className='flex justify-between items-center mb-4'>
           <h3 className='text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center'>
             <AlertTriangle className='w-5 h-5 text-red-500 mr-2' />
@@ -100,14 +100,14 @@ export function ReportModal({ isOpen, onClose, materialId }: ReportModalProps) {
           <div className='flex space-x-3 pt-2'>
             <button
               onClick={onClose}
-              className='flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors'
+              className='flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors'
             >
               Cancel
             </button>
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className='flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium shadow-lg shadow-red-600/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center'
+              className='flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium shadow-lg shadow-red-600/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center'
             >
               {submitting ? 'Submitting...' : 'Submit Report'}
             </button>

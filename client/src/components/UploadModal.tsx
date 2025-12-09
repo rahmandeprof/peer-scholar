@@ -353,7 +353,7 @@ export function UploadModal({
                 type='text'
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className='w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none'
+                className='w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none'
                 placeholder='e.g., Introduction to Physics'
                 required
               />
@@ -367,7 +367,7 @@ export function UploadModal({
                 type='text'
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                className='w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none'
+                className='w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none'
                 placeholder='e.g., Mechanics'
               />
             </div>
@@ -379,7 +379,7 @@ export function UploadModal({
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className='w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none'
+                className='w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none'
               >
                 <option value='note'>Note</option>
                 <option value='slide'>Slide</option>
@@ -395,7 +395,7 @@ export function UploadModal({
               <select
                 value={visibility}
                 onChange={(e) => setVisibility(e.target.value)}
-                className='w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none'
+                className='w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none'
               >
                 <option value='public'>Public (Everyone)</option>
                 <option value='faculty'>
@@ -428,7 +428,7 @@ export function UploadModal({
                 onChange={(e) =>
                   setTargetYear(e.target.value ? parseInt(e.target.value) : '')
                 }
-                className='w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none'
+                className='w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none'
               >
                 <option value=''>All Years</option>
                 {[1, 2, 3, 4, 5, 6].map((year) => (
@@ -447,7 +447,7 @@ export function UploadModal({
                 <select
                   value={specificFaculty}
                   onChange={(e) => setSpecificFaculty(e.target.value)}
-                  className='w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none'
+                  className='w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none'
                   required
                 >
                   <option value=''>Select Faculty</option>
@@ -472,7 +472,7 @@ export function UploadModal({
                       setSpecificFaculty(e.target.value);
                       setSpecificDepartment('');
                     }}
-                    className='w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none'
+                    className='w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none'
                     required
                   >
                     <option value=''>Select Faculty</option>
@@ -490,7 +490,7 @@ export function UploadModal({
                   <select
                     value={specificDepartment}
                     onChange={(e) => setSpecificDepartment(e.target.value)}
-                    className='w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-50'
+                    className='w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-50'
                     required
                     disabled={!specificFaculty}
                   >
@@ -516,7 +516,7 @@ export function UploadModal({
                 type='text'
                 value={courseCode}
                 onChange={(e) => setCourseCode(e.target.value)}
-                className='w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none'
+                className='w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none'
                 placeholder='e.g., PHY 101'
               />
             </div>

@@ -9,17 +9,17 @@ export default {
       },
       colors: {
         primary: {
-          50: '#ecf6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3F86F7', // Dodger Blue (Brand)
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
-          950: '#172554',
+          50: '#eef8ff',
+          100: '#dcf1ff',
+          200: '#b2e2ff',
+          300: '#6eccff',
+          400: '#20aaff',
+          500: '#1e90ff', // Dodger Blue
+          600: '#0672ef',
+          700: '#0456c6',
+          800: '#09479e',
+          900: '#0d3c7e',
+          950: '#0e264e',
         },
         gray: {
           50: '#FDFDFE', // Pale Gray

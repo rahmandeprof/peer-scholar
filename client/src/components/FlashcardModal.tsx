@@ -155,19 +155,20 @@ export function FlashcardModal({
 
         {/* Footer Controls */}
         {!loading && !error && flashcards.length > 0 && (
-          <div className='p-6 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex justify-center space-x-4'>
+          <div className='p-6 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex justify-between gap-3'>
             <button
               onClick={handleNext}
-              className='flex items-center px-6 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors'
+              className='flex-1 flex items-center justify-center px-4 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors whitespace-nowrap'
             >
               <Repeat className='w-5 h-5 mr-2' />
-              Review Again
+              Review
             </button>
             <button
               onClick={handleNext}
-              className='flex items-center px-8 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 transition-all hover:scale-105'
+              className='flex-1 flex items-center justify-center px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 transition-all hover:scale-105 whitespace-nowrap'
             >
-              <Check className='w-5 h-5 mr-2' />I Know This
+              <Check className='w-5 h-5 mr-2' />
+              I Know It
             </button>
           </div>
         )}
