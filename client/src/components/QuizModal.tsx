@@ -230,18 +230,18 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
               </p>
 
               <div
-                className='flex justify-center flex-wrap gap-4 animate-slide-in'
+                className='flex justify-between gap-3 w-full animate-slide-in'
                 style={{ animationDelay: '0.3s' }}
               >
                 <button
                   onClick={onClose}
-                  className='px-6 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-all'
+                  className='flex-1 px-2 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl font-medium text-sm md:text-base hover:bg-gray-200 dark:hover:bg-gray-700 transition-all whitespace-nowrap'
                 >
                   Close
                 </button>
                 <button
                   onClick={resetQuiz}
-                  className='px-6 py-3 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-xl font-medium hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-all'
+                  className='flex-1 px-2 py-3 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-xl font-medium text-sm md:text-base hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-all whitespace-nowrap'
                 >
                   Retry
                 </button>
@@ -250,9 +250,9 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
                     resetQuiz();
                     fetchQuiz(true);
                   }}
-                  className='px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-medium hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-purple-500/25 flex items-center'
+                  className='flex-1 px-2 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-medium text-sm md:text-base hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-purple-500/25 flex items-center justify-center whitespace-nowrap'
                 >
-                  <Sparkles className='w-4 h-4 mr-2' />
+                  <Sparkles className='w-4 h-4 mr-1.5' />
                   New Quiz
                 </button>
               </div>
