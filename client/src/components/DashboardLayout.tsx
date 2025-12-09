@@ -95,7 +95,7 @@ export function DashboardLayout() {
         <div className='flex-1 overflow-y-auto py-4 custom-scrollbar'>
           <nav className='px-3'>
             {/* Home Section */}
-            <div className='mb-2'>
+            <div className='mb-6'>
               <NavLink to='/dashboard' className={navLinkClass}>
                 <Home className='w-5 h-5 mr-3' />
                 Home

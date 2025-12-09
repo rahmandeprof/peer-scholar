@@ -106,6 +106,25 @@ export class ConversionService {
     }
 
     if (
+      mimetype.includes('presentation') ||
+      originalname.endsWith('.pptx') ||
+      originalname.endsWith('.ppt')
+    ) {
+      // For PPTX, we need to use a different approach
+      // If conversion to PDF works, that's handled by the caller
+      // For raw PPTX text extraction, use officeparser
+      try {
+        const officeparser = await import('officeparser');
+        const text = await officeparser.parseOfficeAsync(buffer);
+        return text || '';
+      } catch (e) {
+        this.logger.warn('Failed to extract text from PPTX with officeparser', e);
+        // Fallback: return empty and let PDF extraction handle it
+        return '';
+      }
+    }
+
+    if (
       mimetype.includes('officedocument') ||
       mimetype.includes('msword') ||
       originalname.endsWith('.docx')

@@ -174,108 +174,110 @@ export function AcademicControlCenter() {
       </div>
 
       {/* Hero: Resume Reading / Start Reading */}
-      <div className='grid grid-cols-1 lg:grid-cols-4 gap-6'>
-        {/* Hero: Resume Reading / Start Reading (3/4 Width) */}
-        <div className='lg:col-span-3 bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-all group relative overflow-hidden flex flex-col justify-center min-h-[200px] lg:min-h-[320px]'>
-          <div className='absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none' />
+      <div className='bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm p-4 lg:p-6'>
+        <div className='grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6'>
+          {/* Hero: Resume Reading / Start Reading (3/4 Width) */}
+          <div className='lg:col-span-3 relative overflow-hidden'>
+            <div className='absolute top-0 right-0 w-48 h-48 bg-primary-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none' />
 
-          <div className='relative z-10'>
-            <div className='flex items-center justify-between mb-2'>
-              <h2 className='text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center'>
-                <Activity className='w-5 h-5 mr-2 text-primary-500' />
-                {lastOpened ? 'Resume Reading' : 'Start Reading'}
-              </h2>
-              {lastOpened && (
-                <span className='text-xs font-semibold text-primary-600 bg-primary-50 dark:bg-primary-900/20 px-2 py-0.5 rounded-full'>
-                  Jump back in
-                </span>
-              )}
-            </div>
+            <div className='relative z-10'>
+              <div className='flex items-center justify-between mb-3'>
+                <h2 className='text-base lg:text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center'>
+                  <Activity className='w-4 h-4 lg:w-5 lg:h-5 mr-2 text-primary-500' />
+                  {lastOpened ? 'Resume Reading' : 'Start Reading'}
+                </h2>
+                {lastOpened && (
+                  <span className='text-xs font-semibold text-primary-600 bg-primary-50 dark:bg-primary-900/20 px-2 py-0.5 rounded-full'>
+                    Jump back in
+                  </span>
+                )}
+              </div>
 
-            {lastOpened ? (
-              <div className='flex items-center justify-between mt-4'>
-                <div className='cursor-pointer flex-1'>
-                  <Link to={`/materials/${lastOpened.id}`} className='block'>
-                    <h3 className='text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors'>
-                      {lastOpened.title}
-                    </h3>
-                    <p className='text-gray-500 dark:text-gray-400 text-sm line-clamp-1'>
-                      {lastOpened.courseCode
-                        ? `${lastOpened.courseCode} • `
-                        : ''}
-                      {lastOpened.type}
-                    </p>
+              {lastOpened ? (
+                <div className='flex items-center justify-between'>
+                  <div className='cursor-pointer flex-1 min-w-0'>
+                    <Link to={`/materials/${lastOpened.id}`} className='block'>
+                      <h3 className='text-xl lg:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors truncate'>
+                        {lastOpened.title}
+                      </h3>
+                      <p className='text-gray-500 dark:text-gray-400 text-sm line-clamp-1'>
+                        {lastOpened.courseCode
+                          ? `${lastOpened.courseCode} • `
+                          : ''}
+                        {lastOpened.type}
+                      </p>
+                    </Link>
+                  </div>
+                  <Link
+                    to={`/materials/${lastOpened.id}`}
+                    className='hidden md:flex ml-4 px-6 py-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium transition-colors items-center shadow-lg shadow-primary-500/20'
+                  >
+                    Continue
+                    <ArrowRight className='w-4 h-4 ml-2' />
                   </Link>
                 </div>
-                <Link
-                  to={`/materials/${lastOpened.id}`}
-                  className='hidden md:flex ml-4 px-8 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium transition-colors items-center shadow-lg shadow-primary-500/20 text-lg'
-                >
-                  Continue
-                  <ArrowRight className='w-5 h-5 ml-2' />
-                </Link>
-              </div>
-            ) : (
-              <div className='text-center py-8'>
-                <p className='text-gray-500 dark:text-gray-400 mb-4'>
-                  No recent files opened.
-                </p>
-                <button
-                  onClick={openUploadModal}
-                  className='px-6 py-2.5 bg-primary-500 text-white rounded-xl text-sm font-medium hover:bg-primary-600 transition-colors shadow-lg shadow-primary-500/20'
-                >
-                  Upload Material
-                </button>
-              </div>
-            )}
+              ) : (
+                <div className='text-center py-6'>
+                  <p className='text-gray-500 dark:text-gray-400 mb-3 text-sm'>
+                    No recent files opened.
+                  </p>
+                  <button
+                    onClick={openUploadModal}
+                    className='px-5 py-2 bg-primary-500 text-white rounded-xl text-sm font-medium hover:bg-primary-600 transition-colors shadow-lg shadow-primary-500/20'
+                  >
+                    Upload Material
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Quick Access: Favorites & Collections (1/4 Width - Vertical Stack) */}
-        <div className='lg:col-span-1 space-y-4'>
-          <h2 className='text-lg font-bold text-gray-900 dark:text-gray-100 px-1'>
-            Quick Access
-          </h2>
-          <div className='space-y-3 max-h-[280px] overflow-y-auto custom-scrollbar pr-1'>
-            <FolderCard
-              id='favorites'
-              title='Favorites'
-              count={0}
-              isFavorite={true}
-              compact={true}
-              onClick={() =>
-                setFolderView({
-                  id: 'favorites',
-                  title: 'Favorites',
-                  type: 'favorites',
-                })
-              }
-            />
-            {collections.map((col) => (
+          {/* Quick Access: Favorites & Collections (1/4 Width - Vertical Stack) */}
+          <div className='lg:col-span-1 lg:border-l lg:border-gray-200/50 dark:lg:border-gray-700/50 lg:pl-4'>
+            <h2 className='text-base lg:text-lg font-bold text-gray-900 dark:text-gray-100 mb-3'>
+              Quick Access
+            </h2>
+            <div className='space-y-2 max-h-[160px] lg:max-h-[120px] overflow-y-auto custom-scrollbar pr-1'>
               <FolderCard
-                key={col.id}
-                id={col.id}
-                title={col.title}
-                count={col.count || 0}
-                color={col.color}
-                compact={true} // Force compact for side list
+                id='favorites'
+                title='Favorites'
+                count={0}
+                isFavorite={true}
+                compact={true}
                 onClick={() =>
                   setFolderView({
-                    id: col.id,
-                    title: col.title,
-                    type: 'collection',
+                    id: 'favorites',
+                    title: 'Favorites',
+                    type: 'favorites',
                   })
                 }
               />
-            ))}
-            {/* Add New Collection Button (Mini) */}
-            <button
-              onClick={() => setCollectionModalOpen(true)}
-              className='w-full p-3 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-gray-800/50 transition-all flex items-center justify-center text-gray-400 hover:text-primary-600'
-            >
-              <Plus className='w-4 h-4 mr-2' />
-              <span className='font-medium text-sm'>New Collection</span>
-            </button>
+              {collections.slice(0, 2).map((col) => (
+                <FolderCard
+                  key={col.id}
+                  id={col.id}
+                  title={col.title}
+                  count={col.count || 0}
+                  color={col.color}
+                  compact={true}
+                  onClick={() =>
+                    setFolderView({
+                      id: col.id,
+                      title: col.title,
+                      type: 'collection',
+                    })
+                  }
+                />
+              ))}
+              {/* Add New Collection Button (Mini) */}
+              <button
+                onClick={() => setCollectionModalOpen(true)}
+                className='w-full p-2 rounded-lg border border-dashed border-gray-300 dark:border-gray-700 hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-gray-800/50 transition-all flex items-center justify-center text-gray-400 hover:text-primary-600'
+              >
+                <Plus className='w-3 h-3 mr-1.5' />
+                <span className='font-medium text-xs'>New Collection</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -397,9 +399,8 @@ export function AcademicControlCenter() {
                       fill='transparent'
                       strokeDasharray={2 * Math.PI * 56}
                       strokeDashoffset={2 * Math.PI * 56 * (1 - percent / 100)}
-                      className={`transition-all duration-1000 ease-out ${
-                        percent >= 100 ? 'text-green-500' : 'text-primary-600'
-                      }`}
+                      className={`transition-all duration-1000 ease-out ${percent >= 100 ? 'text-green-500' : 'text-primary-600'
+                        }`}
                       strokeLinecap='round'
                     />
                   </svg>

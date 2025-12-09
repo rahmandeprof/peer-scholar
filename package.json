@@ -63,6 +63,7 @@
     "nestjs-paginate": "^12.5.0",
     "nestjs-throttler-storage-redis": "^0.5.1",
     "nodemailer": "^7.0.3",
+    "officeparser": "^4.1.1",
     "openai": "^6.9.1",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
