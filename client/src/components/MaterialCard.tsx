@@ -155,7 +155,7 @@ export function MaterialCard({ material, onDelete, onAddToCollection }: Material
                 {/* Dropdown Menu */}
                 {menuOpen && (
                   <div
-                    className='absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-20 py-1 animate-pop-in overscroll-contain'
+                    className='absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-20 py-1 animate-pop-in overscroll-contain max-h-[200px] overflow-y-auto'
                     onScroll={(e) => e.stopPropagation()}
                     onTouchMove={(e) => e.stopPropagation()}
                     onClick={(e) => e.stopPropagation()}
@@ -176,14 +176,6 @@ export function MaterialCard({ material, onDelete, onAddToCollection }: Material
                       onClick={(e) => {
                          e.stopPropagation();
                          setMenuOpen(false);
-                         // Trigger parent's add to collection handler if exists, or expose internal state?
-                         // MaterialCard doesn't have internal CollectionModal state.
-                         // User wants "option in department library on each file".
-                         // I need to emit an event or use a global modal context?
-                         // Current `AcademicControlCenter` has `collectionModalOpen`. 
-                         // But `MaterialCard` is used in list.
-                         // Let's assume we pass `onAddToCollection` prop or use a context.
-                         // For now, I'll allow the prop to be passed.
                          if (onAddToCollection) onAddToCollection(material.id);
                       }}
                       className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
@@ -219,7 +211,7 @@ export function MaterialCard({ material, onDelete, onAddToCollection }: Material
                           setMenuOpen(false);
                           setDeleteModalOpen(true);
                         }}
-                        className='w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center'
+                        className='w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center border-t border-gray-100 dark:border-gray-700'
                       >
                         <Trash2 className='w-4 h-4 mr-2' />
                         Delete
@@ -253,7 +245,7 @@ export function MaterialCard({ material, onDelete, onAddToCollection }: Material
         onConfirm={handleDelete}
         title='Delete Material'
         message='Are you sure you want to delete this material? This action cannot be undone.'
-        confirmText='Delete'
+        confirmText='Yes, Delete'
         isDangerous={true}
       />
     </>
