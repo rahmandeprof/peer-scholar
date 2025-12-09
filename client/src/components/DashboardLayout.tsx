@@ -42,10 +42,9 @@ export function DashboardLayout() {
   useOnClickOutside(toolsRef, () => setToolsOpen(false));
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center space-x-3 px-3 py-2 rounded-xl transition-all duration-200 ${
-      isActive
-        ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/30'
-        : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
+    `flex items-center space-x-3 px-3 py-2 rounded-xl transition-all duration-200 ${isActive
+      ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/30'
+      : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
     }`;
 
   const handleLogout = () => {
@@ -83,6 +82,8 @@ export function DashboardLayout() {
                 src='/logo.jpg'
                 alt='PeerToLearn Logo'
                 className='w-10 h-10 object-contain'
+                fetchpriority='high'
+                decoding='async'
               />
             </div>
             <span className='text-xl font-bold text-gray-900 dark:text-white tracking-tight'>
@@ -133,11 +134,10 @@ export function DashboardLayout() {
               <div className='space-y-1 relative'>
                 <button
                   onClick={() => setToolsOpen(!toolsOpen)}
-                  className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl transition-all duration-200 ${
-                    toolsOpen
+                  className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl transition-all duration-200 ${toolsOpen
                       ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
                       : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
-                  }`}
+                    }`}
                 >
                   <Briefcase className='w-5 h-5 mr-3' />
                   <span>Tools</span>
@@ -202,10 +202,9 @@ export function DashboardLayout() {
                     key={chat.id}
                     to={`/chat/${chat.id}`}
                     className={({ isActive }) =>
-                      `block px-3 py-2 rounded-lg text-sm truncate transition-colors ${
-                        isActive
-                          ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                      `block px-3 py-2 rounded-lg text-sm truncate transition-colors ${isActive
+                        ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                       }`
                     }
                   >
@@ -345,6 +344,8 @@ export function DashboardLayout() {
               src='/logo.jpg'
               alt='Logo'
               className='w-8 h-8 object-contain'
+              fetchpriority='high'
+              decoding='async'
             />
             <span className='font-bold text-lg text-gray-900 dark:text-gray-100 tracking-tight'>
               PeerToLearn

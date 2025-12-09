@@ -96,4 +96,14 @@ export class User extends IDAndTimestamp {
 
   @Column({ type: 'timestamp', nullable: true })
   resetPasswordExpires: Date | null;
+
+  // Timer preferences (in seconds) - editable by user anytime
+  @Column({ type: 'int', default: 1500 }) // 25 minutes
+  studyDuration: number;
+
+  @Column({ type: 'int', default: 300 }) // 5 minutes
+  testDuration: number;
+
+  @Column({ type: 'int', default: 600 }) // 10 minutes
+  restDuration: number;
 }

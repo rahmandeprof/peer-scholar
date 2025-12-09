@@ -1,4 +1,5 @@
 import { QuizHistory } from './QuizHistory';
+import { ProfileHeader, ProfileTabs, DataUsageSettings } from './profile';
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
@@ -204,11 +205,10 @@ export function UserProfile({ onClose }: UserProfileProps) {
         <div className='flex border-b border-gray-100 dark:border-gray-800'>
           <button
             onClick={() => setActiveTab('profile')}
-            className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
-              activeTab === 'profile'
+            className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === 'profile'
                 ? 'text-primary-600 dark:text-primary-400'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
+              }`}
           >
             Profile Details
             {activeTab === 'profile' && (
@@ -217,11 +217,10 @@ export function UserProfile({ onClose }: UserProfileProps) {
           </button>
           <button
             onClick={() => setActiveTab('quizzes')}
-            className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
-              activeTab === 'quizzes'
+            className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === 'quizzes'
                 ? 'text-primary-600 dark:text-primary-400'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
+              }`}
           >
             Quiz History
             {activeTab === 'quizzes' && (
@@ -230,11 +229,10 @@ export function UserProfile({ onClose }: UserProfileProps) {
           </button>
           <button
             onClick={() => setActiveTab('data')}
-            className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
-              activeTab === 'data'
+            className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === 'data'
                 ? 'text-primary-600 dark:text-primary-400'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
+              }`}
           >
             Data Usage
             {activeTab === 'data' && (

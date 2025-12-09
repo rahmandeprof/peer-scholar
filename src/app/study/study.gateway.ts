@@ -1,4 +1,6 @@
 import { Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   ConnectedSocket,
@@ -13,13 +15,23 @@ import {
 import { User } from '@/app/users/entities/user.entity';
 
 import { ChatService } from '@/app/chat/chat.service';
+import { ChallengeCacheService } from './challenge-cache.service';
 
 import { Server, Socket } from 'socket.io';
 import { Repository } from 'typeorm';
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: (origin, callback) => {
+      // Allow connections from trusted origins or same-origin (no origin header)
+      const trustedOrigins = process.env.TRUSTED_ORIGINS?.split(',') ?? [];
+      if (!origin || trustedOrigins.includes(origin) || origin.includes('localhost')) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
   },
 })
 export class StudyGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -28,26 +40,46 @@ export class StudyGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private readonly logger = new Logger(StudyGateway.name);
 
-  private challengeScores = new Map<
-    string,
-    Record<string, { score: number; timeTaken: number }>
-  >();
-
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
-    private readonly chatService: ChatService, // Inject ChatService
-  ) {}
+    private readonly chatService: ChatService,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+    private readonly challengeCache: ChallengeCacheService,
+  ) { }
 
   async handleConnection(client: Socket) {
-    // We expect the client to send userId in query or auth header
-    // For simplicity, let's assume they join a room with their userId immediately upon connection
-    // or we handle it in a separate event.
-    // Ideally, we validate the token here.
+    try {
+      // Extract token from auth object or authorization header
+      const token =
+        client.handshake.auth?.token ||
+        client.handshake.headers?.authorization?.replace('Bearer ', '');
+
+      if (!token) {
+        this.logger.warn(`Connection rejected: No token provided`);
+        client.disconnect();
+        return;
+      }
+
+      // Verify the JWT token
+      const payload = this.jwtService.verify(token, {
+        secret: this.configService.get<string>('JWT_SECRET'),
+      });
+
+      // Store user ID on socket for later use
+      client.data.userId = payload.sub;
+      this.logger.log(`Client connected: ${payload.sub}`);
+    } catch (error) {
+      this.logger.warn(`Connection rejected: Invalid token`);
+      client.disconnect();
+    }
   }
 
   handleDisconnect(client: Socket) {
-    // Handle cleanup
+    if (client.data.userId) {
+      this.logger.log(`Client disconnected: ${client.data.userId}`);
+    }
   }
 
   @SubscribeMessage('join_user_room')
@@ -118,7 +150,7 @@ export class StudyGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('submit_score')
-  handleSubmitScore(
+  async handleSubmitScore(
     @MessageBody()
     data: {
       challengeId: string;
@@ -129,17 +161,16 @@ export class StudyGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const { challengeId, userId, score, timeTaken } = data;
 
-    if (!this.challengeScores.has(challengeId)) {
-      this.challengeScores.set(challengeId, {});
-    }
+    // Store score in Redis/cache
+    await this.challengeCache.setScore(challengeId, userId, { score, timeTaken });
 
-    const scores = this.challengeScores.get(challengeId);
+    // Check if we have 2 scores (assuming 2 player challenge)
+    const scoreCount = await this.challengeCache.getScoreCount(challengeId);
 
-    if (scores) {
-      scores[userId] = { score, timeTaken };
+    if (scoreCount >= 2) {
+      const scores = await this.challengeCache.getScores(challengeId);
 
-      // Check if we have 2 scores (assuming 2 player challenge)
-      if (Object.keys(scores).length >= 2) {
+      if (scores) {
         // Determine winner
         const userIds = Object.keys(scores);
         const p1 = userIds[0];
@@ -164,7 +195,7 @@ export class StudyGateway implements OnGatewayConnection, OnGatewayDisconnect {
         });
 
         // Cleanup
-        this.challengeScores.delete(challengeId);
+        await this.challengeCache.deleteChallenge(challengeId);
       }
     }
   }

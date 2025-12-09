@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback, memo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   FileText,
@@ -41,7 +41,7 @@ interface MaterialCardProps {
   onAddToCollection?: (id: string) => void;
 }
 
-export function MaterialCard({ material, onDelete, onAddToCollection }: MaterialCardProps) {
+export const MaterialCard = memo(function MaterialCard({ material, onDelete, onAddToCollection }: MaterialCardProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
@@ -55,10 +55,10 @@ export function MaterialCard({ material, onDelete, onAddToCollection }: Material
 
   const isOwner = user?.id === material.uploader.id;
 
-  const handleDownload = () => {
+  const handleDownload = useCallback(() => {
     window.open(material.fileUrl, '_blank');
     setMenuOpen(false);
-  };
+  }, [material.fileUrl]);
 
   const handleShare = async () => {
     const url = `${window.location.origin}/materials/${material.id}`;
@@ -89,7 +89,7 @@ export function MaterialCard({ material, onDelete, onAddToCollection }: Material
 
   return (
     <>
-      <div className='bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl overflow-visible shadow-sm rounded-2xl hover:shadow-md transition-all border border-gray-200/50 dark:border-gray-700/50 group relative'>
+      <div className='bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl overflow-visible shadow-sm rounded-2xl hover:shadow-md transition-all border border-gray-200/50 dark:border-gray-700/50 group relative hover-lift active-press'>
         <div className='p-6'>
           <div className='flex items-start justify-between mb-4'>
             <div className='flex-1 min-w-0 mr-4'>
@@ -162,21 +162,21 @@ export function MaterialCard({ material, onDelete, onAddToCollection }: Material
                   >
                     <button
                       onClick={(e) => {
-                         e.stopPropagation();
-                         handleDownload();
+                        e.stopPropagation();
+                        handleDownload();
                       }}
                       className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
                     >
                       <Download className='w-4 h-4 mr-2' />
                       Download
                     </button>
-                    
+
                     {/* New: Add to Collection */}
-                     <button
+                    <button
                       onClick={(e) => {
-                         e.stopPropagation();
-                         setMenuOpen(false);
-                         if (onAddToCollection) onAddToCollection(material.id);
+                        e.stopPropagation();
+                        setMenuOpen(false);
+                        if (onAddToCollection) onAddToCollection(material.id);
                       }}
                       className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
                     >
@@ -186,8 +186,8 @@ export function MaterialCard({ material, onDelete, onAddToCollection }: Material
 
                     <button
                       onClick={(e) => {
-                         e.stopPropagation();
-                         handleShare();
+                        e.stopPropagation();
+                        handleShare();
                       }}
                       className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
                     >
@@ -196,8 +196,8 @@ export function MaterialCard({ material, onDelete, onAddToCollection }: Material
                     </button>
                     <button
                       onClick={(e) => {
-                         e.stopPropagation();
-                         handleSummarize();
+                        e.stopPropagation();
+                        handleSummarize();
                       }}
                       className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
                     >
@@ -250,4 +250,4 @@ export function MaterialCard({ material, onDelete, onAddToCollection }: Material
       />
     </>
   );
-}
+});

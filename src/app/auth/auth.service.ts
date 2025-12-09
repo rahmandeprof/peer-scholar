@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
 import { User } from '@/app/users/entities/user.entity';
@@ -17,7 +17,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private emailService: EmailService,
-  ) {}
+  ) { }
 
   async validateUser(
     email: string,
@@ -57,13 +57,13 @@ export class AuthService {
       | User
       | Omit<User, 'password'>
       | {
-          id: string;
-          email: string;
-          firstName: string;
-          lastName: string;
-          department: string;
-          yearOfStudy: number;
-        },
+        id: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+        department: string;
+        yearOfStudy: number;
+      },
   ) {
     // Update streak on login and get fresh values
     const streak = await this.usersService.updateStreak(user.id);
@@ -119,7 +119,7 @@ export class AuthService {
     const user = await this.usersService.findByVerificationToken(token);
 
     if (!user) {
-      throw new Error('Invalid verification token');
+      throw new BadRequestException('Invalid verification token');
     }
 
     user.emailVerified = true;
@@ -135,7 +135,7 @@ export class AuthService {
     const user = await this.usersService.getOne(userId);
 
     if (user.isVerified) {
-      throw new Error('Email already verified');
+      throw new BadRequestException('Email already verified');
     }
 
     const verificationToken = uuidv4();
@@ -189,7 +189,7 @@ export class AuthService {
     const user = await this.usersService.findByResetToken(token);
 
     if (!user?.resetPasswordExpires || user.resetPasswordExpires < new Date()) {
-      throw new Error('Invalid or expired password reset token');
+      throw new BadRequestException('Invalid or expired password reset token');
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);

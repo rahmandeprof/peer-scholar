@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Param,
   Patch,
@@ -13,6 +14,7 @@ import { AuthGuard } from '@nestjs/passport';
 
 import { CreateUserDto } from '@/app/users/dto/create-user.dto';
 import { UpdateAcademicProfileDto } from '@/app/users/dto/update-academic-profile.dto';
+import { UpdateTimerSettingsDto } from '@/app/users/dto/update-timer-settings.dto';
 import { UpdateUserDto } from '@/app/users/dto/update-user.dto';
 
 import { UsersService } from '@/app/users/users.service';
@@ -22,7 +24,7 @@ import { Paginate, PaginateQuery } from 'nestjs-paginate';
 @Controller('users')
 @UseGuards(AuthGuard('jwt'))
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
   @Post()
   create(@Body() createUserDto: CreateUserDto) {
@@ -44,6 +46,18 @@ export class UsersController {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   updateProfile(@Req() req: any, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(req.user.id, updateUserDto);
+  }
+
+  @Get('timer-settings')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getTimerSettings(@Req() req: any) {
+    return this.usersService.getTimerSettings(req.user.id);
+  }
+
+  @Patch('timer-settings')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  updateTimerSettings(@Req() req: any, @Body() dto: UpdateTimerSettingsDto) {
+    return this.usersService.updateTimerSettings(req.user.id, dto);
   }
 
   @Patch('academic-profile')
@@ -70,8 +84,6 @@ export class UsersController {
   @Post('partner/reject/:id')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rejectPartner(@Param('id') id: string, @Req() req: any) {
-    return this.usersService.respondToRequest(id, req.user.id, false);
-
     return this.usersService.respondToRequest(id, req.user.id, false);
   }
 
@@ -111,7 +123,11 @@ export class UsersController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto, @Req() req: any) {
+    if (req.user.id !== id && req.user.role !== 'admin') {
+      throw new ForbiddenException('Cannot update other users');
+    }
     return this.usersService.update(id, updateUserDto);
   }
 
@@ -122,7 +138,11 @@ export class UsersController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  remove(@Param('id') id: string, @Req() req: any) {
+    if (req.user.id !== id && req.user.role !== 'admin') {
+      throw new ForbiddenException('Cannot delete other users');
+    }
     return this.usersService.remove(id);
   }
 

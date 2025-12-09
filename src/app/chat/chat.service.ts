@@ -1,4 +1,10 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -25,12 +31,12 @@ import { REPUTATION_REWARDS } from '@/app/common/constants/reputation.constants'
 import OpenAI from 'openai';
 import { Repository } from 'typeorm';
 
-const COMPLETION_MODEL = 'gpt-3.5-turbo';
-
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
   private openai?: OpenAI;
+  private readonly chatModel: string;
+  private readonly generationModel: string;
 
   constructor(
     @InjectRepository(Material)
@@ -55,6 +61,10 @@ export class ChatService {
     if (apiKey) {
       this.openai = new OpenAI({ apiKey });
     }
+
+    // Configurable AI models with sensible defaults
+    this.chatModel = this.configService.get<string>('OPENAI_CHAT_MODEL') ?? 'gpt-3.5-turbo';
+    this.generationModel = this.configService.get<string>('OPENAI_GENERATION_MODEL') ?? 'gpt-4o';
   }
 
   // Extract text from file (pdf, docx, txt)
@@ -336,7 +346,7 @@ export class ChatService {
 
     if (!material) throw new NotFoundException('Material not found');
     if (!material.content)
-      throw new Error(
+      throw new BadRequestException(
         'Material content is not available. Please re-upload the file.',
       );
 
@@ -354,7 +364,7 @@ export class ChatService {
 
     try {
       const response = await this.openai.chat.completions.create({
-        model: COMPLETION_MODEL,
+        model: this.chatModel,
         messages: [
           {
             role: 'system',
@@ -391,7 +401,7 @@ export class ChatService {
     const materialContent = material.content;
 
     if (!materialContent)
-      throw new Error(
+      throw new BadRequestException(
         'Material content is not available. Please re-upload the file.',
       );
 
@@ -400,11 +410,11 @@ export class ChatService {
       return material.keyPoints;
     }
 
-    if (!this.openai) throw new Error('OPENAI_API_KEY is not set');
+    if (!this.openai) throw new InternalServerErrorException('AI service is not configured');
 
     try {
       const response = await this.openai.chat.completions.create({
-        model: COMPLETION_MODEL,
+        model: this.chatModel,
         messages: [
           {
             role: 'system',
@@ -456,7 +466,7 @@ export class ChatService {
     let materialContent = material.content;
 
     if (!materialContent)
-      throw new Error(
+      throw new BadRequestException(
         'Material content is not available. Please re-upload the file.',
       );
 
@@ -476,7 +486,7 @@ export class ChatService {
       return material.quiz;
     }
 
-    if (!this.openai) throw new Error('OPENAI_API_KEY is not set');
+    if (!this.openai) throw new InternalServerErrorException('AI service is not configured');
 
     const systemPrompt = `You are a strict API endpoint. You receive text and output ONLY valid JSON.`;
     const userPrompt = `Generate 5 multiple-choice questions based on the following text.
@@ -497,7 +507,7 @@ export class ChatService {
 
     try {
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: this.generationModel,
         messages: [
           {
             role: 'system',
@@ -534,7 +544,7 @@ export class ChatService {
       return quiz;
     } catch (error) {
       this.logger.error('Failed to generate quiz', error);
-      throw new Error('Failed to generate quiz');
+      throw new InternalServerErrorException('Failed to generate quiz');
     }
   }
 
@@ -553,11 +563,11 @@ export class ChatService {
     const materialContent = material.content;
 
     if (!materialContent)
-      throw new Error(
+      throw new BadRequestException(
         'Material content is not available. Please re-upload the file.',
       );
 
-    if (!this.openai) throw new Error('OPENAI_API_KEY is not set');
+    if (!this.openai) throw new InternalServerErrorException('AI service is not configured');
 
     const systemPrompt = `You are a strict API endpoint. You receive text and output ONLY valid JSON.`;
     const userPrompt = `Extract 10-15 key terms and their definitions from the following text.
@@ -576,7 +586,7 @@ export class ChatService {
 
     try {
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: this.generationModel,
         messages: [
           {
             role: 'system',
@@ -613,7 +623,7 @@ export class ChatService {
       return flashcards;
     } catch (error) {
       this.logger.error('Failed to generate flashcards', error);
-      throw new Error('Failed to generate flashcards');
+      throw new InternalServerErrorException('Failed to generate flashcards');
     }
   }
 
@@ -746,7 +756,7 @@ export class ChatService {
       .join('\n');
 
     // 4. Call OpenAI
-    if (!this.openai) throw new Error('OPENAI_API_KEY is not set');
+    if (!this.openai) throw new InternalServerErrorException('AI service is not configured');
 
     const system = `You are a helpful student assistant. Use the provided context to answer the student's question. 
     If a FOCUSED SOURCE is provided, prioritize it above all else.
@@ -759,7 +769,7 @@ export class ChatService {
 
     try {
       const completion = await this.openai.chat.completions.create({
-        model: COMPLETION_MODEL,
+        model: this.chatModel,
         messages: [
           { role: 'system', content: system },
           { role: 'user', content: userPrompt },
@@ -865,7 +875,7 @@ export class ChatService {
   }
 
   async performContextAction(dto: ContextActionDto) {
-    if (!this.openai) throw new Error('OPENAI_API_KEY is not set');
+    if (!this.openai) throw new InternalServerErrorException('AI service is not configured');
 
     let systemPrompt = '';
     let userPrompt = '';
@@ -918,7 +928,7 @@ Return JSON schema:
 
     try {
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: this.generationModel,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
@@ -935,7 +945,7 @@ Return JSON schema:
       return { result: content };
     } catch (error) {
       this.logger.error('Failed to perform context action', error);
-      throw new Error('Failed to perform context action');
+      throw new InternalServerErrorException('Failed to perform context action');
     }
   }
 }

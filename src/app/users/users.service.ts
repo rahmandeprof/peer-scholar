@@ -1,4 +1,6 @@
 import {
+  BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -17,6 +19,7 @@ import { User } from '@/app/users/entities/user.entity';
 
 import { CreateUserDto } from '@/app/users/dto/create-user.dto';
 import { UpdateAcademicProfileDto } from '@/app/users/dto/update-academic-profile.dto';
+import { UpdateTimerSettingsDto } from '@/app/users/dto/update-timer-settings.dto';
 import { UpdateUserDto } from '@/app/users/dto/update-user.dto';
 
 import { EmailService } from '@/app/common/services/email.service';
@@ -53,7 +56,7 @@ export class UsersService {
     const receiver = await this.findByEmail(email);
 
     if (!receiver) throw new NotFoundException('User not found');
-    if (sender.id === receiver.id) throw new Error('Cannot invite yourself');
+    if (sender.id === receiver.id) throw new BadRequestException('Cannot invite yourself');
     // Removed single partner checks to allow multiple partners
 
     const existingRequest = await this.partnerRequestRepo.findOne({
@@ -71,7 +74,7 @@ export class UsersService {
       ],
     });
 
-    if (existingRequest) throw new Error('Pending request already exists');
+    if (existingRequest) throw new ConflictException('Pending request already exists');
 
     const request = this.partnerRequestRepo.create({
       sender,
@@ -102,9 +105,9 @@ export class UsersService {
     });
 
     if (!request) throw new NotFoundException('Request not found');
-    if (request.sender.id !== userId) throw new Error('Not authorized');
+    if (request.sender.id !== userId) throw new ForbiddenException('Not authorized');
     if (request.status !== PartnerRequestStatus.PENDING)
-      throw new Error('Cannot cancel processed request');
+      throw new BadRequestException('Cannot cancel processed request');
 
     return this.partnerRequestRepo.remove(request);
   }
@@ -116,9 +119,9 @@ export class UsersService {
     });
 
     if (!request) throw new NotFoundException('Request not found');
-    if (request.receiver.id !== userId) throw new Error('Not authorized');
+    if (request.receiver.id !== userId) throw new ForbiddenException('Not authorized');
     if (request.status !== PartnerRequestStatus.PENDING)
-      throw new Error('Request already handled');
+      throw new BadRequestException('Request already handled');
 
     if (accept) {
       request.status = PartnerRequestStatus.ACCEPTED;
@@ -159,7 +162,7 @@ export class UsersService {
       relations: ['sender', 'receiver'],
     });
 
-    if (!request) throw new Error('You are not partners with this user');
+    if (!request) throw new BadRequestException('You are not partners with this user');
 
     // Check rate limit (e.g., 1 hour)
     if (request.lastNudgedAt) {
@@ -167,7 +170,7 @@ export class UsersService {
       const hours = diff / (1000 * 60 * 60);
 
       if (hours < 1) {
-        throw new Error('You can only nudge a partner once per hour');
+        throw new BadRequestException('You can only nudge a partner once per hour');
       }
     }
 
@@ -542,6 +545,38 @@ export class UsersService {
       lastReadMaterialId: user.lastReadMaterialId,
       lastReadMaterial: user.lastReadMaterial,
       lastReadPage: user.lastReadPage,
+    };
+  }
+
+  async getTimerSettings(userId: string) {
+    const user = await this.getOne(userId);
+
+    return {
+      studyDuration: user.studyDuration ?? 1500, // 25 minutes default
+      testDuration: user.testDuration ?? 300, // 5 minutes default
+      restDuration: user.restDuration ?? 600, // 10 minutes default
+    };
+  }
+
+  async updateTimerSettings(userId: string, dto: UpdateTimerSettingsDto) {
+    const user = await this.getOne(userId);
+
+    if (dto.studyDuration !== undefined) {
+      user.studyDuration = dto.studyDuration;
+    }
+    if (dto.testDuration !== undefined) {
+      user.testDuration = dto.testDuration;
+    }
+    if (dto.restDuration !== undefined) {
+      user.restDuration = dto.restDuration;
+    }
+
+    await this.userRepository.save(user);
+
+    return {
+      studyDuration: user.studyDuration,
+      testDuration: user.testDuration,
+      restDuration: user.restDuration,
     };
   }
 }

@@ -1,27 +1,42 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { DashboardLayout } from './components/DashboardLayout';
-import { AcademicControlCenter } from './components/AcademicControlCenter';
-import DepartmentView from './components/DepartmentView';
-import { Chatbot } from './components/Chatbot';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NetworkProvider } from './contexts/NetworkContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { Login } from './components/Login';
-import { Signup } from './components/Signup';
-import { GoogleCallback } from './components/GoogleCallback';
-import { CourseView } from './components/CourseView';
-import { MaterialView } from './components/MaterialView';
-import { StudyPartner } from './components/StudyPartner';
-import { TargetGPCalculator } from './components/TargetGPCalculator';
-import CompleteProfile from './components/CompleteProfile';
-import { QuizArena } from './components/QuizArena';
-import { VerifyEmail } from './components/VerifyEmail';
-import { ForgotPassword } from './components/ForgotPassword';
-import { ResetPassword } from './components/ResetPassword';
 import { Loader2 } from 'lucide-react';
+
+// Lazy-loaded components for code splitting
+// Auth components - loaded on initial page or specific auth routes
+const Login = lazy(() => import('./components/Login').then(m => ({ default: m.Login })));
+const Signup = lazy(() => import('./components/Signup').then(m => ({ default: m.Signup })));
+const GoogleCallback = lazy(() => import('./components/GoogleCallback').then(m => ({ default: m.GoogleCallback })));
+const VerifyEmail = lazy(() => import('./components/VerifyEmail').then(m => ({ default: m.VerifyEmail })));
+const ForgotPassword = lazy(() => import('./components/ForgotPassword').then(m => ({ default: m.ForgotPassword })));
+const ResetPassword = lazy(() => import('./components/ResetPassword').then(m => ({ default: m.ResetPassword })));
+const CompleteProfile = lazy(() => import('./components/CompleteProfile'));
+
+// Dashboard layout and main components
+const DashboardLayout = lazy(() => import('./components/DashboardLayout').then(m => ({ default: m.DashboardLayout })));
+const AcademicControlCenter = lazy(() => import('./components/AcademicControlCenter').then(m => ({ default: m.AcademicControlCenter })));
+const DepartmentView = lazy(() => import('./components/DepartmentView'));
+const Chatbot = lazy(() => import('./components/Chatbot').then(m => ({ default: m.Chatbot })));
+const CourseView = lazy(() => import('./components/CourseView').then(m => ({ default: m.CourseView })));
+const MaterialView = lazy(() => import('./components/MaterialView').then(m => ({ default: m.MaterialView })));
+const StudyPartner = lazy(() => import('./components/StudyPartner').then(m => ({ default: m.StudyPartner })));
+const TargetGPCalculator = lazy(() => import('./components/TargetGPCalculator').then(m => ({ default: m.TargetGPCalculator })));
+const QuizArena = lazy(() => import('./components/QuizArena').then(m => ({ default: m.QuizArena })));
+
+// Suspense fallback for route loading
+const RouteLoadingFallback = () => (
+  <div className='min-h-screen flex items-center justify-center'>
+    <div className='flex flex-col items-center gap-3'>
+      <Loader2 className='w-8 h-8 animate-spin text-primary-600' />
+      <p className='text-sm text-gray-500 dark:text-gray-400 animate-pulse'>Loading...</p>
+    </div>
+  </div>
+);
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -68,79 +83,81 @@ function AppContent() {
 
   return (
     <div className='min-h-screen text-gray-900 dark:text-gray-100'>
-      <Routes>
-        <Route path='/auth/callback' element={<GoogleCallback />} />
-        <Route path='/verify-email' element={<VerifyEmail />} />
-        <Route
-          path='/forgot-password'
-          element={
-            <div className='min-h-screen flex items-center justify-center px-4 py-12'>
-              <ForgotPassword />
-            </div>
-          }
-        />
-        <Route
-          path='/reset-password'
-          element={
-            <div className='min-h-screen flex items-center justify-center px-4 py-12'>
-              <ResetPassword />
-            </div>
-          }
-        />
-
-        <Route
-          path='/complete-profile'
-          element={
-            <ProtectedRoute>
-              <CompleteProfile />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Protected Dashboard Routes */}
-        <Route
-          element={
-            <ProtectedRoute>
-              <DashboardLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route path='/dashboard' element={<AcademicControlCenter />} />
-          <Route path='/department' element={<DepartmentView />} />
-          <Route path='/study-partner' element={<StudyPartner />} />
+      <Suspense fallback={<RouteLoadingFallback />}>
+        <Routes>
+          <Route path='/auth/callback' element={<GoogleCallback />} />
+          <Route path='/verify-email' element={<VerifyEmail />} />
           <Route
-            path='/partner'
-            element={<Navigate to='/study-partner' replace />}
+            path='/forgot-password'
+            element={
+              <div className='min-h-screen flex items-center justify-center px-4 py-12'>
+                <ForgotPassword />
+              </div>
+            }
           />
-          <Route path='/chat' element={<Chatbot />} />
-          <Route path='/chat/:id' element={<Chatbot />} />
-          <Route path='/courses/:courseId' element={<CourseView />} />
-          <Route path='/materials/:id' element={<MaterialView />} />
-          <Route path='/tools/gp-calculator' element={<TargetGPCalculator />} />
-          <Route path='/arena/:challengeId' element={<QuizArena />} />
-        </Route>
+          <Route
+            path='/reset-password'
+            element={
+              <div className='min-h-screen flex items-center justify-center px-4 py-12'>
+                <ResetPassword />
+              </div>
+            }
+          />
 
-        <Route
-          path='/'
-          element={
-            <div className='min-h-screen flex items-center justify-center px-4 py-12'>
-              {isAuthenticated ? (
-                <Navigate
-                  to={location.state?.from?.pathname || '/dashboard'}
-                  replace
-                />
-              ) : isLogin ? (
-                <Login onSwitch={() => setIsLogin(false)} />
-              ) : (
-                <Signup onSwitch={() => setIsLogin(true)} />
-              )}
-            </div>
-          }
-        />
+          <Route
+            path='/complete-profile'
+            element={
+              <ProtectedRoute>
+                <CompleteProfile />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Catch all redirect */}
-        <Route path='*' element={<Navigate to='/' replace />} />
-      </Routes>
+          {/* Protected Dashboard Routes */}
+          <Route
+            element={
+              <ProtectedRoute>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path='/dashboard' element={<AcademicControlCenter />} />
+            <Route path='/department' element={<DepartmentView />} />
+            <Route path='/study-partner' element={<StudyPartner />} />
+            <Route
+              path='/partner'
+              element={<Navigate to='/study-partner' replace />}
+            />
+            <Route path='/chat' element={<Chatbot />} />
+            <Route path='/chat/:id' element={<Chatbot />} />
+            <Route path='/courses/:courseId' element={<CourseView />} />
+            <Route path='/materials/:id' element={<MaterialView />} />
+            <Route path='/tools/gp-calculator' element={<TargetGPCalculator />} />
+            <Route path='/arena/:challengeId' element={<QuizArena />} />
+          </Route>
+
+          <Route
+            path='/'
+            element={
+              <div className='min-h-screen flex items-center justify-center px-4 py-12'>
+                {isAuthenticated ? (
+                  <Navigate
+                    to={location.state?.from?.pathname || '/dashboard'}
+                    replace
+                  />
+                ) : isLogin ? (
+                  <Login onSwitch={() => setIsLogin(false)} />
+                ) : (
+                  <Signup onSwitch={() => setIsLogin(true)} />
+                )}
+              </div>
+            }
+          />
+
+          {/* Catch all redirect */}
+          <Route path='*' element={<Navigate to='/' replace />} />
+        </Routes>
+      </Suspense>
     </div>
   );
 }

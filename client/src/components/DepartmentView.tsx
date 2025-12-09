@@ -3,7 +3,8 @@ import axios from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { BookOpen, FileText, Upload } from 'lucide-react';
 import { Link, useOutletContext } from 'react-router-dom';
-import { LoadingState } from './LoadingState';
+import { MaterialCardSkeleton } from './Skeleton';
+import { EmptyState } from './EmptyState';
 import { MaterialCard } from './MaterialCard';
 import { CollectionModal } from './CollectionModal';
 
@@ -56,7 +57,7 @@ const DepartmentView: React.FC = () => {
       // For UX, maybe silent refresh is better, or just set loading=true if we want to show it updating
       // Let's set loading=true to show it's updating, as the user asked for "refresh"
       setLoading(true);
-      
+
       if (user.department) {
         const promises = [fetchTrending(), fetchRecent()];
 
@@ -107,7 +108,15 @@ const DepartmentView: React.FC = () => {
   };
 
   if (loading) {
-    return <LoadingState message='Fetching department library...' />;
+    return (
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+        <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3'>
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <MaterialCardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (!user?.department) {
@@ -296,7 +305,7 @@ const DepartmentView: React.FC = () => {
           ? 'Search Results'
           : 'Recent Uploads'}
       </h2>
-      <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3'>
+      <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 stagger-children'>
         {recentMaterials
           .filter((m) => {
             const matchesSearch = m.title
@@ -319,14 +328,14 @@ const DepartmentView: React.FC = () => {
             />
           ))}
         {recentMaterials.length === 0 && (
-          <div className='col-span-full text-center py-12 bg-gray-50/50 dark:bg-gray-800/30 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700'>
-            <FileText className='w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4' />
-            <h3 className='text-lg font-medium text-gray-900 dark:text-gray-100'>
-              No recent uploads
-            </h3>
-            <p className='text-gray-500 dark:text-gray-400'>
-              Be the first to upload a material!
-            </p>
+          <div className='col-span-full'>
+            <EmptyState
+              type='materials'
+              action={{
+                label: 'Upload Material',
+                onClick: openUploadModal,
+              }}
+            />
           </div>
         )}
       </div>

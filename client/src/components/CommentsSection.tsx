@@ -86,6 +86,8 @@ export function CommentsSection({ materialId }: CommentsSectionProps) {
                       alt={comment.user.firstName}
                       className='w-full h-full object-cover'
                       referrerPolicy='no-referrer'
+                      loading='lazy'
+                      decoding='async'
                     />
                   ) : (
                     <span>

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { ChatModule } from '@/app/chat/chat.module';
@@ -10,6 +11,7 @@ import { User } from '@/app/users/entities/user.entity';
 import { StudyController } from './study.controller';
 
 import { StudyService } from './study.service';
+import { ChallengeCacheService } from './challenge-cache.service';
 
 import { StudyProcessor } from './processors/study.processor';
 import { StudyGateway } from './study.gateway';
@@ -19,9 +21,11 @@ import { StudyGateway } from './study.gateway';
     TypeOrmModule.forFeature([StudySession, User]),
     UsersModule,
     ChatModule,
+    JwtModule.register({}), // Uses ConfigService for secret at runtime
   ],
   controllers: [StudyController],
-  providers: [StudyService, StudyProcessor, StudyGateway],
+  providers: [StudyService, StudyProcessor, StudyGateway, ChallengeCacheService],
   exports: [StudyService],
 })
-export class StudyModule {}
+export class StudyModule { }
+

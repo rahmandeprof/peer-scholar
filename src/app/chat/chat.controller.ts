@@ -35,8 +35,12 @@ interface RequestWithUser extends Request {
 @Controller('chat')
 @UseGuards(AuthGuard('jwt'))
 export class ChatController {
-  constructor(private readonly chatService: ChatService) {}
+  constructor(private readonly chatService: ChatService) { }
 
+  /**
+   * @deprecated Use POST /materials instead. This endpoint will be removed in v2.
+   * Maintained for backward compatibility.
+   */
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   uploadFile(

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { Material } from './entities/material.entity';
@@ -13,7 +13,7 @@ export class PersonalCoursesService {
     private courseRepo: Repository<PersonalCourse>,
     @InjectRepository(Material)
     private materialRepo: Repository<Material>,
-  ) {}
+  ) { }
 
   async create(
     userId: string,
@@ -45,13 +45,13 @@ export class PersonalCoursesService {
   async addMaterial(userId: string, courseId: string, materialId: string) {
     const course = await this.findOne(userId, courseId);
 
-    if (!course) throw new Error('Course not found');
+    if (!course) throw new NotFoundException('Course not found');
 
     const material = await this.materialRepo.findOne({
       where: { id: materialId },
     });
 
-    if (!material) throw new Error('Material not found');
+    if (!material) throw new NotFoundException('Material not found');
 
     // Check if already exists to avoid duplicates
     if (!course.materials.some((m) => m.id === material.id)) {
@@ -66,7 +66,7 @@ export class PersonalCoursesService {
   async removeMaterial(userId: string, courseId: string, materialId: string) {
     const course = await this.findOne(userId, courseId);
 
-    if (!course) throw new Error('Course not found');
+    if (!course) throw new NotFoundException('Course not found');
 
     course.materials = course.materials.filter((m) => m.id !== materialId);
 

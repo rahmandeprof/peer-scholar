@@ -1,5 +1,10 @@
 import { InjectQueue } from '@nestjs/bull';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -239,7 +244,7 @@ export class MaterialsService {
     const material = await this.findOne(id);
 
     if (material.uploader.id !== userId) {
-      throw new Error('Only the uploader can update the scope');
+      throw new ForbiddenException('Only the uploader can update the scope');
     }
     if (material.content) {
       return { content: material.content };
@@ -265,7 +270,7 @@ export class MaterialsService {
       return { content: text };
     } catch {
       // console.error('Failed to extract text on demand', error);
-      throw new Error('Failed to extract text');
+      throw new BadRequestException('Failed to extract text from file');
     }
   }
 
@@ -341,7 +346,7 @@ export class MaterialsService {
       return { content: text };
     } catch {
       // console.error('Extraction failed', error);
-      throw new Error('Failed to extract text');
+      throw new BadRequestException('Failed to extract text from file');
     }
   }
 
@@ -374,7 +379,7 @@ export class MaterialsService {
 
   async rateMaterial(materialId: string, userId: string, value: number) {
     if (value < 1 || value > 5)
-      throw new Error('Rating must be between 1 and 5');
+      throw new BadRequestException('Rating must be between 1 and 5');
 
     let rating = await this.ratingRepo.findOne({
       where: { material: { id: materialId }, user: { id: userId } },
