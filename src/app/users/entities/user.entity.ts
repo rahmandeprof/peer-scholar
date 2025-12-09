@@ -2,7 +2,7 @@ import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
 
 import { CapitalizeTransformer } from '@/utils/transformers/capitalize';
 
-import { Column, Entity, OneToMany, ManyToOne } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
 
 @Entity()
 export class User extends IDAndTimestamp {

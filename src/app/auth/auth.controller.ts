@@ -11,10 +11,10 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
-import { LoginDto } from './dto/login.dto';
-import { CreateUserDto } from '@/app/users/dto/create-user.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { LoginDto } from './dto/login.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { CreateUserDto } from '@/app/users/dto/create-user.dto';
 
 import { AuthService } from './auth.service';
 

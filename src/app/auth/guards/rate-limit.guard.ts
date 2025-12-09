@@ -1,9 +1,8 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 
 @Injectable()
 export class RateLimitGuard extends ThrottlerGuard {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected async throwThrottlingException(
     context: any, // eslint-disable-line @typescript-eslint/no-explicit-any
     throttlerLimitDetail: any, // eslint-disable-line @typescript-eslint/no-explicit-any

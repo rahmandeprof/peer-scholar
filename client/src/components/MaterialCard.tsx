@@ -7,6 +7,7 @@ import {
   Share2,
   FileText as SummarizeIcon,
   Trash2,
+  Folder as FolderIcon,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -37,9 +38,10 @@ interface Material {
 interface MaterialCardProps {
   material: Material;
   onDelete?: (id: string) => void;
+  onAddToCollection?: (id: string) => void;
 }
 
-export function MaterialCard({ material, onDelete }: MaterialCardProps) {
+export function MaterialCard({ material, onDelete, onAddToCollection }: MaterialCardProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
@@ -159,21 +161,52 @@ export function MaterialCard({ material, onDelete }: MaterialCardProps) {
                     onClick={(e) => e.stopPropagation()}
                   >
                     <button
-                      onClick={handleDownload}
+                      onClick={(e) => {
+                         e.stopPropagation();
+                         handleDownload();
+                      }}
                       className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
                     >
                       <Download className='w-4 h-4 mr-2' />
                       Download
                     </button>
+                    
+                    {/* New: Add to Collection */}
+                     <button
+                      onClick={(e) => {
+                         e.stopPropagation();
+                         setMenuOpen(false);
+                         // Trigger parent's add to collection handler if exists, or expose internal state?
+                         // MaterialCard doesn't have internal CollectionModal state.
+                         // User wants "option in department library on each file".
+                         // I need to emit an event or use a global modal context?
+                         // Current `AcademicControlCenter` has `collectionModalOpen`. 
+                         // But `MaterialCard` is used in list.
+                         // Let's assume we pass `onAddToCollection` prop or use a context.
+                         // For now, I'll allow the prop to be passed.
+                         if (onAddToCollection) onAddToCollection(material.id);
+                      }}
+                      className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
+                    >
+                      <FolderIcon className='w-4 h-4 mr-2' />
+                      Add to Collection
+                    </button>
+
                     <button
-                      onClick={handleShare}
+                      onClick={(e) => {
+                         e.stopPropagation();
+                         handleShare();
+                      }}
                       className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
                     >
                       <Share2 className='w-4 h-4 mr-2' />
                       Share
                     </button>
                     <button
-                      onClick={handleSummarize}
+                      onClick={(e) => {
+                         e.stopPropagation();
+                         handleSummarize();
+                      }}
                       className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
                     >
                       <SummarizeIcon className='w-4 h-4 mr-2' />
@@ -181,7 +214,8 @@ export function MaterialCard({ material, onDelete }: MaterialCardProps) {
                     </button>
                     {isOwner && (
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setMenuOpen(false);
                           setDeleteModalOpen(true);
                         }}

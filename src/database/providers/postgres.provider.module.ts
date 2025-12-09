@@ -18,4 +18,4 @@ import { AppDataSource } from '@/database/ormconfig';
     }),
   ],
 })
-export class PostgresDatabaseProviderModule { }
+export class PostgresDatabaseProviderModule {}

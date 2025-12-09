@@ -5,29 +5,39 @@
 @tailwind utilities;
 
 @layer base {
+
   html,
   body {
     @apply overflow-x-hidden;
   }
 
-  body {
-    @apply bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-gray-100;
-  }
+  @apply bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100;
+  /* Light Mode Gradient: Blue Header vibe fading to white */
+  background: linear-gradient(to bottom, #eff6ff 0%, #ffffff 30vh);
+  min-height: 100vh;
+}
 
-  /* Prevent iOS zoom on inputs */
-  @media screen and (max-width: 768px) {
-    input,
-    select,
-    textarea {
-      font-size: 16px !important;
-    }
-  }
+.dark body {
+  background: #030712;
+  /* Optional dark gradient */
+  background: linear-gradient(to bottom, #111827 0%, #030712 100%);
+}
 
-  /* Improve touch targets */
-  button,
-  a {
-    touch-action: manipulation;
+/* Prevent iOS zoom on inputs */
+@media screen and (max-width: 768px) {
+
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
   }
+}
+
+/* Improve touch targets */
+button,
+a {
+  touch-action: manipulation;
+}
 }
 
 @layer utilities {

@@ -5,6 +5,7 @@ import { BookOpen, FileText, Upload } from 'lucide-react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { LoadingState } from './LoadingState';
 import { MaterialCard } from './MaterialCard';
+import { CollectionModal } from './CollectionModal';
 
 interface Course {
   id: string;
@@ -44,6 +45,8 @@ const DepartmentView: React.FC = () => {
   const [recentMaterials, setRecentMaterials] = useState<Material[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [collectionModalOpen, setCollectionModalOpen] = useState(false);
+  const [selectedMaterialId, setSelectedMaterialId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (!user) return;
@@ -126,7 +129,7 @@ const DepartmentView: React.FC = () => {
   const departmentName =
     typeof user.department === 'string'
       ? user.department
-      : user.department.name;
+      : user.department.name ?? '';
 
   return (
     <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full overflow-y-auto'>
@@ -226,6 +229,10 @@ const DepartmentView: React.FC = () => {
                 <MaterialCard
                   material={material}
                   onDelete={handleDeleteMaterial}
+                  onAddToCollection={(id) => {
+                    setSelectedMaterialId(id);
+                    setCollectionModalOpen(true);
+                  }}
                 />
               </div>
             ))}
@@ -305,6 +312,10 @@ const DepartmentView: React.FC = () => {
               key={material.id}
               material={material}
               onDelete={handleDeleteMaterial}
+              onAddToCollection={(id) => {
+                setSelectedMaterialId(id);
+                setCollectionModalOpen(true);
+              }}
             />
           ))}
         {recentMaterials.length === 0 && (
@@ -319,6 +330,12 @@ const DepartmentView: React.FC = () => {
           </div>
         )}
       </div>
+
+      <CollectionModal
+        isOpen={collectionModalOpen}
+        onClose={() => setCollectionModalOpen(false)}
+        materialId={selectedMaterialId}
+      />
     </div>
   );
 };

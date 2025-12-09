@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import {
@@ -69,6 +70,7 @@ export function AcademicControlCenter() {
   } | null>(null);
   const [collections, setCollections] = useState<any[]>([]);
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
+  const [selectedMaterialForCollection, setSelectedMaterialForCollection] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -174,7 +176,7 @@ export function AcademicControlCenter() {
       {/* Hero: Resume Reading / Start Reading */}
       <div className='grid grid-cols-1 lg:grid-cols-4 gap-6'>
         {/* Hero: Resume Reading / Start Reading (3/4 Width) */}
-        <div className='lg:col-span-3 bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-all group relative overflow-hidden flex flex-col justify-center min-h-[280px]'>
+        <div className='lg:col-span-3 bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-all group relative overflow-hidden flex flex-col justify-center min-h-[200px] lg:min-h-[320px]'>
           <div className='absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none' />
 
           <div className='relative z-10'>
@@ -437,7 +439,7 @@ export function AcademicControlCenter() {
                       </div>
                     </div>
                     <div className='bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3'>
-                      <div className='text-lg font-bold text-gray-900 dark:text-gray-100 truncate'>
+                      <div className='text-lg font-bold text-gray-900 dark:text-gray-100 text-sm'>
                         {stage}
                       </div>
                       <div className='text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
@@ -485,6 +487,10 @@ export function AcademicControlCenter() {
                 },
                 course: { code: material.courseCode || '' },
               }}
+              onAddToCollection={(id) => {
+                setSelectedMaterialForCollection(id);
+                setCollectionModalOpen(true);
+              }}
             />
           ))}
 
@@ -524,6 +530,7 @@ export function AcademicControlCenter() {
       <CollectionModal
         isOpen={collectionModalOpen}
         onClose={() => setCollectionModalOpen(false)}
+        materialId={selectedMaterialForCollection}
       />
     </div>
   );
