@@ -124,9 +124,24 @@ export class ConversionService {
       }
     }
 
+    // Legacy .doc files - use officeparser
+    if (
+      originalname.endsWith('.doc') ||
+      (mimetype.includes('msword') && !mimetype.includes('officedocument'))
+    ) {
+      try {
+        const officeparser = await import('officeparser');
+        const text = await officeparser.parseOfficeAsync(buffer);
+        return text || '';
+      } catch (e) {
+        this.logger.warn('Failed to extract text from .doc with officeparser', e);
+        return '';
+      }
+    }
+
+    // .docx files - use mammoth (more reliable for modern Word docs)
     if (
       mimetype.includes('officedocument') ||
-      mimetype.includes('msword') ||
       originalname.endsWith('.docx')
     ) {
       try {
