@@ -348,7 +348,7 @@ export function AcademicControlCenter() {
       </div>
 
       {/* Heatmap Highlights (Stats) - Full Width */}
-      <div className='bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm'>
+      <div className='bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl p-4 md:p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm'>
         <div className='flex items-center justify-between mb-6'>
           <h2 className='text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center'>
             <TrendingUp className='w-5 h-5 mr-2 text-green-500' />
@@ -404,7 +404,7 @@ export function AcademicControlCenter() {
                     />
                   </svg>
                   <div className='absolute inset-0 flex flex-col items-center justify-center'>
-                    <span className='text-2xl font-bold text-gray-900 dark:text-gray-100'>
+                    <span className='text-2xl font-bold text-gray-900 dark:text-gray-100 text-center'>
                       {Math.round(percent)}%
                     </span>
                     {goalLevel > 1 && (
@@ -430,19 +430,19 @@ export function AcademicControlCenter() {
                   </div>
 
                   <div className='grid grid-cols-2 gap-4'>
-                    <div className='bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3'>
-                      <div className='text-lg font-bold text-gray-900 dark:text-gray-100 truncate'>
+                    <div className='bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3 flex flex-col items-center justify-center'>
+                      <div className='text-lg font-bold text-gray-900 dark:text-gray-100 truncate w-full text-center'>
                         {streak}
                       </div>
-                      <div className='text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap'>
+                      <div className='text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-[1px] whitespace-nowrap'>
                         Streak
                       </div>
                     </div>
-                    <div className='bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3'>
-                      <div className='text-lg font-bold text-gray-900 dark:text-gray-100 text-sm'>
+                    <div className='bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3 flex flex-col items-center justify-center'>
+                      <div className='text-lg font-bold text-gray-900 dark:text-gray-100 truncate w-full text-center'>
                         {stage}
                       </div>
-                      <div className='text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
+                      <div className='text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-[1px]'>
                         Level
                       </div>
                     </div>
