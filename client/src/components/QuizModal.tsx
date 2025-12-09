@@ -50,23 +50,28 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
     setLoading(false);
   };
 
-  const fetchQuiz = async () => {
+  const fetchQuiz = async (bypassCache = false) => {
     setLoading(true);
     try {
-      // Check cache first
       const cacheKey = `cached_quiz_${materialId}`;
-      const cached = localStorage.getItem(cacheKey);
-
-      if (cached) {
-        setQuestions(JSON.parse(cached));
-        setLoading(false);
-        return;
+      
+      if (!bypassCache) {
+        // Check cache first
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          setQuestions(JSON.parse(cached));
+          setLoading(false);
+          return;
+        }
+      } else {
+        // Clear cache if bypassing
+        localStorage.removeItem(cacheKey);
       }
 
       const res = await api.post(`/chat/quiz/${materialId}`);
       setQuestions(res.data);
 
-      // Cache it if not already cached
+      // Cache it
       localStorage.setItem(cacheKey, JSON.stringify(res.data));
     } catch {
       // console.error('Failed to fetch quiz', err);
@@ -225,21 +230,30 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
               </p>
 
               <div
-                className='flex justify-center space-x-4 animate-slide-in'
+                className='flex justify-center flex-wrap gap-4 animate-slide-in'
                 style={{ animationDelay: '0.3s' }}
               >
                 <button
                   onClick={onClose}
-                  className='px-8 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-all hover:scale-105'
+                  className='px-6 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-all'
                 >
                   Close
                 </button>
                 <button
-                  onClick={fetchQuiz}
-                  className='px-8 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-medium hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-purple-500/25 hover:scale-105 flex items-center'
+                  onClick={resetQuiz}
+                  className='px-6 py-3 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-xl font-medium hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-all'
+                >
+                  Retry
+                </button>
+                <button
+                  onClick={() => {
+                    resetQuiz();
+                    fetchQuiz(true);
+                  }}
+                  className='px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-medium hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-purple-500/25 flex items-center'
                 >
                   <Sparkles className='w-4 h-4 mr-2' />
-                  Try Again
+                  New Quiz
                 </button>
               </div>
             </div>
