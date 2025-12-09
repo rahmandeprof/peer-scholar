@@ -82,7 +82,7 @@ export function DashboardLayout() {
                 src='/logo.jpg'
                 alt='PeerToLearn Logo'
                 className='w-10 h-10 object-contain'
-                fetchpriority='high'
+                fetchPriority='high'
                 decoding='async'
               />
             </div>
@@ -135,8 +135,8 @@ export function DashboardLayout() {
                 <button
                   onClick={() => setToolsOpen(!toolsOpen)}
                   className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl transition-all duration-200 ${toolsOpen
-                      ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
+                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
                     }`}
                 >
                   <Briefcase className='w-5 h-5 mr-3' />
@@ -344,7 +344,7 @@ export function DashboardLayout() {
               src='/logo.jpg'
               alt='Logo'
               className='w-8 h-8 object-contain'
-              fetchpriority='high'
+              fetchPriority='high'
               decoding='async'
             />
             <span className='font-bold text-lg text-gray-900 dark:text-gray-100 tracking-tight'>

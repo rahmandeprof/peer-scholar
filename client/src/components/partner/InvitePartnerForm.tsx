@@ -1,4 +1,4 @@
-import { memo, useState, FormEvent } from 'react';
+import { memo, useState, type FormEvent } from 'react';
 import { Mail, UserPlus, Loader2 } from 'lucide-react';
 
 interface InvitePartnerFormProps {
