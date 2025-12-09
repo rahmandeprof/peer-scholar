@@ -299,6 +299,20 @@ export class MaterialsService {
     return Object.assign({}, material, { isFavorited });
   }
 
+  async getFavorites(userId: string) {
+    const favorites = await this.favoriteRepo.find({
+      where: { user: { id: userId } },
+      relations: ['material', 'material.uploader'],
+      order: { createdAt: 'DESC' },
+    });
+
+    return favorites.map((fav) => ({
+      // eslint-disable-next-line @typescript-eslint/no-misused-spread
+      ...fav.material,
+      isFavorited: true,
+    }));
+  }
+
   async extractText(id: string) {
     const material = await this.materialRepo.findOneBy({ id }); // Direct repo call to get Entity
 

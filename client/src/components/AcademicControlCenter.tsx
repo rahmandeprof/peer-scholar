@@ -172,105 +172,109 @@ export function AcademicControlCenter() {
       </div>
 
       {/* Hero: Resume Reading / Start Reading */}
-      <div className='bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-all group relative overflow-hidden'>
-        <div className='absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none' />
+      <div className='grid grid-cols-1 lg:grid-cols-4 gap-6'>
+        {/* Hero: Resume Reading / Start Reading (3/4 Width) */}
+        <div className='lg:col-span-3 bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-all group relative overflow-hidden flex flex-col justify-center min-h-[280px]'>
+          <div className='absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none' />
 
-        <div className='relative z-10'>
-          <div className='flex items-center justify-between mb-2'>
-            <h2 className='text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center'>
-              <Activity className='w-5 h-5 mr-2 text-primary-500' />
-              {lastOpened ? 'Resume Reading' : 'Start Reading'}
-            </h2>
-            {lastOpened && (
-              <span className='text-xs font-semibold text-primary-600 bg-primary-50 dark:bg-primary-900/20 px-2 py-0.5 rounded-full'>
-                Jump back in
-              </span>
-            )}
-          </div>
+          <div className='relative z-10'>
+            <div className='flex items-center justify-between mb-2'>
+              <h2 className='text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center'>
+                <Activity className='w-5 h-5 mr-2 text-primary-500' />
+                {lastOpened ? 'Resume Reading' : 'Start Reading'}
+              </h2>
+              {lastOpened && (
+                <span className='text-xs font-semibold text-primary-600 bg-primary-50 dark:bg-primary-900/20 px-2 py-0.5 rounded-full'>
+                  Jump back in
+                </span>
+              )}
+            </div>
 
-          {lastOpened ? (
-            <div className='flex items-center justify-between mt-4'>
-              <div className='cursor-pointer flex-1'>
-                <Link to={`/materials/${lastOpened.id}`} className='block'>
-                  <h3 className='text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors'>
-                    {lastOpened.title}
-                  </h3>
-                  <p className='text-gray-500 dark:text-gray-400 text-sm line-clamp-1'>
-                    {lastOpened.courseCode ? `${lastOpened.courseCode} • ` : ''}
-                    {lastOpened.type}
-                  </p>
+            {lastOpened ? (
+              <div className='flex items-center justify-between mt-4'>
+                <div className='cursor-pointer flex-1'>
+                  <Link to={`/materials/${lastOpened.id}`} className='block'>
+                    <h3 className='text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors'>
+                      {lastOpened.title}
+                    </h3>
+                    <p className='text-gray-500 dark:text-gray-400 text-sm line-clamp-1'>
+                      {lastOpened.courseCode
+                        ? `${lastOpened.courseCode} • `
+                        : ''}
+                      {lastOpened.type}
+                    </p>
+                  </Link>
+                </div>
+                <Link
+                  to={`/materials/${lastOpened.id}`}
+                  className='hidden md:flex ml-4 px-8 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium transition-colors items-center shadow-lg shadow-primary-500/20 text-lg'
+                >
+                  Continue
+                  <ArrowRight className='w-5 h-5 ml-2' />
                 </Link>
               </div>
-              <Link
-                to={`/materials/${lastOpened.id}`}
-                className='hidden md:flex ml-4 px-6 py-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium transition-colors items-center shadow-lg shadow-primary-500/20'
-              >
-                Continue
-                <ArrowRight className='w-4 h-4 ml-2' />
-              </Link>
-            </div>
-          ) : (
-            <div className='text-center py-8'>
-              <p className='text-gray-500 dark:text-gray-400 mb-4'>
-                No recent files opened.
-              </p>
-              <button
-                onClick={openUploadModal}
-                className='px-6 py-2.5 bg-primary-500 text-white rounded-xl text-sm font-medium hover:bg-primary-600 transition-colors shadow-lg shadow-primary-500/20'
-              >
-                Upload Material
-              </button>
-            </div>
-          )}
+            ) : (
+              <div className='text-center py-8'>
+                <p className='text-gray-500 dark:text-gray-400 mb-4'>
+                  No recent files opened.
+                </p>
+                <button
+                  onClick={openUploadModal}
+                  className='px-6 py-2.5 bg-primary-500 text-white rounded-xl text-sm font-medium hover:bg-primary-600 transition-colors shadow-lg shadow-primary-500/20'
+                >
+                  Upload Material
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Quick Access: Favorites & Collections */}
-      <div className='space-y-4'>
-        <div className='flex items-center justify-between'>
-          <h2 className='text-lg font-bold text-gray-900 dark:text-gray-100'>
+        {/* Quick Access: Favorites & Collections (1/4 Width - Vertical Stack) */}
+        <div className='lg:col-span-1 space-y-4'>
+          <h2 className='text-lg font-bold text-gray-900 dark:text-gray-100 px-1'>
             Quick Access
           </h2>
-        </div>
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
-          <FolderCard
-            id='favorites'
-            title='Favorites'
-            count={0} // To implement count logic later
-            isFavorite={true}
-            compact={true} // Always compact if empty, logic to be refined with real data
-            onClick={() =>
-              setFolderView({
-                id: 'favorites',
-                title: 'Favorites',
-                type: 'favorites',
-              })
-            }
-          />
-          {collections.map((col) => (
+          <div className='space-y-3 max-h-[280px] overflow-y-auto custom-scrollbar pr-1'>
             <FolderCard
-              key={col.id}
-              id={col.id}
-              title={col.title}
-              count={col.count || 0}
-              color={col.color}
+              id='favorites'
+              title='Favorites'
+              count={0}
+              isFavorite={true}
+              compact={true}
               onClick={() =>
                 setFolderView({
-                  id: col.id,
-                  title: col.title,
-                  type: 'collection',
+                  id: 'favorites',
+                  title: 'Favorites',
+                  type: 'favorites',
                 })
               }
             />
-          ))}
-          {/* Add New Collection Card */}
-          <button
-            onClick={() => setCollectionModalOpen(true)}
-            className='p-4 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-gray-800/50 transition-all flex items-center justify-center text-gray-400 hover:text-primary-600 min-h-[80px]'
-          >
-            <Plus className='w-5 h-5 mr-2' />
-            <span className='font-medium text-sm'>New Collection</span>
-          </button>
+            {collections.map((col) => (
+              <FolderCard
+                key={col.id}
+                id={col.id}
+                title={col.title}
+                count={col.count || 0}
+                color={col.color}
+                compact={true} // Force compact for side list
+                onClick={() =>
+                  setFolderView({
+                    id: col.id,
+                    title: col.title,
+                    type: 'collection',
+                  })
+                }
+              />
+            ))}
+            {/* Add New Collection Button (Mini) */}
+            <button
+              onClick={() => setCollectionModalOpen(true)}
+              className='w-full p-3 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-gray-800/50 transition-all flex items-center justify-center text-gray-400 hover:text-primary-600'
+            >
+              <Plus className='w-4 h-4 mr-2' />
+              <span className='font-medium text-sm'>New Collection</span>
+            </button>
+          </div>
         </div>
       </div>
 

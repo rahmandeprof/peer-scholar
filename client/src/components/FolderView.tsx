@@ -34,8 +34,8 @@ export function FolderView({ folder, onClose, onUpdate }: FolderViewProps) {
         // Usually GET /users/favorites or similar.
         // Let's assume GET /users/activity/favorites exists or create it.
         // Actually, we can use the MaterialFavorite entity relation.
-        // Let's assume we fetch `GET /academic/materials/favorites`.
-        const res = await api.get('/academic/materials/favorites');
+        // Let's assume we fetch `GET /materials/favorites`.
+        const res = await api.get('/materials/favorites');
         setMaterials(res.data);
       } else {
         // Collection
@@ -53,7 +53,17 @@ export function FolderView({ folder, onClose, onUpdate }: FolderViewProps) {
   const handleRemoveFromFolder = async (materialId: string) => {
     try {
       if (folder.type === 'favorites') {
-        await api.delete(`/academic/materials/${materialId}/favorite`);
+        await api.post(`/materials/${materialId}/favorite`); // Use POST to toggle (which handles remove) or DELETE if explicit
+        // The controller uses POST :id/favorite to toggle.
+        // But here we want to remove.
+        // Let's call the toggle endpoint.
+        // Wait, FolderView calls DELETE.
+        // The Controller toggle logic is remove-if-exists.
+        // So calling POST `materials/:id/favorite` will remove it if it's there.
+        // But `FolderView` code is `api.delete`.
+        // Let's check `MaterialView`. usage: `api.post`.
+        // So I should change `api.delete` to `api.post` for consistency with toggle logic.
+        await api.post(`/materials/${materialId}/favorite`);
       } else {
         await api.delete(
           `/academic/collections/${folder.id}/materials/${materialId}`,
