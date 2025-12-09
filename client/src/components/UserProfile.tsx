@@ -242,7 +242,7 @@ export function UserProfile({ onClose }: UserProfileProps) {
           </button>
         </div>
 
-        <div className='p-6'>
+        <div className='p-6 min-h-[400px]'>
           {activeTab === 'quizzes' ? (
             <QuizHistory />
           ) : activeTab === 'data' ? (
@@ -442,8 +442,8 @@ export function UserProfile({ onClose }: UserProfileProps) {
                 </div>
               </div>
 
-              <div className='flex justify-center mb-6 space-x-4'>
-                <div className='bg-yellow-50 dark:bg-yellow-900/20 px-4 py-2 rounded-xl border border-yellow-200 dark:border-yellow-800 flex items-center'>
+              <div className='flex flex-wrap justify-center gap-3 mb-6'>
+                <div className='bg-yellow-50 dark:bg-yellow-900/20 px-3 py-2 rounded-xl border border-yellow-200 dark:border-yellow-800 flex items-center min-w-0 max-w-[180px] flex-shrink'>
                   <Trophy className='w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2' />
                   <div>
                     <div className='w-full'>
@@ -474,8 +474,8 @@ export function UserProfile({ onClose }: UserProfileProps) {
                   </div>
                 </div>
                 {user.isVerified && (
-                  <div className='bg-blue-50 dark:bg-blue-900/20 px-4 py-2 rounded-xl border border-blue-200 dark:border-blue-800 flex items-center'>
-                    <Shield className='w-5 h-5 text-blue-600 dark:text-blue-400 mr-2' />
+                  <div className='bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-xl border border-blue-200 dark:border-blue-800 flex items-center flex-shrink-0'>
+                    <Shield className='w-4 h-4 text-blue-600 dark:text-blue-400 mr-2 flex-shrink-0' />
                     <div>
                       <p className='text-xs text-blue-600 dark:text-blue-400 font-medium uppercase tracking-wider'>
                         Status
