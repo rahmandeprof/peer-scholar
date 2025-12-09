@@ -28,7 +28,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (isLoading) {
     return (
-      <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950'>
+      <div className='min-h-screen flex items-center justify-center'>
         <Loader2 className='w-8 h-8 animate-spin text-primary-600' />
       </div>
     );
@@ -60,14 +60,14 @@ function AppContent() {
 
   if (isLoading) {
     return (
-      <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950'>
+      <div className='min-h-screen flex items-center justify-center'>
         <Loader2 className='w-8 h-8 animate-spin text-primary-600' />
       </div>
     );
   }
 
   return (
-    <div className='min-h-screen bg-gray-50 dark:bg-gray-950'>
+    <div className='min-h-screen text-gray-900 dark:text-gray-100'>
       <Routes>
         <Route path='/auth/callback' element={<GoogleCallback />} />
         <Route path='/verify-email' element={<VerifyEmail />} />
