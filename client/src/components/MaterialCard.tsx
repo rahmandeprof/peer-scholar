@@ -156,7 +156,17 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
                 {menuOpen && (
                   <div
                     className='absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-20 py-1 animate-pop-in overscroll-contain max-h-[200px] overflow-y-auto'
-                    onScroll={(e) => e.stopPropagation()}
+                    onWheel={(e) => {
+                      const el = e.currentTarget;
+                      const isAtTop = el.scrollTop === 0;
+                      const isAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight;
+
+                      // Prevent scroll from leaking to parent when at boundaries
+                      if ((isAtTop && e.deltaY < 0) || (isAtBottom && e.deltaY > 0)) {
+                        e.preventDefault();
+                      }
+                      e.stopPropagation();
+                    }}
                     onTouchMove={(e) => e.stopPropagation()}
                     onClick={(e) => e.stopPropagation()}
                   >
