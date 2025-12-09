@@ -79,14 +79,11 @@ export class ChatService {
       topic?: string;
     },
   ) {
-    const text = await this.extractTextFromFile(file);
-
     // Upload to Cloudinary
     let url = '';
 
     try {
       const uploadResult = await this.cloudinaryService.uploadFile(file);
-
       url = uploadResult.url;
     } catch (error) {
       this.logger.error(
@@ -96,23 +93,25 @@ export class ChatService {
       url = 'https://placeholder.com/file-upload-failed';
     }
 
-    // Convert to PDF if Docx/PPTX
+    // Handle File Processing (Text Extraction & PDF Conversion)
     let pdfUrl = '';
+    let content = '';
 
-    if (
+    const isOfficeDoc =
       file.mimetype.includes('officedocument') ||
       file.mimetype.includes('msword') ||
       file.mimetype.includes('presentation') ||
       file.originalname.endsWith('.docx') ||
-      file.originalname.endsWith('.pptx')
-    ) {
+      file.originalname.endsWith('.pptx');
+
+    if (isOfficeDoc) {
       try {
         const pdfBuffer = await this.conversionService.convertToPdf(
           file.buffer,
           file.originalname,
         );
+
         // Upload PDF to Cloudinary
-        // Create a mock file object for upload
         const pdfFile: Express.Multer.File = {
           ...file,
           buffer: pdfBuffer,
@@ -120,11 +119,22 @@ export class ChatService {
           mimetype: 'application/pdf',
         };
         const pdfUpload = await this.cloudinaryService.uploadFile(pdfFile);
-
         pdfUrl = pdfUpload.url;
+
+        // Extract text from the GENERATED PDF (reliable)
+        content = await this.conversionService.extractText(
+          pdfBuffer,
+          'application/pdf',
+          'converted.pdf',
+        );
       } catch (error) {
-        this.logger.error('Failed to convert/upload PDF', error);
+        this.logger.error('Failed to convert/process Office file', error);
+        // Fallback to raw extraction if conversion fails
+        content = await this.extractTextFromFile(file);
       }
+    } else {
+      // For PDF, Text, etc. - extract directly
+      content = await this.extractTextFromFile(file);
     }
 
     const material = this.materialRepo.create({
@@ -132,7 +142,7 @@ export class ChatService {
       type: metadata.category,
       scope:
         metadata.isPublic === 'true' ? AccessScope.PUBLIC : AccessScope.COURSE,
-      content: text,
+      content,
       fileUrl: url,
       pdfUrl: pdfUrl || (file.mimetype === 'application/pdf' ? url : undefined),
       fileType: file.mimetype,
