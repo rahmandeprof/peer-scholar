@@ -488,22 +488,45 @@ export class ChatService {
 
     if (!this.openai) throw new InternalServerErrorException('AI service is not configured');
 
-    const systemPrompt = `You are a strict API endpoint. You receive text and output ONLY valid JSON.`;
-    const userPrompt = `Generate 5 multiple-choice questions based on the following text.
-    Return the result as a JSON object with a "questions" key containing an array of objects with the following structure:
+    const systemPrompt = `You are an expert exam preparation assistant. Generate diverse, challenging quiz questions that prepare students for exams. Avoid repetitive or obvious questions - dig into nuanced details, implications, and edge cases from the material.`;
+    const userPrompt = `Generate 5 diverse multiple-choice questions based on the following text. 
+
+IMPORTANT GUIDELINES:
+1. **Question Diversity**: Include a MIX of question types:
+   - Factual recall (what, when, who)
+   - Conceptual understanding (why, how)
+   - Application/scenario-based questions
+   - Comparison questions
+   - "Which of the following is NOT..." style questions
+
+2. **Difficulty Range**: Vary difficulty levels:
+   - 1-2 straightforward questions
+   - 2 moderate questions requiring deeper understanding
+   - 1 challenging question on subtle details or implications
+
+3. **Avoid Repetition**: Each question should cover a DIFFERENT aspect of the material. Never ask about the same concept twice.
+
+4. **Tricky Distractors**: Make wrong options plausible but clearly incorrect upon careful thought.
+
+5. **Explanations**: For the "explanation" field, provide:
+   - Why the correct answer is right
+   - A brief insight or "did you know" fact related to the concept
+   - For correct answers: Include an encouraging phrase like "Well done!", "Excellent!", "You're on fire!", "Keep it up!"
+
+Return the result as a JSON object with a "questions" key containing an array of objects:
+{
+  "questions": [
     {
-      "questions": [
-        {
-          "question": "string",
-          "options": ["string", "string", "string", "string"],
-          "correctAnswer": "string",
-          "explanation": "string"
-        }
-      ]
+      "question": "string",
+      "options": ["string", "string", "string", "string"],
+      "correctAnswer": "string (must exactly match one of the options)",
+      "explanation": "string (encouraging explanation with insight)"
     }
-    
-    Text:
-    ${materialContent.substring(0, 6000)}`; // Still cap at 6000 for token limits if pageLimit is huge
+  ]
+}
+
+Text:
+${materialContent.substring(0, 6000)}`; // Still cap at 6000 for token limits if pageLimit is huge
 
     try {
       const response = await this.openai.chat.completions.create({

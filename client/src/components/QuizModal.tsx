@@ -7,6 +7,7 @@ import {
   ArrowRight,
   Loader2,
   Sparkles,
+  Lightbulb,
 } from 'lucide-react';
 import api from '../lib/api';
 
@@ -20,6 +21,7 @@ interface Question {
   question: string;
   options: string[];
   correctAnswer: string;
+  explanation?: string;
 }
 
 export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
@@ -54,7 +56,7 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
     setLoading(true);
     try {
       const cacheKey = `cached_quiz_${materialId}`;
-      
+
       if (!bypassCache) {
         // Check cache first
         const cached = localStorage.getItem(cacheKey);
@@ -269,13 +271,12 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
                   {questions.map((_, idx) => (
                     <div
                       key={idx}
-                      className={`h-2 w-8 rounded-full transition-all duration-300 ${
-                        idx < currentQuestionIndex
+                      className={`h-2 w-8 rounded-full transition-all duration-300 ${idx < currentQuestionIndex
                           ? 'bg-purple-600'
                           : idx === currentQuestionIndex
                             ? 'bg-purple-400 w-12'
                             : 'bg-gray-200 dark:bg-gray-700'
-                      }`}
+                        }`}
                     />
                   ))}
                 </div>
@@ -340,6 +341,37 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
                   );
                 })}
               </div>
+
+              {/* Explanation Display */}
+              {selectedOption && questions[currentQuestionIndex].explanation && (
+                <div className={`p-4 rounded-xl mb-6 animate-slide-in ${isCorrect
+                    ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                    : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800'
+                  }`}>
+                  <div className='flex items-start gap-3'>
+                    <div className={`p-2 rounded-lg ${isCorrect
+                        ? 'bg-green-100 dark:bg-green-800/30'
+                        : 'bg-amber-100 dark:bg-amber-800/30'
+                      }`}>
+                      <Lightbulb className={`w-5 h-5 ${isCorrect
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-amber-600 dark:text-amber-400'
+                        }`} />
+                    </div>
+                    <div>
+                      <p className={`font-medium mb-1 ${isCorrect
+                          ? 'text-green-700 dark:text-green-300'
+                          : 'text-amber-700 dark:text-amber-300'
+                        }`}>
+                        {isCorrect ? '🎉 Great job!' : '💡 Learn from this:'}
+                      </p>
+                      <p className='text-gray-700 dark:text-gray-300 text-sm leading-relaxed'>
+                        {questions[currentQuestionIndex].explanation}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {selectedOption && (
                 <div className='flex justify-end animate-slide-in'>
