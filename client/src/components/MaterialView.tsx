@@ -86,6 +86,9 @@ export const MaterialView = () => {
   const readingSecondsRef = useRef(0);
   const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Continue reading from last position
+  const [lastReadPage, setLastReadPage] = useState(1);
+
   const handleSessionEnd = () => {
     setSessionEndModalOpen(true);
   };
@@ -146,6 +149,16 @@ export const MaterialView = () => {
             page: 1,
           })
           .catch(console.error);
+
+        // Fetch last read page for this material (to resume)
+        try {
+          const activityRes = await api.get('/users/activity/recent');
+          if (activityRes.data.lastReadMaterialId === id && activityRes.data.lastReadPage > 1) {
+            setLastReadPage(activityRes.data.lastReadPage);
+          }
+        } catch {
+          // Ignore if failed
+        }
 
         // Start reading session for time tracking
         try {
@@ -636,6 +649,7 @@ export const MaterialView = () => {
               <PDFViewer
                 url={material.pdfUrl || material.fileUrl}
                 materialId={material.id}
+                initialPage={lastReadPage}
               />
             ) : material.fileType.includes('text') ||
               material.fileType.includes('json') ||

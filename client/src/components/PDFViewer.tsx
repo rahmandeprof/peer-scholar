@@ -15,16 +15,25 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 interface PDFViewerProps {
   url: string;
   materialId?: string;
+  initialPage?: number;
 }
 
-export function PDFViewer({ url, materialId }: PDFViewerProps) {
+export function PDFViewer({ url, materialId, initialPage = 1 }: PDFViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
-  const [pageNumber, setPageNumber] = useState<number>(1);
+  const [pageNumber, setPageNumber] = useState<number>(initialPage);
   const [scale, setScale] = useState<number>(1.0);
+  const [hasSetInitialPage, setHasSetInitialPage] = useState(false);
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
     setNumPages(numPages);
-    setPageNumber(1);
+    // Only set initial page on first load
+    if (!hasSetInitialPage && initialPage > 1 && initialPage <= numPages) {
+      setPageNumber(initialPage);
+      setHasSetInitialPage(true);
+    } else if (!hasSetInitialPage) {
+      setPageNumber(1);
+      setHasSetInitialPage(true);
+    }
   }
 
   // Track page changes
@@ -135,7 +144,7 @@ export function PDFViewer({ url, materialId }: PDFViewerProps) {
                 renderAnnotationLayer={true}
                 loading={
                   <div className='flex items-center justify-center h-[800px] bg-white'>
-                     <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600'></div>
+                    <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600'></div>
                   </div>
                 }
               />
@@ -148,9 +157,9 @@ export function PDFViewer({ url, materialId }: PDFViewerProps) {
               renderTextLayer={true}
               renderAnnotationLayer={true}
               loading={
-                 <div className='flex items-center justify-center h-[800px] bg-white'>
-                    <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600'></div>
-                 </div>
+                <div className='flex items-center justify-center h-[800px] bg-white'>
+                  <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600'></div>
+                </div>
               }
             />
           )}
