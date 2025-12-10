@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -79,6 +79,11 @@ export const MaterialView = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
 
+  // Reading time tracking for weekly goals
+  const [readingSessionId, setReadingSessionId] = useState<string | null>(null);
+  const readingSecondsRef = useRef(0);
+  const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const handleSessionEnd = () => {
     setSessionEndModalOpen(true);
   };
@@ -143,6 +148,15 @@ export const MaterialView = () => {
           })
           .catch(console.error);
 
+        // Start reading session for time tracking
+        try {
+          const sessionRes = await api.post('/study/reading/start');
+          setReadingSessionId(sessionRes.data.id);
+          readingSecondsRef.current = sessionRes.data.durationSeconds || 0;
+        } catch (err) {
+          console.error('Failed to start reading session', err);
+        }
+
         setAverageRating(res.data.averageRating || 0);
 
         // Fetch interaction status
@@ -160,6 +174,38 @@ export const MaterialView = () => {
       void fetchMaterial();
     }
   }, [id]);
+
+  // Reading time heartbeat - sends every 30 seconds while viewing
+  useEffect(() => {
+    if (!readingSessionId) return;
+
+    // Start counting time locally
+    const startTime = Date.now() - (readingSecondsRef.current * 1000);
+
+    heartbeatIntervalRef.current = setInterval(() => {
+      const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+      readingSecondsRef.current = elapsedSeconds;
+
+      // Send heartbeat to backend
+      api.post('/study/reading/heartbeat', {
+        sessionId: readingSessionId,
+        seconds: elapsedSeconds,
+      }).catch(console.error);
+    }, 30000); // Every 30 seconds
+
+    // Cleanup on unmount
+    return () => {
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+      }
+      // Send final heartbeat on leave
+      const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+      api.post('/study/reading/heartbeat', {
+        sessionId: readingSessionId,
+        seconds: elapsedSeconds,
+      }).catch(console.error);
+    };
+  }, [readingSessionId]);
 
   // Background Pre-fetching for Quiz
   useEffect(() => {
@@ -321,11 +367,10 @@ export const MaterialView = () => {
 
             <button
               onClick={() => setJotterOpen(!jotterOpen)}
-              className={`hidden md:flex px-3 py-1.5 rounded-full transition-colors items-center font-medium text-sm ${
-                jotterOpen
-                  ? 'bg-yellow-200 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-400'
-                  : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-200 dark:hover:bg-yellow-900/50'
-              }`}
+              className={`hidden md:flex px-3 py-1.5 rounded-full transition-colors items-center font-medium text-sm ${jotterOpen
+                ? 'bg-yellow-200 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-400'
+                : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-200 dark:hover:bg-yellow-900/50'
+                }`}
             >
               <PenTool className='w-4 h-4 mr-1.5' />
               Jotter
@@ -333,11 +378,10 @@ export const MaterialView = () => {
 
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className={`hidden md:flex p-2 rounded-full transition-colors ${
-                sidebarOpen
-                  ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
-                  : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
+              className={`hidden md:flex p-2 rounded-full transition-colors ${sidebarOpen
+                ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
+                : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
               title='Open AI Companion'
             >
               <Sparkles className='w-5 h-5' />

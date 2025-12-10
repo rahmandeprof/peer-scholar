@@ -15,7 +15,7 @@ interface RequestWithUser extends Request {
 @Controller('study')
 @UseGuards(AuthGuard('jwt'))
 export class StudyController {
-  constructor(private readonly studyService: StudyService) {}
+  constructor(private readonly studyService: StudyService) { }
 
   @Post('start')
   startSession(
@@ -57,5 +57,27 @@ export class StudyController {
     }
 
     return this.studyService.getWeeklyStats(req.user.id);
+  }
+
+  @Post('reading/start')
+  startReading(@Req() req: RequestWithUser) {
+    if (!req.user) {
+      throw new Error('User not found');
+    }
+
+    return this.studyService.startOrContinueReadingSession(req.user.id);
+  }
+
+  @Post('reading/heartbeat')
+  readingHeartbeat(
+    @Req() req: RequestWithUser,
+    @Body('sessionId') sessionId: string,
+    @Body('seconds') seconds: number,
+  ) {
+    if (!req.user) {
+      throw new Error('User not found');
+    }
+
+    return this.studyService.readingHeartbeat(req.user.id, sessionId, seconds);
   }
 }

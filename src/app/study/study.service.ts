@@ -18,7 +18,7 @@ export class StudyService {
     @InjectRepository(StudySession)
     private readonly studySessionRepo: Repository<StudySession>,
     private readonly usersService: UsersService,
-  ) {}
+  ) { }
 
   startSession(userId: string, type: StudySessionType) {
     const session = this.studySessionRepo.create({
@@ -50,7 +50,8 @@ export class StudyService {
 
     if (
       session.type === StudySessionType.STUDY ||
-      session.type === StudySessionType.TEST
+      session.type === StudySessionType.TEST ||
+      session.type === StudySessionType.READING
     ) {
       await this.usersService.updateStreak(userId);
       await this.usersService.increaseReputation(
@@ -60,6 +61,65 @@ export class StudyService {
     }
 
     return session;
+  }
+
+  /**
+   * Start or continue a reading session for file viewing
+   * Returns existing active session or creates new one
+   */
+  async startOrContinueReadingSession(userId: string) {
+    // Find any active reading session in the last 30 minutes
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+
+    const activeSession = await this.studySessionRepo.findOne({
+      where: {
+        userId,
+        type: StudySessionType.READING,
+        completed: false,
+      },
+      order: { startTime: 'DESC' },
+    });
+
+    if (activeSession && activeSession.startTime > thirtyMinutesAgo) {
+      return activeSession;
+    }
+
+    // Close the old session if it exists
+    if (activeSession) {
+      activeSession.completed = true;
+      activeSession.endTime = new Date();
+      await this.studySessionRepo.save(activeSession);
+    }
+
+    // Create new reading session
+    const session = this.studySessionRepo.create({
+      userId,
+      type: StudySessionType.READING,
+      startTime: new Date(),
+      durationSeconds: 0,
+    });
+
+    return this.studySessionRepo.save(session);
+  }
+
+  /**
+   * Heartbeat to update reading session duration
+   * Called every 30 seconds from the frontend while viewing a file
+   */
+  async readingHeartbeat(userId: string, sessionId: string, seconds: number) {
+    const session = await this.studySessionRepo.findOne({
+      where: { id: sessionId, userId, type: StudySessionType.READING },
+    });
+
+    if (!session) {
+      throw new NotFoundException('Reading session not found');
+    }
+
+    // Update duration
+    session.durationSeconds = seconds;
+    await this.studySessionRepo.save(session);
+
+    return { success: true, durationSeconds: session.durationSeconds };
   }
 
   getStreak(userId: string) {

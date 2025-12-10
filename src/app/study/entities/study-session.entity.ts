@@ -7,6 +7,7 @@ export enum StudySessionType {
   STUDY = 'study',
   TEST = 'test',
   REST = 'rest',
+  READING = 'reading', // Tracks actual time viewing files
 }
 
 @Entity()
