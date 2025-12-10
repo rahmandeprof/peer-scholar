@@ -465,10 +465,38 @@ export class ChatService {
 
     let materialContent = material.content;
 
-    if (!materialContent)
+    // If content is null, try to extract it on-demand
+    if (!materialContent) {
+      try {
+        const axios = await import('axios');
+        const response = await axios.default.get(material.fileUrl, {
+          responseType: 'arraybuffer',
+        });
+        const buffer = Buffer.from(response.data);
+        materialContent = await this.conversionService.extractText(
+          buffer,
+          material.fileType,
+          material.title,
+        );
+
+        // Save extracted content for future use
+        if (materialContent) {
+          material.content = materialContent;
+          await this.materialRepo.save(material);
+        }
+      } catch (error) {
+        this.logger.error('Failed to extract text on-demand for quiz', error);
+        throw new BadRequestException(
+          'Material content is not available. Please re-upload the file.',
+        );
+      }
+    }
+
+    if (!materialContent) {
       throw new BadRequestException(
         'Material content is not available. Please re-upload the file.',
       );
+    }
 
     // If page range is provided, extract content by page range
     // Approximation: 3000 characters per page
@@ -584,12 +612,40 @@ ${materialContent.substring(0, 6000)}`; // Still cap at 6000 for token limits if
       return material.flashcards;
     }
 
-    const materialContent = material.content;
+    let materialContent = material.content;
 
-    if (!materialContent)
+    // If content is null, try to extract it on-demand
+    if (!materialContent) {
+      try {
+        const axios = await import('axios');
+        const response = await axios.default.get(material.fileUrl, {
+          responseType: 'arraybuffer',
+        });
+        const buffer = Buffer.from(response.data);
+        materialContent = await this.conversionService.extractText(
+          buffer,
+          material.fileType,
+          material.title,
+        );
+
+        // Save extracted content for future use
+        if (materialContent) {
+          material.content = materialContent;
+          await this.materialRepo.save(material);
+        }
+      } catch (error) {
+        this.logger.error('Failed to extract text on-demand for flashcards', error);
+        throw new BadRequestException(
+          'Material content is not available. Please re-upload the file.',
+        );
+      }
+    }
+
+    if (!materialContent) {
       throw new BadRequestException(
         'Material content is not available. Please re-upload the file.',
       );
+    }
 
     if (!this.openai) throw new InternalServerErrorException('AI service is not configured');
 
