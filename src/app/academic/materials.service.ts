@@ -18,6 +18,7 @@ import { MaterialFavorite } from './entities/material-favorite.entity';
 import { MaterialRating } from './entities/material-rating.entity';
 import { MaterialReport } from './entities/material-report.entity';
 import { Note } from './entities/note.entity';
+import { PublicNote, PublicNoteVote } from './entities/public-note.entity';
 import { Course } from '@/app/academic/entities/course.entity';
 import { User } from '@/app/users/entities/user.entity';
 
@@ -52,6 +53,10 @@ export class MaterialsService {
     private reportRepo: Repository<MaterialReport>,
     @InjectRepository(Note)
     private noteRepo: Repository<Note>,
+    @InjectRepository(PublicNote)
+    private publicNoteRepo: Repository<PublicNote>,
+    @InjectRepository(PublicNoteVote)
+    private publicNoteVoteRepo: Repository<PublicNoteVote>,
   ) {
     cloudinary.config({
       cloud_name: this.configService.get('CLOUD_NAME'),
@@ -548,5 +553,145 @@ export class MaterialsService {
     return this.noteRepo.findOne({
       where: { userId, materialId },
     });
+  }
+
+  // Public Notes CRUD
+  async createPublicNote(
+    materialId: string,
+    userId: string,
+    data: {
+      selectedText: string;
+      note: string;
+      pageNumber?: number;
+      contextBefore?: string;
+      contextAfter?: string;
+    },
+  ) {
+    const publicNote = this.publicNoteRepo.create({
+      materialId,
+      userId,
+      selectedText: data.selectedText,
+      note: data.note,
+      pageNumber: data.pageNumber,
+      contextBefore: data.contextBefore,
+      contextAfter: data.contextAfter,
+    });
+
+    return this.publicNoteRepo.save(publicNote);
+  }
+
+  async getPublicNotes(materialId: string, userId?: string) {
+    const notes = await this.publicNoteRepo.find({
+      where: { materialId },
+      relations: ['user'],
+      order: { createdAt: 'DESC' },
+    });
+
+    // Add user vote status if userId provided
+    if (userId) {
+      const votes = await this.publicNoteVoteRepo.find({
+        where: { userId },
+      });
+      const voteMap = new Map(votes.map((v) => [v.noteId, v.value]));
+
+      return notes.map((note) => ({
+        ...note,
+        userVote: voteMap.get(note.id) || 0,
+        user: {
+          id: note.user.id,
+          firstName: note.user.firstName,
+          lastName: note.user.lastName,
+        },
+      }));
+    }
+
+    return notes.map((note) => ({
+      ...note,
+      userVote: 0,
+      user: {
+        id: note.user.id,
+        firstName: note.user.firstName,
+        lastName: note.user.lastName,
+      },
+    }));
+  }
+
+  async deletePublicNote(noteId: string, userId: string) {
+    const note = await this.publicNoteRepo.findOne({
+      where: { id: noteId, userId },
+    });
+
+    if (!note) {
+      throw new NotFoundException('Note not found or you are not the author');
+    }
+
+    await this.publicNoteRepo.delete(noteId);
+    return { success: true };
+  }
+
+  async votePublicNote(noteId: string, userId: string, value: number) {
+    // value should be 1 (upvote), -1 (downvote), or 0 (remove vote)
+    const normalizedValue = Math.max(-1, Math.min(1, value));
+
+    const note = await this.publicNoteRepo.findOne({ where: { id: noteId } });
+    if (!note) {
+      throw new NotFoundException('Note not found');
+    }
+
+    const existingVote = await this.publicNoteVoteRepo.findOne({
+      where: { noteId, userId },
+    });
+
+    if (normalizedValue === 0) {
+      // Remove vote
+      if (existingVote) {
+        // Undo the old vote from counts
+        if (existingVote.value === 1) {
+          note.upvotes = Math.max(0, note.upvotes - 1);
+        } else if (existingVote.value === -1) {
+          note.downvotes = Math.max(0, note.downvotes - 1);
+        }
+        await this.publicNoteVoteRepo.delete(existingVote.id);
+      }
+    } else if (existingVote) {
+      // Update existing vote
+      if (existingVote.value !== normalizedValue) {
+        // Undo old vote
+        if (existingVote.value === 1) {
+          note.upvotes = Math.max(0, note.upvotes - 1);
+        } else if (existingVote.value === -1) {
+          note.downvotes = Math.max(0, note.downvotes - 1);
+        }
+        // Apply new vote
+        if (normalizedValue === 1) {
+          note.upvotes += 1;
+        } else {
+          note.downvotes += 1;
+        }
+        existingVote.value = normalizedValue;
+        await this.publicNoteVoteRepo.save(existingVote);
+      }
+    } else {
+      // Create new vote
+      const newVote = this.publicNoteVoteRepo.create({
+        noteId,
+        userId,
+        value: normalizedValue,
+      });
+      await this.publicNoteVoteRepo.save(newVote);
+      if (normalizedValue === 1) {
+        note.upvotes += 1;
+      } else {
+        note.downvotes += 1;
+      }
+    }
+
+    await this.publicNoteRepo.save(note);
+
+    return {
+      upvotes: note.upvotes,
+      downvotes: note.downvotes,
+      userVote: normalizedValue,
+    };
   }
 }

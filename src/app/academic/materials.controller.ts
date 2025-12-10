@@ -22,7 +22,7 @@ import { MaterialsService } from './materials.service';
 @Controller('materials')
 @UseGuards(AuthGuard('jwt'))
 export class MaterialsController {
-  constructor(private readonly materialsService: MaterialsService) {}
+  constructor(private readonly materialsService: MaterialsService) { }
 
   @Get('presign')
   getPresignedUrl() {
@@ -182,5 +182,48 @@ export class MaterialsController {
     @Req() req: any,
   ) {
     return this.materialsService.getNote(req.user.id, id);
+  }
+
+  // Public Notes Endpoints
+  @Get(':id/public-notes')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getPublicNotes(@Param('id') id: string, @Req() req: any) {
+    return this.materialsService.getPublicNotes(id, req.user?.id);
+  }
+
+  @Post(':id/public-notes')
+  createPublicNote(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      selectedText: string;
+      note: string;
+      pageNumber?: number;
+      contextBefore?: string;
+      contextAfter?: string;
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    @Req() req: any,
+  ) {
+    return this.materialsService.createPublicNote(id, req.user.id, body);
+  }
+
+  @Post(':id/public-notes/:noteId/delete')
+  deletePublicNote(
+    @Param('noteId') noteId: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    @Req() req: any,
+  ) {
+    return this.materialsService.deletePublicNote(noteId, req.user.id);
+  }
+
+  @Post(':id/public-notes/:noteId/vote')
+  votePublicNote(
+    @Param('noteId') noteId: string,
+    @Body('value') value: number,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    @Req() req: any,
+  ) {
+    return this.materialsService.votePublicNote(noteId, req.user.id, value);
   }
 }

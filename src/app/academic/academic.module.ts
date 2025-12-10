@@ -15,6 +15,7 @@ import { MaterialRating } from './entities/material-rating.entity';
 import { MaterialReport } from './entities/material-report.entity';
 import { Note } from './entities/note.entity';
 import { PersonalCourse } from './entities/personal-course.entity';
+import { PublicNote, PublicNoteVote } from './entities/public-note.entity';
 import { School } from './entities/school.entity';
 
 import { AcademicController } from './academic.controller';
@@ -43,6 +44,8 @@ import { MaterialProcessor } from './processors/material.processor';
       MaterialReport,
       Note,
       PersonalCourse,
+      PublicNote,
+      PublicNoteVote,
     ]),
     BullModule.registerQueue({
       name: 'materials',
@@ -67,4 +70,4 @@ import { MaterialProcessor } from './processors/material.processor';
     PersonalCoursesService,
   ],
 })
-export class AcademicModule {}
+export class AcademicModule { }
