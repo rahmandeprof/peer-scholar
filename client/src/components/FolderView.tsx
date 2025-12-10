@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { MaterialCard } from './MaterialCard';
 import api from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface FolderViewProps {
   folder: {
@@ -22,6 +23,7 @@ export function FolderView({ folder, onClose, onUpdate }: FolderViewProps) {
   const [editTitle, setEditTitle] = useState(folder.title);
   const [showMenu, setShowMenu] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const { error, success } = useToast();
 
@@ -102,9 +104,7 @@ export function FolderView({ folder, onClose, onUpdate }: FolderViewProps) {
   };
 
   const handleDeleteCollection = async () => {
-    if (!confirm('Are you sure you want to delete this collection? Materials inside will not be deleted.')) {
-      return;
-    }
+    setShowDeleteConfirm(false);
     setDeleting(true);
     try {
       await api.delete(`/academic/collections/${folder.id}`);
@@ -189,7 +189,7 @@ export function FolderView({ folder, onClose, onUpdate }: FolderViewProps) {
                     <button
                       onClick={() => {
                         setShowMenu(false);
-                        handleDeleteCollection();
+                        setShowDeleteConfirm(true);
                       }}
                       disabled={deleting}
                       className='w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center'
@@ -245,6 +245,17 @@ export function FolderView({ folder, onClose, onUpdate }: FolderViewProps) {
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDeleteCollection}
+        title="Delete Collection"
+        message="Are you sure you want to delete this collection? Materials inside will not be deleted."
+        confirmText="Delete"
+        isDangerous={true}
+      />
     </div>
   );
 }
