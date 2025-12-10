@@ -289,8 +289,9 @@ export class SnakeCaseNamingConvention1702234000000 implements MigrationInterfac
             } else {
                 console.log(`○ Skipped ${table}.${oldName} (column not found, may already be renamed)`);
             }
-        } catch (error) {
-            console.log(`✗ Failed to rename ${table}.${oldName}: ${error.message}`);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            console.log(`✗ Failed to rename ${table}.${oldName}: ${message}`);
         }
     }
 
@@ -317,8 +318,9 @@ export class SnakeCaseNamingConvention1702234000000 implements MigrationInterfac
             } else {
                 console.log(`○ Skipped table ${oldName} (not found, may already be renamed)`);
             }
-        } catch (error) {
-            console.log(`✗ Failed to rename table ${oldName}: ${error.message}`);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            console.log(`✗ Failed to rename table ${oldName}: ${message}`);
         }
     }
 }
