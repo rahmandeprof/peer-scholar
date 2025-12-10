@@ -90,7 +90,7 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
 
   return (
     <>
-      <div className={`bg - white / 60 dark: bg - gray - 800 / 60 backdrop - blur - xl overflow - visible shadow - sm rounded - 2xl hover: shadow - md transition - all border border - gray - 200 / 50 dark: border - gray - 700 / 50 group relative hover - lift active - press ${menuOpen ? 'z-[100]' : ''} `}>
+      <div className={`bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl overflow-visible shadow-sm rounded-2xl hover:shadow-md transition-all border border-gray-200/50 dark:border-gray-700/50 group relative hover-lift active-press ${menuOpen ? 'z-[100]' : ''}`}>
         <div className='p-6'>
           <div className='flex items-start justify-between mb-4'>
             <div className='flex-1 min-w-0 mr-4'>
