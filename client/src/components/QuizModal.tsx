@@ -52,29 +52,12 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
     setLoading(false);
   };
 
-  const fetchQuiz = async (bypassCache = false) => {
+  const fetchQuiz = async () => {
     setLoading(true);
     try {
-      const cacheKey = `cached_quiz_${materialId}`;
-
-      if (!bypassCache) {
-        // Check cache first
-        const cached = localStorage.getItem(cacheKey);
-        if (cached) {
-          setQuestions(JSON.parse(cached));
-          setLoading(false);
-          return;
-        }
-      } else {
-        // Clear cache if bypassing
-        localStorage.removeItem(cacheKey);
-      }
-
+      // Always generate fresh questions from AI for diversity
       const res = await api.post(`/chat/quiz/${materialId}`);
       setQuestions(res.data);
-
-      // Cache it
-      localStorage.setItem(cacheKey, JSON.stringify(res.data));
     } catch {
       // console.error('Failed to fetch quiz', err);
     } finally {
@@ -250,7 +233,7 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
                 <button
                   onClick={() => {
                     resetQuiz();
-                    fetchQuiz(true);
+                    fetchQuiz();
                   }}
                   className='flex-1 px-2 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-medium text-sm md:text-base hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-purple-500/25 flex items-center justify-center whitespace-nowrap'
                 >
@@ -272,10 +255,10 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
                     <div
                       key={idx}
                       className={`h-2 w-8 rounded-full transition-all duration-300 ${idx < currentQuestionIndex
-                          ? 'bg-purple-600'
-                          : idx === currentQuestionIndex
-                            ? 'bg-purple-400 w-12'
-                            : 'bg-gray-200 dark:bg-gray-700'
+                        ? 'bg-purple-600'
+                        : idx === currentQuestionIndex
+                          ? 'bg-purple-400 w-12'
+                          : 'bg-gray-200 dark:bg-gray-700'
                         }`}
                     />
                   ))}
@@ -345,23 +328,23 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
               {/* Explanation Display */}
               {selectedOption && questions[currentQuestionIndex].explanation && (
                 <div className={`p-4 rounded-xl mb-6 animate-slide-in ${isCorrect
-                    ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
-                    : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800'
+                  ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                  : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800'
                   }`}>
                   <div className='flex items-start gap-3'>
                     <div className={`p-2 rounded-lg ${isCorrect
-                        ? 'bg-green-100 dark:bg-green-800/30'
-                        : 'bg-amber-100 dark:bg-amber-800/30'
+                      ? 'bg-green-100 dark:bg-green-800/30'
+                      : 'bg-amber-100 dark:bg-amber-800/30'
                       }`}>
                       <Lightbulb className={`w-5 h-5 ${isCorrect
-                          ? 'text-green-600 dark:text-green-400'
-                          : 'text-amber-600 dark:text-amber-400'
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-amber-600 dark:text-amber-400'
                         }`} />
                     </div>
                     <div>
                       <p className={`font-medium mb-1 ${isCorrect
-                          ? 'text-green-700 dark:text-green-300'
-                          : 'text-amber-700 dark:text-amber-300'
+                        ? 'text-green-700 dark:text-green-300'
+                        : 'text-amber-700 dark:text-amber-300'
                         }`}>
                         {isCorrect ? '🎉 Great job!' : '💡 Learn from this:'}
                       </p>
