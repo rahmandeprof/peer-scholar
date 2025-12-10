@@ -9,6 +9,7 @@ import {
   FileText as SummarizeIcon,
   Trash2,
   Folder as FolderIcon,
+  HeartOff,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -39,9 +40,10 @@ interface MaterialCardProps {
   material: Material;
   onDelete?: (id: string) => void;
   onAddToCollection?: (id: string) => void;
+  onRemoveFromFavorites?: (id: string) => void;
 }
 
-export const MaterialCard = memo(function MaterialCard({ material, onDelete, onAddToCollection }: MaterialCardProps) {
+export const MaterialCard = memo(function MaterialCard({ material, onDelete, onAddToCollection, onRemoveFromFavorites }: MaterialCardProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
@@ -243,6 +245,22 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
                       <SummarizeIcon className='w-4 h-4 mr-2' />
                       Summarize
                     </button>
+
+                    {/* Remove from Favorites - only shown when handler is provided */}
+                    {onRemoveFromFavorites && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMenuOpen(false);
+                          onRemoveFromFavorites(material.id);
+                        }}
+                        className='w-full px-4 py-2 text-left text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 flex items-center'
+                      >
+                        <HeartOff className='w-4 h-4 mr-2' />
+                        Remove from Favorites
+                      </button>
+                    )}
+
                     {isOwner && (
                       <button
                         onClick={(e) => {

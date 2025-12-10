@@ -225,21 +225,11 @@ export function FolderView({ folder, onClose, onUpdate }: FolderViewProps) {
           ) : (
             <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6'>
               {materials.map((material) => (
-                <div key={material.id} className='relative group'>
-                  <MaterialCard material={material} />
-                  {/* Overlay Action to Remove */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      handleRemoveFromFolder(material.id);
-                    }}
-                    className='absolute top-2 right-2 p-2 bg-white/90 dark:bg-gray-800/90 rounded-full shadow-sm text-red-500 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50'
-                    title='Remove from folder'
-                  >
-                    <Trash2 className='w-4 h-4' />
-                  </button>
-                </div>
+                <MaterialCard
+                  key={material.id}
+                  material={material}
+                  onRemoveFromFavorites={folder.type === 'favorites' ? handleRemoveFromFolder : undefined}
+                />
               ))}
             </div>
           )}

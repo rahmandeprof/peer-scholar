@@ -136,21 +136,6 @@ export function UserProfile({ onClose }: UserProfileProps) {
   };
 
   const handleEditClick = () => {
-    if (user.lastProfileUpdate) {
-      const nineMonthsInMs = 9 * 30 * 24 * 60 * 60 * 1000;
-      const timeSinceLastUpdate =
-        Date.now() - new Date(user.lastProfileUpdate).getTime();
-
-      if (timeSinceLastUpdate < nineMonthsInMs) {
-        const remainingDays = Math.ceil(
-          (nineMonthsInMs - timeSinceLastUpdate) / (1000 * 60 * 60 * 24),
-        );
-        toast.error(
-          `You can only change your academic details once per academic session. Please wait ${remainingDays} days.`,
-        );
-        return;
-      }
-    }
     setIsEditing(true);
   };
 
@@ -165,12 +150,6 @@ export function UserProfile({ onClose }: UserProfileProps) {
       await api.patch('/users/profile', {
         firstName: formData.firstName,
         lastName: formData.lastName,
-      });
-
-      await api.patch('/users/academic-profile', {
-        facultyId: formData.faculty, // Backend handles string mapping if needed or we send name
-        departmentId: formData.department,
-        yearOfStudy: formData.yearOfStudy,
       });
 
       toast.success('Profile updated successfully');
