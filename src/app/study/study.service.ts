@@ -212,7 +212,12 @@ export class StudyService {
     weekStart.setHours(0, 0, 0, 0);
 
     // Get user's department for filtering
-    const currentUser = await this.usersService.findOne(userId);
+    let currentUser: { department?: string; firstName?: string; image?: string | null } | null = null;
+    try {
+      currentUser = await this.usersService.getOne(userId);
+    } catch {
+      // User not found, will proceed without department filter
+    }
     const departmentId = currentUser?.department;
 
     // Query: sum study time per user for this week
