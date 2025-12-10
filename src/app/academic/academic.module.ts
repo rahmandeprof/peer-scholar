@@ -17,14 +17,17 @@ import { Note } from './entities/note.entity';
 import { PersonalCourse } from './entities/personal-course.entity';
 import { PublicNote, PublicNoteVote } from './entities/public-note.entity';
 import { School } from './entities/school.entity';
+import { HelpfulLink } from './entities/helpful-link.entity';
 
 import { AcademicController } from './academic.controller';
 import { MaterialsController } from './materials.controller';
 import { PersonalCoursesController } from './personal-courses.controller';
+import { HelpfulLinksController } from './helpful-links.controller';
 
 import { AcademicService } from './academic.service';
 import { MaterialsService } from './materials.service';
 import { PersonalCoursesService } from './personal-courses.service';
+import { HelpfulLinksService } from './helpful-links.service';
 
 import { MaterialProcessor } from './processors/material.processor';
 
@@ -46,6 +49,7 @@ import { MaterialProcessor } from './processors/material.processor';
       PersonalCourse,
       PublicNote,
       PublicNoteVote,
+      HelpfulLink,
     ]),
     BullModule.registerQueue({
       name: 'materials',
@@ -56,12 +60,14 @@ import { MaterialProcessor } from './processors/material.processor';
     AcademicController,
     MaterialsController,
     PersonalCoursesController,
+    HelpfulLinksController,
   ],
   providers: [
     AcademicService,
     MaterialsService,
     MaterialProcessor,
     PersonalCoursesService,
+    HelpfulLinksService,
   ],
   exports: [
     TypeOrmModule,

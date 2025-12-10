@@ -36,7 +36,8 @@ import { ReportModal } from './ReportModal';
 import { Jotter } from './Jotter';
 import { CollectionModal } from './CollectionModal';
 import { PublicNotesPanel } from './PublicNotesPanel';
-import { PenTool, Folder, MessageSquare } from 'lucide-react';
+import HelpfulLinksPanel from './HelpfulLinksPanel';
+import { PenTool, Folder, MessageSquare, Link2 } from 'lucide-react';
 
 interface Material {
   id: string;
@@ -81,6 +82,7 @@ export const MaterialView = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
   const [publicNotesOpen, setPublicNotesOpen] = useState(false);
+  const [helpfulLinksOpen, setHelpfulLinksOpen] = useState(false);
 
   // Reading time tracking for weekly goals
   const [readingSessionId, setReadingSessionId] = useState<string | null>(null);
@@ -539,6 +541,17 @@ export const MaterialView = () => {
                         Add to Collection
                       </button>
 
+                      <button
+                        onClick={() => {
+                          setHelpfulLinksOpen(true);
+                          setMenuOpen(false);
+                        }}
+                        className='w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200'
+                      >
+                        <Link2 className='w-4 h-4 mr-3' />
+                        Helpful Resources
+                      </button>
+
                       <div className='px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200'>
                         <TextSettings />
                         <span className='ml-3'>Text Settings</span>
@@ -768,6 +781,33 @@ export const MaterialView = () => {
           isOpen={publicNotesOpen}
           onClose={() => setPublicNotesOpen(false)}
         />
+
+        {/* Helpful Links Sidebar */}
+        {helpfulLinksOpen && (
+          <div className='fixed inset-0 z-[60]'>
+            <div
+              className='absolute inset-0 bg-black/30 backdrop-blur-sm'
+              onClick={() => setHelpfulLinksOpen(false)}
+            />
+            <div className='absolute right-0 top-0 h-full w-full max-w-md bg-white dark:bg-gray-800 shadow-2xl overflow-y-auto animate-slide-in-right'>
+              <div className='sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between z-10'>
+                <h2 className='text-lg font-bold text-gray-900 dark:text-gray-100'>Helpful Resources</h2>
+                <button
+                  onClick={() => setHelpfulLinksOpen(false)}
+                  className='p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors'
+                >
+                  ✕
+                </button>
+              </div>
+              <div className='p-4'>
+                <HelpfulLinksPanel
+                  materialId={material?.id || ''}
+                  currentUserId={material?.uploader?.id}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </ReaderSettingsProvider>
   );
