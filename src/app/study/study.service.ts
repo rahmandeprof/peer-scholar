@@ -233,7 +233,7 @@ export class StudyService {
       .groupBy('user.id')
       .addGroupBy('user.firstName')
       .addGroupBy('user.image')
-      .orderBy('totalSeconds', 'DESC')
+      .orderBy('"totalSeconds"', 'DESC')
       .limit(limit);
 
     // Optionally filter by department

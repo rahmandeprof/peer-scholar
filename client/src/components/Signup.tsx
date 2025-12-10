@@ -16,7 +16,7 @@ export function Signup({ onSwitch }: SignupProps) {
     lastName: '',
     email: '',
     password: '',
-    school: 'University of Ilorin',
+    schoolId: 'University of Ilorin',
     faculty: '',
     department: '',
     yearOfStudy: 1,
@@ -31,10 +31,22 @@ export function Signup({ onSwitch }: SignupProps) {
     try {
       const res = await api.post('/auth/register', formData);
       login(res.data.access_token, res.data.user);
-    } catch (err: unknown) {
-      // console.error(err);
-      const errorMessage =
-        err instanceof Error ? err.message : 'Registration failed';
+    } catch (err: any) {
+      // Extract meaningful error message from API response
+      let errorMessage = 'Registration failed. Please try again.';
+
+      if (err.response?.data?.message) {
+        // Handle array of messages (validation errors)
+        const apiMessage = err.response.data.message;
+        if (Array.isArray(apiMessage)) {
+          errorMessage = apiMessage.join('. ');
+        } else {
+          errorMessage = apiMessage;
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -126,9 +138,9 @@ export function Signup({ onSwitch }: SignupProps) {
             </label>
             <select
               required
-              value={formData.school}
+              value={formData.schoolId}
               onChange={(e) =>
-                setFormData({ ...formData, school: e.target.value })
+                setFormData({ ...formData, schoolId: e.target.value })
               }
               className='w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none'
             >
@@ -210,7 +222,7 @@ export function Signup({ onSwitch }: SignupProps) {
           type='submit'
           disabled={
             loading ||
-            !formData.school ||
+            !formData.schoolId ||
             !formData.faculty ||
             !formData.department
           }

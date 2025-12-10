@@ -28,10 +28,21 @@ export function Login({ onSwitch }: LoginProps) {
     try {
       const res = await api.post('/auth/login', { email, password });
       login(res.data.access_token, res.data.user);
-    } catch (err: unknown) {
-      // console.error(err);
-      const errorMessage =
-        err instanceof Error ? err.message : 'Invalid credentials';
+    } catch (err: any) {
+      // Extract meaningful error message from API response
+      let errorMessage = 'Invalid credentials';
+
+      if (err.response?.data?.message) {
+        const apiMessage = err.response.data.message;
+        if (Array.isArray(apiMessage)) {
+          errorMessage = apiMessage.join('. ');
+        } else {
+          errorMessage = apiMessage;
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
       toast.error(errorMessage);
     } finally {
       setLoading(false);
