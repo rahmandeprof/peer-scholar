@@ -41,6 +41,17 @@ export function StreakCalendar({ compact = false }: StreakCalendarProps) {
         return 4;
     };
 
+    // Get motivational message based on streak
+    const getMotivationalMessage = (streak: number): string => {
+        if (streak === 0) return "Start your streak today! 🚀";
+        if (streak === 1) return "Great start! Keep going! 💪";
+        if (streak < 3) return "Building momentum! 🔥";
+        if (streak < 7) return "You're on fire! 🌟";
+        if (streak < 14) return "Incredible dedication! 🏆";
+        if (streak < 30) return "Unstoppable! 👑";
+        return "Legendary streak! 🎖️";
+    };
+
     // Get color class based on intensity
     const getColorClass = (intensity: number): string => {
         const colors = [
@@ -207,8 +218,8 @@ export function StreakCalendar({ compact = false }: StreakCalendarProps) {
                                     <div
                                         key={day.date || `empty-${weekIndex}-${dayIndex}`}
                                         className={`w-3 h-3 rounded-sm ${day.date
-                                                ? getColorClass(getIntensity(day.minutes))
-                                                : 'bg-transparent'
+                                            ? getColorClass(getIntensity(day.minutes))
+                                            : 'bg-transparent'
                                             } transition-all hover:scale-125 cursor-pointer relative`}
                                         onMouseEnter={() => day.date && setHoveredDay(day)}
                                         onMouseLeave={() => setHoveredDay(null)}
@@ -251,7 +262,7 @@ export function StreakCalendar({ compact = false }: StreakCalendarProps) {
 
                     <div className='hidden sm:flex items-center gap-1'>
                         <TrendingUp className='w-3 h-3' />
-                        <span>Keep it up!</span>
+                        <span>{getMotivationalMessage(currentStreak)}</span>
                     </div>
                 </div>
             </div>
