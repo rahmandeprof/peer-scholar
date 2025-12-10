@@ -150,7 +150,11 @@ export function AcademicControlCenter() {
         // Fetch collections
         try {
           const collectionsRes = await api.get('/academic/collections');
-          setCollections(collectionsRes.data);
+          // Map materials array length to count for display
+          setCollections(collectionsRes.data.map((col: any) => ({
+            ...col,
+            count: col.materials?.length || 0,
+          })));
         } catch {
           console.warn('Failed to fetch collections');
         }

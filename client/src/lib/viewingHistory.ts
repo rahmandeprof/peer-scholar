@@ -10,6 +10,11 @@ export interface ViewedMaterial {
     courseCode?: string;
     viewedAt: string;
     lastPage?: number;
+    uploader?: {
+        id?: string;
+        firstName?: string;
+        lastName?: string;
+    };
 }
 
 export function getViewingHistory(): ViewedMaterial[] {
