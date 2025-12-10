@@ -152,6 +152,11 @@ export const MaterialView = () => {
           title: res.data.title,
           type: res.data.type,
           courseCode: res.data.courseCode,
+          uploader: res.data.uploader ? {
+            id: res.data.uploader.id,
+            firstName: res.data.uploader.firstName,
+            lastName: res.data.uploader.lastName,
+          } : undefined,
         });
 
         // Track activity
