@@ -3,36 +3,39 @@ import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
 
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 
-@Entity()
+@Entity('account')
 export class Account extends IDAndTimestamp {
   @ManyToOne(() => User)
-  @JoinColumn({ name: 'userId' })
+  @JoinColumn({ name: 'user_id' })
+  user: User;
+
+  @Column({ name: 'user_id' })
   userId: string;
 
-  @Column({ type: String })
+  @Column({ name: 'account_id', type: String })
   accountId: string;
 
-  @Column({ type: String })
+  @Column({ name: 'provider_id', type: String })
   providerId: string;
 
-  @Column({ type: String, nullable: true })
+  @Column({ name: 'access_token', type: String, nullable: true })
   accessToken: string | null;
 
-  @Column({ type: String, nullable: true })
+  @Column({ name: 'refresh_token', type: String, nullable: true })
   refreshToken: string | null;
 
-  @Column({ type: Date, nullable: true })
+  @Column({ name: 'access_token_expires_at', type: Date, nullable: true })
   accessTokenExpiresAt: Date | null;
 
-  @Column({ type: Date, nullable: true })
+  @Column({ name: 'refresh_token_expires_at', type: Date, nullable: true })
   refreshTokenExpiresAt: Date | null;
 
-  @Column({ type: String, nullable: true })
+  @Column({ name: 'scope', type: String, nullable: true })
   scope: string | null;
 
-  @Column({ type: String, nullable: true })
+  @Column({ name: 'id_token', type: String, nullable: true })
   idToken: string | null;
 
-  @Column({ type: String, nullable: true })
+  @Column({ name: 'password', type: String, nullable: true })
   password: string | null;
 }

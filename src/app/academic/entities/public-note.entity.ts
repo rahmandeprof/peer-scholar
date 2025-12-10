@@ -2,61 +2,65 @@ import { Material } from './material.entity';
 import { User } from '@/app/users/entities/user.entity';
 import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
 
-import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 
-@Entity()
+@Entity('public_note')
 export class PublicNote extends IDAndTimestamp {
     @ManyToOne(() => Material, { onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'material_id' })
     material!: Material;
 
-    @Column()
+    @Column({ name: 'material_id' })
     materialId!: string;
 
     @ManyToOne(() => User, { onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'user_id' })
     user!: User;
 
-    @Column()
+    @Column({ name: 'user_id' })
     userId!: string;
 
-    @Column({ type: 'text' })
+    @Column({ name: 'selected_text', type: 'text' })
     selectedText!: string;
 
-    @Column({ type: 'text' })
+    @Column({ name: 'note', type: 'text' })
     note!: string;
 
-    @Column({ nullable: true })
+    @Column({ name: 'page_number', nullable: true })
     pageNumber!: number;
 
-    @Column({ type: 'text', nullable: true })
+    @Column({ name: 'context_before', type: 'text', nullable: true })
     contextBefore!: string;
 
-    @Column({ type: 'text', nullable: true })
+    @Column({ name: 'context_after', type: 'text', nullable: true })
     contextAfter!: string;
 
-    @Column({ type: 'int', default: 0 })
+    @Column({ name: 'upvotes', type: 'int', default: 0 })
     upvotes!: number;
 
-    @Column({ type: 'int', default: 0 })
+    @Column({ name: 'downvotes', type: 'int', default: 0 })
     downvotes!: number;
 
     @OneToMany(() => PublicNoteVote, (vote) => vote.note)
     votes!: PublicNoteVote[];
 }
 
-@Entity()
+@Entity('public_note_vote')
 export class PublicNoteVote extends IDAndTimestamp {
     @ManyToOne(() => PublicNote, (note) => note.votes, { onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'note_id' })
     note!: PublicNote;
 
-    @Column()
+    @Column({ name: 'note_id' })
     noteId!: string;
 
     @ManyToOne(() => User, { onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'user_id' })
     user!: User;
 
-    @Column()
+    @Column({ name: 'user_id' })
     userId!: string;
 
-    @Column({ type: 'int' }) // 1 for upvote, -1 for downvote
+    @Column({ name: 'value', type: 'int' }) // 1 for upvote, -1 for downvote
     value!: number;
 }

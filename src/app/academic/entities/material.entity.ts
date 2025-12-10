@@ -9,6 +9,7 @@ import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
 import {
   Column,
   Entity,
+  JoinColumn,
   JoinTable,
   ManyToMany,
   ManyToOne,
@@ -43,87 +44,92 @@ export interface QuizQuestion {
   correctAnswer: string;
 }
 
-@Entity()
+@Entity('material')
 export class Material extends IDAndTimestamp {
-  @Column()
+  @Column({ name: 'title' })
   title: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'description', nullable: true })
   description: string;
 
   @Column({
+    name: 'type',
     type: 'varchar',
     default: MaterialType.OTHER,
   })
   type: MaterialType;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ name: 'content', type: 'text', nullable: true })
   content?: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ name: 'summary', type: 'text', nullable: true })
   summary?: string;
 
-  @Column({ type: 'simple-array', nullable: true })
+  @Column({ name: 'key_points', type: 'simple-array', nullable: true })
   keyPoints?: string[];
 
-  @Column({ type: 'json', nullable: true })
+  @Column({ name: 'quiz', type: 'json', nullable: true })
   quiz?: QuizQuestion[];
 
-  @Column({ type: 'json', nullable: true })
+  @Column({ name: 'flashcards', type: 'json', nullable: true })
   flashcards?: { term: string; definition: string }[];
 
-  @Column({ nullable: true })
+  @Column({ name: 'file_url', nullable: true })
   fileUrl: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'pdf_url', nullable: true })
   pdfUrl: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'file_type', nullable: true })
   fileType: string;
 
-  @Column({ type: 'int', default: 0 })
+  @Column({ name: 'size', type: 'int', default: 0 })
   size: number;
 
   @ManyToOne(() => Course, (course) => course.materials, { nullable: true })
+  @JoinColumn({ name: 'course_id' })
   course?: Course;
 
   @ManyToOne(() => User, (user) => user.materials)
+  @JoinColumn({ name: 'uploader_id' })
   uploader: User;
 
   @Column({
+    name: 'scope',
     type: 'varchar',
     default: AccessScope.PRIVATE,
   })
   scope: AccessScope;
 
   @Column({
+    name: 'status',
     type: 'varchar',
     default: MaterialStatus.PENDING,
   })
   status: MaterialStatus;
 
-  @Column({ type: 'simple-array', nullable: true })
+  @Column({ name: 'tags', type: 'simple-array', nullable: true })
   tags: string[];
 
-  @Column({ type: 'int', default: 0 })
+  @Column({ name: 'views', type: 'int', default: 0 })
   views: number;
 
-  @Column({ type: 'int', default: 0 })
+  @Column({ name: 'downloads', type: 'int', default: 0 })
   downloads: number;
 
-  @Column({ nullable: true })
+  @Column({ name: 'target_faculty', nullable: true })
   targetFaculty?: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'target_department', nullable: true })
   targetDepartment?: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'course_code', nullable: true })
   courseCode?: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'topic', nullable: true })
   topic?: string;
 
-  @Column({ type: 'int', nullable: true })
+  @Column({ name: 'target_year', type: 'int', nullable: true })
   targetYear?: number;
 
   @OneToMany(() => MaterialChunk, (chunk) => chunk.material)
@@ -135,27 +141,32 @@ export class Material extends IDAndTimestamp {
   @OneToMany(() => MaterialFavorite, (fav) => fav.material)
   favorites: MaterialFavorite[];
 
-  @Column({ type: 'float', default: 0 })
+  @Column({ name: 'average_rating', type: 'float', default: 0 })
   averageRating: number;
 
-  @Column({ type: 'int', default: 0 })
+  @Column({ name: 'favorites_count', type: 'int', default: 0 })
   favoritesCount: number;
 
   @ManyToMany(() => PersonalCourse, (course) => course.materials)
   personalCourses: PersonalCourse[];
 
-  @Column({ nullable: true })
+  @Column({ name: 'file_hash', nullable: true })
   fileHash: string;
 
   @ManyToOne(() => Material, (material) => material.versions, {
     nullable: true,
   })
+  @JoinColumn({ name: 'parent_id' })
   parent?: Material;
 
   @OneToMany(() => Material, (material) => material.parent)
   versions: Material[];
 
   @ManyToMany(() => User)
-  @JoinTable()
+  @JoinTable({
+    name: 'material_contributors',
+    joinColumn: { name: 'material_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'user_id', referencedColumnName: 'id' },
+  })
   contributors: User[];
 }

@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne, CreateDateColumn } from 'typeorm';
+import { Column, Entity, ManyToOne, CreateDateColumn, JoinColumn } from 'typeorm';
 import { User } from './user.entity';
 import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
 
@@ -93,20 +93,21 @@ export const BADGE_DEFINITIONS: Record<BadgeType, Omit<BadgeInfo, 'type'>> = {
     },
 };
 
-@Entity()
+@Entity('user_badge')
 export class UserBadge extends IDAndTimestamp {
-    @Column({ name: 'userid' })
+    @Column({ name: 'user_id' })
     userId: string;
 
-
     @ManyToOne(() => User, { onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'user_id' })
     user: User;
 
     @Column({
+        name: 'badge_type',
         type: 'varchar',
     })
     badgeType: BadgeType;
 
-    @CreateDateColumn()
+    @CreateDateColumn({ name: 'unlocked_at' })
     unlockedAt: Date;
 }

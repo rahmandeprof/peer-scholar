@@ -2,108 +2,111 @@ import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
 
 import { CapitalizeTransformer } from '@/utils/transformers/capitalize';
 
-import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 
-@Entity()
+@Entity('user')
 export class User extends IDAndTimestamp {
   @Column({
+    name: 'first_name',
     transformer: new CapitalizeTransformer(),
   })
   firstName!: string;
 
   @Column({
+    name: 'last_name',
     transformer: new CapitalizeTransformer(),
   })
   lastName!: string;
 
-  @Column({ unique: true })
+  @Column({ name: 'email', unique: true })
   email!: string;
 
-  @Column({ default: false })
+  @Column({ name: 'email_verified', default: false })
   emailVerified!: boolean;
 
-  @Column({ type: String, nullable: true })
+  @Column({ name: 'image', type: String, nullable: true })
   image!: string | null;
 
-  @Column({ default: 'user' })
+  @Column({ name: 'role', default: 'user' })
   role!: string;
 
-  @Column({ default: false })
+  @Column({ name: 'banned', default: false })
   banned!: boolean;
 
-  @Column({ type: String, nullable: true })
+  @Column({ name: 'ban_reason', type: String, nullable: true })
   banReason!: string | null;
 
-  @Column({ type: Date, nullable: true })
+  @Column({ name: 'ban_expires', type: Date, nullable: true })
   banExpires!: Date | null;
 
-  @Column({ nullable: true })
+  @Column({ name: 'password', nullable: true })
   password!: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'department', nullable: true })
   department!: string;
 
-  @Column({ type: 'int', nullable: true })
+  @Column({ name: 'year_of_study', type: 'int', nullable: true })
   yearOfStudy!: number;
 
-  @Column({ nullable: true })
+  @Column({ name: 'faculty', nullable: true })
   faculty!: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'school', nullable: true })
   school: string;
 
-  @Column({ type: 'int', default: 0 })
+  @Column({ name: 'current_streak', type: 'int', default: 0 })
   currentStreak: number;
 
-  @Column({ type: 'int', default: 0 })
+  @Column({ name: 'longest_streak', type: 'int', default: 0 })
   longestStreak: number;
 
-  @Column({ type: 'date', nullable: true })
+  @Column({ name: 'last_study_date', type: 'date', nullable: true })
   lastStudyDate: Date;
 
-  @Column({ nullable: true, unique: true })
+  @Column({ name: 'google_id', nullable: true, unique: true })
   googleId: string;
 
   @OneToMany('Material', 'uploader')
   materials: import('../../academic/entities/material.entity').Material[];
 
-  @Column({ nullable: true })
+  @Column({ name: 'last_read_material_id', nullable: true })
   lastReadMaterialId: string;
 
   @ManyToOne('Material', { nullable: true })
+  @JoinColumn({ name: 'last_read_material_id' })
   lastReadMaterial: import('../../academic/entities/material.entity').Material;
 
-  @Column({ type: 'int', default: 1 })
+  @Column({ name: 'last_read_page', type: 'int', default: 1 })
   lastReadPage: number;
 
-  @Column({ default: 0 })
+  @Column({ name: 'reputation', default: 0 })
   reputation: number;
 
-  @Column({ default: false })
+  @Column({ name: 'is_verified', default: false })
   isVerified: boolean;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ name: 'last_seen', type: 'timestamp', nullable: true })
   lastSeen: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ name: 'last_profile_update', type: 'timestamp', nullable: true })
   lastProfileUpdate: Date | null;
 
-  @Column({ type: String, nullable: true })
+  @Column({ name: 'verification_token', type: String, nullable: true })
   verificationToken: string | null;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ name: 'reset_password_token', type: 'varchar', nullable: true })
   resetPasswordToken: string | null;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ name: 'reset_password_expires', type: 'timestamp', nullable: true })
   resetPasswordExpires: Date | null;
 
   // Timer preferences (in seconds) - editable by user anytime
-  @Column({ type: 'int', default: 1500 }) // 25 minutes
+  @Column({ name: 'study_duration', type: 'int', default: 1500 }) // 25 minutes
   studyDuration: number;
 
-  @Column({ type: 'int', default: 300 }) // 5 minutes
+  @Column({ name: 'test_duration', type: 'int', default: 300 }) // 5 minutes
   testDuration: number;
 
-  @Column({ type: 'int', default: 600 }) // 10 minutes
+  @Column({ name: 'rest_duration', type: 'int', default: 600 }) // 10 minutes
   restDuration: number;
 }

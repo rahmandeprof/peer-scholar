@@ -3,21 +3,21 @@ import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
 
 import { Column, Entity, JoinColumn, OneToOne } from 'typeorm';
 
-@Entity()
+@Entity('study_streak')
 export class StudyStreak extends IDAndTimestamp {
   @OneToOne(() => User)
-  @JoinColumn()
+  @JoinColumn({ name: 'user_id' })
   user!: User;
 
-  @Column()
+  @Column({ name: 'user_id' })
   userId!: string;
 
-  @Column({ default: 0 })
+  @Column({ name: 'current_streak', default: 0 })
   currentStreak!: number;
 
-  @Column({ default: 0 })
+  @Column({ name: 'longest_streak', default: 0 })
   longestStreak!: number;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ name: 'last_activity_date', type: 'timestamp', nullable: true })
   lastActivityDate!: Date | null;
 }

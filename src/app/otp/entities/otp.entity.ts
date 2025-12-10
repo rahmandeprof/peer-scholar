@@ -7,13 +7,13 @@ import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 
 @Entity('otp')
 export class OTP extends IDAndTimestamp {
-  @Column({ type: 'varchar' })
+  @Column({ name: 'reason', type: 'varchar' })
   reason!: OTPReason;
 
-  @Column()
+  @Column({ name: 'code' })
   code!: string;
 
   @ManyToOne(() => User)
-  @JoinColumn({ name: 'userId' })
+  @JoinColumn({ name: 'user_id' })
   user!: User;
 }

@@ -16,15 +16,15 @@ export abstract class IDAndTimestamp extends BaseEntity {
   id!: string;
 
   @ColumnOrder(9997)
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 
   @ColumnOrder(9998)
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
 
   @ColumnOrder(9999)
-  @DeleteDateColumn()
+  @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt?: Date;
 
   static useDataSource(dataSource: DataSource) {

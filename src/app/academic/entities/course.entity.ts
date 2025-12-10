@@ -1,23 +1,24 @@
 import { Department } from './department.entity';
 import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
 
-import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 
-@Entity()
+@Entity('course')
 export class Course extends IDAndTimestamp {
-  @Column()
+  @Column({ name: 'code' })
   code: string; // e.g. CSC 101
 
-  @Column()
+  @Column({ name: 'title' })
   title: string; // e.g. Introduction to Computer Science
 
-  @Column({ type: 'int' })
+  @Column({ name: 'level', type: 'int' })
   level: number; // e.g. 100, 200
 
-  @Column({ nullable: true })
+  @Column({ name: 'semester', nullable: true })
   semester: number; // 1 or 2
 
   @ManyToOne(() => Department, (department) => department.courses)
+  @JoinColumn({ name: 'department_id' })
   department: Department;
 
   @OneToMany('Material', 'course')

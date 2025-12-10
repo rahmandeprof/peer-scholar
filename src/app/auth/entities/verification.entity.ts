@@ -2,14 +2,14 @@ import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
 
 import { Column, Entity } from 'typeorm';
 
-@Entity()
+@Entity('verification')
 export class Verification extends IDAndTimestamp {
-  @Column({ type: String })
+  @Column({ name: 'identifier', type: String })
   identifier: string;
 
-  @Column({ type: String })
+  @Column({ name: 'value', type: String })
   value: string;
 
-  @Column({ type: Date })
+  @Column({ name: 'expires_at', type: Date })
   expiresAt: Date;
 }

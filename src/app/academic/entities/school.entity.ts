@@ -3,12 +3,12 @@ import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
 
 import { Column, Entity, OneToMany } from 'typeorm';
 
-@Entity()
+@Entity('school')
 export class School extends IDAndTimestamp {
-  @Column({ unique: true })
+  @Column({ name: 'name', unique: true })
   name: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'country', nullable: true })
   country: string;
 
   @OneToMany(() => Faculty, (faculty) => faculty.school)

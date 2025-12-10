@@ -3,24 +3,27 @@ import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
 
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 
-@Entity()
+@Entity('session')
 export class Session extends IDAndTimestamp {
   @ManyToOne(() => User)
-  @JoinColumn({ name: 'userId' })
+  @JoinColumn({ name: 'user_id' })
+  user: User;
+
+  @Column({ name: 'user_id' })
   userId!: string;
 
-  @Column({ type: String })
+  @Column({ name: 'token', type: String })
   token!: string;
 
-  @Column({ type: Date })
+  @Column({ name: 'expires_at', type: Date })
   expiresAt!: Date;
 
-  @Column({ type: String, nullable: true })
+  @Column({ name: 'ip_address', type: String, nullable: true })
   ipAddress!: string | null;
 
-  @Column({ type: String, nullable: true })
+  @Column({ name: 'user_agent', type: String, nullable: true })
   userAgent!: string | null;
 
-  @Column({ type: String, nullable: true })
+  @Column({ name: 'impersonated_by', type: String, nullable: true })
   impersonatedBy!: string | null;
 }

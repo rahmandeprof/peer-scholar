@@ -1,7 +1,7 @@
 import { User } from '@/app/users/entities/user.entity';
 import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
 
-import { Column, Entity, ManyToOne } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 
 export enum StudySessionType {
   STUDY = 'study',
@@ -10,29 +10,31 @@ export enum StudySessionType {
   READING = 'reading', // Tracks actual time viewing files
 }
 
-@Entity()
+@Entity('study_session')
 export class StudySession extends IDAndTimestamp {
   @ManyToOne(() => User)
+  @JoinColumn({ name: 'user_id' })
   user!: User;
 
-  @Column()
+  @Column({ name: 'user_id' })
   userId!: string;
 
   @Column({
+    name: 'type',
     type: 'varchar',
     default: StudySessionType.STUDY,
   })
   type!: StudySessionType;
 
-  @Column({ type: 'int' })
+  @Column({ name: 'duration_seconds', type: 'int' })
   durationSeconds!: number;
 
-  @Column({ type: 'timestamp' })
+  @Column({ name: 'start_time', type: 'timestamp' })
   startTime!: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ name: 'end_time', type: 'timestamp', nullable: true })
   endTime!: Date;
 
-  @Column({ default: false })
+  @Column({ name: 'completed', default: false })
   completed!: boolean;
 }

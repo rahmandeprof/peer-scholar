@@ -1,7 +1,7 @@
 import { User } from '@/app/users/entities/user.entity';
 import { Material } from '@/app/academic/entities/material.entity';
 import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
-import { Column, Entity, ManyToOne } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 
 export enum LinkType {
     VIDEO = 'video',
@@ -10,38 +10,41 @@ export enum LinkType {
     OTHER = 'other',
 }
 
-@Entity()
+@Entity('helpful_link')
 export class HelpfulLink extends IDAndTimestamp {
-    @Column()
+    @Column({ name: 'url' })
     url: string;
 
-    @Column()
+    @Column({ name: 'title' })
     title: string;
 
-    @Column({ nullable: true })
+    @Column({ name: 'description', nullable: true })
     description?: string;
 
     @Column({
+        name: 'link_type',
         type: 'varchar',
         default: LinkType.OTHER,
     })
     linkType: LinkType;
 
-    @Column({ nullable: true })
+    @Column({ name: 'thumbnail_url', nullable: true })
     thumbnailUrl?: string;
 
     @ManyToOne(() => Material, { onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'material_id' })
     material: Material;
 
-    @Column()
+    @Column({ name: 'material_id' })
     materialId: string;
 
     @ManyToOne(() => User)
+    @JoinColumn({ name: 'added_by_id' })
     addedBy: User;
 
-    @Column()
+    @Column({ name: 'added_by_id' })
     addedById: string;
 
-    @Column({ type: 'int', default: 0 })
+    @Column({ name: 'helpful_count', type: 'int', default: 0 })
     helpfulCount: number;
 }
