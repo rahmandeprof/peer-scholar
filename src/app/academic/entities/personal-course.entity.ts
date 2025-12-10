@@ -21,7 +21,17 @@ export class PersonalCourse extends IDAndTimestamp {
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   user: User;
 
-  @ManyToMany(() => Material)
-  @JoinTable()
+  @ManyToMany(() => Material, material => material.personalCourses)
+  @JoinTable({
+    name: 'personal_course_materials_material', // join table name
+    joinColumn: {
+      name: 'personal_course_id',               // column in DB
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'material_id',                      // column in DB
+      referencedColumnName: 'id',
+    },
+  })
   materials: Material[];
 }
