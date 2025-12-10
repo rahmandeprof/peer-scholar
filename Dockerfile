@@ -17,7 +17,7 @@ COPY tsconfig.json ./
 COPY nest-cli.json ./
 
 # Install dependencies (prepare script will skip husky if .husky doesn't exist)
-RUN yarn --network-timeout 1000000 --frozen-lockfile
+RUN yarn --network-timeout 1000000
 
 # Copy all source code
 COPY . .
@@ -36,7 +36,7 @@ COPY package*.json ./
 COPY yarn.lock ./
 
 # Install only production dependencies
-RUN yarn --network-timeout 1000000 --frozen-lockfile --production
+RUN yarn --network-timeout 1000000 --production
 
 # Install LibreOffice for document conversion
 RUN apk add --no-cache libreoffice
