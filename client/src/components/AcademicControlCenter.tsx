@@ -20,6 +20,8 @@ import { FolderView } from './FolderView';
 import { CollectionModal } from './CollectionModal';
 import { StreakCalendar } from './StreakCalendar';
 import { StudyTip } from './StudyTip';
+import { BadgesDisplay } from './BadgesDisplay';
+import { WeeklyLeaderboard } from './WeeklyLeaderboard';
 import { Plus } from 'lucide-react';
 
 interface Course {
@@ -321,6 +323,14 @@ export function AcademicControlCenter() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+        {/* Badges Display */}
+        <BadgesDisplay compact />
+
+        {/* Weekly Leaderboard */}
+        <WeeklyLeaderboard />
       </div>
 
       <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
