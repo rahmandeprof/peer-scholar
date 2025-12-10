@@ -405,7 +405,7 @@ export function AcademicControlCenter() {
           </button>
         </div>
 
-        <div className='flex items-center space-x-8'>
+        <div className='flex flex-col space-y-4'>
           {(() => {
             const baseStep = 5 * 3600; // 5 Hours step
             const currentSeconds = weeklyStats.current;
@@ -421,7 +421,7 @@ export function AcademicControlCenter() {
             return (
               <>
                 {/* Top section: Circle + Stats side by side */}
-                <div className='flex items-center gap-4 mb-4'>
+                <div className='flex items-center gap-4'>
                   <div className='relative w-24 h-24 flex-shrink-0'>
                     <svg className='w-full h-full transform -rotate-90'>
                       <circle
@@ -474,7 +474,7 @@ export function AcademicControlCenter() {
                 </div>
 
                 {/* Bottom section: Streak + Level spanning full width */}
-                <div className='flex gap-3 w-full'>
+                <div className='flex gap-3'>
                   <div className='flex-1 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl px-4 py-3 text-center border border-amber-100 dark:border-amber-800/30'>
                     <div className='text-2xl font-bold text-amber-600 dark:text-amber-400'>
                       🔥 {streak}
