@@ -42,6 +42,7 @@ interface RecentMaterial {
   type: string;
   courseCode?: string;
   viewedAt: string;
+  pageCount?: number;
 }
 
 export function AcademicControlCenter() {
@@ -73,6 +74,7 @@ export function AcademicControlCenter() {
   const [favoritesCount, setFavoritesCount] = useState(0);
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
   const [selectedMaterialForCollection, setSelectedMaterialForCollection] = useState<string | undefined>(undefined);
+  const [lastReadPage, setLastReadPage] = useState(1);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -99,9 +101,10 @@ export function AcademicControlCenter() {
           setRecentMaterials([
             {
               ...activityRes.data.lastReadMaterial,
-              viewedAt: new Date().toISOString(), // Or add lastViewedAt to backend
+              viewedAt: new Date().toISOString(),
             },
           ]);
+          setLastReadPage(activityRes.data.lastReadPage || 1);
         }
 
         if (user?.department?.id) {
@@ -215,6 +218,11 @@ export function AcademicControlCenter() {
                           ? `${lastOpened.courseCode} • `
                           : ''}
                         {lastOpened.type}
+                        {lastReadPage > 1 && (
+                          <span className='ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'>
+                            📖 Page {lastReadPage}
+                          </span>
+                        )}
                       </p>
                     </Link>
                   </div>
