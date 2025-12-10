@@ -17,6 +17,7 @@ import { MaterialCard } from './MaterialCard';
 import { FolderCard } from './FolderCard';
 import { FolderView } from './FolderView';
 import { CollectionModal } from './CollectionModal';
+import { StreakCalendar } from './StreakCalendar';
 import { Plus } from 'lucide-react';
 
 interface Course {
@@ -463,6 +464,9 @@ export function AcademicControlCenter() {
           })()}
         </div>
       </div>
+
+      {/* Study Activity Calendar */}
+      <StreakCalendar />
 
       {/* Recently Opened (Replaces Course Shelves) */}
       <div>

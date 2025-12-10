@@ -152,4 +152,54 @@ export class StudyService {
       goalSeconds: 5 * 60 * 60, // 5 Hours
     };
   }
+
+  /**
+   * Get activity history for the last N days
+   * Returns an array of { date: string, minutes: number, sessions: number }
+   */
+  async getActivityHistory(userId: string, days = 30) {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    startDate.setHours(0, 0, 0, 0);
+
+    const sessions = await this.studySessionRepo
+      .createQueryBuilder('session')
+      .where('session.userId = :userId', { userId })
+      .andWhere('session.startTime >= :startDate', { startDate })
+      .andWhere('session.completed = true')
+      .orderBy('session.startTime', 'ASC')
+      .getMany();
+
+    // Group sessions by date
+    const activityMap = new Map<
+      string,
+      { minutes: number; sessions: number }
+    >();
+
+    for (const session of sessions) {
+      const dateKey = session.startTime.toISOString().split('T')[0]; // YYYY-MM-DD
+      const existing = activityMap.get(dateKey) || { minutes: 0, sessions: 0 };
+      existing.minutes += Math.round((session.durationSeconds || 0) / 60);
+      existing.sessions += 1;
+      activityMap.set(dateKey, existing);
+    }
+
+    // Convert to array with all dates (including empty ones)
+    const result: { date: string; minutes: number; sessions: number }[] = [];
+    const currentDate = new Date(startDate);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+
+    while (currentDate <= today) {
+      const dateKey = currentDate.toISOString().split('T')[0];
+      const activity = activityMap.get(dateKey) || { minutes: 0, sessions: 0 };
+      result.push({
+        date: dateKey,
+        ...activity,
+      });
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return result;
+  }
 }
