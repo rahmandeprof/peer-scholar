@@ -6,7 +6,6 @@ import {
     Send,
     X,
     Trash2,
-    ChevronUp,
     User,
 } from 'lucide-react';
 import api from '../lib/api';
@@ -298,8 +297,8 @@ export function PublicNotesPanel({
                                         <button
                                             onClick={() => handleVote(note.id, note.userVote === 1 ? 0 : 1)}
                                             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors ${note.userVote === 1
-                                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                                                    : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500'
+                                                ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                                                : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500'
                                                 }`}
                                         >
                                             <ThumbsUp className='w-4 h-4' />
@@ -310,8 +309,8 @@ export function PublicNotesPanel({
                                         <button
                                             onClick={() => handleVote(note.id, note.userVote === -1 ? 0 : -1)}
                                             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors ${note.userVote === -1
-                                                    ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-                                                    : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500'
+                                                ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                                                : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500'
                                                 }`}
                                         >
                                             <ThumbsDown className='w-4 h-4' />

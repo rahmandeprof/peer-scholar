@@ -103,7 +103,7 @@ export const MaterialView = () => {
     // If page range is provided, fetch quiz with range limit
     if ((pageStart || pageEnd) && material) {
       try {
-        const res = await api.post(`/chat/quiz/${material.id}`, {
+        await api.post(`/chat/quiz/${material.id}`, {
           pageStart,
           pageEnd,
         });
