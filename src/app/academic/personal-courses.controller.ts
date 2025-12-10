@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Req,
   UseGuards,
@@ -17,7 +18,7 @@ import { PersonalCoursesService } from './personal-courses.service';
 export class PersonalCoursesController {
   constructor(
     private readonly personalCoursesService: PersonalCoursesService,
-  ) {}
+  ) { }
 
   @Post()
   create(
@@ -40,6 +41,15 @@ export class PersonalCoursesController {
   @Delete(':id')
   remove(@Req() req: { user: { id: string } }, @Param('id') id: string) {
     return this.personalCoursesService.remove(req.user.id, id);
+  }
+
+  @Patch(':id')
+  update(
+    @Req() req: { user: { id: string } },
+    @Param('id') id: string,
+    @Body() body: { title?: string; color?: string },
+  ) {
+    return this.personalCoursesService.update(req.user.id, id, body);
   }
 
   @Post(':id/materials')

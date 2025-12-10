@@ -293,7 +293,7 @@ export function AcademicControlCenter() {
                   })
                 }
               />
-              {collections.slice(0, 2).map((col) => (
+              {collections.slice(0, 1).map((col) => (
                 <FolderCard
                   key={col.id}
                   id={col.id}

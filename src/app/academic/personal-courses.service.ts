@@ -1,10 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { Material } from './entities/material.entity';
 import { PersonalCourse } from './entities/personal-course.entity';
 
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 
 @Injectable()
 export class PersonalCoursesService {
@@ -19,11 +19,44 @@ export class PersonalCoursesService {
     userId: string,
     data: { title: string; code?: string; color?: string },
   ) {
+    // Check for duplicate name
+    const existing = await this.courseRepo.findOne({
+      where: { userId, title: data.title },
+    });
+    if (existing) {
+      throw new ConflictException('A collection with this name already exists');
+    }
+
     const course = this.courseRepo.create({
       ...data,
       userId,
     });
 
+    return this.courseRepo.save(course);
+  }
+
+  async update(
+    userId: string,
+    id: string,
+    data: { title?: string; color?: string },
+  ) {
+    const course = await this.courseRepo.findOne({
+      where: { id, userId },
+    });
+
+    if (!course) throw new NotFoundException('Collection not found');
+
+    // Check for duplicate name (excluding self)
+    if (data.title) {
+      const existing = await this.courseRepo.findOne({
+        where: { userId, title: data.title, id: Not(id) },
+      });
+      if (existing) {
+        throw new ConflictException('A collection with this name already exists');
+      }
+    }
+
+    Object.assign(course, data);
     return this.courseRepo.save(course);
   }
 
