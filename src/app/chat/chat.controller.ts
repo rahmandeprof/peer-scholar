@@ -129,9 +129,10 @@ export class ChatController {
   @Throttle({ quiz: { limit: 10, ttl: 86400000 } })
   generateQuiz(
     @Param('id', new ParseUUIDPipe()) id: string,
-    @Body('pageLimit') pageLimit?: number,
+    @Body('pageStart') pageStart?: number,
+    @Body('pageEnd') pageEnd?: number,
   ) {
-    return this.chatService.generateQuiz(id, pageLimit);
+    return this.chatService.generateQuiz(id, pageStart, pageEnd);
   }
 
   @Post('flashcards/:id')

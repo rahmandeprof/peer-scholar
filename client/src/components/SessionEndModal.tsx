@@ -3,7 +3,7 @@ import { Trophy, BookOpen, ArrowRight } from 'lucide-react';
 
 interface SessionEndModalProps {
   isOpen: boolean;
-  onStartQuiz: (pageLimit?: number) => void;
+  onStartQuiz: (pageStart?: number, pageEnd?: number) => void;
   onContinueReading: () => void;
 }
 
@@ -13,7 +13,8 @@ export function SessionEndModal({
   onContinueReading,
 }: SessionEndModalProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [pageLimit, setPageLimit] = useState('');
+  const [pageStart, setPageStart] = useState('');
+  const [pageEnd, setPageEnd] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -27,6 +28,12 @@ export function SessionEndModal({
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const handleStartQuiz = () => {
+    const start = pageStart ? parseInt(pageStart) : undefined;
+    const end = pageEnd ? parseInt(pageEnd) : undefined;
+    onStartQuiz(start, end);
+  };
 
   return (
     <div className='fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-300'>
@@ -51,23 +58,39 @@ export function SessionEndModal({
 
         <div className='mb-6'>
           <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
-            Which page did you reach? (Optional)
+            Which pages did you study? (Optional)
           </label>
-          <input
-            type='number'
-            value={pageLimit}
-            onChange={(e) => setPageLimit(e.target.value)}
-            placeholder='e.g. 10'
-            className='w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 outline-none'
-          />
-          <p className='text-xs text-gray-500 mt-1'>
-            We'll limit the quiz to content up to this page.
+          <div className='flex gap-3'>
+            <div className='flex-1'>
+              <input
+                type='number'
+                value={pageStart}
+                onChange={(e) => setPageStart(e.target.value)}
+                placeholder='From page'
+                min='1'
+                className='w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 outline-none text-center'
+              />
+            </div>
+            <span className='flex items-center text-gray-400'>to</span>
+            <div className='flex-1'>
+              <input
+                type='number'
+                value={pageEnd}
+                onChange={(e) => setPageEnd(e.target.value)}
+                placeholder='To page'
+                min='1'
+                className='w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 outline-none text-center'
+              />
+            </div>
+          </div>
+          <p className='text-xs text-gray-500 mt-2'>
+            We'll focus the quiz on content from these pages only.
           </p>
         </div>
 
         <div className='space-y-3'>
           <button
-            onClick={() => onStartQuiz(pageLimit ? parseInt(pageLimit) : undefined)}
+            onClick={handleStartQuiz}
             className='w-full py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold shadow-lg shadow-purple-500/30 transition-all flex items-center justify-center'
           >
             <BookOpen className='w-5 h-5 mr-2' />
@@ -86,3 +109,4 @@ export function SessionEndModal({
     </div>
   );
 }
+

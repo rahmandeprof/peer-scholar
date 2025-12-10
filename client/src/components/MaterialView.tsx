@@ -95,23 +95,20 @@ export const MaterialView = () => {
     setTimerKey((prev) => prev + 1); // Reset timer
   };
 
-  const handleStartQuiz = async (pageLimit?: number) => {
+  const handleStartQuiz = async (pageStart?: number, pageEnd?: number) => {
     setSessionEndModalOpen(false);
     setQuizOpen(true);
     setTimerKey((prev) => prev + 1); // Reset timer
 
-    // If pageLimit is provided, re-fetch quiz with limit
-    if (pageLimit && material) {
+    // If page range is provided, fetch quiz with range limit
+    if ((pageStart || pageEnd) && material) {
       try {
-        const cacheKey = `cached_quiz_${material.id}_limit_${pageLimit}`;
-        const cached = localStorage.getItem(cacheKey);
-
-        if (!cached) {
-          const res = await api.post(`/chat/quiz/${material.id}`, {
-            pageLimit,
-          });
-          localStorage.setItem(cacheKey, JSON.stringify(res.data));
-        }
+        const res = await api.post(`/chat/quiz/${material.id}`, {
+          pageStart,
+          pageEnd,
+        });
+        // Quiz will be generated with the specified page range
+        console.log('Generated quiz for pages', pageStart, 'to', pageEnd);
       } catch (err) {
         console.error('Failed to generate limited quiz', err);
       }

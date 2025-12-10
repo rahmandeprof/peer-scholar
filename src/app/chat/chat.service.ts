@@ -456,7 +456,7 @@ export class ChatService {
     }
   }
 
-  async generateQuiz(materialId: string, pageLimit?: number) {
+  async generateQuiz(materialId: string, pageStart?: number, pageEnd?: number) {
     const material = await this.materialRepo.findOne({
       where: { id: materialId },
     });
@@ -470,19 +470,20 @@ export class ChatService {
         'Material content is not available. Please re-upload the file.',
       );
 
-    // If pageLimit is provided, truncate content
+    // If page range is provided, extract content by page range
     // Approximation: 3000 characters per page
-    if (pageLimit && pageLimit > 0) {
-      const charLimit = pageLimit * 3000;
+    const CHARS_PER_PAGE = 3000;
 
-      if (materialContent.length > charLimit) {
-        materialContent = materialContent.substring(0, charLimit);
-      }
+    if (pageStart || pageEnd) {
+      const startChar = pageStart ? (pageStart - 1) * CHARS_PER_PAGE : 0;
+      const endChar = pageEnd ? pageEnd * CHARS_PER_PAGE : materialContent.length;
+
+      materialContent = materialContent.substring(startChar, endChar);
     }
 
-    // Return cached quiz if available AND no page limit was requested
-    // If page limit is requested, we always generate fresh (or we could cache with a key, but for now fresh)
-    if (!pageLimit && material.quiz) {
+    // Return cached quiz if available AND no page range was requested
+    // If page range is requested, we always generate fresh
+    if (!pageStart && !pageEnd && material.quiz) {
       return material.quiz;
     }
 
@@ -558,8 +559,8 @@ ${materialContent.substring(0, 6000)}`; // Still cap at 6000 for token limits if
       }
       const quiz = parsed.questions ?? [];
 
-      // Cache the result ONLY if it's a full quiz (no page limit)
-      if (!pageLimit && quiz.length > 0) {
+      // Cache the result ONLY if it's a full quiz (no page range specified)
+      if (!pageStart && !pageEnd && quiz.length > 0) {
         material.quiz = quiz;
         await this.materialRepo.save(material);
       }
