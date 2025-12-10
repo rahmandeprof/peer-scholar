@@ -34,7 +34,8 @@ import { FeatureSpotlightModal } from './FeatureSpotlightModal';
 import { ReportModal } from './ReportModal';
 import { Jotter } from './Jotter';
 import { CollectionModal } from './CollectionModal';
-import { PenTool, Folder } from 'lucide-react';
+import { PublicNotesPanel } from './PublicNotesPanel';
+import { PenTool, Folder, MessageSquare } from 'lucide-react';
 
 interface Material {
   id: string;
@@ -78,6 +79,7 @@ export const MaterialView = () => {
   const [userRating, setUserRating] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
+  const [publicNotesOpen, setPublicNotesOpen] = useState(false);
 
   // Reading time tracking for weekly goals
   const [readingSessionId, setReadingSessionId] = useState<string | null>(null);
@@ -377,6 +379,14 @@ export const MaterialView = () => {
             </button>
 
             <button
+              onClick={() => setPublicNotesOpen(true)}
+              className='hidden md:flex px-3 py-1.5 bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 rounded-full hover:bg-teal-200 dark:hover:bg-teal-900/50 transition-colors items-center font-medium text-sm'
+            >
+              <MessageSquare className='w-4 h-4 mr-1.5' />
+              Notes
+            </button>
+
+            <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className={`hidden md:flex p-2 rounded-full transition-colors ${sidebarOpen
                 ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
@@ -449,6 +459,16 @@ export const MaterialView = () => {
                       >
                         <PenTool className='w-4 h-4 mb-1' />
                         Jotter
+                      </button>
+                      <button
+                        onClick={() => {
+                          setPublicNotesOpen(true);
+                          setMenuOpen(false);
+                        }}
+                        className='flex flex-col items-center justify-center p-2 bg-teal-50 dark:bg-teal-900/20 rounded-lg text-teal-600 dark:text-teal-400 text-xs font-medium'
+                      >
+                        <MessageSquare className='w-4 h-4 mb-1' />
+                        Notes
                       </button>
                     </div>
 
@@ -722,6 +742,11 @@ export const MaterialView = () => {
           isOpen={collectionModalOpen}
           onClose={() => setCollectionModalOpen(false)}
           materialId={material?.id}
+        />
+        <PublicNotesPanel
+          materialId={material?.id || ''}
+          isOpen={publicNotesOpen}
+          onClose={() => setPublicNotesOpen(false)}
         />
       </div>
     </ReaderSettingsProvider>
