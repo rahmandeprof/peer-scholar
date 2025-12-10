@@ -202,4 +202,88 @@ export class StudyService {
 
     return result;
   }
+
+  async getWeeklyLeaderboard(userId: string, limit = 10) {
+    // Get start of current week (Monday)
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+    const weekStart = new Date(now.setDate(diff));
+    weekStart.setHours(0, 0, 0, 0);
+
+    // Get user's department for filtering
+    const currentUser = await this.usersService.findOne(userId);
+    const departmentId = currentUser?.department;
+
+    // Query: sum study time per user for this week
+    const query = this.studySessionRepo
+      .createQueryBuilder('session')
+      .innerJoin('session.user', 'user')
+      .select('user.id', 'userId')
+      .addSelect('user.firstName', 'firstName')
+      .addSelect('user.image', 'image')
+      .addSelect('SUM(session.durationSeconds)', 'totalSeconds')
+      .where('session.startTime >= :weekStart', { weekStart })
+      .andWhere('session.completed = true')
+      .groupBy('user.id')
+      .addGroupBy('user.firstName')
+      .addGroupBy('user.image')
+      .orderBy('totalSeconds', 'DESC')
+      .limit(limit);
+
+    // Optionally filter by department
+    if (departmentId) {
+      query.andWhere('user.department = :departmentId', { departmentId });
+    }
+
+    const results = await query.getRawMany();
+
+    // Find current user's rank
+    let currentUserRank = -1;
+    let currentUserStats = null;
+
+    for (let i = 0; i < results.length; i++) {
+      if (results[i].userId === userId) {
+        currentUserRank = i + 1;
+        currentUserStats = results[i];
+        break;
+      }
+    }
+
+    // If user not in top N, get their stats separately
+    if (currentUserRank === -1) {
+      const userStats = await this.studySessionRepo
+        .createQueryBuilder('session')
+        .select('SUM(session.durationSeconds)', 'totalSeconds')
+        .where('session.userId = :userId', { userId })
+        .andWhere('session.startTime >= :weekStart', { weekStart })
+        .andWhere('session.completed = true')
+        .getRawOne();
+
+      if (userStats?.totalSeconds > 0) {
+        currentUserStats = {
+          userId,
+          firstName: currentUser?.firstName,
+          image: currentUser?.image,
+          totalSeconds: userStats.totalSeconds,
+        };
+      }
+    }
+
+    return {
+      leaderboard: results.map((r, i) => ({
+        rank: i + 1,
+        userId: r.userId,
+        firstName: r.firstName,
+        image: r.image,
+        totalMinutes: Math.round((parseInt(r.totalSeconds) || 0) / 60),
+        isCurrentUser: r.userId === userId,
+      })),
+      currentUser: currentUserStats ? {
+        rank: currentUserRank,
+        totalMinutes: Math.round((parseInt(currentUserStats.totalSeconds) || 0) / 60),
+      } : null,
+    };
+  }
 }
+

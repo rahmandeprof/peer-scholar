@@ -89,4 +89,13 @@ export class StudyController {
 
     return this.studyService.getActivityHistory(req.user.id, 30);
   }
+
+  @Get('leaderboard')
+  getLeaderboard(@Req() req: RequestWithUser) {
+    if (!req.user) {
+      throw new Error('User not found');
+    }
+
+    return this.studyService.getWeeklyLeaderboard(req.user.id);
+  }
 }
