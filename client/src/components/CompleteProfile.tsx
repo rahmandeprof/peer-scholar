@@ -62,7 +62,7 @@ export default function CompleteProfile() {
     }
   };
 
-  const isProfileComplete = 
+  const isProfileComplete =
     user?.school &&
     user?.faculty &&
     user?.department &&
@@ -84,7 +84,7 @@ export default function CompleteProfile() {
             <GraduationCap className='w-8 h-8 text-primary-600 dark:text-primary-400' />
           </div>
           <h1 className='text-2xl font-bold text-gray-900 dark:text-white mb-2'>
-            Welcome to peerStudent!
+            Welcome to PeerToLearn!
           </h1>
           <p className='text-gray-500 dark:text-gray-400'>
             Let's get you settled. To show you the right notes and quizzes, we

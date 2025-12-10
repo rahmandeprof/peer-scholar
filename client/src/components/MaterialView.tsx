@@ -291,7 +291,7 @@ export const MaterialView = () => {
 
     const shareData = {
       title: material.title,
-      text: `Check out "${material.title}" on peerScholar!`,
+      text: `Check out "${material.title}" on PeerToLearn!`,
       url: window.location.href,
     };
 

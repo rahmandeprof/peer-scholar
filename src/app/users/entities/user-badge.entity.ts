@@ -95,8 +95,9 @@ export const BADGE_DEFINITIONS: Record<BadgeType, Omit<BadgeInfo, 'type'>> = {
 
 @Entity()
 export class UserBadge extends IDAndTimestamp {
-    @Column()
+    @Column({ name: 'userid' })
     userId: string;
+
 
     @ManyToOne(() => User, { onDelete: 'CASCADE' })
     user: User;

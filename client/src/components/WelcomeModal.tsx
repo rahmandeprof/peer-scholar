@@ -26,8 +26,8 @@ export function WelcomeModal() {
         {/* Header with gradient */}
         <div className='bg-gradient-to-r from-primary-600 to-purple-600 p-6 text-white relative overflow-hidden'>
           <div className='absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 pointer-events-none' />
-          
-          <button 
+
+          <button
             onClick={handleClose}
             className='absolute top-4 right-4 p-1 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors'
           >
@@ -38,7 +38,7 @@ export function WelcomeModal() {
             <div className='w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center mb-4 shadow-lg'>
               <Sparkles className='w-6 h-6 text-white' />
             </div>
-            <h2 className='text-2xl font-bold mb-2'>Welcome to peerStudent!</h2>
+            <h2 className='text-2xl font-bold mb-2'>Welcome to PeerToLearn!</h2>
             <p className='text-primary-100 text-sm'>
               Your all-in-one academic companion is ready.
             </p>

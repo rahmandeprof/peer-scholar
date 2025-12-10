@@ -793,8 +793,8 @@ export function UserProfile({ onClose }: UserProfileProps) {
               </h3>
               <p className='text-gray-600 dark:text-gray-400 text-sm mb-4'>
                 {isIOS
-                  ? 'To install peerStudent on your iPhone or iPad:'
-                  : 'To install peerStudent on your device:'}
+                  ? 'To install PeerToLearn on your iPhone or iPad:'
+                  : 'To install PeerToLearn on your device:'}
               </p>
               <ol className='text-left text-sm text-gray-600 dark:text-gray-400 space-y-3 bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl'>
                 <li className='flex items-start'>

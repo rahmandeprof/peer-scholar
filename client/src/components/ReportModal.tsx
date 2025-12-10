@@ -32,7 +32,7 @@ export function ReportModal({ isOpen, onClose, materialId }: ReportModalProps) {
         reason,
         description,
       });
-      success('Report submitted. Thank you for keeping peerStudent safe.');
+      success('Report submitted. Thank you for keeping PeerToLearn safe.');
       onClose();
     } catch (err) {
       console.error('Failed to submit report', err);

@@ -40,14 +40,14 @@ export class EmailService {
     try {
       await this.transporter.sendMail({
         from:
-          process.env.SMTP_FROM ?? '"peerStudent" <noreply@peerstudent.com>',
+          process.env.SMTP_FROM ?? '"PeerToLearn" <noreply@peertolearn.com>',
         to,
         subject: `${inviterName} wants to be your study partner!`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
             <h2 style="color: #4F46E5;">Study Partner Request</h2>
             <p>Hi there,</p>
-            <p><strong>${inviterName}</strong> has invited you to be their study partner on peerStudent.</p>
+            <p><strong>${inviterName}</strong> has invited you to be their study partner on PeerToLearn.</p>
             <p>Studying with a partner helps you stay motivated and maintain your streak!</p>
             <div style="margin: 30px 0;">
               <a href="${acceptLink}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Accept Invitation</a>
@@ -74,7 +74,7 @@ export class EmailService {
     try {
       await this.transporter.sendMail({
         from:
-          process.env.SMTP_FROM ?? '"peerStudent" <noreply@peerstudent.com>',
+          process.env.SMTP_FROM ?? '"PeerToLearn" <noreply@peertolearn.com>',
         to,
         subject: `⚡ Study Nudge from ${senderName}`,
         html: `
@@ -112,7 +112,7 @@ export class EmailService {
     try {
       await this.transporter.sendMail({
         from:
-          process.env.SMTP_FROM ?? '"peerStudent" <noreply@peerstudent.com>',
+          process.env.SMTP_FROM ?? '"PeerToLearn" <noreply@peertolearn.com>',
         to,
         subject: `Update on your study partner request`,
         html: `
@@ -161,14 +161,14 @@ export class EmailService {
     try {
       await this.transporter.sendMail({
         from:
-          process.env.SMTP_FROM ?? '"peerStudent" <noreply@peerstudent.com>',
+          process.env.SMTP_FROM ?? '"PeerToLearn" <noreply@peertolearn.com>',
         to: user.email,
         subject: 'Verify your email address',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-            <h2 style="color: #4F46E5;">Welcome to peerStudent!</h2>
+            <h2 style="color: #4F46E5;">Welcome to PeerToLearn!</h2>
             <p>Hi ${user.firstName},</p>
-            <p>Please verify your email address to unlock full access to peerStudent features like uploading materials and commenting.</p>
+            <p>Please verify your email address to unlock full access to PeerToLearn features like uploading materials and commenting.</p>
             <div style="margin: 30px 0;">
               <a href="${link}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Verify Email</a>
             </div>
@@ -189,7 +189,7 @@ export class EmailService {
     try {
       await this.transporter.sendMail({
         from:
-          process.env.SMTP_FROM ?? '"peerStudent" <noreply@peerstudent.com>',
+          process.env.SMTP_FROM ?? '"PeerToLearn" <noreply@peertolearn.com>',
         to,
         subject: 'Reset your password',
         html: `
