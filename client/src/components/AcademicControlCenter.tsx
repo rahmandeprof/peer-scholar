@@ -295,23 +295,24 @@ export function AcademicControlCenter() {
                   })
                 }
               />
-              {collections.slice(0, 1).map((col) => (
-                <FolderCard
-                  key={col.id}
-                  id={col.id}
-                  title={col.title}
-                  count={col.count || 0}
-                  color={col.color}
-                  compact={true}
-                  onClick={() =>
-                    setFolderView({
-                      id: col.id,
-                      title: col.title,
-                      type: 'collection',
-                    })
-                  }
-                />
-              ))}
+              {/* Collections Button - Opens Modal with all collections */}
+              <button
+                onClick={() => setCollectionModalOpen(true)}
+                className='w-full p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-all flex items-center group'
+              >
+                <div className='p-1.5 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg text-indigo-600 dark:text-indigo-400 mr-2.5'>
+                  <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                    <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z' />
+                  </svg>
+                </div>
+                <div className='flex-1 text-left'>
+                  <span className='text-sm font-medium text-gray-900 dark:text-white'>Collections</span>
+                  <span className='text-xs text-gray-500 ml-1'>({collections.length})</span>
+                </div>
+                <svg className='w-4 h-4 text-gray-400 group-hover:text-indigo-500 transition-colors' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 5l7 7-7 7' />
+                </svg>
+              </button>
               {/* Add New Collection Button (Mini) */}
               <button
                 onClick={() => setCollectionModalOpen(true)}

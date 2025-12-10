@@ -105,6 +105,7 @@ async function seed() {
           'Engineering Information And Communication Sciences',
           'Electrical/Electronics',
           'Civil Engineering',
+          'Food Engineering',
         ],
       },
       {
