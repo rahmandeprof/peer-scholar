@@ -49,6 +49,7 @@ interface Material {
   content?: string;
   type: string;
   uploader: {
+    id: string;
     firstName: string;
     lastName: string;
   };
