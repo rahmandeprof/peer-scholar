@@ -242,7 +242,7 @@ export function UserProfile({ onClose }: UserProfileProps) {
           </button>
         </div>
 
-        <div className='p-6 min-h-[400px]'>
+        <div className='p-6 h-[420px] overflow-y-auto'>
           {activeTab === 'quizzes' ? (
             <QuizHistory />
           ) : activeTab === 'data' ? (
