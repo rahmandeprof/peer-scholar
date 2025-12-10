@@ -126,6 +126,11 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
               <p className='mt-1 text-sm text-gray-500 dark:text-gray-400 font-medium'>
                 {material.course?.code}
               </p>
+              {material.uploader?.firstName && (
+                <p className='mt-0.5 text-xs text-gray-400 dark:text-gray-500'>
+                  Uploaded by {material.uploader.firstName} {material.uploader.lastName}
+                </p>
+              )}
             </div>
             <div className='flex items-center space-x-2'>
               <span className='inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 border border-primary-100 dark:border-primary-800'>
