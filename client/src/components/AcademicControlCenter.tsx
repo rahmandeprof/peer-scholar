@@ -247,6 +247,11 @@ export function AcademicControlCenter() {
                           ? `${lastOpened.courseCode} • `
                           : ''}
                         {lastOpened.type}
+                        {(lastOpened as any).uploader?.firstName && (
+                          <span className='ml-1'>
+                            • by {(lastOpened as any).uploader.firstName} {(lastOpened as any).uploader.lastName}
+                          </span>
+                        )}
                         {lastReadPage > 1 && (
                           <span className='ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'>
                             📖 Page {lastReadPage}

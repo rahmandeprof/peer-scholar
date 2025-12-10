@@ -128,7 +128,7 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
               </p>
               {material.uploader?.firstName && (
                 <p className='mt-0.5 text-xs text-gray-400 dark:text-gray-500'>
-                  Uploaded by {material.uploader.firstName} {material.uploader.lastName}
+                  by {material.uploader.firstName} {material.uploader.lastName}
                 </p>
               )}
             </div>
