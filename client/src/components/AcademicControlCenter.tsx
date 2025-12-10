@@ -471,20 +471,20 @@ export function AcademicControlCenter() {
                     </p>
                   </div>
 
-                  <div className='grid grid-cols-2 gap-4'>
-                    <div className='bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3 flex flex-col items-center justify-center'>
-                      <div className='text-lg font-bold text-gray-900 dark:text-gray-100 truncate w-full text-center'>
-                        {streak}
+                  <div className='flex gap-3'>
+                    <div className='flex-1 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl px-3 py-2 text-center border border-amber-100 dark:border-amber-800/30'>
+                      <div className='text-2xl font-bold text-amber-600 dark:text-amber-400'>
+                        🔥 {streak}
                       </div>
-                      <div className='text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-[1px] whitespace-nowrap'>
-                        Streak
+                      <div className='text-xs text-amber-600/70 dark:text-amber-400/70 font-medium'>
+                        Day Streak
                       </div>
                     </div>
-                    <div className='bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3 flex flex-col items-center justify-center'>
-                      <div className='text-lg font-bold text-gray-900 dark:text-gray-100 truncate w-full text-center'>
+                    <div className='flex-1 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-xl px-3 py-2 text-center border border-purple-100 dark:border-purple-800/30'>
+                      <div className='text-lg font-bold text-purple-600 dark:text-purple-400 leading-tight'>
                         {stage}
                       </div>
-                      <div className='text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-[1px]'>
+                      <div className='text-xs text-purple-600/70 dark:text-purple-400/70 font-medium'>
                         Level
                       </div>
                     </div>

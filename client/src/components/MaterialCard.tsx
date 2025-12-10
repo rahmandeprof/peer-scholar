@@ -1,4 +1,4 @@
-import { memo, useState, useRef, useCallback } from 'react';
+import { memo, useState, useRef, useCallback, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import {
@@ -14,7 +14,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmationModal } from './ConfirmationModal';
 import api from '../lib/api';
-import { useOnClickOutside } from '../hooks/useOnClickOutside';
 
 interface Material {
   id: string;
@@ -49,10 +48,32 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  useOnClickOutside(menuRef as React.RefObject<HTMLElement>, () =>
-    setMenuOpen(false),
-  );
+  // Custom click-outside handler that works with portal
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      const clickedInsideMenu = menuRef.current?.contains(target);
+      const clickedInsideDropdown = dropdownRef.current?.contains(target);
+
+      if (!clickedInsideMenu && !clickedInsideDropdown) {
+        setMenuOpen(false);
+      }
+    };
+
+    // Delay adding listener to avoid catching the opening click
+    const timer = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 0);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [menuOpen]);
 
   const isOwner = user?.id === material.uploader.id;
 
@@ -156,6 +177,7 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
                 {/* Dropdown Menu - Rendered via Portal to escape stacking context */}
                 {menuOpen && createPortal(
                   <div
+                    ref={dropdownRef}
                     className='fixed w-48 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 py-1 animate-pop-in max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent'
                     style={{
                       overscrollBehavior: 'contain',
