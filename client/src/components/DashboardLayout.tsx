@@ -72,7 +72,7 @@ export function DashboardLayout() {
   };
 
   return (
-    <div className='flex h-[100dvh] bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 overflow-hidden relative'>
+    <div className='flex h-[100dvh] bg-gradient-to-b from-primary-100 via-primary-50/30 to-white dark:from-gray-950 dark:via-gray-950 dark:to-gray-950 text-gray-900 dark:text-gray-100 overflow-hidden relative'>
       {/* Sidebar - Desktop */}
       <aside className='hidden md:flex md:flex-col w-72 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-800/50 z-50 shadow-sm'>
         <div className='p-6 mb-6 flex items-center justify-between'>

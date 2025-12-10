@@ -69,6 +69,7 @@ export function AcademicControlCenter() {
     type: 'collection' | 'favorites';
   } | null>(null);
   const [collections, setCollections] = useState<any[]>([]);
+  const [favoritesCount, setFavoritesCount] = useState(0);
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
   const [selectedMaterialForCollection, setSelectedMaterialForCollection] = useState<string | undefined>(undefined);
 
@@ -123,6 +124,14 @@ export function AcademicControlCenter() {
           setCollections(collectionsRes.data);
         } catch {
           console.warn('Failed to fetch collections');
+        }
+
+        // Fetch favorites count
+        try {
+          const favoritesRes = await api.get('/materials/favorites');
+          setFavoritesCount(Array.isArray(favoritesRes.data) ? favoritesRes.data.length : 0);
+        } catch {
+          console.warn('Failed to fetch favorites');
         }
       } catch (error) {
         console.error('Failed to fetch dashboard data', error);
@@ -237,11 +246,11 @@ export function AcademicControlCenter() {
             <h2 className='text-base lg:text-lg font-bold text-gray-900 dark:text-gray-100 mb-3'>
               Quick Access
             </h2>
-            <div className='space-y-2 max-h-[160px] lg:max-h-[120px] overflow-y-auto custom-scrollbar pr-1'>
+            <div className='space-y-2 pr-1'>
               <FolderCard
                 id='favorites'
                 title='Favorites'
-                count={0}
+                count={favoritesCount}
                 isFavorite={true}
                 compact={true}
                 onClick={() =>
