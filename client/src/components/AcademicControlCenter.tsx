@@ -420,73 +420,75 @@ export function AcademicControlCenter() {
 
             return (
               <>
-                <div className='relative w-32 h-32 flex-shrink-0'>
-                  <svg className='w-full h-full transform -rotate-90'>
-                    <circle
-                      cx='64'
-                      cy='64'
-                      r='56'
-                      stroke='currentColor'
-                      strokeWidth='12'
-                      fill='transparent'
-                      className='text-gray-200 dark:text-gray-700'
-                    />
-                    <circle
-                      cx='64'
-                      cy='64'
-                      r='56'
-                      stroke='currentColor'
-                      strokeWidth='12'
-                      fill='transparent'
-                      strokeDasharray={2 * Math.PI * 56}
-                      strokeDashoffset={2 * Math.PI * 56 * (1 - percent / 100)}
-                      className={`transition-all duration-1000 ease-out ${percent >= 100 ? 'text-green-500' : 'text-primary-600'
-                        }`}
-                      strokeLinecap='round'
-                    />
-                  </svg>
-                  <div className='absolute inset-0 flex flex-col items-center justify-center'>
-                    <span className='text-2xl font-bold text-gray-900 dark:text-gray-100 text-center'>
-                      {Math.round(percent)}%
-                    </span>
-                    {goalLevel > 1 && (
-                      <span className='text-xs font-bold text-orange-500 bg-orange-100 dark:bg-orange-900/30 px-1.5 py-0.5 rounded-full mt-1'>
-                        Level {goalLevel}
+                {/* Top section: Circle + Stats side by side */}
+                <div className='flex items-center gap-4 mb-4'>
+                  <div className='relative w-24 h-24 flex-shrink-0'>
+                    <svg className='w-full h-full transform -rotate-90'>
+                      <circle
+                        cx='48'
+                        cy='48'
+                        r='40'
+                        stroke='currentColor'
+                        strokeWidth='10'
+                        fill='transparent'
+                        className='text-gray-200 dark:text-gray-700'
+                      />
+                      <circle
+                        cx='48'
+                        cy='48'
+                        r='40'
+                        stroke='currentColor'
+                        strokeWidth='10'
+                        fill='transparent'
+                        strokeDasharray={2 * Math.PI * 40}
+                        strokeDashoffset={2 * Math.PI * 40 * (1 - percent / 100)}
+                        className={`transition-all duration-1000 ease-out ${percent >= 100 ? 'text-green-500' : 'text-primary-600'
+                          }`}
+                        strokeLinecap='round'
+                      />
+                    </svg>
+                    <div className='absolute inset-0 flex flex-col items-center justify-center'>
+                      <span className='text-xl font-bold text-gray-900 dark:text-gray-100'>
+                        {Math.round(percent)}%
                       </span>
-                    )}
+                      {goalLevel > 1 && (
+                        <span className='text-[10px] font-bold text-orange-500 bg-orange-100 dark:bg-orange-900/30 px-1 py-0.5 rounded-full'>
+                          Lvl {goalLevel}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                <div className='flex-1 space-y-4'>
-                  <div>
-                    <div className='text-3xl font-bold text-gray-900 dark:text-gray-100'>
-                      {Math.floor(currentSeconds / 3600)}h {Math.floor((currentSeconds % 3600) / 60)}m{' '}
-                      <span className='text-lg text-gray-500 font-medium'>
-                        / {(dynamicGoal / 3600).toFixed(0)} Hrs
+                  <div className='flex-1'>
+                    <div className='text-2xl font-bold text-gray-900 dark:text-gray-100'>
+                      {Math.floor(currentSeconds / 3600)}h {Math.floor((currentSeconds % 3600) / 60)}m
+                      <span className='text-base text-gray-500 font-medium ml-1'>
+                        / {(dynamicGoal / 3600).toFixed(0)}h
                       </span>
                     </div>
                     <p className='text-sm text-gray-500 dark:text-gray-400'>
                       Studied this week
-                      {goalLevel > 1 && ` (Milestone ${goalLevel} Unlocked!)`}
+                      {goalLevel > 1 && <span className='text-orange-500 font-medium'> • Milestone {goalLevel}!</span>}
                     </p>
                   </div>
+                </div>
 
-                  <div className='flex gap-3'>
-                    <div className='flex-1 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl px-3 py-2 text-center border border-amber-100 dark:border-amber-800/30'>
-                      <div className='text-2xl font-bold text-amber-600 dark:text-amber-400'>
-                        🔥 {streak}
-                      </div>
-                      <div className='text-xs text-amber-600/70 dark:text-amber-400/70 font-medium'>
-                        Day Streak
-                      </div>
+                {/* Bottom section: Streak + Level spanning full width */}
+                <div className='flex gap-3 w-full'>
+                  <div className='flex-1 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl px-4 py-3 text-center border border-amber-100 dark:border-amber-800/30'>
+                    <div className='text-2xl font-bold text-amber-600 dark:text-amber-400'>
+                      🔥 {streak}
                     </div>
-                    <div className='flex-1 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-xl px-3 py-2 text-center border border-purple-100 dark:border-purple-800/30'>
-                      <div className='text-lg font-bold text-purple-600 dark:text-purple-400 leading-tight'>
-                        {stage}
-                      </div>
-                      <div className='text-xs text-purple-600/70 dark:text-purple-400/70 font-medium'>
-                        Level
-                      </div>
+                    <div className='text-xs text-amber-600/70 dark:text-amber-400/70 font-medium'>
+                      Day Streak
+                    </div>
+                  </div>
+                  <div className='flex-1 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-xl px-4 py-3 text-center border border-purple-100 dark:border-purple-800/30'>
+                    <div className='text-xl font-bold text-purple-600 dark:text-purple-400'>
+                      {stage}
+                    </div>
+                    <div className='text-xs text-purple-600/70 dark:text-purple-400/70 font-medium'>
+                      Level
                     </div>
                   </div>
                 </div>
