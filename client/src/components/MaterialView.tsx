@@ -14,6 +14,7 @@ import {
   Sun,
 } from 'lucide-react';
 import api from '../lib/api';
+import { addToViewingHistory } from '../lib/viewingHistory';
 import { useTheme } from '../contexts/ThemeContext';
 import { AISidebar } from './AISidebar';
 import { QuizModal } from './QuizModal';
@@ -138,9 +139,17 @@ export const MaterialView = () => {
   useEffect(() => {
     const fetchMaterial = async () => {
       try {
-        const res = await api.get(`/materials/${id}`);
+        const res = await api.get(`/materials/${id}`)
         setMaterial(res.data);
         setIsFavorited(res.data.isFavorited || false);
+
+        // Add to viewing history for "Recently Opened" feature
+        addToViewingHistory({
+          id: res.data.id,
+          title: res.data.title,
+          type: res.data.type,
+          courseCode: res.data.courseCode,
+        });
 
         // Track activity
         api

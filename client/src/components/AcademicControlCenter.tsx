@@ -11,6 +11,7 @@ import {
   Activity,
 } from 'lucide-react';
 import api from '../lib/api';
+import { getRecentlyOpened } from '../lib/viewingHistory';
 import { useAuth } from '../contexts/AuthContext';
 import { StudySessionModal } from './StudySessionModal';
 import { MaterialCard } from './MaterialCard';
@@ -99,13 +100,34 @@ export function AcademicControlCenter() {
         });
 
         if (activityRes.data.lastReadMaterial) {
-          setRecentMaterials([
-            {
-              ...activityRes.data.lastReadMaterial,
-              viewedAt: new Date().toISOString(),
-            },
-          ]);
+          // Get viewing history from localStorage (shows last 3 opened)
+          const localHistory = getRecentlyOpened(3);
+
+          if (localHistory.length > 0) {
+            // Use localStorage history for "Recently Opened"
+            setRecentMaterials(localHistory.map(m => ({
+              ...m,
+              viewedAt: m.viewedAt,
+            })));
+          } else {
+            // Fallback to backend's last read material if no local history
+            setRecentMaterials([
+              {
+                ...activityRes.data.lastReadMaterial,
+                viewedAt: new Date().toISOString(),
+              },
+            ]);
+          }
           setLastReadPage(activityRes.data.lastReadPage || 1);
+        } else {
+          // No backend activity, check localStorage
+          const localHistory = getRecentlyOpened(3);
+          if (localHistory.length > 0) {
+            setRecentMaterials(localHistory.map(m => ({
+              ...m,
+              viewedAt: m.viewedAt,
+            })));
+          }
         }
 
         if (user?.department?.id) {
@@ -438,7 +460,7 @@ export function AcademicControlCenter() {
                 <div className='flex-1 space-y-4'>
                   <div>
                     <div className='text-3xl font-bold text-gray-900 dark:text-gray-100'>
-                      {(currentSeconds / 3600).toFixed(1)}{' '}
+                      {Math.floor(currentSeconds / 3600)}h {Math.floor((currentSeconds % 3600) / 60)}m{' '}
                       <span className='text-lg text-gray-500 font-medium'>
                         / {(dynamicGoal / 3600).toFixed(0)} Hrs
                       </span>

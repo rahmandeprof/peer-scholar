@@ -1,5 +1,6 @@
-import { useState, useRef, useCallback, memo } from 'react';
+import { memo, useState, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import {
   FileText,
   MoreVertical,
@@ -61,7 +62,7 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
   }, [material.fileUrl]);
 
   const handleShare = async () => {
-    const url = `${window.location.origin}/materials/${material.id}`;
+    const url = `${window.location.origin} /materials/${material.id} `;
     try {
       await navigator.clipboard.writeText(url);
       toast.success('Link copied to clipboard!');
@@ -72,13 +73,13 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
   };
 
   const handleSummarize = () => {
-    navigate(`/chat?initialMaterialId=${material.id}`);
+    navigate(`/ chat ? initialMaterialId = ${material.id} `);
     setMenuOpen(false);
   };
 
   const handleDelete = async () => {
     try {
-      await api.delete(`/chat/materials/${material.id}`);
+      await api.delete(`/ chat / materials / ${material.id} `);
       toast.success('Material deleted successfully');
       if (onDelete) onDelete(material.id);
     } catch {
@@ -89,7 +90,7 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
 
   return (
     <>
-      <div className='bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl overflow-visible shadow-sm rounded-2xl hover:shadow-md transition-all border border-gray-200/50 dark:border-gray-700/50 group relative hover-lift active-press'>
+      <div className={`bg - white / 60 dark: bg - gray - 800 / 60 backdrop - blur - xl overflow - visible shadow - sm rounded - 2xl hover: shadow - md transition - all border border - gray - 200 / 50 dark: border - gray - 700 / 50 group relative hover - lift active - press ${menuOpen ? 'z-[100]' : ''} `}>
         <div className='p-6'>
           <div className='flex items-start justify-between mb-4'>
             <div className='flex-1 min-w-0 mr-4'>
@@ -121,7 +122,7 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
                       Select Version
                     </div>
                     <Link
-                      to={`/materials/${material.id}`}
+                      to={`/ materials / ${material.id} `}
                       className='block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                     >
                       Latest (Current)
@@ -129,7 +130,7 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
                     {material.versions.map((version) => (
                       <Link
                         key={version.id}
-                        to={`/materials/${version.id}`}
+                        to={`/ materials / ${version.id} `}
                         className='block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                       >
                         {version.title}
@@ -152,11 +153,16 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
                   <MoreVertical className='w-5 h-5' />
                 </button>
 
-                {/* Dropdown Menu */}
-                {menuOpen && (
+                {/* Dropdown Menu - Rendered via Portal to escape stacking context */}
+                {menuOpen && createPortal(
                   <div
-                    className='absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-50 py-1 animate-pop-in max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent'
-                    style={{ overscrollBehavior: 'contain' }}
+                    className='fixed w-48 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 py-1 animate-pop-in max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent'
+                    style={{
+                      overscrollBehavior: 'contain',
+                      zIndex: 9999,
+                      top: menuRef.current ? menuRef.current.getBoundingClientRect().bottom + 8 : 0,
+                      left: menuRef.current ? Math.min(menuRef.current.getBoundingClientRect().right - 192, window.innerWidth - 200) : 0,
+                    }}
                     onWheel={(e) => {
                       e.stopPropagation();
                       const el = e.currentTarget;
@@ -228,7 +234,8 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
                         Delete
                       </button>
                     )}
-                  </div>
+                  </div>,
+                  document.body
                 )}
               </div>
             </div>
@@ -241,7 +248,7 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
         </div>
         <div className='bg-gray-50/50 dark:bg-gray-700/30 px-6 py-4 border-t border-gray-100 dark:border-gray-700/50'>
           <Link
-            to={`/materials/${material.id}`}
+            to={`/ materials / ${material.id} `}
             className='text-sm font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 flex items-center group-hover:translate-x-1 transition-transform'
           >
             Study Now
