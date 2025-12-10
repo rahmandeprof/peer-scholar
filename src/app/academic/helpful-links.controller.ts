@@ -7,10 +7,9 @@ import {
     Param,
     Body,
     UseGuards,
+    Req,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '@/app/auth/guards/jwt-auth.guard';
-import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { User } from '@/app/users/entities/user.entity';
+import { AuthGuard } from '@nestjs/passport';
 import { HelpfulLinksService } from './helpful-links.service';
 import { CreateHelpfulLinkDto, UpdateHelpfulLinkDto } from './dtos/helpful-link.dto';
 
@@ -19,9 +18,9 @@ export class HelpfulLinksController {
     constructor(private readonly helpfulLinksService: HelpfulLinksService) { }
 
     @Post()
-    @UseGuards(JwtAuthGuard)
-    create(@Body() dto: CreateHelpfulLinkDto, @CurrentUser() user: User) {
-        return this.helpfulLinksService.create(dto, user.id);
+    @UseGuards(AuthGuard('jwt'))
+    create(@Body() dto: CreateHelpfulLinkDto, @Req() req: any) {
+        return this.helpfulLinksService.create(dto, req.user.id);
     }
 
     @Get('material/:materialId')
@@ -35,23 +34,23 @@ export class HelpfulLinksController {
     }
 
     @Patch(':id')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(AuthGuard('jwt'))
     update(
         @Param('id') id: string,
         @Body() dto: UpdateHelpfulLinkDto,
-        @CurrentUser() user: User,
+        @Req() req: any,
     ) {
-        return this.helpfulLinksService.update(id, dto, user.id);
+        return this.helpfulLinksService.update(id, dto, req.user.id);
     }
 
     @Delete(':id')
-    @UseGuards(JwtAuthGuard)
-    remove(@Param('id') id: string, @CurrentUser() user: User) {
-        return this.helpfulLinksService.remove(id, user.id);
+    @UseGuards(AuthGuard('jwt'))
+    remove(@Param('id') id: string, @Req() req: any) {
+        return this.helpfulLinksService.remove(id, req.user.id);
     }
 
     @Post(':id/helpful')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(AuthGuard('jwt'))
     markHelpful(@Param('id') id: string) {
         return this.helpfulLinksService.markHelpful(id);
     }

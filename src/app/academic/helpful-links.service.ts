@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { HelpfulLink, LinkType } from '../entities/helpful-link.entity';
-import { CreateHelpfulLinkDto, UpdateHelpfulLinkDto } from '../dtos/helpful-link.dto';
-import { Material } from '../entities/material.entity';
+import { HelpfulLink, LinkType } from './entities/helpful-link.entity';
+import { CreateHelpfulLinkDto, UpdateHelpfulLinkDto } from './dtos/helpful-link.dto';
+import { Material } from './entities/material.entity';
 
 @Injectable()
 export class HelpfulLinksService {
