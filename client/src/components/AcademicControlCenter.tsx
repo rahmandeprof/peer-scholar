@@ -18,6 +18,7 @@ import { FolderCard } from './FolderCard';
 import { FolderView } from './FolderView';
 import { CollectionModal } from './CollectionModal';
 import { StreakCalendar } from './StreakCalendar';
+import { StudyTip } from './StudyTip';
 import { Plus } from 'lucide-react';
 
 interface Course {
@@ -475,6 +476,9 @@ export function AcademicControlCenter() {
 
       {/* Study Activity Calendar */}
       <StreakCalendar />
+
+      {/* Study Tip */}
+      <StudyTip />
 
       {/* Recently Opened (Replaces Course Shelves) */}
       <div>
