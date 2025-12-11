@@ -85,6 +85,7 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
   }, [menuOpen]);
 
   const isOwner = user?.id === material.uploader.id;
+  const isAdmin = user?.role === 'admin';
 
   const handleDownload = useCallback(() => {
     window.open(material.fileUrl, '_blank');
@@ -109,7 +110,7 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
 
   const handleDelete = async () => {
     try {
-      await api.delete(`/ chat / materials / ${material.id} `);
+      await api.delete(`/chat/materials/${material.id}`);
       toast.success('Material deleted successfully');
       if (onDelete) onDelete(material.id);
     } catch {
@@ -157,7 +158,7 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
                       Select Version
                     </div>
                     <Link
-                      to={`/ materials / ${material.id} `}
+                      to={`/materials/${material.id}`}
                       className='block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                     >
                       Latest (Current)
@@ -273,7 +274,7 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
                       </button>
                     )}
 
-                    {isOwner && (
+                    {(isOwner || isAdmin) && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
