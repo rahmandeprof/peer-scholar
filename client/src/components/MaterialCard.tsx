@@ -92,7 +92,7 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
   }, [material.fileUrl]);
 
   const handleShare = async () => {
-    const url = `${window.location.origin} /materials/${material.id} `;
+    const url = `${window.location.origin}/materials/${material.id}`;
     try {
       await navigator.clipboard.writeText(url);
       toast.success('Link copied to clipboard!');
@@ -103,7 +103,7 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
   };
 
   const handleSummarize = () => {
-    navigate(`/ chat ? initialMaterialId = ${material.id} `);
+    navigate(`/chat?initialMaterialId=${material.id}`);
     setMenuOpen(false);
   };
 
@@ -295,7 +295,7 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
         </div>
         <div className='bg-gray-50/50 dark:bg-gray-700/30 px-6 py-4 border-t border-gray-100 dark:border-gray-700/50'>
           <Link
-            to={`/ materials / ${material.id} `}
+            to={`/materials/${material.id}`}
             className='text-sm font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 flex items-center group-hover:translate-x-1 transition-transform'
           >
             Study Now
