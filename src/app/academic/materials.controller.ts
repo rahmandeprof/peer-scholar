@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   ForbiddenException,
   Get,
   Param,
@@ -14,8 +15,11 @@ import { AuthGuard } from '@nestjs/passport';
 import { Throttle } from '@nestjs/throttler';
 
 import { RateLimitGuard } from '@/app/auth/guards/rate-limit.guard';
+import { RolesGuard } from '@/app/common/guards/roles.guard';
+import { Roles } from '@/app/common/decorators/roles.decorator';
 
 import { CreateMaterialDto } from './dto/create-material.dto';
+import { FlagMaterialDto } from './dto/flag-material.dto';
 
 import { MaterialsService } from './materials.service';
 
@@ -56,8 +60,19 @@ export class MaterialsController {
     @Query('courseId') courseId?: string,
     @Query('type') type?: string,
     @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.materialsService.findAll(req.user, courseId, type, search);
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 12;
+    return this.materialsService.findAll(
+      req.user,
+      courseId,
+      type,
+      search,
+      pageNum,
+      limitNum,
+    );
   }
 
   @Patch(':id/scope')
@@ -226,5 +241,52 @@ export class MaterialsController {
     @Req() req: any,
   ) {
     return this.materialsService.votePublicNote(noteId, req.user.id, value);
+  }
+
+  // ===== FLAGGING ENDPOINTS =====
+
+  @Post(':id/flag')
+  flagMaterial(
+    @Param('id') id: string,
+    @Body() dto: FlagMaterialDto,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    @Req() req: any,
+  ) {
+    return this.materialsService.flagMaterial(
+      id,
+      req.user.id,
+      dto.reason,
+      dto.description,
+    );
+  }
+
+  // ===== ADMIN ENDPOINTS =====
+
+  @Get('admin/flagged')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  getFlaggedMaterials() {
+    return this.materialsService.getFlaggedMaterials();
+  }
+
+  @Get('admin/:id/flags')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  getMaterialFlags(@Param('id') id: string) {
+    return this.materialsService.getMaterialFlags(id);
+  }
+
+  @Post('admin/:id/dismiss-flags')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  dismissFlags(@Param('id') id: string) {
+    return this.materialsService.dismissFlags(id);
+  }
+
+  @Delete('admin/:id/force')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  forceDeleteMaterial(@Param('id') id: string) {
+    return this.materialsService.forceDeleteMaterial(id);
   }
 }

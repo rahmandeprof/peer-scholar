@@ -147,6 +147,12 @@ export class Material extends IDAndTimestamp {
   @Column({ name: 'favorites_count', type: 'int', default: 0 })
   favoritesCount: number;
 
+  @Column({ name: 'flag_count', type: 'int', default: 0 })
+  flagCount: number;
+
+  @Column({ name: 'is_hidden', default: false })
+  isHidden: boolean;
+
   @ManyToMany(() => PersonalCourse, (course) => course.materials)
   personalCourses: PersonalCourse[];
 

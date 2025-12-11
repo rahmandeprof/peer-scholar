@@ -16,6 +16,7 @@ const VerifyEmail = lazy(() => import('./components/VerifyEmail').then(m => ({ d
 const ForgotPassword = lazy(() => import('./components/ForgotPassword').then(m => ({ default: m.ForgotPassword })));
 const ResetPassword = lazy(() => import('./components/ResetPassword').then(m => ({ default: m.ResetPassword })));
 const CompleteProfile = lazy(() => import('./components/CompleteProfile'));
+const VerifyPending = lazy(() => import('./components/VerifyPending'));
 
 // Dashboard layout and main components
 const DashboardLayout = lazy(() => import('./components/DashboardLayout').then(m => ({ default: m.DashboardLayout })));
@@ -27,6 +28,7 @@ const MaterialView = lazy(() => import('./components/MaterialView').then(m => ({
 const StudyPartner = lazy(() => import('./components/StudyPartner').then(m => ({ default: m.StudyPartner })));
 const TargetGPCalculator = lazy(() => import('./components/TargetGPCalculator').then(m => ({ default: m.TargetGPCalculator })));
 const QuizArena = lazy(() => import('./components/QuizArena').then(m => ({ default: m.QuizArena })));
+const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard'));
 
 // Suspense fallback for route loading
 const RouteLoadingFallback = () => (
@@ -55,13 +57,19 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to='/' state={{ from: location }} replace />;
   }
 
+  // Check for email verification first (strict enforcement)
+  // Allow access to verify-pending page even if not verified
+  if (!user?.isVerified && location.pathname !== '/verify-pending') {
+    return <Navigate to='/verify-pending' replace />;
+  }
+
   // Check for academic profile completion
   // We allow access to /complete-profile even if incomplete (obviously)
   // But we block everything else if incomplete
   const isProfileComplete =
     user?.department && user?.faculty && user?.yearOfStudy;
 
-  if (!isProfileComplete && location.pathname !== '/complete-profile') {
+  if (!isProfileComplete && location.pathname !== '/complete-profile' && location.pathname !== '/verify-pending') {
     return <Navigate to='/complete-profile' replace />;
   }
 
@@ -113,6 +121,15 @@ function AppContent() {
             }
           />
 
+          <Route
+            path='/verify-pending'
+            element={
+              <ProtectedRoute>
+                <VerifyPending />
+              </ProtectedRoute>
+            }
+          />
+
           {/* Protected Dashboard Routes */}
           <Route
             element={
@@ -134,6 +151,7 @@ function AppContent() {
             <Route path='/materials/:id' element={<MaterialView />} />
             <Route path='/tools/gp-calculator' element={<TargetGPCalculator />} />
             <Route path='/arena/:challengeId' element={<QuizArena />} />
+            <Route path='/admin' element={<AdminDashboard />} />
           </Route>
 
           <Route

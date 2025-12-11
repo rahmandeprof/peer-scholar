@@ -66,7 +66,9 @@ export const CourseView: React.FC = () => {
   const fetchMaterials = async (id: string) => {
     try {
       const res = await axios.get(`/materials?courseId=${id}`);
-      setMaterials(res.data);
+      // Handle paginated response - extract materials array
+      const data = res.data;
+      setMaterials(data.materials || data);
     } catch (error) {
       console.error('Failed to fetch materials', error);
     } finally {

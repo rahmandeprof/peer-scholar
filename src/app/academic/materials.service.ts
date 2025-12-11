@@ -19,6 +19,7 @@ import { MaterialRating } from './entities/material-rating.entity';
 import { MaterialReport } from './entities/material-report.entity';
 import { Note } from './entities/note.entity';
 import { PublicNote, PublicNoteVote } from './entities/public-note.entity';
+import { MaterialFlag, FlagReason } from './entities/material-flag.entity';
 import { Course } from '@/app/academic/entities/course.entity';
 import { User } from '@/app/users/entities/user.entity';
 
@@ -57,6 +58,8 @@ export class MaterialsService {
     private publicNoteRepo: Repository<PublicNote>,
     @InjectRepository(PublicNoteVote)
     private publicNoteVoteRepo: Repository<PublicNoteVote>,
+    @InjectRepository(MaterialFlag)
+    private flagRepo: Repository<MaterialFlag>,
   ) {
     cloudinary.config({
       cloud_name: this.configService.get('CLOUD_NAME'),
@@ -138,44 +141,54 @@ export class MaterialsService {
       .createQueryBuilder('material')
       .leftJoinAndSelect('material.uploader', 'uploader');
 
-    // Apply the same access scope filtering as findAll
-    query.andWhere(
-      new Brackets((qb: WhereExpressionBuilder) => {
-        qb.where('material.scope = :publicScope', {
-          publicScope: AccessScope.PUBLIC,
-        }).orWhere('uploader.id = :userId', { userId: user.id });
+    // Admin bypass - skip all scope filtering, include hidden materials
+    const isAdmin = user.role === 'admin';
 
-        if (user.department) {
-          const userDeptName =
-            typeof user.department === 'string'
-              ? user.department
-              : (user.department as { name: string }).name;
+    // Non-admin users should not see hidden materials
+    if (!isAdmin) {
+      query.andWhere('material.isHidden = :isHidden', { isHidden: false });
+    }
 
-          qb.orWhere(
-            '(material.scope = :deptScope AND material.targetDepartment = :userDeptName)',
-            {
-              deptScope: AccessScope.DEPARTMENT,
-              userDeptName,
-            },
-          );
-        }
+    // Admin sees all materials, non-admin sees scoped materials
+    if (!isAdmin) {
+      query.andWhere(
+        new Brackets((qb: WhereExpressionBuilder) => {
+          qb.where('material.scope = :publicScope', {
+            publicScope: AccessScope.PUBLIC,
+          }).orWhere('uploader.id = :userId', { userId: user.id });
 
-        if (user.faculty) {
-          const userFacultyName =
-            typeof user.faculty === 'string'
-              ? user.faculty
-              : (user.faculty as { name: string }).name;
+          if (user.department) {
+            const userDeptName =
+              typeof user.department === 'string'
+                ? user.department
+                : (user.department as { name: string }).name;
 
-          qb.orWhere(
-            '(material.scope = :facultyScope AND material.targetFaculty = :userFacultyName)',
-            {
-              facultyScope: AccessScope.FACULTY,
-              userFacultyName,
-            },
-          );
-        }
-      }),
-    );
+            qb.orWhere(
+              '(material.scope = :deptScope AND material.targetDepartment = :userDeptName)',
+              {
+                deptScope: AccessScope.DEPARTMENT,
+                userDeptName,
+              },
+            );
+          }
+
+          if (user.faculty) {
+            const userFacultyName =
+              typeof user.faculty === 'string'
+                ? user.faculty
+                : (user.faculty as { name: string }).name;
+
+            qb.orWhere(
+              '(material.scope = :facultyScope AND material.targetFaculty = :userFacultyName)',
+              {
+                facultyScope: AccessScope.FACULTY,
+                userFacultyName,
+              },
+            );
+          }
+        }),
+      );
+    }
 
     return query
       .orderBy('material.views', 'DESC')
@@ -212,10 +225,25 @@ export class MaterialsService {
       .slice(0, 10);
   }
 
-  async findAll(user: User, courseId?: string, type?: string, search?: string) {
+  async findAll(
+    user: User,
+    courseId?: string,
+    type?: string,
+    search?: string,
+    page: number = 1,
+    limit: number = 12,
+  ) {
     const query = this.materialRepo
       .createQueryBuilder('material')
       .leftJoinAndSelect('material.uploader', 'uploader');
+
+    // Admin bypass - skip all scope filtering, include hidden materials
+    const isAdmin = user.role === 'admin';
+
+    // Non-admin users should not see hidden materials
+    if (!isAdmin) {
+      query.andWhere('material.isHidden = :isHidden', { isHidden: false });
+    }
 
     if (courseId) {
       const course = await this.courseRepo.findOneBy({ id: courseId });
@@ -229,7 +257,8 @@ export class MaterialsService {
       }
     }
 
-    if (user.yearOfStudy) {
+    // Admin sees all years, non-admin sees their year only
+    if (!isAdmin && user.yearOfStudy) {
       query.andWhere(
         '(material.targetYear IS NULL OR material.targetYear = :year)',
         { year: user.yearOfStudy },
@@ -247,45 +276,66 @@ export class MaterialsService {
       );
     }
 
-    query.andWhere(
-      new Brackets((qb: WhereExpressionBuilder) => {
-        qb.where('material.scope = :publicScope', {
-          publicScope: AccessScope.PUBLIC,
-        }).orWhere('uploader.id = :userId', { userId: user.id });
+    // Admin sees all materials, non-admin sees scoped materials
+    if (!isAdmin) {
+      query.andWhere(
+        new Brackets((qb: WhereExpressionBuilder) => {
+          qb.where('material.scope = :publicScope', {
+            publicScope: AccessScope.PUBLIC,
+          }).orWhere('uploader.id = :userId', { userId: user.id });
 
-        if (user.department) {
-          const userDeptName =
-            typeof user.department === 'string'
-              ? user.department
-              : (user.department as { name: string }).name;
+          if (user.department) {
+            const userDeptName =
+              typeof user.department === 'string'
+                ? user.department
+                : (user.department as { name: string }).name;
 
-          qb.orWhere(
-            '(material.scope = :deptScope AND material.targetDepartment = :userDeptName)',
-            {
-              deptScope: AccessScope.DEPARTMENT,
-              userDeptName,
-            },
-          );
-        }
+            qb.orWhere(
+              '(material.scope = :deptScope AND material.targetDepartment = :userDeptName)',
+              {
+                deptScope: AccessScope.DEPARTMENT,
+                userDeptName,
+              },
+            );
+          }
 
-        if (user.faculty) {
-          const userFacultyName =
-            typeof user.faculty === 'string'
-              ? user.faculty
-              : (user.faculty as { name: string }).name;
+          if (user.faculty) {
+            const userFacultyName =
+              typeof user.faculty === 'string'
+                ? user.faculty
+                : (user.faculty as { name: string }).name;
 
-          qb.orWhere(
-            '(material.scope = :facultyScope AND material.targetFaculty = :userFacultyName)',
-            {
-              facultyScope: AccessScope.FACULTY,
-              userFacultyName,
-            },
-          );
-        }
-      }),
-    );
+            qb.orWhere(
+              '(material.scope = :facultyScope AND material.targetFaculty = :userFacultyName)',
+              {
+                facultyScope: AccessScope.FACULTY,
+                userFacultyName,
+              },
+            );
+          }
+        }),
+      );
+    }
 
-    return query.getMany();
+    // Add ordering for consistent pagination
+    query.orderBy('material.createdAt', 'DESC');
+
+    // Get total count before pagination
+    const total = await query.getCount();
+
+    // Apply pagination
+    const skip = (page - 1) * limit;
+    query.skip(skip).take(limit);
+
+    const materials = await query.getMany();
+
+    return {
+      materials,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async updateScope(id: string, scope: AccessScope, userId: string) {
@@ -736,5 +786,108 @@ export class MaterialsService {
       downvotes: note.downvotes,
       userVote: normalizedValue,
     };
+  }
+
+  // ===== FLAGGING METHODS =====
+
+  async flagMaterial(
+    materialId: string,
+    userId: string,
+    reason: FlagReason,
+    description?: string,
+  ) {
+    // Check if material exists
+    const material = await this.materialRepo.findOne({
+      where: { id: materialId },
+    });
+
+    if (!material) {
+      throw new NotFoundException('Material not found');
+    }
+
+    // Check if user already flagged this material
+    const existingFlag = await this.flagRepo.findOne({
+      where: { materialId, userId },
+    });
+
+    if (existingFlag) {
+      throw new BadRequestException('You have already reported this material');
+    }
+
+    // Create the flag
+    const flag = this.flagRepo.create({
+      materialId,
+      userId,
+      reason,
+      description,
+    });
+
+    await this.flagRepo.save(flag);
+
+    // Increment flag count
+    material.flagCount += 1;
+
+    // Auto-hide if 3+ flags
+    if (material.flagCount >= 3) {
+      material.isHidden = true;
+    }
+
+    await this.materialRepo.save(material);
+
+    return { success: true, flagCount: material.flagCount };
+  }
+
+  async getFlaggedMaterials(limit = 50) {
+    return this.materialRepo.find({
+      where: { flagCount: 1 }, // At least 1 flag
+      relations: ['uploader'],
+      order: { flagCount: 'DESC', createdAt: 'DESC' },
+      take: limit,
+    });
+  }
+
+  async getMaterialFlags(materialId: string) {
+    return this.flagRepo.find({
+      where: { materialId },
+      relations: ['user'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async dismissFlags(materialId: string) {
+    const material = await this.materialRepo.findOne({
+      where: { id: materialId },
+    });
+
+    if (!material) {
+      throw new NotFoundException('Material not found');
+    }
+
+    // Update all flags to dismissed
+    await this.flagRepo.update(
+      { materialId },
+      { status: 'dismissed' as any },
+    );
+
+    // Reset flag count and unhide
+    material.flagCount = 0;
+    material.isHidden = false;
+    await this.materialRepo.save(material);
+
+    return { success: true };
+  }
+
+  async forceDeleteMaterial(materialId: string) {
+    const material = await this.materialRepo.findOne({
+      where: { id: materialId },
+    });
+
+    if (!material) {
+      throw new NotFoundException('Material not found');
+    }
+
+    await this.materialRepo.remove(material);
+
+    return { success: true };
   }
 }

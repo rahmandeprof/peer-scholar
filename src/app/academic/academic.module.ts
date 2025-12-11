@@ -18,6 +18,7 @@ import { PersonalCourse } from './entities/personal-course.entity';
 import { PublicNote, PublicNoteVote } from './entities/public-note.entity';
 import { School } from './entities/school.entity';
 import { HelpfulLink } from './entities/helpful-link.entity';
+import { MaterialFlag } from './entities/material-flag.entity';
 
 import { AcademicController } from './academic.controller';
 import { MaterialsController } from './materials.controller';
@@ -50,6 +51,7 @@ import { MaterialProcessor } from './processors/material.processor';
       PublicNote,
       PublicNoteVote,
       HelpfulLink,
+      MaterialFlag,
     ]),
     BullModule.registerQueue({
       name: 'materials',

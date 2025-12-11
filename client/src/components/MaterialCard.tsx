@@ -66,14 +66,21 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
       }
     };
 
+    // Close dropdown on scroll (fixes sticky position on mobile)
+    const handleScroll = () => {
+      setMenuOpen(false);
+    };
+
     // Delay adding listener to avoid catching the opening click
     const timer = setTimeout(() => {
       document.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('scroll', handleScroll, true);
     }, 0);
 
     return () => {
       clearTimeout(timer);
       document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScroll, true);
     };
   }, [menuOpen]);
 

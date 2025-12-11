@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
-import { BookOpen, FileText, Upload } from 'lucide-react';
+import { BookOpen, FileText, Upload, Loader2 } from 'lucide-react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { MaterialCardSkeleton } from './Skeleton';
 import { EmptyState } from './EmptyState';
@@ -34,6 +34,14 @@ interface Material {
   };
 }
 
+interface PaginatedResponse {
+  materials: Material[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 const DepartmentView: React.FC = () => {
   const { openUploadModal, refreshTrigger } = useOutletContext<{
     openUploadModal: () => void;
@@ -42,12 +50,18 @@ const DepartmentView: React.FC = () => {
   const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [trendingMaterials, setTrendingMaterials] = useState<Material[]>([]);
   const [recentMaterials, setRecentMaterials] = useState<Material[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
   const [selectedMaterialId, setSelectedMaterialId] = useState<string | undefined>(undefined);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalMaterials, setTotalMaterials] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -57,9 +71,10 @@ const DepartmentView: React.FC = () => {
       // For UX, maybe silent refresh is better, or just set loading=true if we want to show it updating
       // Let's set loading=true to show it's updating, as the user asked for "refresh"
       setLoading(true);
+      setCurrentPage(1); // Reset to first page on refresh
 
       if (user.department) {
-        const promises = [fetchTrending(), fetchRecent()];
+        const promises = [fetchTrending(), fetchRecent(1, true)];
 
         if (typeof user.department !== 'string' && user.department.id) {
           promises.push(fetchCourses(user.department.id));
@@ -93,18 +108,37 @@ const DepartmentView: React.FC = () => {
     }
   };
 
-  const fetchRecent = async () => {
+  const fetchRecent = useCallback(async (page: number = 1, reset: boolean = false) => {
     try {
-      const res = await axios.get('/materials');
-      setRecentMaterials(res.data);
+      const res = await axios.get<PaginatedResponse>(`/materials?page=${page}&limit=12`);
+      const data = res.data;
+
+      if (reset) {
+        setRecentMaterials(data.materials);
+      } else {
+        setRecentMaterials(prev => [...prev, ...data.materials]);
+      }
+
+      setCurrentPage(data.page);
+      setTotalPages(data.totalPages);
+      setTotalMaterials(data.total);
     } catch {
       // console.error('Failed to fetch recent materials', error);
     }
+  }, []);
+
+  const loadMore = async () => {
+    if (currentPage >= totalPages || loadingMore) return;
+
+    setLoadingMore(true);
+    await fetchRecent(currentPage + 1, false);
+    setLoadingMore(false);
   };
 
   const handleDeleteMaterial = (id: string) => {
     setTrendingMaterials((prev) => prev.filter((m) => m.id !== id));
     setRecentMaterials((prev) => prev.filter((m) => m.id !== id));
+    setTotalMaterials(prev => prev - 1);
   };
 
   if (loading) {
@@ -299,11 +333,18 @@ const DepartmentView: React.FC = () => {
         </>
       )}
 
-      <h2 className='text-xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center'>
-        <FileText className='w-6 h-6 mr-3 text-primary-500' />
-        {searchTerm || filterType !== 'all'
-          ? 'Search Results'
-          : 'Recent Uploads'}
+      <h2 className='text-xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center justify-between'>
+        <span className='flex items-center'>
+          <FileText className='w-6 h-6 mr-3 text-primary-500' />
+          {searchTerm || filterType !== 'all'
+            ? 'Search Results'
+            : 'Recent Uploads'}
+        </span>
+        {totalMaterials > 0 && !searchTerm && filterType === 'all' && (
+          <span className='text-sm font-normal text-gray-500 dark:text-gray-400'>
+            Showing {recentMaterials.length} of {totalMaterials}
+          </span>
+        )}
       </h2>
       <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 stagger-children'>
         {recentMaterials
@@ -339,6 +380,31 @@ const DepartmentView: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Load More Button */}
+      {currentPage < totalPages && !searchTerm && filterType === 'all' && (
+        <div className='mt-8 flex justify-center'>
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            className='inline-flex items-center px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed'
+          >
+            {loadingMore ? (
+              <>
+                <Loader2 className='h-4 w-4 mr-2 animate-spin' />
+                Loading...
+              </>
+            ) : (
+              <>
+                Load More Materials
+                <span className='ml-2 text-gray-500 dark:text-gray-400'>
+                  ({totalMaterials - recentMaterials.length} remaining)
+                </span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
 
       <CollectionModal
         isOpen={collectionModalOpen}
