@@ -230,9 +230,10 @@ export class AuthService {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       user = await this.usersService.create(userData as any);
     } else if (!user.googleId) {
-      // Link existing user
-      await this.usersService.update(user.id, { googleId, image: picture });
+      // Link existing user and mark as verified
+      await this.usersService.update(user.id, { googleId, image: picture, isVerified: true });
       user.googleId = googleId;
+      user.isVerified = true;
     }
 
     return this.login(user);

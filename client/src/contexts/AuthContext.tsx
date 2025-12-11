@@ -92,8 +92,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem('user');
           setToken(null);
           setUser(null);
-          // If we optimistically let them in, we need to kick them out now
-          // This might cause a UI flash, but it's better than blocking every load
+          // Only show toast if user was previously logged in (had cached user data)
+          // Don't show on fresh page load
           if (storedUser) {
             toast.error('Session expired. Please log in again.');
           }
@@ -106,7 +106,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initAuth();
 
+    // Track if toast was already shown during init
+    let unauthorizedToastShown = false;
     const handleUnauthorized = () => {
+      if (unauthorizedToastShown) return; // Prevent duplicate toasts
+      unauthorizedToastShown = true;
+
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       setToken(null);
