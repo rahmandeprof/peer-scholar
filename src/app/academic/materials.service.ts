@@ -143,7 +143,7 @@ export class MaterialsService {
       new Brackets((qb: WhereExpressionBuilder) => {
         qb.where('material.scope = :publicScope', {
           publicScope: AccessScope.PUBLIC,
-        }).orWhere('material.uploaderId = :userId', { userId: user.id });
+        }).orWhere('uploader.id = :userId', { userId: user.id });
 
         if (user.department) {
           const userDeptName =
@@ -251,7 +251,7 @@ export class MaterialsService {
       new Brackets((qb: WhereExpressionBuilder) => {
         qb.where('material.scope = :publicScope', {
           publicScope: AccessScope.PUBLIC,
-        }).orWhere('material.uploaderId = :userId', { userId: user.id });
+        }).orWhere('uploader.id = :userId', { userId: user.id });
 
         if (user.department) {
           const userDeptName =
