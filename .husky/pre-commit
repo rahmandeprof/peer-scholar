@@ -1,2 +1,22 @@
-# npm test
+#!/bin/sh
+# Pre-commit hook to catch build errors before they reach the repository
+# This helps prevent column name mismatches and other TypeScript errors
+
+echo "🔍 Running pre-commit checks..."
+
+# Run TypeScript build check (catches column name errors at compile time)
+echo "📦 Checking TypeScript build..."
+npm run build --if-present 2>&1
+BUILD_STATUS=$?
+
+if [ $BUILD_STATUS -ne 0 ]; then
+    echo ""
+    echo "❌ BUILD FAILED - Please fix TypeScript errors before committing"
+    echo ""
+    exit 1
+fi
+
+echo "✅ TypeScript build passed"
+
+# Run lint-staged (existing hook functionality)
 npx lint-staged
