@@ -10,6 +10,7 @@ import {
   Calculator,
   HelpCircle,
   Briefcase,
+  Shield,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { StudySessionGoals } from './StudySessionGoals';
@@ -20,6 +21,7 @@ import { WelcomeModal } from './WelcomeModal';
 import api from '../lib/api';
 import { useOnClickOutside } from '../hooks/useOnClickOutside';
 import { FeatureSpotlightModal } from './FeatureSpotlightModal';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface Conversation {
   id: string;
@@ -34,6 +36,7 @@ export function DashboardLayout() {
   const [toolsOpen, setToolsOpen] = useState(false);
   const [showGpSpotlight, setShowGpSpotlight] = useState(false);
   const [history, setHistory] = useState<Conversation[]>([]);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -47,7 +50,7 @@ export function DashboardLayout() {
       : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
     }`;
 
-  const handleLogout = () => {
+  const confirmLogout = () => {
     logout();
     navigate('/login');
   };
@@ -251,8 +254,20 @@ export function DashboardLayout() {
               </div>
             </div>
           </button>
+
+          {/* Admin Dashboard Link - Only visible for admin users */}
+          {user?.role === 'admin' && (
+            <button
+              onClick={() => navigate('/admin')}
+              className='w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors mb-2'
+            >
+              <Shield className='w-4 h-4 mr-2' />
+              Admin Dashboard
+            </button>
+          )}
+
           <button
-            onClick={handleLogout}
+            onClick={() => setLogoutConfirmOpen(true)}
             className='w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors'
           >
             <LogOut className='w-4 h-4 mr-2' />
@@ -378,7 +393,6 @@ export function DashboardLayout() {
         onUploadComplete={handleUploadComplete}
       />
       {profileOpen && <UserProfile onClose={() => setProfileOpen(false)} />}
-      {profileOpen && <UserProfile onClose={() => setProfileOpen(false)} />}
       <WelcomeModal />
       <FeatureSpotlightModal
         isOpen={showGpSpotlight}
@@ -389,6 +403,17 @@ export function DashboardLayout() {
         title='GP Calculator'
         description='Calculate your Grade Point Average easily. Set target GPAs and track your academic progress.'
         icon={Calculator}
+      />
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={logoutConfirmOpen}
+        onClose={() => setLogoutConfirmOpen(false)}
+        onConfirm={confirmLogout}
+        title='Sign Out'
+        message='Are you sure you want to sign out? You will need to log in again to access your account.'
+        confirmText='Sign Out'
+        isDangerous={true}
       />
     </div>
   );

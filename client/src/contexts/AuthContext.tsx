@@ -23,6 +23,8 @@ interface User {
   image?: string;
   lastProfileUpdate?: string;
   role?: string;
+  googleId?: string;
+  verificationToken?: string | null;
 }
 
 interface AuthContextType {

@@ -57,9 +57,14 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to='/' state={{ from: location }} replace />;
   }
 
-  // Check for email verification first (strict enforcement)
-  // Allow access to verify-pending page even if not verified
-  if (!user?.isVerified && location.pathname !== '/verify-pending') {
+  // Check for email verification (only for manual signup users)
+  // Skip verification check for:
+  // 1. Users who are already verified
+  // 2. Google sign-in users (they're auto-verified)
+  // 3. Allow access to verify-pending page even if not verified
+  const needsVerification = !user?.isVerified && !user?.googleId && user?.verificationToken;
+
+  if (needsVerification && location.pathname !== '/verify-pending') {
     return <Navigate to='/verify-pending' replace />;
   }
 
