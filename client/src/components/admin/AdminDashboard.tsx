@@ -205,8 +205,8 @@ export function AdminDashboard() {
                                         key={material.id}
                                         onClick={() => handleSelectMaterial(material)}
                                         className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${selectedMaterial?.id === material.id
-                                                ? 'bg-primary-50 dark:bg-primary-900/20'
-                                                : ''
+                                            ? 'bg-primary-50 dark:bg-primary-900/20'
+                                            : ''
                                             }`}
                                     >
                                         <div className='flex items-start justify-between'>
@@ -346,7 +346,7 @@ export function AdminDashboard() {
                 title='Delete Material Permanently'
                 message='This action cannot be undone. The material and all associated data will be permanently deleted.'
                 confirmText='Delete'
-                confirmVariant='danger'
+                isDangerous={true}
             />
         </div>
     );

@@ -22,6 +22,7 @@ interface User {
   isVerified?: boolean;
   image?: string;
   lastProfileUpdate?: string;
+  role?: string;
 }
 
 interface AuthContextType {
