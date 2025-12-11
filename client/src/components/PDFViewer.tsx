@@ -36,6 +36,13 @@ export function PDFViewer({ url, materialId, initialPage = 1 }: PDFViewerProps) 
     }
   }
 
+  // Respond to initialPage prop changes (e.g., when lastReadPage is fetched after mount)
+  useEffect(() => {
+    if (initialPage > 1 && numPages > 0 && initialPage <= numPages) {
+      setPageNumber(initialPage);
+    }
+  }, [initialPage, numPages]);
+
   // Track page changes
   useEffect(() => {
     if (materialId) {

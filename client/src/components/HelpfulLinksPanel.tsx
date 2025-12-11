@@ -66,9 +66,11 @@ export default function HelpfulLinksPanel({
     const fetchLinks = async () => {
         try {
             const res = await axios.get(`/helpful-links/material/${materialId}`);
-            setLinks(res.data);
+            // Ensure we always have an array, even if API returns something unexpected
+            setLinks(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
             console.error('Failed to fetch helpful links', err);
+            setLinks([]); // Reset to empty array on error
         } finally {
             setLoading(false);
         }
