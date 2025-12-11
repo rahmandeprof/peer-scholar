@@ -222,14 +222,14 @@ export const MaterialView = () => {
       }).catch(console.error);
     }, 30000); // Every 30 seconds
 
-    // Cleanup on unmount
+    // Cleanup on unmount - mark session as COMPLETED for weekly goals
     return () => {
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);
       }
-      // Send final heartbeat on leave
+      // Send END request to mark session as completed (counts toward weekly goal)
       const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
-      api.post('/study/reading/heartbeat', {
+      api.post('/study/reading/end', {
         sessionId: readingSessionId,
         seconds: elapsedSeconds,
       }).catch(console.error);

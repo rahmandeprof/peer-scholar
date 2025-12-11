@@ -122,6 +122,31 @@ export class StudyService {
     return { success: true, durationSeconds: session.durationSeconds };
   }
 
+  /**
+   * End a reading session and mark it as completed
+   * This ensures the time counts toward weekly goals
+   */
+  async endReadingSession(userId: string, sessionId: string, seconds: number) {
+    const session = await this.studySessionRepo.findOne({
+      where: { id: sessionId, userId, type: StudySessionType.READING },
+    });
+
+    if (!session) {
+      throw new NotFoundException('Reading session not found');
+    }
+
+    // Update final duration and mark as completed
+    session.durationSeconds = seconds;
+    session.endTime = new Date();
+    session.completed = true;
+    await this.studySessionRepo.save(session);
+
+    // Update streak and check for badges
+    await this.usersService.updateStreak(userId);
+
+    return { success: true, durationSeconds: session.durationSeconds };
+  }
+
   getStreak(userId: string) {
     return this.usersService.getInsights(userId);
   }

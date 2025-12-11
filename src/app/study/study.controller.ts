@@ -81,6 +81,19 @@ export class StudyController {
     return this.studyService.readingHeartbeat(req.user.id, sessionId, seconds);
   }
 
+  @Post('reading/end')
+  endReading(
+    @Req() req: RequestWithUser,
+    @Body('sessionId') sessionId: string,
+    @Body('seconds') seconds: number,
+  ) {
+    if (!req.user) {
+      throw new Error('User not found');
+    }
+
+    return this.studyService.endReadingSession(req.user.id, sessionId, seconds);
+  }
+
   @Get('activity/history')
   getActivityHistory(@Req() req: RequestWithUser) {
     if (!req.user) {
