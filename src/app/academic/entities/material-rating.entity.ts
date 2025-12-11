@@ -13,6 +13,9 @@ export class MaterialRating extends IDAndTimestamp {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
+  @Column({ name: 'material_id' })
+  materialId: string;
+
   @ManyToOne(() => Material, (material) => material.ratings, {
     onDelete: 'CASCADE',
   })
