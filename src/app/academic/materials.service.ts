@@ -133,12 +133,55 @@ export class MaterialsService {
     };
   }
 
-  async getTrending() {
-    return this.materialRepo.find({
-      order: { createdAt: 'DESC' },
-      take: 5,
-      relations: ['uploader'],
-    });
+  async getTrending(user: User) {
+    const query = this.materialRepo
+      .createQueryBuilder('material')
+      .leftJoinAndSelect('material.uploader', 'uploader');
+
+    // Apply the same access scope filtering as findAll
+    query.andWhere(
+      new Brackets((qb: WhereExpressionBuilder) => {
+        qb.where('material.scope = :publicScope', {
+          publicScope: AccessScope.PUBLIC,
+        }).orWhere('material.uploaderId = :userId', { userId: user.id });
+
+        if (user.department) {
+          const userDeptName =
+            typeof user.department === 'string'
+              ? user.department
+              : (user.department as { name: string }).name;
+
+          qb.orWhere(
+            '(material.scope = :deptScope AND material.targetDepartment = :userDeptName)',
+            {
+              deptScope: AccessScope.DEPARTMENT,
+              userDeptName,
+            },
+          );
+        }
+
+        if (user.faculty) {
+          const userFacultyName =
+            typeof user.faculty === 'string'
+              ? user.faculty
+              : (user.faculty as { name: string }).name;
+
+          qb.orWhere(
+            '(material.scope = :facultyScope AND material.targetFaculty = :userFacultyName)',
+            {
+              facultyScope: AccessScope.FACULTY,
+              userFacultyName,
+            },
+          );
+        }
+      }),
+    );
+
+    return query
+      .orderBy('material.views', 'DESC')
+      .addOrderBy('material.createdAt', 'DESC')
+      .take(5)
+      .getMany();
   }
 
   async getCourseTopics(courseId: string) {

@@ -285,11 +285,6 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
               </div>
             </div>
           </div>
-          <div className='flex items-center text-sm text-gray-500 dark:text-gray-400'>
-            <span className='truncate'>
-              By {material.uploader?.firstName} {material.uploader?.lastName}
-            </span>
-          </div>
         </div>
         <div className='bg-gray-50/50 dark:bg-gray-700/30 px-6 py-4 border-t border-gray-100 dark:border-gray-700/50'>
           <Link

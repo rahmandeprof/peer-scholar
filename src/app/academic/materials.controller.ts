@@ -72,8 +72,9 @@ export class MaterialsController {
   }
 
   @Get('trending')
-  getTrending() {
-    return this.materialsService.getTrending();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getTrending(@Req() req: any) {
+    return this.materialsService.getTrending(req.user);
   }
 
   @Get('course/:courseId/topics')
