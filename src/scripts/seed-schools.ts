@@ -121,6 +121,8 @@ async function seed() {
           'Nursing/Nursing Sciences',
           'Anatomy',
           'Medicine And Surgery',
+          'Medical Lab Science (MLS)',
+          'Physiotherapy',
         ],
       },
       {
