@@ -230,9 +230,20 @@ export const MaterialView = () => {
       const elapsedSeconds = getElapsedSeconds();
       // Only send if there's meaningful time (> 5 seconds)
       if (elapsedSeconds >= 5) {
-        const data = JSON.stringify({ sessionId: readingSessionId, seconds: elapsedSeconds });
+        // Get auth token and API base URL for sendBeacon
+        const token = localStorage.getItem('token');
+        const apiBaseUrl = (import.meta.env.VITE_API_URL as string | undefined) ?? 'https://peerscholar.onrender.com/v1';
+        const endpointUrl = `${apiBaseUrl.replace(/\/+$/, '').replace(/\/v1$/, '')}/v1/study/reading/end`;
+
+        // Include token in body since sendBeacon can't set headers
+        const data = JSON.stringify({
+          sessionId: readingSessionId,
+          seconds: elapsedSeconds,
+          _token: token // Backend will extract this
+        });
+
         // Use sendBeacon for reliability - it survives page navigation
-        const sent = navigator.sendBeacon('/api/v1/study/reading/end', new Blob([data], { type: 'application/json' }));
+        const sent = navigator.sendBeacon(endpointUrl, new Blob([data], { type: 'application/json' }));
         if (!sent) {
           // Fallback to regular fetch (may not complete on navigation)
           api.post('/study/reading/end', { sessionId: readingSessionId, seconds: elapsedSeconds }).catch(console.error);
