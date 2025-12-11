@@ -89,6 +89,7 @@ export const MaterialView = () => {
   const [readingSessionId, setReadingSessionId] = useState<string | null>(null);
   const readingSecondsRef = useRef(0);
   const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sessionStartTimeRef = useRef<number>(0); // Track when session started for accurate cleanup
 
   // Continue reading from last position
   const [lastReadPage, setLastReadPage] = useState(1);
@@ -182,6 +183,8 @@ export const MaterialView = () => {
           const sessionRes = await api.post('/study/reading/start');
           setReadingSessionId(sessionRes.data.id);
           readingSecondsRef.current = sessionRes.data.durationSeconds || 0;
+          // Set start time accounting for any existing duration (resumed session)
+          sessionStartTimeRef.current = Date.now() - (readingSecondsRef.current * 1000);
         } catch (err) {
           console.error('Failed to start reading session', err);
         }
@@ -206,13 +209,13 @@ export const MaterialView = () => {
 
   // Reading time heartbeat - sends every 30 seconds while viewing
   useEffect(() => {
-    if (!readingSessionId) return;
+    if (!readingSessionId || !sessionStartTimeRef.current) return;
 
-    // Start counting time locally
-    const startTime = Date.now() - (readingSecondsRef.current * 1000);
+    // Use the ref for consistent timing across the session
+    const getElapsedSeconds = () => Math.floor((Date.now() - sessionStartTimeRef.current) / 1000);
 
     heartbeatIntervalRef.current = setInterval(() => {
-      const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+      const elapsedSeconds = getElapsedSeconds();
       readingSecondsRef.current = elapsedSeconds;
 
       // Send heartbeat to backend
@@ -222,17 +225,33 @@ export const MaterialView = () => {
       }).catch(console.error);
     }, 30000); // Every 30 seconds
 
-    // Cleanup on unmount - mark session as COMPLETED for weekly goals
+    // Use sendBeacon for reliable delivery on page unload
+    const sendEndRequest = () => {
+      const elapsedSeconds = getElapsedSeconds();
+      // Only send if there's meaningful time (> 5 seconds)
+      if (elapsedSeconds >= 5) {
+        const data = JSON.stringify({ sessionId: readingSessionId, seconds: elapsedSeconds });
+        // Use sendBeacon for reliability - it survives page navigation
+        const sent = navigator.sendBeacon('/api/v1/study/reading/end', new Blob([data], { type: 'application/json' }));
+        if (!sent) {
+          // Fallback to regular fetch (may not complete on navigation)
+          api.post('/study/reading/end', { sessionId: readingSessionId, seconds: elapsedSeconds }).catch(console.error);
+        }
+      }
+    };
+
+    // Handle page close/refresh
+    const handleBeforeUnload = () => sendEndRequest();
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Cleanup on unmount
     return () => {
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);
       }
-      // Send END request to mark session as completed (counts toward weekly goal)
-      const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
-      api.post('/study/reading/end', {
-        sessionId: readingSessionId,
-        seconds: elapsedSeconds,
-      }).catch(console.error);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // Send end request on React unmount (navigation within app)
+      sendEndRequest();
     };
   }, [readingSessionId]);
 

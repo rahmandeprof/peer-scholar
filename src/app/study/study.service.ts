@@ -7,6 +7,7 @@ import {
 } from './entities/study-session.entity';
 
 import { UsersService } from '@/app/users/users.service';
+import { BadgeService } from '@/app/users/badge.service';
 
 import { REPUTATION_REWARDS } from '@/app/common/constants/reputation.constants';
 
@@ -18,6 +19,7 @@ export class StudyService {
     @InjectRepository(StudySession)
     private readonly studySessionRepo: Repository<StudySession>,
     private readonly usersService: UsersService,
+    private readonly badgeService: BadgeService,
   ) { }
 
   startSession(userId: string, type: StudySessionType) {
@@ -135,14 +137,40 @@ export class StudyService {
       throw new NotFoundException('Reading session not found');
     }
 
+    // Minimum duration check - don't record sessions under 5 seconds
+    if (seconds < 5) {
+      // Delete the session instead of marking complete
+      await this.studySessionRepo.remove(session);
+      return { success: true, durationSeconds: 0, skipped: true };
+    }
+
     // Update final duration and mark as completed
     session.durationSeconds = seconds;
     session.endTime = new Date();
     session.completed = true;
     await this.studySessionRepo.save(session);
 
-    // Update streak and check for badges
+    // Update streak
     await this.usersService.updateStreak(userId);
+
+    // Get total study time for badge checking
+    const totalStudyTime = await this.studySessionRepo
+      .createQueryBuilder('session')
+      .select('SUM(session.durationSeconds)', 'total')
+      .where('session.userId = :userId', { userId })
+      .andWhere('session.completed = true')
+      .getRawOne();
+
+    const totalSeconds = parseInt(totalStudyTime?.total || '0');
+    const currentHour = new Date().getHours();
+
+    // Check for study badges (time-based, time-of-day, first read)
+    await this.badgeService.checkStudyBadges(
+      userId,
+      totalSeconds,
+      currentHour,
+      true, // hasCompletedReading is true for reading sessions
+    );
 
     return { success: true, durationSeconds: session.durationSeconds };
   }
