@@ -177,7 +177,9 @@ export class ChatService {
 
     if (!material) throw new NotFoundException('Material not found');
 
-    if (material.uploader.id !== user.id) {
+    // Admin bypass - admins can delete any material
+    const isAdmin = user.role === 'admin';
+    if (material.uploader.id !== user.id && !isAdmin) {
       throw new NotFoundException('You can only delete your own materials');
     }
 
