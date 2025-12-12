@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, AlertTriangle, Loader2 } from 'lucide-react';
 import api from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
+import { useModalBack } from '../hooks/useModalBack';
 
 interface FlagModalProps {
     isOpen: boolean;
@@ -19,6 +20,8 @@ const FLAG_REASONS = [
 ];
 
 export function FlagModal({ isOpen, onClose, materialId, materialTitle }: FlagModalProps) {
+    useModalBack(isOpen, onClose, 'flag-modal');
+
     const toast = useToast();
     const [reason, setReason] = useState('');
     const [description, setDescription] = useState('');
@@ -87,8 +90,8 @@ export function FlagModal({ isOpen, onClose, materialId, materialTitle }: FlagMo
                                 <label
                                     key={r.value}
                                     className={`flex items-start p-3 rounded-xl border-2 cursor-pointer transition-all ${reason === r.value
-                                            ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                                        ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                                         }`}
                                 >
                                     <input

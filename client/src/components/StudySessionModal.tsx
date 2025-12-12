@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import api from '../lib/api';
 import { useNavigate } from 'react-router-dom';
+import { useModalBack } from '../hooks/useModalBack';
 
 interface StudySessionModalProps {
   isOpen: boolean;
@@ -37,6 +38,8 @@ export function StudySessionModal({
   onClose,
   onUpload,
 }: StudySessionModalProps) {
+  useModalBack(isOpen, onClose, 'study-session-modal');
+
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'shelf' | 'upload'>('shelf');
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -116,8 +119,8 @@ export function StudySessionModal({
               setSelectedCollection(null);
             }}
             className={`flex-1 py-4 text-sm font-medium border-b-2 transition-colors flex items-center justify-center ${activeTab === 'shelf'
-                ? 'border-primary-600 text-primary-600 dark:text-primary-400 bg-primary-50/50 dark:bg-primary-900/10'
-                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+              ? 'border-primary-600 text-primary-600 dark:text-primary-400 bg-primary-50/50 dark:bg-primary-900/10'
+              : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
           >
             <BookOpen className='w-4 h-4 mr-2' />
@@ -126,8 +129,8 @@ export function StudySessionModal({
           <button
             onClick={() => setActiveTab('upload')}
             className={`flex-1 py-4 text-sm font-medium border-b-2 transition-colors flex items-center justify-center ${activeTab === 'upload'
-                ? 'border-primary-600 text-primary-600 dark:text-primary-400 bg-primary-50/50 dark:bg-primary-900/10'
-                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+              ? 'border-primary-600 text-primary-600 dark:text-primary-400 bg-primary-50/50 dark:bg-primary-900/10'
+              : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
           >
             <Upload className='w-4 h-4 mr-2' />
@@ -388,10 +391,10 @@ function PersonalUploadSection({
         onDragOver={handleDrag}
         onDrop={handleDrop}
         className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${dragActive
-            ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-            : file
-              ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-              : 'border-gray-300 dark:border-gray-600 hover:border-primary-400'
+          ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+          : file
+            ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+            : 'border-gray-300 dark:border-gray-600 hover:border-primary-400'
           }`}
       >
         {file ? (

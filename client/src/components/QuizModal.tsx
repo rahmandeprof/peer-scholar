@@ -10,6 +10,7 @@ import {
   Lightbulb,
 } from 'lucide-react';
 import api from '../lib/api';
+import { useModalBack } from '../hooks/useModalBack';
 
 interface QuizModalProps {
   isOpen: boolean;
@@ -25,6 +26,8 @@ interface Question {
 }
 
 export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
+  useModalBack(isOpen, onClose, 'quiz-modal');
+
   const [loading, setLoading] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);

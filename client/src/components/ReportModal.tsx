@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, AlertTriangle, Loader2 } from 'lucide-react';
 import api from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
+import { useModalBack } from '../hooks/useModalBack';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -20,6 +21,8 @@ const FLAG_REASONS = [
 ];
 
 export function ReportModal({ isOpen, onClose, materialId, materialTitle }: ReportModalProps) {
+  useModalBack(isOpen, onClose, 'report-modal');
+
   const [reason, setReason] = useState('');
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -88,8 +91,8 @@ export function ReportModal({ isOpen, onClose, materialId, materialTitle }: Repo
                 <label
                   key={r.value}
                   className={`flex items-start p-3 rounded-xl border-2 cursor-pointer transition-all ${reason === r.value
-                      ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                    ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                     }`}
                 >
                   <input

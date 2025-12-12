@@ -1,4 +1,5 @@
 import { X, AlertTriangle } from 'lucide-react';
+import { useModalBack } from '../hooks/useModalBack';
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -21,6 +22,8 @@ export function ConfirmationModal({
   cancelText = 'Cancel',
   isDangerous = false,
 }: ConfirmationModalProps) {
+  useModalBack(isOpen, onClose, 'confirmation-modal');
+
   if (!isOpen) return null;
 
   return (
@@ -43,7 +46,7 @@ export function ConfirmationModal({
               <X className="w-5 h-5" />
             </button>
           </div>
-          
+
           <p className="text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
             {message}
           </p>
@@ -60,11 +63,10 @@ export function ConfirmationModal({
                 onConfirm();
                 onClose();
               }}
-              className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors shadow-sm ${
-                isDangerous
+              className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors shadow-sm ${isDangerous
                   ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
                   : 'bg-primary-600 hover:bg-primary-700 focus:ring-primary-500'
-              }`}
+                }`}
             >
               {confirmText}
             </button>

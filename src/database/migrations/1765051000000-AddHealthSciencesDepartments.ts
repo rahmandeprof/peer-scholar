@@ -20,6 +20,7 @@ export class AddHealthSciencesDepartments1765051000000 implements MigrationInter
         const newDepartments = [
             'Medical Lab Science (MLS)',
             'Physiotherapy',
+            'Optometry',
         ];
 
         for (const deptName of newDepartments) {
@@ -47,6 +48,7 @@ export class AddHealthSciencesDepartments1765051000000 implements MigrationInter
         const departmentsToRemove = [
             'Medical Lab Science (MLS)',
             'Physiotherapy',
+            'Optometry',
         ];
 
         for (const deptName of departmentsToRemove) {

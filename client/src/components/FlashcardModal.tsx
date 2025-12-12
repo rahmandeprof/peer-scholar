@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, RotateCw, Check, Repeat, Brain, Loader2 } from 'lucide-react';
 import api from '../lib/api';
+import { useModalBack } from '../hooks/useModalBack';
 
 interface Flashcard {
   term: string;
@@ -18,6 +19,8 @@ export function FlashcardModal({
   onClose,
   materialId,
 }: FlashcardModalProps) {
+  useModalBack(isOpen, onClose, 'flashcard-modal');
+
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -116,9 +119,8 @@ export function FlashcardModal({
           ) : flashcards.length > 0 ? (
             <div className='w-full max-w-lg perspective-1000'>
               <div
-                className={`relative w-full aspect-[3/2] cursor-pointer transition-transform duration-500 transform-style-3d ${
-                  isFlipped ? 'rotate-y-180' : ''
-                }`}
+                className={`relative w-full aspect-[3/2] cursor-pointer transition-transform duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''
+                  }`}
                 onClick={handleFlip}
               >
                 {/* Front */}

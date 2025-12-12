@@ -3,6 +3,7 @@ import { X, Clock, BookOpen, Brain, Coffee } from 'lucide-react';
 import { useTimerSettings } from '../hooks/useTimerSettings';
 import type { TimerSettings } from '../hooks/useTimerSettings';
 import { useToast } from '../contexts/ToastContext';
+import { useModalBack } from '../hooks/useModalBack';
 
 interface TimerSettingsModalProps {
     isOpen: boolean;
@@ -10,6 +11,8 @@ interface TimerSettingsModalProps {
 }
 
 export function TimerSettingsModal({ isOpen, onClose }: TimerSettingsModalProps) {
+    useModalBack(isOpen, onClose, 'timer-settings-modal');
+
     const { settings, updateSettings, isLoading } = useTimerSettings();
     const { success, error: showError } = useToast();
 

@@ -123,6 +123,7 @@ async function seed() {
           'Medicine And Surgery',
           'Medical Lab Science (MLS)',
           'Physiotherapy',
+          'Optometry',
         ],
       },
       {
