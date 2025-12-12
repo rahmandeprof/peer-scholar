@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import api from '../lib/api';
 import { accumulateReadingTime } from '../lib/offlineReadingTracker';
+import { getDisplayName } from '../lib/displayName';
 import { addToViewingHistory } from '../lib/viewingHistory';
 import { useTheme } from '../contexts/ThemeContext';
 import { AISidebar } from './AISidebar';
@@ -398,8 +399,7 @@ export const MaterialView = () => {
                 </div>
               </h1>
               <p className='text-sm text-gray-500 dark:text-gray-400 truncate'>
-                Uploaded by {material.uploader.firstName}{' '}
-                {material.uploader.lastName}
+                Uploaded by {getDisplayName(material.uploader)}
               </p>
             </div>
           </div>

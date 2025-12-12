@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from '../lib/api';
+import { getDisplayName } from '../lib/displayName';
 import {
   FileText,
   Download,
@@ -189,8 +190,7 @@ export const CourseView: React.FC = () => {
                               </span>
                               <span>{formatFileSize(material.size)}</span>
                               <span className='hidden sm:inline'>
-                                Uploaded by {material.uploader.firstName}{' '}
-                                {material.uploader.lastName}
+                                Uploaded by {getDisplayName(material.uploader)}
                               </span>
                               <span>
                                 {format(

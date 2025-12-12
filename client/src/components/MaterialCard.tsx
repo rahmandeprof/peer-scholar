@@ -14,6 +14,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmationModal } from './ConfirmationModal';
+import { getDisplayName } from '../lib/displayName';
 import api from '../lib/api';
 
 interface Material {
@@ -29,6 +30,8 @@ interface Material {
     id: string;
     firstName: string;
     lastName: string;
+    username?: string | null;
+    displayNamePreference?: 'username' | 'fullname';
   };
   course?: {
     code: string;
@@ -136,7 +139,7 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
               </p>
               {material.uploader?.firstName && (
                 <p className='mt-0.5 text-xs text-gray-400 dark:text-gray-500'>
-                  by {material.uploader.firstName} {material.uploader.lastName}
+                  by {getDisplayName(material.uploader)}
                 </p>
               )}
             </div>

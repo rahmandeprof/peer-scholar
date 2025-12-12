@@ -109,4 +109,12 @@ export class User extends IDAndTimestamp {
 
   @Column({ name: 'rest_duration', type: 'int', default: 600 }) // 10 minutes
   restDuration: number;
+
+  // Custom username (defaults to email prefix)
+  @Column({ name: 'username', type: 'varchar', length: 50, nullable: true })
+  username: string | null;
+
+  // Display name preference - what to show publicly
+  @Column({ name: 'display_name_preference', type: 'varchar', length: 20, default: 'fullname' })
+  displayNamePreference: 'username' | 'fullname';
 }

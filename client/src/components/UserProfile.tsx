@@ -62,6 +62,8 @@ export function UserProfile({ onClose }: UserProfileProps) {
     department:
       user?.department?.name ?? (user?.department as unknown as string) ?? '',
     yearOfStudy: user?.yearOfStudy ?? 1,
+    username: user?.username ?? user?.email?.split('@')[0] ?? '',
+    displayNamePreference: (user as any)?.displayNamePreference ?? 'fullname' as 'username' | 'fullname',
   });
 
   const [isEditing, setIsEditing] = useState(false);
@@ -101,6 +103,8 @@ export function UserProfile({ onClose }: UserProfileProps) {
         department:
           user.department?.name ?? (user.department as unknown as string) ?? '',
         yearOfStudy: user.yearOfStudy ?? 1,
+        username: user.username ?? user.email?.split('@')[0] ?? '',
+        displayNamePreference: (user as any)?.displayNamePreference ?? 'fullname',
       });
     }
 
@@ -131,6 +135,8 @@ export function UserProfile({ onClose }: UserProfileProps) {
         department:
           user.department?.name ?? (user.department as unknown as string) ?? '',
         yearOfStudy: user.yearOfStudy ?? 1,
+        username: user.username ?? user.email?.split('@')[0] ?? '',
+        displayNamePreference: (user as any)?.displayNamePreference ?? 'fullname',
       });
     }
   };
@@ -150,6 +156,8 @@ export function UserProfile({ onClose }: UserProfileProps) {
       await api.patch('/users/profile', {
         firstName: formData.firstName,
         lastName: formData.lastName,
+        username: formData.username,
+        displayNamePreference: formData.displayNamePreference,
       });
 
       toast.success('Profile updated successfully');
@@ -556,11 +564,42 @@ export function UserProfile({ onClose }: UserProfileProps) {
                   <User className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4' />
                   <input
                     type='text'
-                    value={user.email ? user.email.split('@')[0] : 'user'}
-                    disabled
-                    className='w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-500 cursor-not-allowed'
+                    value={formData.username}
+                    onChange={(e) =>
+                      setFormData({ ...formData, username: e.target.value })
+                    }
+                    disabled={!isEditing}
+                    className='w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50 dark:disabled:bg-gray-800/50'
+                    minLength={3}
+                    maxLength={50}
                   />
                 </div>
+              </div>
+
+              {/* Display Name Preference */}
+              <div className='flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg'>
+                <div>
+                  <p className='text-sm font-medium text-gray-900 dark:text-gray-100'>
+                    Show publicly as
+                  </p>
+                  <p className='text-xs text-gray-500 dark:text-gray-400'>
+                    How your name appears on uploads
+                  </p>
+                </div>
+                <select
+                  value={formData.displayNamePreference}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      displayNamePreference: e.target.value as 'username' | 'fullname',
+                    })
+                  }
+                  disabled={!isEditing}
+                  className='px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed'
+                >
+                  <option value='fullname'>{formData.firstName} {formData.lastName}</option>
+                  <option value='username'>@{formData.username}</option>
+                </select>
               </div>
 
               {/* Mobile Menu Hub */}
@@ -587,6 +626,29 @@ export function UserProfile({ onClose }: UserProfileProps) {
                   </div>
                   <ChevronRight className='w-4 h-4 text-gray-400' />
                 </button>
+
+                {/* Admin Dashboard - only for admins */}
+                {user.role === 'admin' && (
+                  <button
+                    type='button'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onClose();
+                      navigate('/admin');
+                    }}
+                    className='w-full flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors group border border-red-100 dark:border-red-800'
+                  >
+                    <div className='flex items-center'>
+                      <div className='w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400 mr-3 group-hover:scale-110 transition-transform'>
+                        <Shield className='w-4 h-4' />
+                      </div>
+                      <span className='font-medium text-red-700 dark:text-red-300'>
+                        Admin Dashboard
+                      </span>
+                    </div>
+                    <ChevronRight className='w-4 h-4 text-red-400' />
+                  </button>
+                )}
 
                 <button
                   type='button'

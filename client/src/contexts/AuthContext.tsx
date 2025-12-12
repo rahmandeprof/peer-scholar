@@ -25,6 +25,8 @@ interface User {
   role?: string;
   googleId?: string;
   verificationToken?: string | null;
+  username?: string | null;
+  displayNamePreference?: 'username' | 'fullname';
 }
 
 interface AuthContextType {
