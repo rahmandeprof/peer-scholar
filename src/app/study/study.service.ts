@@ -359,9 +359,9 @@ export class StudyService {
       userId,
       type: StudySessionType.READING,
       durationSeconds: durationSeconds,
-      startedAt: new Date(timestamp - durationSeconds * 1000),
-      endedAt: new Date(timestamp),
-      isCompleted: true,
+      startTime: new Date(timestamp - durationSeconds * 1000),
+      endTime: new Date(timestamp),
+      completed: true,
     });
 
     await this.studySessionRepo.save(session);
@@ -372,8 +372,9 @@ export class StudyService {
       await this.usersService.increaseReputation(userId, repPoints);
     }
 
-    // Check badges for the user
-    await this.badgeService.checkBadges(userId);
+    // Check study badges for the user
+    const currentHour = new Date().getHours();
+    await this.badgeService.checkStudyBadges(userId, durationSeconds, currentHour, true);
 
     return {
       success: true,
