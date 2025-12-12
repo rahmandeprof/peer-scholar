@@ -116,7 +116,7 @@ export async function syncOfflineSessions(): Promise<{ synced: number; failed: n
 
     for (const session of unsynced) {
         try {
-            const response = await fetch('https://peerscholar.onrender.com/api/v1/study/reading/offline-sync', {
+            const response = await fetch('https://peerscholar.onrender.com/v1/study/reading/offline-sync', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
