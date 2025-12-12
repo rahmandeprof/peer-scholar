@@ -3,10 +3,18 @@ import { X, RotateCw, Check, Repeat, Brain, Loader2 } from 'lucide-react';
 import api from '../lib/api';
 import { useModalBack } from '../hooks/useModalBack';
 
+// Support both old format (term/definition) and new format (id/front/back)
 interface Flashcard {
-  term: string;
-  definition: string;
+  id?: string;
+  term?: string;
+  definition?: string;
+  front?: string;
+  back?: string;
 }
+
+// Helper to normalize flashcard data
+const getFlashcardFront = (card: Flashcard): string => card.front || card.term || '';
+const getFlashcardBack = (card: Flashcard): string => card.back || card.definition || '';
 
 interface FlashcardModalProps {
   isOpen: boolean;
@@ -173,7 +181,7 @@ export function FlashcardModal({
                     Term
                   </span>
                   <h3 className='text-3xl font-bold text-gray-900 dark:text-white'>
-                    {flashcards[currentIndex].term}
+                    {getFlashcardFront(flashcards[currentIndex])}
                   </h3>
                   <p className='mt-8 text-sm text-gray-400 flex items-center'>
                     <RotateCw className='w-4 h-4 mr-2' />
@@ -187,7 +195,7 @@ export function FlashcardModal({
                     Definition
                   </span>
                   <p className='text-xl font-medium text-gray-800 dark:text-gray-200 leading-relaxed'>
-                    {flashcards[currentIndex].definition}
+                    {getFlashcardBack(flashcards[currentIndex])}
                   </p>
                 </div>
               </div>

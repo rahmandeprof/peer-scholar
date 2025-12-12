@@ -11,6 +11,7 @@ import { ChatModule } from '@/app/chat/chat.module';
 import { CommonModule } from '@/app/common/common.module';
 import { OtpModule } from '@/app/otp/otp.module';
 import { QueueModule } from '@/app/queue/queue.module';
+import { QuizEngineModule } from '@/app/quiz-engine/quiz-engine.module';
 import { StudyModule } from '@/app/study/study.module';
 import { UsersModule } from '@/app/users/users.module';
 import { DatabaseModule } from '@/database/database.module';
@@ -49,6 +50,7 @@ import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
     ChatModule,
     CommonModule,
     AcademicModule,
+    QuizEngineModule,
     ScheduleModule.forRoot(),
     ThrottlerModule.forRoot({
       throttlers: [
@@ -85,4 +87,4 @@ import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

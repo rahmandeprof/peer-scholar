@@ -131,8 +131,9 @@ export class ChatController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body('pageStart') pageStart?: number,
     @Body('pageEnd') pageEnd?: number,
+    @Body('regenerate') regenerate?: boolean,
   ) {
-    return this.chatService.generateQuiz(id, pageStart, pageEnd);
+    return this.chatService.generateQuiz(id, pageStart, pageEnd, regenerate);
   }
 
   @Post('flashcards/:id')

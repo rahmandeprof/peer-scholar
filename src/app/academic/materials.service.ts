@@ -402,6 +402,13 @@ export class MaterialsService {
     return Object.assign({}, material, { isFavorited });
   }
 
+  async getFavoritesCount(userId: string) {
+    const count = await this.favoriteRepo.count({
+      where: { user: { id: userId } },
+    });
+    return { count };
+  }
+
   async getFavorites(userId: string) {
     const favorites = await this.favoriteRepo.find({
       where: { user: { id: userId } },

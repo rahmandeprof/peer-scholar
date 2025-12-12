@@ -47,6 +47,12 @@ export class MaterialsController {
     return this.materialsService.create(dto, req.user);
   }
 
+  @Get('favorites/count')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getFavoritesCount(@Req() req: any) {
+    return this.materialsService.getFavoritesCount(req.user.id);
+  }
+
   @Get('favorites')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getFavorites(@Req() req: any) {

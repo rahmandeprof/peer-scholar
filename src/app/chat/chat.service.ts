@@ -29,6 +29,8 @@ import { UsersService } from '@/app/users/users.service';
 
 import { REPUTATION_REWARDS } from '@/app/common/constants/reputation.constants';
 
+import { QuizGenerator, FlashcardGenerator, QuizDifficulty } from '@/app/quiz-engine';
+
 import OpenAI from 'openai';
 import { Repository } from 'typeorm';
 
@@ -56,6 +58,8 @@ export class ChatService {
     private readonly cloudinaryService: CloudinaryService,
     private readonly conversionService: ConversionService,
     private readonly configService: ConfigService,
+    private readonly quizGenerator: QuizGenerator,
+    private readonly flashcardGenerator: FlashcardGenerator,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
 
@@ -459,7 +463,14 @@ export class ChatService {
     }
   }
 
-  async generateQuiz(materialId: string, pageStart?: number, pageEnd?: number) {
+  async generateQuiz(
+    materialId: string,
+    pageStart?: number,
+    pageEnd?: number,
+    regenerate?: boolean,
+    difficulty?: QuizDifficulty,
+    questionCount?: number,
+  ) {
     const material = await this.materialRepo.findOne({
       where: { id: materialId },
     });
@@ -468,6 +479,19 @@ export class ChatService {
 
     // Check if material is still being processed
     if (material.status === MaterialStatus.PROCESSING || material.status === MaterialStatus.PENDING) {
+      // Check if processing has been stuck for too long (> 30 minutes = likely failed)
+      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+      const materialUpdatedAt = new Date(material.updatedAt);
+
+      if (materialUpdatedAt < thirtyMinutesAgo) {
+        // Processing is stuck - mark as failed and show appropriate error
+        await this.materialRepo.update(material.id, { status: MaterialStatus.FAILED });
+        this.logger.warn(`Material ${material.id} was stuck in PROCESSING for >30 mins, marked as FAILED`);
+        throw new BadRequestException(
+          'UNSUPPORTED: This document could not be processed. The processing job may have failed. Please try re-uploading the file.',
+        );
+      }
+
       throw new BadRequestException(
         'PROCESSING: This material is still being analyzed. Please wait a moment and try again.',
       );
@@ -478,6 +502,11 @@ export class ChatService {
       throw new BadRequestException(
         'UNSUPPORTED: This document could not be processed. It may be a scanned image, password-protected, or in an unsupported format.',
       );
+    }
+
+    // Return cached quiz if available AND no page range was requested AND not regenerating
+    if (!pageStart && !pageEnd && !regenerate && material.quiz) {
+      return material.quiz;
     }
 
     let materialContent = material.content;
@@ -504,7 +533,6 @@ export class ChatService {
       } catch (error: any) {
         this.logger.error('Failed to extract text on-demand for quiz', error);
 
-        // Provide specific error messages based on failure type
         if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED' || error.response?.status === 404) {
           throw new BadRequestException(
             'The file could not be downloaded. It may have been deleted or the link is no longer valid.',
@@ -519,7 +547,6 @@ export class ChatService {
 
     // Check if content is empty or too short
     if (!materialContent || materialContent.trim().length < 50) {
-      // Determine the most helpful message based on file type
       const isImageBased = material.fileType?.includes('image') ||
         material.title?.toLowerCase().includes('scan') ||
         material.title?.toLowerCase().includes('scanned');
@@ -536,108 +563,41 @@ export class ChatService {
     }
 
     // If page range is provided, extract content by page range
-    // Approximation: 3000 characters per page
     const CHARS_PER_PAGE = 3000;
+    let textSegment = materialContent;
 
     if (pageStart || pageEnd) {
       const startChar = pageStart ? (pageStart - 1) * CHARS_PER_PAGE : 0;
       const endChar = pageEnd ? pageEnd * CHARS_PER_PAGE : materialContent.length;
-
-      materialContent = materialContent.substring(startChar, endChar);
+      textSegment = materialContent.substring(startChar, endChar);
     }
 
-    // Return cached quiz if available AND no page range was requested
-    // If page range is requested, we always generate fresh
-    if (!pageStart && !pageEnd && material.quiz) {
-      return material.quiz;
+    // Use the new QuizGenerator
+    const result = await this.quizGenerator.generate({
+      topic: material.title,
+      difficulty: difficulty || QuizDifficulty.INTERMEDIATE,
+      questionCount: questionCount || 5,
+      textSegment,
+      materialId: material.id,
+    });
+
+    if (!result.success || !result.data) {
+      this.logger.error(`Quiz generation failed: ${result.error}`);
+      throw new InternalServerErrorException(result.error || 'Failed to generate quiz');
     }
 
-    if (!this.openai) throw new InternalServerErrorException('AI service is not configured');
+    const quiz = result.data.questions;
 
-    const systemPrompt = `You are an expert exam preparation assistant. Generate diverse, challenging quiz questions that prepare students for exams. Avoid repetitive or obvious questions - dig into nuanced details, implications, and edge cases from the material.`;
-    const userPrompt = `Generate 5 diverse multiple-choice questions based on the following text. 
-
-IMPORTANT GUIDELINES:
-1. **Question Diversity**: Include a MIX of question types:
-   - Factual recall (what, when, who)
-   - Conceptual understanding (why, how)
-   - Application/scenario-based questions
-   - Comparison questions
-   - "Which of the following is NOT..." style questions
-
-2. **Difficulty Range**: Vary difficulty levels:
-   - 1-2 straightforward questions
-   - 2 moderate questions requiring deeper understanding
-   - 1 challenging question on subtle details or implications
-
-3. **Avoid Repetition**: Each question should cover a DIFFERENT aspect of the material. Never ask about the same concept twice.
-
-4. **Tricky Distractors**: Make wrong options plausible but clearly incorrect upon careful thought.
-
-5. **Explanations**: For the "explanation" field, provide:
-   - Why the correct answer is right
-   - A brief insight or "did you know" fact related to the concept
-   - For correct answers: Include an encouraging phrase like "Well done!", "Excellent!", "You're on fire!", "Keep it up!"
-
-Return the result as a JSON object with a "questions" key containing an array of objects:
-{
-  "questions": [
-    {
-      "question": "string",
-      "options": ["string", "string", "string", "string"],
-      "correctAnswer": "string (must exactly match one of the options)",
-      "explanation": "string (encouraging explanation with insight)"
+    // Cache the result ONLY if it's a full quiz (no page range specified)
+    if (!pageStart && !pageEnd && quiz.length > 0) {
+      material.quiz = quiz;
+      await this.materialRepo.save(material);
     }
-  ]
-}
 
-Text:
-${materialContent.substring(0, 6000)}`; // Still cap at 6000 for token limits if pageLimit is huge
-
-    try {
-      const response = await this.openai.chat.completions.create({
-        model: this.generationModel,
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt,
-          },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.1,
-        response_format: { type: 'json_object' },
-      });
-
-      let content = response.choices[0].message.content;
-
-      if (!content) return [];
-
-      content = this.cleanJson(content);
-
-      let parsed;
-
-      try {
-        parsed = JSON.parse(content);
-      } catch (e) {
-        this.logger.error(`Failed to parse quiz JSON: ${content}`, e);
-        throw e;
-      }
-      const quiz = parsed.questions ?? [];
-
-      // Cache the result ONLY if it's a full quiz (no page range specified)
-      if (!pageStart && !pageEnd && quiz.length > 0) {
-        material.quiz = quiz;
-        await this.materialRepo.save(material);
-      }
-
-      return quiz;
-    } catch (error) {
-      this.logger.error('Failed to generate quiz', error);
-      throw new InternalServerErrorException('Failed to generate quiz');
-    }
+    return quiz;
   }
 
-  async generateFlashcards(materialId: string) {
+  async generateFlashcards(materialId: string, cardCount?: number) {
     const material = await this.materialRepo.findOne({
       where: { id: materialId },
     });
@@ -646,6 +606,19 @@ ${materialContent.substring(0, 6000)}`; // Still cap at 6000 for token limits if
 
     // Check if material is still being processed
     if (material.status === MaterialStatus.PROCESSING || material.status === MaterialStatus.PENDING) {
+      // Check if processing has been stuck for too long (> 30 minutes = likely failed)
+      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+      const materialUpdatedAt = new Date(material.updatedAt);
+
+      if (materialUpdatedAt < thirtyMinutesAgo) {
+        // Processing is stuck - mark as failed and show appropriate error
+        await this.materialRepo.update(material.id, { status: MaterialStatus.FAILED });
+        this.logger.warn(`Material ${material.id} was stuck in PROCESSING for >30 mins, marked as FAILED`);
+        throw new BadRequestException(
+          'UNSUPPORTED: This document could not be processed. The processing job may have failed. Please try re-uploading the file.',
+        );
+      }
+
       throw new BadRequestException(
         'PROCESSING: This material is still being analyzed. Please wait a moment and try again.',
       );
@@ -687,7 +660,6 @@ ${materialContent.substring(0, 6000)}`; // Still cap at 6000 for token limits if
       } catch (error: any) {
         this.logger.error('Failed to extract text on-demand for flashcards', error);
 
-        // Provide specific error messages based on failure type
         if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED' || error.response?.status === 404) {
           throw new BadRequestException(
             'The file could not be downloaded. It may have been deleted or the link is no longer valid.',
@@ -717,64 +689,28 @@ ${materialContent.substring(0, 6000)}`; // Still cap at 6000 for token limits if
       );
     }
 
-    if (!this.openai) throw new InternalServerErrorException('AI service is not configured');
+    // Use the new FlashcardGenerator
+    const result = await this.flashcardGenerator.generate({
+      topic: material.title,
+      cardCount: cardCount || 10,
+      textSegment: materialContent,
+      materialId: material.id,
+    });
 
-    const systemPrompt = `You are a strict API endpoint. You receive text and output ONLY valid JSON.`;
-    const userPrompt = `Extract 10-15 key terms and their definitions from the following text.
-    Return the result as a JSON object with a "flashcards" key containing an array of objects with the following structure:
-    {
-      "flashcards": [
-        {
-          "term": "string",
-          "definition": "string"
-        }
-      ]
+    if (!result.success || !result.data) {
+      this.logger.error(`Flashcard generation failed: ${result.error}`);
+      throw new InternalServerErrorException(result.error || 'Failed to generate flashcards');
     }
-    
-    Text:
-    ${materialContent.substring(0, 6000)}`;
 
-    try {
-      const response = await this.openai.chat.completions.create({
-        model: this.generationModel,
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt,
-          },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.1,
-        response_format: { type: 'json_object' },
-      });
+    const flashcards = result.data;
 
-      let content = response.choices[0].message.content;
-
-      if (!content) return [];
-
-      content = this.cleanJson(content);
-
-      let parsed;
-
-      try {
-        parsed = JSON.parse(content);
-      } catch (e) {
-        this.logger.error(`Failed to parse flashcards JSON: ${content}`, e);
-        throw e;
-      }
-      const flashcards = parsed.flashcards ?? [];
-
-      // Cache the result
-      if (flashcards.length > 0) {
-        material.flashcards = flashcards;
-        await this.materialRepo.save(material);
-      }
-
-      return flashcards;
-    } catch (error) {
-      this.logger.error('Failed to generate flashcards', error);
-      throw new InternalServerErrorException('Failed to generate flashcards');
+    // Cache the result
+    if (flashcards.length > 0) {
+      material.flashcards = flashcards;
+      await this.materialRepo.save(material);
     }
+
+    return flashcards;
   }
 
   async saveQuizResult(

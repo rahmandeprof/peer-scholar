@@ -20,12 +20,20 @@ interface QuizModalProps {
   materialId: string;
 }
 
+// Support both old format (correctAnswer) and new format (id, type, answer, hint)
 interface Question {
+  id?: string;
+  type?: string;
   question: string;
   options: string[];
-  correctAnswer: string;
+  correctAnswer?: string;  // Old format
+  answer?: string;         // New format
   explanation?: string;
+  hint?: string;
 }
+
+// Helper to get correct answer from either format
+const getCorrectAnswer = (q: Question): string => q.answer || q.correctAnswer || '';
 
 export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
   useModalBack(isOpen, onClose, 'quiz-modal');
@@ -67,19 +75,20 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
     setPageEnd('');
   };
 
-  const fetchQuiz = async (startPage?: number, endPage?: number) => {
+  const fetchQuiz = async (startPage?: number, endPage?: number, regenerate?: boolean) => {
     setLoading(true);
     setError(null);
     setShowConfig(false);
     try {
-      // Build query params for page range
-      let url = `/chat/quiz/${materialId}`;
-      const params = new URLSearchParams();
-      if (startPage) params.append('pageStart', startPage.toString());
-      if (endPage) params.append('pageEnd', endPage.toString());
-      if (params.toString()) url += `?${params.toString()}`;
+      const url = `/chat/quiz/${materialId}`;
 
-      const res = await api.post(url);
+      // Send params in POST body
+      const body: Record<string, unknown> = {};
+      if (startPage) body.pageStart = startPage;
+      if (endPage) body.pageEnd = endPage;
+      if (regenerate) body.regenerate = true;
+
+      const res = await api.post(url, body);
       if (!res.data || res.data.length === 0) {
         setError('No questions could be generated for this material. The content may be too short or not suitable for quiz generation.');
       } else {
@@ -104,7 +113,7 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
     if (selectedOption) return; // Prevent changing answer
     setSelectedOption(option);
 
-    const correct = option === questions[currentQuestionIndex].correctAnswer;
+    const correct = option === getCorrectAnswer(questions[currentQuestionIndex]);
     setIsCorrect(correct);
 
     if (correct) {
@@ -326,12 +335,12 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
                 <button
                   onClick={() => {
                     resetQuiz();
-                    fetchQuiz();
+                    fetchQuiz(undefined, undefined, true); // regenerate=true for fresh questions
                   }}
                   className='flex-1 px-2 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-medium text-sm md:text-base hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-purple-500/25 flex items-center justify-center whitespace-nowrap'
                 >
                   <Sparkles className='w-4 h-4 mr-1.5' />
-                  New Quiz
+                  New Questions
                 </button>
               </div>
             </div>

@@ -159,12 +159,12 @@ export function AcademicControlCenter() {
           console.warn('Failed to fetch collections');
         }
 
-        // Fetch favorites count
+        // Fetch favorites count (lightweight endpoint)
         try {
-          const favoritesRes = await api.get('/materials/favorites');
-          setFavoritesCount(Array.isArray(favoritesRes.data) ? favoritesRes.data.length : 0);
+          const favoritesRes = await api.get('/materials/favorites/count');
+          setFavoritesCount(favoritesRes.data?.count ?? 0);
         } catch {
-          console.warn('Failed to fetch favorites');
+          console.warn('Failed to fetch favorites count');
         }
       } catch (error) {
         console.error('Failed to fetch dashboard data', error);

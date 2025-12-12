@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { CommonModule } from '@/app/common/common.module';
+import { QuizEngineModule } from '@/app/quiz-engine/quiz-engine.module';
 import { UsersModule } from '@/app/users/users.module';
 
 import { Material } from '../academic/entities/material.entity';
@@ -27,9 +28,10 @@ import { ChatService } from './chat.service';
     ]),
     UsersModule,
     CommonModule,
+    QuizEngineModule,
   ],
   controllers: [ChatController],
   providers: [ChatService],
   exports: [ChatService],
 })
-export class ChatModule {}
+export class ChatModule { }
