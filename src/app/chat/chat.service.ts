@@ -13,6 +13,8 @@ import {
   Material,
   MaterialStatus,
   MaterialType,
+  QuizQuestion as EntityQuizQuestion,
+  FlashcardItem,
 } from '../academic/entities/material.entity';
 import { MaterialChunk } from '../academic/entities/material-chunk.entity';
 import { Comment } from './entities/comment.entity';
@@ -590,7 +592,7 @@ export class ChatService {
 
     // Cache the result ONLY if it's a full quiz (no page range specified)
     if (!pageStart && !pageEnd && quiz.length > 0) {
-      material.quiz = quiz;
+      material.quiz = quiz as EntityQuizQuestion[];
       await this.materialRepo.save(material);
     }
 
@@ -706,7 +708,7 @@ export class ChatService {
 
     // Cache the result
     if (flashcards.length > 0) {
-      material.flashcards = flashcards;
+      material.flashcards = flashcards as FlashcardItem[];
       await this.materialRepo.save(material);
     }
 

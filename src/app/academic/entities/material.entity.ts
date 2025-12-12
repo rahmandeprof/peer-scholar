@@ -38,10 +38,25 @@ export enum MaterialStatus {
   FAILED = 'failed',
 }
 
+// Support both old format (correctAnswer) and new format (answer, id, type, hint)
 export interface QuizQuestion {
+  id?: string;
+  type?: string;
   question: string;
   options: string[];
-  correctAnswer: string;
+  correctAnswer?: string;  // Old format
+  answer?: string;         // New format
+  explanation?: string;
+  hint?: string;
+}
+
+// Support both old format (term/definition) and new format (id/front/back)
+export interface FlashcardItem {
+  id?: string;
+  term?: string;       // Old format
+  definition?: string; // Old format
+  front?: string;      // New format
+  back?: string;       // New format
 }
 
 @Entity('material')
@@ -72,7 +87,7 @@ export class Material extends IDAndTimestamp {
   quiz?: QuizQuestion[];
 
   @Column({ name: 'flashcards', type: 'json', nullable: true })
-  flashcards?: { term: string; definition: string }[];
+  flashcards?: FlashcardItem[];
 
   @Column({ name: 'file_url', nullable: true })
   fileUrl: string;
