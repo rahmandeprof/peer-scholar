@@ -108,6 +108,45 @@ export function FlashcardModal({
                 Analyzing material and creating flashcards...
               </p>
             </div>
+          ) : error?.includes('UNSUPPORTED') ? (
+            <div className='text-center space-y-4'>
+              <div className='w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto'>
+                <svg className='w-8 h-8 text-gray-500' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' />
+                </svg>
+              </div>
+              <h3 className='text-lg font-bold text-gray-900 dark:text-gray-100'>Unsupported Document</h3>
+              <p className='text-gray-600 dark:text-gray-400 max-w-sm mx-auto'>
+                This document could not be processed for flashcard generation.
+              </p>
+              <p className='text-sm text-gray-500 max-w-sm mx-auto'>
+                It may be a scanned image, password-protected, or in an unsupported format.
+              </p>
+              <button
+                onClick={onClose}
+                className='px-6 py-2 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-colors'
+              >
+                Close
+              </button>
+            </div>
+          ) : error?.includes('PROCESSING') ? (
+            <div className='text-center space-y-4'>
+              <div className='w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto animate-pulse'>
+                <svg className='w-8 h-8 text-amber-600' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' />
+                </svg>
+              </div>
+              <h3 className='text-lg font-bold text-gray-900 dark:text-gray-100'>Still Processing</h3>
+              <p className='text-gray-600 dark:text-gray-400 max-w-sm mx-auto'>
+                This material is still being analyzed. Please wait a moment and try again.
+              </p>
+              <button
+                onClick={fetchFlashcards}
+                className='px-6 py-2 bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition-colors'
+              >
+                Retry
+              </button>
+            </div>
           ) : error ? (
             <div className='text-center space-y-4'>
               <div className='w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto text-red-600'>

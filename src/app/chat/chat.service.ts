@@ -11,6 +11,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import {
   AccessScope,
   Material,
+  MaterialStatus,
   MaterialType,
 } from '../academic/entities/material.entity';
 import { MaterialChunk } from '../academic/entities/material-chunk.entity';
@@ -465,6 +466,20 @@ export class ChatService {
 
     if (!material) throw new NotFoundException('Material not found');
 
+    // Check if material is still being processed
+    if (material.status === MaterialStatus.PROCESSING || material.status === MaterialStatus.PENDING) {
+      throw new BadRequestException(
+        'PROCESSING: This material is still being analyzed. Please wait a moment and try again.',
+      );
+    }
+
+    // Check if material processing failed
+    if (material.status === MaterialStatus.FAILED) {
+      throw new BadRequestException(
+        'UNSUPPORTED: This document could not be processed. It may be a scanned image, password-protected, or in an unsupported format.',
+      );
+    }
+
     let materialContent = material.content;
 
     // If content is null, try to extract it on-demand
@@ -628,6 +643,20 @@ ${materialContent.substring(0, 6000)}`; // Still cap at 6000 for token limits if
     });
 
     if (!material) throw new NotFoundException('Material not found');
+
+    // Check if material is still being processed
+    if (material.status === MaterialStatus.PROCESSING || material.status === MaterialStatus.PENDING) {
+      throw new BadRequestException(
+        'PROCESSING: This material is still being analyzed. Please wait a moment and try again.',
+      );
+    }
+
+    // Check if material processing failed
+    if (material.status === MaterialStatus.FAILED) {
+      throw new BadRequestException(
+        'UNSUPPORTED: This document could not be processed. It may be a scanned image, password-protected, or in an unsupported format.',
+      );
+    }
 
     // Return cached flashcards if available
     if (material.flashcards && material.flashcards.length > 0) {
