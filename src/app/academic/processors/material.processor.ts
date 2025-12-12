@@ -61,7 +61,13 @@ export class MaterialProcessor {
       // 2. Extract text
       let text = '';
 
-      if (material.fileType === 'application/pdf') {
+      this.logger.log(`[TEXT-EXTRACT] Material: ${materialId}`);
+      this.logger.log(`[TEXT-EXTRACT] FileType: "${material.fileType}"`);
+      this.logger.log(`[TEXT-EXTRACT] Title: "${material.title}"`);
+      this.logger.log(`[TEXT-EXTRACT] Buffer size: ${buffer.length} bytes`);
+
+      if (material.fileType === 'application/pdf' || material.fileType?.includes('pdf')) {
+        this.logger.log(`[TEXT-EXTRACT] Matched: PDF`);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const candidate = (pdfLib as any).default ?? pdfLib;
 
@@ -93,45 +99,93 @@ export class MaterialProcessor {
               data = instance;
             }
           } else {
+            this.logger.error(`[TEXT-EXTRACT] PDF parse error:`, err);
             throw err;
           }
         }
 
         text = data.text;
+        this.logger.log(`[TEXT-EXTRACT] PDF extracted ${text?.length ?? 0} chars`);
       } else if (
         material.fileType ===
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+        material.fileType?.includes('wordprocessingml') ||
+        material.title?.toLowerCase().endsWith('.docx')
       ) {
+        this.logger.log(`[TEXT-EXTRACT] Matched: DOCX`);
         const result = await mammoth.extractRawText({ buffer });
 
         text = result.value;
+        this.logger.log(`[TEXT-EXTRACT] DOCX extracted ${text?.length ?? 0} chars`);
       } else if (material.fileType === 'text/plain') {
+        this.logger.log(`[TEXT-EXTRACT] Matched: Plain text`);
         text = buffer.toString('utf-8');
+        this.logger.log(`[TEXT-EXTRACT] TXT extracted ${text?.length ?? 0} chars`);
       } else if (
         material.fileType ===
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation' ||
+        material.fileType?.includes('presentationml') ||
+        material.title?.toLowerCase().endsWith('.pptx')
       ) {
+        this.logger.log(`[TEXT-EXTRACT] Matched: PPTX`);
         text = await this.extractTextFromPPTX(buffer);
-      } else if (material.fileType.startsWith('image/')) {
+        this.logger.log(`[TEXT-EXTRACT] PPTX extracted ${text?.length ?? 0} chars`);
+      } else if (material.fileType?.startsWith('image/')) {
         // Direct OCR for images
-        this.logger.debug(`Image detected for ${materialId}. Using OCR.`);
+        this.logger.log(`[TEXT-EXTRACT] Matched: Image - using OCR`);
         text = await this.extractTextViaOCR(material.fileUrl, true);
+        this.logger.log(`[TEXT-EXTRACT] Image OCR extracted ${text?.length ?? 0} chars`);
+      } else if (
+        material.fileType?.includes('msword') ||
+        material.title?.toLowerCase().endsWith('.doc')
+      ) {
+        // Legacy .doc files
+        this.logger.log(`[TEXT-EXTRACT] Matched: Legacy DOC - attempting officeparser`);
+        try {
+          const officeparser = await import('officeparser');
+          text = await officeparser.parseOfficeAsync(buffer) || '';
+          this.logger.log(`[TEXT-EXTRACT] DOC extracted ${text?.length ?? 0} chars`);
+        } catch (e) {
+          this.logger.warn(`[TEXT-EXTRACT] DOC extraction failed:`, e);
+        }
+      } else if (
+        material.fileType?.includes('ms-powerpoint') ||
+        material.title?.toLowerCase().endsWith('.ppt')
+      ) {
+        // Legacy .ppt files
+        this.logger.log(`[TEXT-EXTRACT] Matched: Legacy PPT - attempting officeparser`);
+        try {
+          const officeparser = await import('officeparser');
+          text = await officeparser.parseOfficeAsync(buffer) || '';
+          this.logger.log(`[TEXT-EXTRACT] PPT extracted ${text?.length ?? 0} chars`);
+        } catch (e) {
+          this.logger.warn(`[TEXT-EXTRACT] PPT extraction failed:`, e);
+        }
+      } else {
+        this.logger.warn(`[TEXT-EXTRACT] NO MATCH for fileType: "${material.fileType}"`);
+      }
+
+      // Log text preview
+      if (text && text.length > 0) {
+        const preview = text.substring(0, 200).replace(/\n/g, ' ').trim();
+        this.logger.log(`[TEXT-EXTRACT] Preview: "${preview}..."`);
       }
 
       // Fallback to OCR if text is empty or too short (likely scanned PDF or image-only PPT)
       if (!text || text.trim().length < 50) {
         this.logger.warn(
-          `Low text content detected for ${materialId}. Attempting OCR via Vision...`,
+          `[TEXT-EXTRACT] Low content (${text?.trim().length ?? 0} chars). Attempting OCR fallback...`,
         );
         const ocrText = await this.extractTextViaOCR(material.fileUrl);
 
         if (ocrText) {
           text = ocrText;
+          this.logger.log(`[TEXT-EXTRACT] OCR fallback extracted ${text?.length ?? 0} chars`);
         }
       }
 
       if (!text) {
-        this.logger.warn(`No text extracted from material: ${materialId}`);
+        this.logger.warn(`[TEXT-EXTRACT] FINAL: No text extracted from material: ${materialId}`);
         text =
           'This document appears to be a scanned image or contains no extractable text. AI features like summary and chat may be limited.';
       }

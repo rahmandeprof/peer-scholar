@@ -141,7 +141,9 @@ export function UserProfile({ onClose }: UserProfileProps) {
     }
   };
 
-  const handleEditClick = () => {
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setIsEditing(true);
   };
 
@@ -488,7 +490,6 @@ export function UserProfile({ onClose }: UserProfileProps) {
                     }
                     disabled={!isEditing}
                     className='w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all'
-                    required
                   />
                 </div>
                 <div>
@@ -503,7 +504,6 @@ export function UserProfile({ onClose }: UserProfileProps) {
                     }
                     disabled={!isEditing}
                     className='w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all'
-                    required
                   />
                 </div>
               </div>
