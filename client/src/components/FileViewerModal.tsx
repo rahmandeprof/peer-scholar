@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, FileText, Download, MessageSquare } from 'lucide-react';
 import { CommentsSection } from './CommentsSection';
+import { useModalBack } from '../hooks/useModalBack';
 
 interface FileViewerModalProps {
   isOpen: boolean;
@@ -19,6 +20,8 @@ export function FileViewerModal({
   onClose,
   material,
 }: FileViewerModalProps) {
+  useModalBack(isOpen, onClose, 'file-viewer-modal');
+
   const [showComments, setShowComments] = useState(false);
 
   if (!isOpen || !material) return null;
@@ -41,11 +44,10 @@ export function FileViewerModal({
           <div className='flex items-center space-x-2'>
             <button
               onClick={() => setShowComments(!showComments)}
-              className={`p-2 rounded-lg transition-colors flex items-center space-x-2 ${
-                showComments
+              className={`p-2 rounded-lg transition-colors flex items-center space-x-2 ${showComments
                   ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
                   : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
-              }`}
+                }`}
               title='Toggle Comments'
             >
               <MessageSquare className='w-5 h-5' />
@@ -102,11 +104,10 @@ export function FileViewerModal({
 
           {/* Comments Sidebar */}
           <div
-            className={`border-l border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 transition-all duration-300 ease-in-out absolute inset-y-0 right-0 z-20 md:relative md:inset-auto ${
-              showComments
+            className={`border-l border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 transition-all duration-300 ease-in-out absolute inset-y-0 right-0 z-20 md:relative md:inset-auto ${showComments
                 ? 'w-full md:w-96 translate-x-0'
                 : 'w-0 translate-x-full md:translate-x-0 md:w-0'
-            }`}
+              }`}
           >
             <div className='w-full md:w-96 h-full overflow-hidden'>
               <CommentsSection materialId={material.id} />

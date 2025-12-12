@@ -142,4 +142,22 @@ export class StudyController {
 
     return this.studyService.getWeeklyLeaderboard(req.user.id);
   }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('reading/offline-sync')
+  syncOfflineReading(
+    @Req() req: RequestWithUser,
+    @Body() body: { materialId?: string; durationSeconds: number; timestamp: number },
+  ) {
+    if (!req.user) {
+      throw new Error('User not found');
+    }
+
+    return this.studyService.syncOfflineReadingSession(
+      req.user.id,
+      body.durationSeconds,
+      body.timestamp,
+      body.materialId,
+    );
+  }
 }

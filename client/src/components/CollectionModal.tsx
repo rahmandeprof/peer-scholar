@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Plus, Folder, Edit3, Trash2, Check, ChevronRight } from 'lucide-react';
 import api from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
+import { useModalBack } from '../hooks/useModalBack';
 
 interface CollectionModalProps {
   isOpen: boolean;
@@ -25,6 +26,8 @@ export function CollectionModal({
   onCollectionSelect,
   onRefresh,
 }: CollectionModalProps) {
+  useModalBack(isOpen, onClose, 'collection-modal');
+
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
   const [newTitle, setNewTitle] = useState('');

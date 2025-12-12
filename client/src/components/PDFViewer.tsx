@@ -3,7 +3,7 @@ import api from '../lib/api';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, X } from 'lucide-react';
 import { AnnotationManager } from './AnnotationManager';
 
 // Configure worker
@@ -78,6 +78,18 @@ export function PDFViewer({ url, materialId, initialPage = 1 }: PDFViewerProps) 
     };
   }, []);
 
+  const [goToPage, setGoToPage] = useState('');
+  const [showGoToInput, setShowGoToInput] = useState(false);
+
+  const handleGoToPage = () => {
+    const page = parseInt(goToPage);
+    if (page && page >= 1 && page <= numPages) {
+      setPageNumber(page);
+      setShowGoToInput(false);
+      setGoToPage('');
+    }
+  };
+
   return (
     <div className='flex flex-col h-full bg-gray-100 dark:bg-gray-900'>
       {/* Toolbar */}
@@ -90,9 +102,48 @@ export function PDFViewer({ url, materialId, initialPage = 1 }: PDFViewerProps) 
           >
             <ChevronLeft className='w-5 h-5' />
           </button>
-          <span className='text-sm font-medium'>
-            Page {pageNumber} of {numPages || '--'}
-          </span>
+
+          {/* Page indicator - click to reveal go-to input */}
+          {showGoToInput ? (
+            <div className='flex items-center space-x-1'>
+              <input
+                type='number'
+                value={goToPage}
+                onChange={(e) => setGoToPage(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleGoToPage()}
+                onBlur={() => {
+                  if (!goToPage) setShowGoToInput(false);
+                }}
+                placeholder='Page'
+                min='1'
+                max={numPages}
+                autoFocus
+                className='w-16 px-2 py-1 text-center text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none'
+              />
+              <span className='text-sm text-gray-500'>/ {numPages}</span>
+              <button
+                onClick={handleGoToPage}
+                className='p-1 bg-primary-600 text-white rounded hover:bg-primary-700'
+              >
+                Go
+              </button>
+              <button
+                onClick={() => { setShowGoToInput(false); setGoToPage(''); }}
+                className='p-1 text-gray-400 hover:text-gray-600'
+              >
+                <X className='w-4 h-4' />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowGoToInput(true)}
+              className='text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 px-2 py-1 rounded transition-colors'
+              title='Click to go to a specific page'
+            >
+              Page {pageNumber} of {numPages || '--'}
+            </button>
+          )}
+
           <button
             onClick={() =>
               setPageNumber((prev) => Math.min(prev + 1, numPages))

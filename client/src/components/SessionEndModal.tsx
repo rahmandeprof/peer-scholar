@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Trophy, BookOpen, ArrowRight } from 'lucide-react';
+import { useModalBack } from '../hooks/useModalBack';
 
 interface SessionEndModalProps {
   isOpen: boolean;
@@ -12,6 +13,8 @@ export function SessionEndModal({
   onStartQuiz,
   onContinueReading,
 }: SessionEndModalProps) {
+  useModalBack(isOpen, onContinueReading, 'session-end-modal');
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [pageStart, setPageStart] = useState('');
   const [pageEnd, setPageEnd] = useState('');

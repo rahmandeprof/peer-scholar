@@ -28,6 +28,13 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Force new service worker to activate immediately
+        skipWaiting: true,
+        clientsClaim: true,
+        // Don't cache JS chunks - let browser handle with normal HTTP caching
+        // This prevents stale chunk issues after deployment
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api/, /^\/v1/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/api\.cloudinary\.com\/.*/i,
@@ -41,24 +48,25 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /\.(?:png|jpg|jpeg|svg|gif|pdf)$/i,
+            urlPattern: /\.(?:png|jpg|jpeg|svg|gif)$/i,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'static-files',
+              cacheName: 'static-images',
               expiration: {
                 maxEntries: 50,
                 maxAgeSeconds: 60 * 60 * 24 * 30, // 30 Days
               },
             },
           },
+          // Use NetworkFirst for API calls
           {
-            urlPattern: /^http:\/\/localhost:3000\/api\/.*/i,
+            urlPattern: /^https:\/\/peerscholar\.onrender\.com\/.*/i,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24, // 1 Day
+                maxAgeSeconds: 60 * 60, // 1 hour
               },
               networkTimeoutSeconds: 10,
             },

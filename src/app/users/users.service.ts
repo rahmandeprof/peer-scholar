@@ -16,6 +16,7 @@ import {
 } from '@/app/users/entities/partner-request.entity';
 import { StudyStreak } from '@/app/users/entities/study-streak.entity';
 import { User } from '@/app/users/entities/user.entity';
+import { ReadingProgress } from '@/app/users/entities/reading-progress.entity';
 
 import { CreateUserDto } from '@/app/users/dto/create-user.dto';
 import { UpdateAcademicProfileDto } from '@/app/users/dto/update-academic-profile.dto';
@@ -44,6 +45,8 @@ export class UsersService {
     private readonly departmentRepo: Repository<Department>,
     @InjectRepository(Faculty)
     private readonly facultyRepo: Repository<Faculty>,
+    @InjectRepository(ReadingProgress)
+    private readonly readingProgressRepo: Repository<ReadingProgress>,
     private readonly logger: WinstonLoggerService,
     private readonly emailService: EmailService,
     private readonly configService: ConfigService,
@@ -527,13 +530,55 @@ export class UsersService {
   }
 
   async updateActivity(userId: string, materialId: string, page: number) {
+    // Update per-material reading progress (upsert)
+    const existing = await this.readingProgressRepo.findOne({
+      where: { userId, materialId },
+    });
+
+    if (existing) {
+      existing.lastPage = page;
+      await this.readingProgressRepo.save(existing);
+    } else {
+      const progress = this.readingProgressRepo.create({
+        userId,
+        materialId,
+        lastPage: page,
+      });
+      await this.readingProgressRepo.save(progress);
+    }
+
+    // Also update user's last read material for backwards compatibility
     await this.userRepository.update(userId, {
       lastReadMaterialId: materialId,
       lastReadPage: page,
     });
   }
 
-  async getActivity(userId: string) {
+  async getActivity(userId: string, materialId?: string) {
+    // If materialId provided, get progress for that specific material
+    if (materialId) {
+      const progress = await this.readingProgressRepo.findOne({
+        where: { userId, materialId },
+        relations: ['material', 'material.uploader'],
+      });
+
+      if (progress) {
+        return {
+          lastReadMaterialId: materialId,
+          lastReadMaterial: progress.material,
+          lastReadPage: progress.lastPage,
+        };
+      }
+
+      // No progress for this material yet
+      return {
+        lastReadMaterialId: materialId,
+        lastReadMaterial: null,
+        lastReadPage: 1,
+      };
+    }
+
+    // No materialId: return most recent activity (backwards compatible)
     const user = await this.userRepository.findOne({
       where: { id: userId },
       relations: ['lastReadMaterial', 'lastReadMaterial.uploader'],

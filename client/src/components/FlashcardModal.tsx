@@ -44,10 +44,15 @@ export function FlashcardModal({
     setError(null);
     try {
       const res = await api.post(`/chat/flashcards/${materialId}`);
-      setFlashcards(res.data);
-    } catch (err) {
-      console.error('Failed to fetch flashcards', err);
-      setError('Failed to generate flashcards. Please try again.');
+      if (!res.data || res.data.length === 0) {
+        setError('No flashcards could be generated for this material. The content may be too short or not suitable for flashcard generation.');
+      } else {
+        setFlashcards(res.data);
+      }
+    } catch (err: any) {
+      const message = err.response?.data?.message || 'Failed to generate flashcards. Please try again.';
+      setError(message);
+      console.error('Failed to fetch flashcards:', message);
     } finally {
       setLoading(false);
     }

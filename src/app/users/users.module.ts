@@ -7,6 +7,7 @@ import { PartnerRequest } from '@/app/users/entities/partner-request.entity';
 import { StudyStreak } from '@/app/users/entities/study-streak.entity';
 import { User } from '@/app/users/entities/user.entity';
 import { UserBadge } from '@/app/users/entities/user-badge.entity';
+import { ReadingProgress } from '@/app/users/entities/reading-progress.entity';
 
 import { UsersController } from '@/app/users/users.controller';
 import { BadgeController } from '@/app/users/badge.controller';
@@ -24,6 +25,7 @@ import { WinstonLoggerService } from '@/logger/winston-logger/winston-logger.ser
       Department,
       Faculty,
       UserBadge,
+      ReadingProgress,
     ]),
   ],
   controllers: [UsersController, BadgeController],

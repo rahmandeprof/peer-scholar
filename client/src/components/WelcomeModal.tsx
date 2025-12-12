@@ -1,8 +1,16 @@
 import { useState, useEffect } from 'react';
 import { X, Sparkles, BookOpen, Users, Brain } from 'lucide-react';
+import { useModalBack } from '../hooks/useModalBack';
 
 export function WelcomeModal() {
   const [isOpen, setIsOpen] = useState(false);
+
+  const handleClose = () => {
+    setIsOpen(false);
+    localStorage.setItem('hasSeenOnboarding', 'true');
+  };
+
+  useModalBack(isOpen, handleClose, 'welcome-modal');
 
   useEffect(() => {
     const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
@@ -12,11 +20,6 @@ export function WelcomeModal() {
       return () => clearTimeout(timer);
     }
   }, []);
-
-  const handleClose = () => {
-    setIsOpen(false);
-    localStorage.setItem('hasSeenOnboarding', 'true');
-  };
 
   if (!isOpen) return null;
 

@@ -8,6 +8,8 @@ import {
   Loader2,
   Sparkles,
   Lightbulb,
+  Settings,
+  Info,
 } from 'lucide-react';
 import api from '../lib/api';
 import { useModalBack } from '../hooks/useModalBack';
@@ -29,6 +31,7 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
   useModalBack(isOpen, onClose, 'quiz-modal');
 
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -36,6 +39,11 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [animating, setAnimating] = useState(false);
+
+  // Page range for quiz generation
+  const [pageStart, setPageStart] = useState('');
+  const [pageEnd, setPageEnd] = useState('');
+  const [showConfig, setShowConfig] = useState(true);
 
   useEffect(() => {
     if (isOpen && materialId) {
@@ -53,19 +61,43 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
     setShowResult(false);
     setIsCorrect(null);
     setLoading(false);
+    setError(null);
+    setShowConfig(true);
+    setPageStart('');
+    setPageEnd('');
   };
 
-  const fetchQuiz = async () => {
+  const fetchQuiz = async (startPage?: number, endPage?: number) => {
     setLoading(true);
+    setError(null);
+    setShowConfig(false);
     try {
-      // Always generate fresh questions from AI for diversity
-      const res = await api.post(`/chat/quiz/${materialId}`);
-      setQuestions(res.data);
-    } catch {
-      // console.error('Failed to fetch quiz', err);
+      // Build query params for page range
+      let url = `/chat/quiz/${materialId}`;
+      const params = new URLSearchParams();
+      if (startPage) params.append('pageStart', startPage.toString());
+      if (endPage) params.append('pageEnd', endPage.toString());
+      if (params.toString()) url += `?${params.toString()}`;
+
+      const res = await api.post(url);
+      if (!res.data || res.data.length === 0) {
+        setError('No questions could be generated for this material. The content may be too short or not suitable for quiz generation.');
+      } else {
+        setQuestions(res.data);
+      }
+    } catch (err: any) {
+      const message = err.response?.data?.message || 'Failed to generate quiz. Please try again.';
+      setError(message);
+      console.error('Failed to fetch quiz:', message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleStartQuiz = () => {
+    const start = pageStart ? parseInt(pageStart) : undefined;
+    const end = pageEnd ? parseInt(pageEnd) : undefined;
+    fetchQuiz(start, end);
   };
 
   const handleOptionSelect = (option: string) => {
@@ -158,7 +190,65 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
         </div>
 
         <div className='flex-1 overflow-y-auto p-6 md:p-8'>
-          {loading ? (
+          {/* Configuration Panel - Show before generating */}
+          {showConfig && !loading && questions.length === 0 && !error ? (
+            <div className='flex flex-col items-center py-8'>
+              <div className='w-16 h-16 bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 rounded-2xl flex items-center justify-center mb-6'>
+                <Settings className='w-8 h-8 text-purple-600 dark:text-purple-400' />
+              </div>
+
+              <h3 className='text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 text-center'>
+                Configure Your Quiz
+              </h3>
+              <p className='text-gray-500 dark:text-gray-400 text-center mb-6 max-w-sm'>
+                Generate quiz questions from this material. Optionally specify a page range to focus on.
+              </p>
+
+              {/* Page Range Inputs */}
+              <div className='w-full max-w-sm mb-6'>
+                <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+                  Page Range (Optional)
+                </label>
+                <div className='flex items-center gap-3'>
+                  <input
+                    type='number'
+                    value={pageStart}
+                    onChange={(e) => setPageStart(e.target.value)}
+                    placeholder='From'
+                    min='1'
+                    className='flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 outline-none text-center'
+                  />
+                  <span className='text-gray-400'>to</span>
+                  <input
+                    type='number'
+                    value={pageEnd}
+                    onChange={(e) => setPageEnd(e.target.value)}
+                    placeholder='To'
+                    min='1'
+                    className='flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 outline-none text-center'
+                  />
+                </div>
+              </div>
+
+              {/* Disclaimer */}
+              <div className='w-full max-w-sm p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl mb-6'>
+                <div className='flex items-start gap-3'>
+                  <Info className='w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5' />
+                  <p className='text-sm text-blue-700 dark:text-blue-300'>
+                    <strong>Tip:</strong> By default, we use the first ~8-10 pages of content. If questions feel repetitive, try specifying a different page range to quiz from different sections.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={handleStartQuiz}
+                className='w-full max-w-sm py-4 px-6 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 flex items-center justify-center gap-2'
+              >
+                <Sparkles className='w-5 h-5' />
+                Generate Quiz
+              </button>
+            </div>
+          ) : loading ? (
             <div className='flex flex-col items-center justify-center py-20'>
               <div className='relative'>
                 <div className='absolute inset-0 bg-purple-500 blur-xl opacity-20 rounded-full animate-pulse'></div>
@@ -381,15 +471,23 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
               <h3 className='text-xl font-bold text-gray-900 dark:text-gray-100 mb-2'>
                 Oops!
               </h3>
-              <p className='text-gray-600 dark:text-gray-400 mb-8'>
-                Failed to load quiz. Please try again.
+              <p className='text-gray-600 dark:text-gray-400 mb-8 max-w-sm mx-auto'>
+                {error || 'Failed to load quiz. Please try again.'}
               </p>
-              <button
-                onClick={onClose}
-                className='px-6 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors font-medium'
-              >
-                Close
-              </button>
+              <div className='flex justify-center gap-3'>
+                <button
+                  onClick={onClose}
+                  className='px-6 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors font-medium'
+                >
+                  Close
+                </button>
+                <button
+                  onClick={fetchQuiz}
+                  className='px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium'
+                >
+                  Try Again
+                </button>
+              </div>
             </div>
           )}
         </div>

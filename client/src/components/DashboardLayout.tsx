@@ -336,6 +336,20 @@ export function DashboardLayout() {
                 </button>
 
                 <div className='pt-4 border-t border-gray-100 dark:border-gray-800 mt-4'>
+                  {/* Admin Dashboard Link - Only visible for admin users on mobile */}
+                  {user?.role === 'admin' && (
+                    <button
+                      onClick={() => {
+                        navigate('/admin');
+                        setSidebarOpen(false);
+                      }}
+                      className='w-full flex items-center px-4 py-3 rounded-xl text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-200 mb-2'
+                    >
+                      <Shield className='w-5 h-5 mr-3' />
+                      Admin Dashboard
+                    </button>
+                  )}
+
                   <a
                     href='mailto:abdulrahmanabdulsalam93@gmail.com'
                     className='flex items-center px-4 py-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200'

@@ -1,4 +1,5 @@
 import { X, type LucideIcon } from 'lucide-react';
+import { useModalBack } from '../hooks/useModalBack';
 
 interface FeatureSpotlightModalProps {
   isOpen: boolean;
@@ -15,6 +16,8 @@ export function FeatureSpotlightModal({
   description,
   icon: Icon,
 }: FeatureSpotlightModalProps) {
+  useModalBack(isOpen, onClose, 'feature-spotlight-modal');
+
   if (!isOpen) return null;
 
   return (
@@ -22,8 +25,8 @@ export function FeatureSpotlightModal({
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200 relative overflow-hidden">
         {/* Decorative Background */}
         <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-br from-primary-500/10 to-purple-500/10 dark:from-primary-900/20 dark:to-purple-900/20" />
-        
-        <button 
+
+        <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors z-10"
         >
@@ -34,11 +37,11 @@ export function FeatureSpotlightModal({
           <div className="w-16 h-16 bg-white dark:bg-gray-700 rounded-2xl shadow-lg flex items-center justify-center mb-6 text-primary-600 dark:text-primary-400">
             <Icon className="w-8 h-8" />
           </div>
-          
+
           <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-3">
             {title}
           </h3>
-          
+
           <p className="text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">
             {description}
           </p>

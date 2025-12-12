@@ -14,6 +14,7 @@ import {
   Sun,
 } from 'lucide-react';
 import api from '../lib/api';
+import { accumulateReadingTime } from '../lib/offlineReadingTracker';
 import { addToViewingHistory } from '../lib/viewingHistory';
 import { useTheme } from '../contexts/ThemeContext';
 import { AISidebar } from './AISidebar';
@@ -168,10 +169,10 @@ export const MaterialView = () => {
           })
           .catch(console.error);
 
-        // Fetch last read page for this material (to resume)
+        // Fetch last read page for this specific material (to resume)
         try {
-          const activityRes = await api.get('/users/activity/recent');
-          if (activityRes.data.lastReadMaterialId === id && activityRes.data.lastReadPage > 1) {
+          const activityRes = await api.get(`/users/activity/recent?materialId=${id}`);
+          if (activityRes.data.lastReadPage > 1) {
             setLastReadPage(activityRes.data.lastReadPage);
           }
         } catch {
@@ -218,11 +219,15 @@ export const MaterialView = () => {
       const elapsedSeconds = getElapsedSeconds();
       readingSecondsRef.current = elapsedSeconds;
 
-      // Send heartbeat to backend
-      api.post('/study/reading/heartbeat', {
-        sessionId: readingSessionId,
-        seconds: elapsedSeconds,
-      }).catch(console.error);
+      // Send heartbeat to backend (or accumulate locally if offline)
+      if (navigator.onLine) {
+        api.post('/study/reading/heartbeat', {
+          sessionId: readingSessionId,
+          seconds: elapsedSeconds,
+        }).catch(console.error);
+      }
+      // Always accumulate locally as fallback (will sync when online)
+      accumulateReadingTime(id || '', 30);
     }, 30000); // Every 30 seconds
 
     // Use sendBeacon for reliable delivery on page unload
@@ -230,24 +235,30 @@ export const MaterialView = () => {
       const elapsedSeconds = getElapsedSeconds();
       // Only send if there's meaningful time (> 5 seconds)
       if (elapsedSeconds >= 5) {
-        // Get auth token and API base URL for sendBeacon
-        const token = localStorage.getItem('token');
-        const apiBaseUrl = (import.meta.env.VITE_API_URL as string | undefined) ?? 'https://peerscholar.onrender.com/v1';
-        const endpointUrl = `${apiBaseUrl.replace(/\/+$/, '').replace(/\/v1$/, '')}/v1/study/reading/end`;
+        // Always accumulate locally first as safety net
+        accumulateReadingTime(id || '', elapsedSeconds);
 
-        // Include token in body since sendBeacon can't set headers
-        const data = JSON.stringify({
-          sessionId: readingSessionId,
-          seconds: elapsedSeconds,
-          _token: token // Backend will extract this
-        });
+        if (navigator.onLine) {
+          // Get auth token and API base URL for sendBeacon
+          const token = localStorage.getItem('token');
+          const apiBaseUrl = (import.meta.env.VITE_API_URL as string | undefined) ?? 'https://peerscholar.onrender.com/v1';
+          const endpointUrl = `${apiBaseUrl.replace(/\/+$/, '').replace(/\/v1$/, '')}/v1/study/reading/end`;
 
-        // Use sendBeacon for reliability - it survives page navigation
-        const sent = navigator.sendBeacon(endpointUrl, new Blob([data], { type: 'application/json' }));
-        if (!sent) {
-          // Fallback to regular fetch (may not complete on navigation)
-          api.post('/study/reading/end', { sessionId: readingSessionId, seconds: elapsedSeconds }).catch(console.error);
+          // Include token in body since sendBeacon can't set headers
+          const data = JSON.stringify({
+            sessionId: readingSessionId,
+            seconds: elapsedSeconds,
+            _token: token // Backend will extract this
+          });
+
+          // Use sendBeacon for reliability - it survives page navigation
+          const sent = navigator.sendBeacon(endpointUrl, new Blob([data], { type: 'application/json' }));
+          if (!sent) {
+            // Fallback to regular fetch (may not complete on navigation)
+            api.post('/study/reading/end', { sessionId: readingSessionId, seconds: elapsedSeconds }).catch(console.error);
+          }
         }
+        // If offline, the local accumulation will be synced when back online
       }
     };
 

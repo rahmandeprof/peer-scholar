@@ -482,21 +482,41 @@ export class ChatService {
         );
 
         // Save extracted content for future use
-        if (materialContent) {
+        if (materialContent && materialContent.trim().length > 0) {
           material.content = materialContent;
           await this.materialRepo.save(material);
         }
-      } catch (error) {
+      } catch (error: any) {
         this.logger.error('Failed to extract text on-demand for quiz', error);
+
+        // Provide specific error messages based on failure type
+        if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED' || error.response?.status === 404) {
+          throw new BadRequestException(
+            'The file could not be downloaded. It may have been deleted or the link is no longer valid.',
+          );
+        }
+
         throw new BadRequestException(
-          'Material content is not available. Please re-upload the file.',
+          'Unable to extract text from this file. This may be a scanned document or image-based PDF that requires OCR support.',
         );
       }
     }
 
-    if (!materialContent) {
+    // Check if content is empty or too short
+    if (!materialContent || materialContent.trim().length < 50) {
+      // Determine the most helpful message based on file type
+      const isImageBased = material.fileType?.includes('image') ||
+        material.title?.toLowerCase().includes('scan') ||
+        material.title?.toLowerCase().includes('scanned');
+
+      if (isImageBased) {
+        throw new BadRequestException(
+          'This appears to be an image or scanned document. Quiz generation requires text-based content. OCR support coming soon!',
+        );
+      }
+
       throw new BadRequestException(
-        'Material content is not available. Please re-upload the file.',
+        'This material doesn\'t contain enough text for quiz generation. It may be a scanned document, image-based PDF, or very short content.',
       );
     }
 
@@ -631,21 +651,40 @@ ${materialContent.substring(0, 6000)}`; // Still cap at 6000 for token limits if
         );
 
         // Save extracted content for future use
-        if (materialContent) {
+        if (materialContent && materialContent.trim().length > 0) {
           material.content = materialContent;
           await this.materialRepo.save(material);
         }
-      } catch (error) {
+      } catch (error: any) {
         this.logger.error('Failed to extract text on-demand for flashcards', error);
+
+        // Provide specific error messages based on failure type
+        if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED' || error.response?.status === 404) {
+          throw new BadRequestException(
+            'The file could not be downloaded. It may have been deleted or the link is no longer valid.',
+          );
+        }
+
         throw new BadRequestException(
-          'Material content is not available. Please re-upload the file.',
+          'Unable to extract text from this file. This may be a scanned document or image-based PDF that requires OCR support.',
         );
       }
     }
 
-    if (!materialContent) {
+    // Check if content is empty or too short
+    if (!materialContent || materialContent.trim().length < 50) {
+      const isImageBased = material.fileType?.includes('image') ||
+        material.title?.toLowerCase().includes('scan') ||
+        material.title?.toLowerCase().includes('scanned');
+
+      if (isImageBased) {
+        throw new BadRequestException(
+          'This appears to be an image or scanned document. Flashcard generation requires text-based content. OCR support coming soon!',
+        );
+      }
+
       throw new BadRequestException(
-        'Material content is not available. Please re-upload the file.',
+        'This material doesn\'t contain enough text for flashcard generation. It may be a scanned document, image-based PDF, or very short content.',
       );
     }
 

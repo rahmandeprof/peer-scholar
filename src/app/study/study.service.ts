@@ -343,5 +343,43 @@ export class StudyService {
       } : null,
     };
   }
+
+  /**
+   * Sync an offline reading session to the database
+   * Called when the user comes back online with accumulated reading time
+   */
+  async syncOfflineReadingSession(
+    userId: string,
+    durationSeconds: number,
+    timestamp: number,
+    materialId?: string,
+  ) {
+    // Create a completed session record for the offline reading
+    const session = this.studySessionRepo.create({
+      userId,
+      type: StudySessionType.READING,
+      durationSeconds: durationSeconds,
+      startedAt: new Date(timestamp - durationSeconds * 1000),
+      endedAt: new Date(timestamp),
+      isCompleted: true,
+    });
+
+    await this.studySessionRepo.save(session);
+
+    // Award reputation for reading time (1 point per 10 minutes)
+    const repPoints = Math.floor(durationSeconds / 600);
+    if (repPoints > 0) {
+      await this.usersService.increaseReputation(userId, repPoints);
+    }
+
+    // Check badges for the user
+    await this.badgeService.checkBadges(userId);
+
+    return {
+      success: true,
+      sessionId: session.id,
+      minutesSynced: Math.round(durationSeconds / 60),
+    };
+  }
 }
 

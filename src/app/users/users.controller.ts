@@ -148,8 +148,8 @@ export class UsersController {
 
   @Get('activity/recent')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getActivity(@Req() req: any) {
-    return this.usersService.getActivity(req.user.id);
+  getActivity(@Req() req: any, @Query('materialId') materialId?: string) {
+    return this.usersService.getActivity(req.user.id, materialId);
   }
 
   @Post('activity/update')
