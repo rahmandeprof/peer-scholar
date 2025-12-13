@@ -174,6 +174,8 @@ export class ChatService {
       pdfUrl: pdfUrl || (file.mimetype === 'application/pdf' ? url : undefined),
       fileType: file.mimetype,
       uploader: user,
+      // Explicitly set both status fields
+      status: MaterialStatus.PENDING,
       // New uploads use v2 segment-based processing
       processingVersion: ProcessingVersion.V2,
       processingStatus: ProcessingStatus.PENDING,
