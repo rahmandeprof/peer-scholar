@@ -40,6 +40,7 @@ export class PdfImageService {
             // Dynamically import pdf-poppler
             if (!pdfPoppler) {
                 try {
+                    // @ts-ignore - pdf-poppler has no type declarations
                     pdfPoppler = await import('pdf-poppler');
                 } catch (error) {
                     this.logger.error('pdf-poppler not available, using fallback');
