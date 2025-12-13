@@ -1,31 +1,29 @@
 /**
  * PdfImageService - Converts PDF pages to images for OCR processing
- * Uses pdf-poppler for high-quality rendering
+ * Uses pdftoppm (poppler-utils) directly for cross-platform compatibility
  */
 import { Injectable, Logger } from '@nestjs/common';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as os from 'os';
 import { v4 as uuidv4 } from 'uuid';
-
-// Use dynamic import for pdf-poppler compatibility
-let pdfPoppler: any;
+import { spawn } from 'child_process';
 
 @Injectable()
 export class PdfImageService {
     private readonly logger = new Logger(PdfImageService.name);
 
     // Rendering settings optimized for OCR
-    private readonly DPI = 300; // Higher DPI = better OCR but slower
+    private readonly DPI = 300;
     private readonly FORMAT = 'png';
 
     /**
-     * Convert PDF buffer to array of page images
+     * Convert PDF buffer to array of page images using pdftoppm
      */
     async convertToImages(pdfBuffer: Buffer): Promise<Buffer[]> {
-        // Create temp directory for this conversion
         const tempDir = path.join(os.tmpdir(), `pdf-ocr-${uuidv4()}`);
         const pdfPath = path.join(tempDir, 'input.pdf');
+        const outputPrefix = path.join(tempDir, 'page');
         const images: Buffer[] = [];
 
         try {
@@ -37,46 +35,27 @@ export class PdfImageService {
 
             this.logger.debug(`Converting PDF to images in ${tempDir}`);
 
-            // Dynamically import pdf-poppler
-            if (!pdfPoppler) {
-                try {
-                    // @ts-ignore - pdf-poppler has no type declarations
-                    pdfPoppler = await import('pdf-poppler');
-                } catch (error) {
-                    this.logger.error('pdf-poppler not available, using fallback');
-                    return this.fallbackConversion(pdfBuffer);
-                }
+            // Run pdftoppm command
+            await this.runPdftoppm(pdfPath, outputPrefix);
+
+            // Read all generated PNG files
+            const files = await fs.readdir(tempDir);
+            const pngFiles = files
+                .filter(f => f.startsWith('page') && f.endsWith('.png'))
+                .sort((a, b) => {
+                    // Sort by page number (page-1.png, page-2.png, etc.)
+                    const numA = parseInt(a.match(/page-?(\d+)/)?.[1] || '0');
+                    const numB = parseInt(b.match(/page-?(\d+)/)?.[1] || '0');
+                    return numA - numB;
+                });
+
+            for (const pngFile of pngFiles) {
+                const imagePath = path.join(tempDir, pngFile);
+                const imageBuffer = await fs.readFile(imagePath);
+                images.push(imageBuffer);
             }
 
-            // Get PDF info
-            const info = await pdfPoppler.info(pdfPath);
-            const pageCount = info.pages || 1;
-
-            this.logger.debug(`PDF has ${pageCount} pages`);
-
-            // Convert each page
-            const opts = {
-                format: this.FORMAT,
-                out_dir: tempDir,
-                out_prefix: 'page',
-                page: null, // Convert all pages
-                scale: this.DPI,
-            };
-
-            await pdfPoppler.convert(pdfPath, opts);
-
-            // Read generated images
-            for (let i = 1; i <= pageCount; i++) {
-                const imagePath = path.join(tempDir, `page-${i}.${this.FORMAT}`);
-                try {
-                    const imageBuffer = await fs.readFile(imagePath);
-                    images.push(imageBuffer);
-                } catch (error) {
-                    this.logger.warn(`Could not read page ${i} image: ${error}`);
-                }
-            }
-
-            this.logger.log(`Converted ${images.length} pages to images`);
+            this.logger.log(`Converted ${images.length} pages to images using pdftoppm`);
 
             return images;
         } catch (error) {
@@ -93,41 +72,41 @@ export class PdfImageService {
     }
 
     /**
-     * Fallback conversion using canvas-based approach
-     * Less reliable but works without system dependencies
+     * Run pdftoppm command to convert PDF to PNG images
      */
-    private async fallbackConversion(pdfBuffer: Buffer): Promise<Buffer[]> {
-        this.logger.warn('Using canvas fallback for PDF conversion');
+    private runPdftoppm(pdfPath: string, outputPrefix: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            // pdftoppm -png -r 300 input.pdf output_prefix
+            const args = [
+                '-png',
+                '-r', String(this.DPI),
+                pdfPath,
+                outputPrefix,
+            ];
 
-        // Try using pdfjs-dist for pure JS conversion
-        try {
-            const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+            this.logger.debug(`Running: pdftoppm ${args.join(' ')}`);
 
-            const loadingTask = pdfjsLib.getDocument({
-                data: new Uint8Array(pdfBuffer),
-                useSystemFonts: true,
+            const process = spawn('pdftoppm', args);
+
+            let stderr = '';
+
+            process.stderr.on('data', (data) => {
+                stderr += data.toString();
             });
 
-            const pdf = await loadingTask.promise;
-            const images: Buffer[] = [];
+            process.on('close', (code) => {
+                if (code === 0) {
+                    resolve();
+                } else {
+                    this.logger.error(`pdftoppm failed with code ${code}: ${stderr}`);
+                    reject(new Error(`pdftoppm failed with exit code ${code}: ${stderr}`));
+                }
+            });
 
-            for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const viewport = page.getViewport({ scale: 2.0 }); // 2x scale for clarity
-
-                // Create a basic canvas-like structure
-                // Note: This is a simplified approach - full implementation would use node-canvas
-                this.logger.debug(`Processing page ${i} (${viewport.width}x${viewport.height})`);
-
-                // For now, return empty buffer as placeholder
-                // Full implementation requires node-canvas which needs system deps too
-                images.push(Buffer.alloc(0));
-            }
-
-            return images;
-        } catch (error) {
-            this.logger.error(`Fallback conversion also failed: ${error}`);
-            throw new Error('No PDF to image conversion method available');
-        }
+            process.on('error', (err) => {
+                this.logger.error(`pdftoppm spawn error: ${err.message}`);
+                reject(new Error(`Failed to spawn pdftoppm: ${err.message}. Make sure poppler-utils is installed.`));
+            });
+        });
     }
 }
