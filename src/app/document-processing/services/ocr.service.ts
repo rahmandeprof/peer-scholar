@@ -3,7 +3,9 @@
  * Used as a fallback when normal text extraction fails
  */
 import { Injectable, Logger } from '@nestjs/common';
-import Tesseract from 'tesseract.js';
+
+// Dynamic import to avoid initialization issues when OCR isn't used
+let Tesseract: typeof import('tesseract.js') | null = null;
 
 export interface OcrResult {
     text: string;
@@ -28,6 +30,17 @@ export class OcrService {
     private readonly MIN_CONFIDENCE = 30; // Minimum confidence to accept OCR result
 
     /**
+     * Lazy load Tesseract.js only when needed
+     */
+    private async getTesseract(): Promise<typeof import('tesseract.js')> {
+        if (!Tesseract) {
+            this.logger.debug('Loading Tesseract.js...');
+            Tesseract = await import('tesseract.js');
+        }
+        return Tesseract;
+    }
+
+    /**
      * Extract text from a PDF buffer using OCR
      * Falls back to this when normal extraction yields no text
      */
@@ -44,6 +57,9 @@ export class OcrService {
 
         this.logger.log(`Starting OCR on ${pagesToProcess.length} page(s)`);
 
+        // Lazy load Tesseract
+        const tesseract = await this.getTesseract();
+
         // Process pages sequentially to avoid memory issues
         for (let i = 0; i < pagesToProcess.length; i++) {
             const pageImage = pagesToProcess[i];
@@ -52,7 +68,7 @@ export class OcrService {
             try {
                 this.logger.debug(`OCR processing page ${pageNumber}/${pagesToProcess.length}`);
 
-                const result = await Tesseract.recognize(pageImage, 'eng', {
+                const result = await tesseract.recognize(pageImage, 'eng', {
                     logger: (m) => {
                         if (m.status === 'recognizing text') {
                             this.logger.debug(`Page ${pageNumber}: ${Math.round((m.progress || 0) * 100)}%`);
