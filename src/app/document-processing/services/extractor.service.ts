@@ -3,7 +3,7 @@
  * Supports PDF, DOCX, TXT, PPT with page metadata when available
  */
 import { Injectable, Logger } from '@nestjs/common';
-import pdfParse from 'pdf-parse';
+import * as pdfLib from 'pdf-parse';
 // @ts-ignore
 import officeParser from 'officeparser';
 import * as mammoth from 'mammoth';
@@ -68,7 +68,14 @@ export class ExtractorService {
      * Extract from PDF with page-level information
      */
     private async extractFromPdf(buffer: Buffer): Promise<ExtractionResult> {
-        const data = await pdfParse(buffer);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const candidate = (pdfLib as any).default ?? pdfLib;
+        const pdfParseFn =
+            typeof candidate === 'function'
+                ? candidate
+                : (candidate.PDFParse ?? candidate);
+
+        const data = await pdfParseFn(buffer);
 
         // pdf-parse doesn't give us per-page text directly, 
         // but we can estimate page boundaries from the numpages info
