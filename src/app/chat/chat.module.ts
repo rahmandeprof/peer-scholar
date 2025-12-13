@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { BullModule } from '@nestjs/bull';
 
 import { CommonModule } from '@/app/common/common.module';
 import { DocumentProcessingModule } from '@/app/document-processing/document-processing.module';
@@ -29,6 +30,9 @@ import { ChatService } from './chat.service';
       Comment,
       DocumentSegment,
     ]),
+    BullModule.registerQueue({
+      name: 'materials',
+    }),
     UsersModule,
     CommonModule,
     QuizEngineModule,
