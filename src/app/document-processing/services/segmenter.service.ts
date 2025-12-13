@@ -32,15 +32,30 @@ export class SegmenterService {
         preserveParagraphs: true,
     };
 
+    // OCR-specific options with smaller chunks for noisy text
+    private readonly ocrOptions: SegmentationOptions = {
+        targetTokens: 250,
+        minTokens: 100,
+        maxTokens: 350,
+        preserveParagraphs: true,
+    };
+
     /**
      * Segment text into chunks with optional page information
+     * @param isOcr If true, uses conservative segmentation for OCR output
      */
     segment(
         text: string,
         pages?: PageContent[],
-        options?: SegmentationOptions,
+        isOcr: boolean = false,
     ): TextSegment[] {
-        const opts = { ...this.defaultOptions, ...options };
+        const opts = isOcr
+            ? { ...this.ocrOptions }
+            : { ...this.defaultOptions };
+
+        if (isOcr) {
+            this.logger.debug('Using conservative segmentation for OCR output');
+        }
 
         if (!text || text.trim().length === 0) {
             return [];
@@ -60,7 +75,7 @@ export class SegmenterService {
         // Detect and attach headings
         this.detectHeadings(segments);
 
-        this.logger.debug(`Created ${segments.length} segments from ${text.length} characters`);
+        this.logger.debug(`Created ${segments.length} segments from ${text.length} characters${isOcr ? ' (OCR mode)' : ''}`);
 
         return segments;
     }

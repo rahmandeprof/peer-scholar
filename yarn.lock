@@ -2407,6 +2407,11 @@ bluebird@~3.4.0:
   resolved "https://registry.npmjs.org/bluebird/-/bluebird-3.4.7.tgz"
   integrity sha512-iD3898SR7sWVRHbiQv+sHUtHnMvC1o3nW5rAcqnq3uOn07DSAppZYUkIGslDz6gXC7HfunPe7YVBgoEJASPcHA==
 
+bmp-js@^0.1.0:
+  version "0.1.0"
+  resolved "https://registry.npmjs.org/bmp-js/-/bmp-js-0.1.0.tgz"
+  integrity sha512-vHdS19CnY3hwiNdkaqk93DvjVLfbEcI8mys4UjuWrlX1haDmroo8o4xCzh4wD6DGV6HxRCyauwhHRqMTfERtjw==
+
 body-parser@^2.2.0:
   version "2.2.1"
   resolved "https://registry.npmjs.org/body-parser/-/body-parser-2.2.1.tgz"
@@ -4962,6 +4967,11 @@ iconv-lite@0.6.3:
   dependencies:
     safer-buffer ">= 2.1.2 < 3.0.0"
 
+idb-keyval@^6.2.0:
+  version "6.2.2"
+  resolved "https://registry.npmjs.org/idb-keyval/-/idb-keyval-6.2.2.tgz"
+  integrity sha512-yjD9nARJ/jb1g+CvD0tlhUHOrJ9Sy0P8T9MF3YaLlHnSRpwPfpTX0XIvpmw3gAJUmEu3FiICLBDPXVwyEvrleg==
+
 ieee754@^1.1.13, ieee754@^1.2.1:
   version "1.2.1"
   resolved "https://registry.npmjs.org/ieee754/-/ieee754-1.2.1.tgz"
@@ -5320,6 +5330,11 @@ is-unicode-supported@^0.1.0:
   version "0.1.0"
   resolved "https://registry.npmjs.org/is-unicode-supported/-/is-unicode-supported-0.1.0.tgz"
   integrity sha512-knxG2q4UC3u8stRGyAVJCOdxFmv5DZiRcdlIaAQXAbSfJya+OhopNotLQrstBhququ4ZpuKbDc/8S6mgXgPFPw==
+
+is-url@^1.2.4:
+  version "1.2.4"
+  resolved "https://registry.npmjs.org/is-url/-/is-url-1.2.4.tgz"
+  integrity sha512-ITvGim8FhRiYe4IQ5uHSkj7pVaPDrCTkNd3yq3cV7iZAcJdHTUMPMEHcqSOy9xZ9qFenQCvi+2wjH9a1nXqHww==
 
 is-weakmap@^2.0.2:
   version "2.0.2"
@@ -7082,7 +7097,7 @@ node-ensure@^0.0.0:
   resolved "https://registry.npmjs.org/node-ensure/-/node-ensure-0.0.0.tgz"
   integrity sha512-DRI60hzo2oKN1ma0ckc6nQWlHU69RH6xN0sjQTjMpChPfTYvKZdcQFfdYK2RWbJcKyUizSIy/l8OTGxMAM1QDw==
 
-node-fetch@^2.6.0:
+node-fetch@^2.6.0, node-fetch@^2.6.9:
   version "2.7.0"
   resolved "https://registry.npmjs.org/node-fetch/-/node-fetch-2.7.0.tgz"
   integrity sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==
@@ -7316,6 +7331,11 @@ openai@^6.9.1:
   version "6.9.1"
   resolved "https://registry.npmjs.org/openai/-/openai-6.9.1.tgz"
   integrity sha512-vQ5Rlt0ZgB3/BNmTa7bIijYFhz3YBceAA3Z4JuoMSBftBF9YqFHIEhZakSs+O/Ad7EaoEimZvHxD5ylRjN11Lg==
+
+opencollective-postinstall@^2.0.3:
+  version "2.0.3"
+  resolved "https://registry.npmjs.org/opencollective-postinstall/-/opencollective-postinstall-2.0.3.tgz"
+  integrity sha512-8AV/sCtuzUeTo8gQK5qDZzARrulB3egtLzFgteqB2tcT4Mw7B8Kt7JcDHmltjz6FOAHsvTevk70gZEbhM4ZS9Q==
 
 option@~0.2.1:
   version "0.2.4"
@@ -7604,6 +7624,11 @@ pdf-parse@^2.4.5:
   dependencies:
     "@napi-rs/canvas" "0.1.80"
     pdfjs-dist "5.4.296"
+
+pdf-poppler@^0.2.3:
+  version "0.2.3"
+  resolved "https://registry.npmjs.org/pdf-poppler/-/pdf-poppler-0.2.3.tgz"
+  integrity sha512-nUczP3M/W4c8/3F6il0LmkxkF33qTKQyxeBmUnPbQLxxhtBX42zfpZqnLysomvMdb756qVR7n5kvNr+LzisXQw==
 
 pdfjs-dist@5.4.296:
   version "5.4.296"
@@ -8208,6 +8233,11 @@ reflect.getprototypeof@^1.0.6, reflect.getprototypeof@^1.0.9:
     get-intrinsic "^1.2.7"
     get-proto "^1.0.1"
     which-builtin-type "^1.2.1"
+
+regenerator-runtime@^0.13.3:
+  version "0.13.11"
+  resolved "https://registry.npmjs.org/regenerator-runtime/-/regenerator-runtime-0.13.11.tgz"
+  integrity sha512-kY1AZVr2Ra+t+piVaJ4gxaFaReZVH40AKNo7UCX6W+dEwBo/2oZJzqfuN1qLq1oL45o56cPaTXELwrTh8Fpggg==
 
 regexp.prototype.flags@^1.5.3:
   version "1.5.4"
@@ -9187,6 +9217,26 @@ terser@^5.31.1:
     commander "^2.20.0"
     source-map-support "~0.5.20"
 
+tesseract.js-core@^6.0.0:
+  version "6.1.1"
+  resolved "https://registry.npmjs.org/tesseract.js-core/-/tesseract.js-core-6.1.1.tgz"
+  integrity sha512-sKF1bIctAoPr5CoooDN6Hvab32zCK2a2NfsXSgxjyHsS+LcwNz8WwwcULuqoQUpYa3SO5ScbrMgH6hEN1T3srg==
+
+tesseract.js@^6.0.1:
+  version "6.0.1"
+  resolved "https://registry.npmjs.org/tesseract.js/-/tesseract.js-6.0.1.tgz"
+  integrity sha512-/sPvMvrCtgxnNRCjbTYbr7BRu0yfWDsMZQ2a/T5aN/L1t8wUQN6tTWv6p6FwzpoEBA0jrN2UD2SX4QQFRdoDbA==
+  dependencies:
+    bmp-js "^0.1.0"
+    idb-keyval "^6.2.0"
+    is-url "^1.2.4"
+    node-fetch "^2.6.9"
+    opencollective-postinstall "^2.0.3"
+    regenerator-runtime "^0.13.3"
+    tesseract.js-core "^6.0.0"
+    wasm-feature-detect "^1.2.11"
+    zlibjs "^0.3.1"
+
 test-exclude@^6.0.0:
   version "6.0.0"
   resolved "https://registry.npmjs.org/test-exclude/-/test-exclude-6.0.0.tgz"
@@ -9680,6 +9730,11 @@ walker@^1.0.8:
   dependencies:
     makeerror "1.0.12"
 
+wasm-feature-detect@^1.2.11:
+  version "1.8.0"
+  resolved "https://registry.npmjs.org/wasm-feature-detect/-/wasm-feature-detect-1.8.0.tgz"
+  integrity sha512-zksaLKM2fVlnB5jQQDqKXXwYHLQUVH9es+5TOOHwGOVJOCeRBCiPjwSg+3tN2AdTCzjgli4jijCH290kXb/zWQ==
+
 watchpack@^2.4.1, watchpack@^2.4.4:
   version "2.4.4"
   resolved "https://registry.npmjs.org/watchpack/-/watchpack-2.4.4.tgz"
@@ -10056,6 +10111,11 @@ yoctocolors-cjs@^2.1.2:
   version "2.1.2"
   resolved "https://registry.npmjs.org/yoctocolors-cjs/-/yoctocolors-cjs-2.1.2.tgz"
   integrity sha512-cYVsTjKl8b+FrnidjibDWskAv7UKOfcwaVZdp/it9n1s9fU3IkgDbhdIRKCW4JDsAlECJY0ytoVPT3sK6kideA==
+
+zlibjs@^0.3.1:
+  version "0.3.1"
+  resolved "https://registry.npmjs.org/zlibjs/-/zlibjs-0.3.1.tgz"
+  integrity sha512-+J9RrgTKOmlxFSDHo0pI1xM6BLVUv+o0ZT9ANtCxGkjIVCCUdx9alUF8Gm+dGLKbkkkidWIHFDZHDMpfITt4+w==
 
 zod@^4.1.13:
   version "4.1.13"

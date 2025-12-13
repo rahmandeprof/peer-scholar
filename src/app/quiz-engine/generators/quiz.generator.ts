@@ -141,16 +141,40 @@ export class QuizGenerator {
             return { success: false, error: 'Topic is required for quiz generation' };
         }
 
+        // Calculate total tokens from segments (rough estimate: 4 chars = 1 token)
+        const totalChars = segments.reduce((sum, seg) => sum + (seg.text?.length || 0), 0);
+        const estimatedTokens = Math.ceil(totalChars / 4);
+
+        // Scale question count based on content size (minimum 50 tokens per question)
+        const TOKENS_PER_QUESTION = 50;
+        const maxQuestionsForContent = Math.max(1, Math.floor(estimatedTokens / TOKENS_PER_QUESTION));
+        const adjustedQuestionCount = Math.min(questionCount, maxQuestionsForContent);
+
+        if (adjustedQuestionCount < questionCount) {
+            this.logger.warn(
+                `Content too short for ${questionCount} questions (${estimatedTokens} tokens). ` +
+                `Scaling down to ${adjustedQuestionCount} question(s).`
+            );
+        }
+
+        // Check minimum content threshold
+        if (estimatedTokens < TOKENS_PER_QUESTION) {
+            return {
+                success: false,
+                error: `Content too short to generate quiz questions. Need at least ${TOKENS_PER_QUESTION} tokens of content, but only have ${estimatedTokens}.`,
+            };
+        }
+
         this.logger.debug(
-            `Generating quiz from ${segments.length} segments: topic="${topic}", difficulty=${difficulty}, count=${questionCount}`,
+            `Generating quiz from ${segments.length} segments: topic="${topic}", difficulty=${difficulty}, count=${adjustedQuestionCount} (original: ${questionCount}, tokens: ${estimatedTokens})`,
         );
 
-        // Build segment-aware prompts
+        // Build segment-aware prompts with adjusted question count
         const { systemPrompt, userPrompt } = this.promptBuilder.buildQuizPromptsFromSegments(
             segments,
             topic,
             difficulty,
-            questionCount,
+            adjustedQuestionCount,
         );
 
         let lastError = '';

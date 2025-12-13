@@ -44,6 +44,9 @@ export class DocumentSegment {
     @Column({ name: 'segment_index' })
     segmentIndex: number;
 
+    @Column({ name: 'source', type: 'varchar', length: 20, default: 'text' })
+    source: 'text' | 'ocr';
+
     @CreateDateColumn({ name: 'created_at' })
     createdAt: Date;
 }

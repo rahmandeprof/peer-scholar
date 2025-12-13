@@ -13,6 +13,8 @@ import { CleanerService } from './services/cleaner.service';
 import { SegmenterService } from './services/segmenter.service';
 import { SegmentSelectorService } from './services/segment-selector.service';
 import { LegacyExtractionService } from './services/legacy-extraction.service';
+import { OcrService } from './services/ocr.service';
+import { PdfImageService } from './services/pdf-image.service';
 
 import { DocumentProcessor, DOCUMENT_PROCESSING_QUEUE } from './processors/document.processor';
 import { ProcessingStatusController } from './controllers/processing-status.controller';
@@ -34,6 +36,8 @@ import { CommonModule } from '../common/common.module';
         SegmenterService,
         SegmentSelectorService,
         LegacyExtractionService,
+        OcrService,
+        PdfImageService,
         DocumentProcessor,
     ],
     exports: [
@@ -42,6 +46,8 @@ import { CommonModule } from '../common/common.module';
         SegmenterService,
         SegmentSelectorService,
         LegacyExtractionService,
+        OcrService,
+        PdfImageService,
         DocumentProcessor,
     ],
 })

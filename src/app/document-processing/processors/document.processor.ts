@@ -11,9 +11,11 @@ import axios from 'axios';
 
 import { Material, MaterialStatus, ProcessingStatus } from '../../academic/entities/material.entity';
 import { DocumentSegment } from '../../academic/entities/document-segment.entity';
-import { ExtractorService } from '../services/extractor.service';
+import { ExtractorService, ExtractionResult } from '../services/extractor.service';
 import { CleanerService } from '../services/cleaner.service';
 import { SegmenterService, TextSegment } from '../services/segmenter.service';
+import { OcrService } from '../services/ocr.service';
+import { PdfImageService } from '../services/pdf-image.service';
 
 export const DOCUMENT_PROCESSING_QUEUE = 'document-processing';
 
@@ -37,6 +39,8 @@ export class DocumentProcessor {
         private readonly extractorService: ExtractorService,
         private readonly cleanerService: CleanerService,
         private readonly segmenterService: SegmenterService,
+        private readonly ocrService: OcrService,
+        private readonly pdfImageService: PdfImageService,
     ) { }
 
     @Process('process-document')
@@ -55,12 +59,42 @@ export class DocumentProcessor {
             await job.progress(20);
 
             // Extract text
-            const extractionResult = await this.extractorService.extract(
+            let extractionResult = await this.extractorService.extract(
                 fileBuffer,
                 mimeType,
                 filename,
             );
             await job.progress(40);
+
+            let isOcr = false;
+
+            // Check if OCR is needed (scanned PDF detected)
+            if (extractionResult.requiresOcr && mimeType.includes('pdf')) {
+                this.logger.warn(`Scanned PDF detected for ${materialId}, triggering OCR`);
+                await this.updateProcessingStatus(materialId, ProcessingStatus.OCR_EXTRACTING);
+
+                try {
+                    // Convert PDF pages to images
+                    const images = await this.pdfImageService.convertToImages(fileBuffer);
+                    await job.progress(50);
+
+                    // Run OCR on images
+                    const ocrResult = await this.ocrService.extractFromImages(images);
+                    await job.progress(60);
+
+                    extractionResult = {
+                        text: this.ocrService.cleanOcrText(ocrResult.text),
+                        pageCount: ocrResult.pageCount,
+                        isOcr: true,
+                    };
+                    isOcr = true;
+
+                    this.logger.log(`OCR completed for ${materialId}: ${ocrResult.text.length} chars, ${ocrResult.confidence.toFixed(1)}% confidence`);
+                } catch (ocrError) {
+                    this.logger.error(`OCR failed for ${materialId}: ${ocrError instanceof Error ? ocrError.message : ocrError}`);
+                    throw new Error(`Scanned PDF detected but OCR failed: ${ocrError instanceof Error ? ocrError.message : 'Unknown error'}`);
+                }
+            }
 
             if (!extractionResult.text || extractionResult.text.trim().length < 50) {
                 throw new Error('Extracted text is too short or empty');
@@ -69,25 +103,28 @@ export class DocumentProcessor {
             // Update status: CLEANING
             await this.updateProcessingStatus(materialId, ProcessingStatus.CLEANING);
 
-            // Clean text
-            const cleanedText = this.cleanerService.clean(extractionResult.text);
-            await job.progress(60);
+            // Clean text (OCR text gets additional cleaning)
+            const cleanedText = isOcr
+                ? this.ocrService.cleanOcrText(this.cleanerService.clean(extractionResult.text))
+                : this.cleanerService.clean(extractionResult.text);
+            await job.progress(70);
 
             // Update status: SEGMENTING
             await this.updateProcessingStatus(materialId, ProcessingStatus.SEGMENTING);
 
-            // Segment text
+            // Segment text (use smaller chunks for OCR output)
             const segments = this.segmenterService.segment(
                 cleanedText,
                 extractionResult.pages,
+                isOcr, // Pass OCR flag for conservative segmentation
             );
             await job.progress(80);
 
             // Delete existing segments for this material (in case of reprocessing)
             await this.segmentRepo.delete({ materialId });
 
-            // Save segments to database
-            await this.saveSegments(materialId, segments);
+            // Save segments to database with source tracking
+            await this.saveSegments(materialId, segments, isOcr ? 'ocr' : 'text');
             await job.progress(90);
 
             // Update material with extracted content and mark as completed
@@ -141,6 +178,7 @@ export class DocumentProcessor {
     private async saveSegments(
         materialId: string,
         segments: TextSegment[],
+        source: 'text' | 'ocr' = 'text',
     ): Promise<void> {
         const entities = segments.map(segment => {
             const entity = new DocumentSegment();
@@ -151,6 +189,7 @@ export class DocumentProcessor {
             entity.pageStart = segment.pageStart;
             entity.pageEnd = segment.pageEnd;
             entity.heading = segment.heading;
+            entity.source = source; // Track whether from OCR
             return entity;
         });
 

@@ -13,6 +13,8 @@ export interface ExtractionResult {
     pageCount?: number;
     pages?: PageContent[];
     metadata?: Record<string, any>;
+    requiresOcr?: boolean; // True if normal extraction failed (scanned PDF)
+    isOcr?: boolean; // True if content came from OCR
 }
 
 export interface PageContent {
@@ -25,6 +27,10 @@ export interface PageContent {
 @Injectable()
 export class ExtractorService {
     private readonly logger = new Logger(ExtractorService.name);
+
+    // Minimum text length to consider extraction successful
+    // Below this threshold, we assume the PDF is scanned
+    private readonly MIN_TEXT_THRESHOLD = 100;
 
     /**
      * Extract text from a buffer based on file type
@@ -98,11 +104,21 @@ export class ExtractorService {
             });
         }
 
+        // Check if this appears to be a scanned PDF (little to no text extracted)
+        const requiresOcr = text.trim().length < this.MIN_TEXT_THRESHOLD;
+
+        if (requiresOcr) {
+            this.logger.warn(
+                `PDF appears to be scanned (${text.length} chars extracted, threshold: ${this.MIN_TEXT_THRESHOLD})`,
+            );
+        }
+
         return {
             text,
             pageCount,
             pages,
             metadata: data.info || {},
+            requiresOcr,
         };
     }
 

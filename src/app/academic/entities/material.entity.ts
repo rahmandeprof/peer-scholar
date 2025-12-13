@@ -43,6 +43,7 @@ export enum MaterialStatus {
 export enum ProcessingStatus {
   PENDING = 'pending',
   EXTRACTING = 'extracting',
+  OCR_EXTRACTING = 'ocr_extracting', // OCR fallback for scanned PDFs
   CLEANING = 'cleaning',
   SEGMENTING = 'segmenting',
   COMPLETED = 'completed',

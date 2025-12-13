@@ -38,8 +38,8 @@ COPY yarn.lock ./
 # Install only production dependencies
 RUN yarn --network-timeout 1000000 --production
 
-# Install LibreOffice for document conversion
-RUN apk add --no-cache libreoffice
+# Install LibreOffice for document conversion and poppler for OCR PDF rendering
+RUN apk add --no-cache libreoffice poppler-utils
 
 # Copy built application from build stage
 COPY --from=build /app/dist ./dist
