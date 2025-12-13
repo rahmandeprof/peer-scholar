@@ -59,7 +59,7 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
   const [showConfig, setShowConfig] = useState(true);
   const [difficulty, setDifficulty] = useState<Difficulty>('intermediate');
   const [questionCount, setQuestionCount] = useState(5);
-  const [topic, setTopic] = useState('');
+  // const [topic, setTopic] = useState(''); // Reserved for future topic-specific quiz filtering
 
   useEffect(() => {
     if (isOpen && materialId) {
@@ -83,7 +83,7 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
     setPageEnd('');
     setDifficulty('intermediate');
     setQuestionCount(5);
-    setTopic('');
+    // setTopic(''); // Reserved for future topic-specific quiz filtering
   };
 
   const fetchQuiz = async (options?: {

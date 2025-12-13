@@ -8,9 +8,9 @@
  * - Backdrop blur and click-to-close
  * - Mobile-first responsive design
  */
-import { ReactNode, useEffect } from 'react';
+import { type ReactNode, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { useModalBack } from '../hooks/useModalBack';
+import { useModalBack } from '../../hooks/useModalBack';
 
 interface BaseModalProps {
     isOpen: boolean;

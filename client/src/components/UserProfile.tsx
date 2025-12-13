@@ -106,6 +106,7 @@ export function UserProfile({ onClose }: UserProfileProps) {
         yearOfStudy: user.yearOfStudy ?? 1,
         username: user.username ?? user.email?.split('@')[0] ?? '',
         displayNamePreference: (user as any)?.displayNamePreference ?? 'fullname',
+        showOnLeaderboard: (user as any)?.showOnLeaderboard ?? true,
       });
     }
 

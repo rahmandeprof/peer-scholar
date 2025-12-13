@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, RotateCw, Check, Repeat, Brain, Loader2, Settings, Sparkles, Info, BookOpen } from 'lucide-react';
+import { X, RotateCw, Repeat, Brain, Loader2, Settings, Sparkles, Info, BookOpen } from 'lucide-react';
 import api from '../lib/api';
 import { useModalBack } from '../hooks/useModalBack';
 
