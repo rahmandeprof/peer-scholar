@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { UsersModule } from '@/app/users/users.module';
+import { DocumentProcessingModule } from '@/app/document-processing/document-processing.module';
 
 import { Course } from './entities/course.entity';
 import { Department } from './entities/department.entity';
@@ -59,6 +60,7 @@ import { MaterialProcessor } from './processors/material.processor';
       name: 'materials',
     }),
     UsersModule,
+    DocumentProcessingModule,
   ],
   controllers: [
     AcademicController,

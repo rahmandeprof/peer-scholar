@@ -7,6 +7,10 @@ import { Material, MaterialStatus, ProcessingStatus, ProcessingVersion } from '.
 import { DocumentSegment } from '../entities/document-segment.entity';
 import { MaterialChunk } from '../entities/material-chunk.entity';
 
+import { OcrService } from '@/app/document-processing/services/ocr.service';
+import { PdfImageService } from '@/app/document-processing/services/pdf-image.service';
+import { CleanerService } from '@/app/document-processing/services/cleaner.service';
+
 import axios from 'axios';
 import { Job } from 'bull';
 import * as JSZip from 'jszip';
@@ -29,6 +33,9 @@ export class MaterialProcessor {
     @InjectRepository(DocumentSegment)
     private segmentRepo: Repository<DocumentSegment>,
     private configService: ConfigService,
+    private ocrService: OcrService,
+    private pdfImageService: PdfImageService,
+    private cleanerService: CleanerService,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
 
@@ -587,12 +594,67 @@ export class MaterialProcessor {
         return;
       }
 
-      // Use existing content for segmentation (no re-extraction)
-      const text = material.content;
+      // Use existing content for segmentation (no re-extraction by default)
+      let text = material.content;
+
       if (!text || text.trim().length < 50) {
-        this.logger.warn(`[UPGRADE] Material ${materialId} has insufficient content, skipping upgrade`);
-        // Leave as v1 - will continue using legacy flow
-        return;
+        // Check if this is a PDF that might need OCR extraction
+        const isPdf = material.fileType?.toLowerCase().includes('pdf');
+
+        if (isPdf && material.fileUrl) {
+          this.logger.log(`[UPGRADE] Material ${materialId} has insufficient content, attempting OCR extraction`);
+
+          try {
+            // Mark as OCR extracting
+            material.processingStatus = ProcessingStatus.OCR_EXTRACTING;
+            await this.materialRepo.save(material);
+
+            // Download the PDF file
+            const response = await axios.get(material.fileUrl, {
+              responseType: 'arraybuffer',
+              timeout: 60000,
+            });
+            const pdfBuffer = Buffer.from(response.data);
+
+            // Convert PDF to images
+            const images = await this.pdfImageService.convertToImages(pdfBuffer);
+
+            if (images.length === 0) {
+              throw new Error('No images generated from PDF');
+            }
+
+            // Run OCR on images
+            const ocrResult = await this.ocrService.extractFromImages(images);
+
+            // Clean the OCR text
+            text = this.ocrService.cleanOcrText(ocrResult.text);
+            text = this.cleanerService.clean(text);
+
+            this.logger.log(`[UPGRADE] OCR extracted ${text.length} chars with ${ocrResult.confidence.toFixed(1)}% confidence`);
+
+            if (!text || text.trim().length < 50) {
+              this.logger.warn(`[UPGRADE] OCR extraction still insufficient for ${materialId}`);
+              // Leave as v1 - will continue using legacy flow
+              material.processingStatus = ProcessingStatus.PENDING;
+              await this.materialRepo.save(material);
+              return;
+            }
+
+            // Update material content with OCR result
+            material.content = text;
+
+          } catch (ocrError) {
+            this.logger.error(`[UPGRADE] OCR failed for ${materialId}:`, ocrError);
+            // Leave as v1 - will continue using legacy flow
+            material.processingStatus = ProcessingStatus.PENDING;
+            await this.materialRepo.save(material);
+            return;
+          }
+        } else {
+          this.logger.warn(`[UPGRADE] Material ${materialId} has insufficient content and is not a PDF, skipping upgrade`);
+          // Leave as v1 - will continue using legacy flow
+          return;
+        }
       }
 
       // Mark as processing
