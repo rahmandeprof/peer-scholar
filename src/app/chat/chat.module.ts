@@ -2,9 +2,11 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { CommonModule } from '@/app/common/common.module';
+import { DocumentProcessingModule } from '@/app/document-processing/document-processing.module';
 import { QuizEngineModule } from '@/app/quiz-engine/quiz-engine.module';
 import { UsersModule } from '@/app/users/users.module';
 
+import { DocumentSegment } from '../academic/entities/document-segment.entity';
 import { Material } from '../academic/entities/material.entity';
 import { MaterialChunk } from '../academic/entities/material-chunk.entity';
 import { Comment } from './entities/comment.entity';
@@ -25,10 +27,12 @@ import { ChatService } from './chat.service';
       MaterialChunk,
       QuizResult,
       Comment,
+      DocumentSegment,
     ]),
     UsersModule,
     CommonModule,
     QuizEngineModule,
+    DocumentProcessingModule,
   ],
   controllers: [ChatController],
   providers: [ChatService],

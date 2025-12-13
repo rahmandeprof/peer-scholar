@@ -122,4 +122,88 @@ export class QuizGenerator {
             textSegment: materialContent,
         });
     }
+
+    /**
+     * Generate quiz from document segments (preferred method)
+     * This ensures AI only uses provided segment content
+     */
+    async generateFromSegments(
+        segments: Array<{ text: string; pageStart?: number; pageEnd?: number; heading?: string }>,
+        topic: string,
+        difficulty: QuizDifficulty = QuizDifficulty.INTERMEDIATE,
+        questionCount: number = 5,
+    ): Promise<QuizGenerationResult> {
+        if (!segments || segments.length === 0) {
+            return { success: false, error: 'No segments provided for quiz generation' };
+        }
+
+        if (!topic || topic.trim().length === 0) {
+            return { success: false, error: 'Topic is required for quiz generation' };
+        }
+
+        this.logger.debug(
+            `Generating quiz from ${segments.length} segments: topic="${topic}", difficulty=${difficulty}, count=${questionCount}`,
+        );
+
+        // Build segment-aware prompts
+        const { systemPrompt, userPrompt } = this.promptBuilder.buildQuizPromptsFromSegments(
+            segments,
+            topic,
+            difficulty,
+            questionCount,
+        );
+
+        let lastError = '';
+        let totalAttempts = 0;
+
+        // Retry loop for validation failures
+        for (let retry = 0; retry < this.maxValidationRetries; retry++) {
+            const llmResponse = await this.llmService.call({
+                systemPrompt,
+                userPrompt,
+                temperature: 0.7 + (retry * 0.1),
+            });
+
+            totalAttempts++;
+
+            if (!llmResponse.success || !llmResponse.content) {
+                lastError = llmResponse.error || 'Failed to get LLM response';
+                this.logger.warn(`LLM call failed on attempt ${retry + 1}: ${lastError}`);
+                continue;
+            }
+
+            const parseResult = this.llmService.parseJSON<QuizResponse>(llmResponse.content);
+
+            if (!parseResult.success || !parseResult.data) {
+                lastError = parseResult.error || 'Failed to parse JSON response';
+                this.logger.warn(`JSON parse failed on attempt ${retry + 1}: ${lastError}`);
+                continue;
+            }
+
+            const validationResult = validateQuizResponse(parseResult.data);
+
+            if (!validationResult.success) {
+                lastError = validationResult.errors?.message || 'Schema validation failed';
+                this.logger.warn(`Validation failed on attempt ${retry + 1}: ${lastError}`);
+                continue;
+            }
+
+            this.logger.debug(`Quiz generated from segments successfully after ${totalAttempts} attempt(s)`);
+
+            return {
+                success: true,
+                data: validationResult.data as QuizResponse,
+                retryCount: totalAttempts,
+            };
+        }
+
+        this.logger.error(`Quiz generation from segments failed after ${totalAttempts} attempts: ${lastError}`);
+
+        return {
+            success: false,
+            error: `Failed to generate quiz after ${totalAttempts} attempts: ${lastError}`,
+            retryCount: totalAttempts,
+        };
+    }
 }
+

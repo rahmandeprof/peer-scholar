@@ -3,7 +3,8 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { Material, MaterialStatus } from '../entities/material.entity';
+import { Material, MaterialStatus, ProcessingStatus, ProcessingVersion } from '../entities/material.entity';
+import { DocumentSegment } from '../entities/document-segment.entity';
 import { MaterialChunk } from '../entities/material-chunk.entity';
 
 import axios from 'axios';
@@ -25,6 +26,8 @@ export class MaterialProcessor {
     private materialRepo: Repository<Material>,
     @InjectRepository(MaterialChunk)
     private chunkRepo: Repository<MaterialChunk>,
+    @InjectRepository(DocumentSegment)
+    private segmentRepo: Repository<DocumentSegment>,
     private configService: ConfigService,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
@@ -255,7 +258,11 @@ export class MaterialProcessor {
 
       material.status = MaterialStatus.READY;
       material.content = text;
+      material.processingStatus = ProcessingStatus.COMPLETED;
       await this.materialRepo.save(material);
+
+      // Trigger segmentation for the new architecture
+      await this.segmentMaterial(material, text);
 
       this.logger.debug('Material processing completed');
     } catch (error) {
@@ -434,4 +441,183 @@ export class MaterialProcessor {
 
     return chunks;
   }
+
+  /**
+   * Segment material text into document segments for the new architecture
+   */
+  private async segmentMaterial(material: Material, text: string): Promise<void> {
+    if (!text || text.trim().length < 50) {
+      return;
+    }
+
+    try {
+      // Delete existing segments
+      await this.segmentRepo.delete({ materialId: material.id });
+
+      // Simple segmentation: split by paragraphs and merge to ~400 tokens
+      const paragraphs = text.split(/\n{2,}/).filter(p => p.trim().length > 0);
+      const segments: { text: string; tokenCount: number }[] = [];
+
+      let currentSegment = '';
+      const targetTokens = 400;
+      const maxTokens = 600;
+
+      for (const paragraph of paragraphs) {
+        const paragraphTokens = Math.ceil(paragraph.length / 4);
+        const currentTokens = Math.ceil(currentSegment.length / 4);
+
+        // If paragraph alone is too large, split it
+        if (paragraphTokens > maxTokens) {
+          if (currentSegment.trim()) {
+            segments.push({
+              text: currentSegment.trim(),
+              tokenCount: Math.ceil(currentSegment.length / 4),
+            });
+            currentSegment = '';
+          }
+
+          // Split large paragraph at sentence boundaries
+          const sentences = paragraph.match(/[^.!?]+[.!?]+/g) || [paragraph];
+          let tempSegment = '';
+
+          for (const sentence of sentences) {
+            const sentenceTokens = Math.ceil(sentence.length / 4);
+            const tempTokens = Math.ceil(tempSegment.length / 4);
+
+            if (tempTokens + sentenceTokens > maxTokens && tempSegment) {
+              segments.push({
+                text: tempSegment.trim(),
+                tokenCount: tempTokens,
+              });
+              tempSegment = sentence;
+            } else {
+              tempSegment += sentence;
+            }
+          }
+
+          if (tempSegment.trim()) {
+            segments.push({
+              text: tempSegment.trim(),
+              tokenCount: Math.ceil(tempSegment.length / 4),
+            });
+          }
+          continue;
+        }
+
+        // If adding would exceed target substantially
+        if (currentTokens > 0 && currentTokens + paragraphTokens > targetTokens * 1.5) {
+          segments.push({
+            text: currentSegment.trim(),
+            tokenCount: currentTokens,
+          });
+          currentSegment = paragraph;
+        } else {
+          currentSegment += (currentSegment ? '\n\n' : '') + paragraph;
+        }
+
+        // If reached target, flush
+        const newTokens = Math.ceil(currentSegment.length / 4);
+        if (newTokens >= targetTokens) {
+          segments.push({
+            text: currentSegment.trim(),
+            tokenCount: newTokens,
+          });
+          currentSegment = '';
+        }
+      }
+
+      // Flush remaining
+      if (currentSegment.trim()) {
+        segments.push({
+          text: currentSegment.trim(),
+          tokenCount: Math.ceil(currentSegment.length / 4),
+        });
+      }
+
+      // Save segments
+      for (let i = 0; i < segments.length; i++) {
+        const segment = new DocumentSegment();
+        segment.materialId = material.id;
+        segment.text = segments[i].text;
+        segment.tokenCount = segments[i].tokenCount;
+        segment.segmentIndex = i;
+
+        // eslint-disable-next-line no-await-in-loop
+        await this.segmentRepo.save(segment);
+      }
+
+      this.logger.log(`Created ${segments.length} segments for material ${material.id}`);
+    } catch (error) {
+      this.logger.error(`Failed to segment material ${material.id}:`, error);
+      // Don't throw - segmentation failure shouldn't fail the whole process
+    }
+  }
+
+  /**
+   * Lazy upgrade handler - upgrades v1 documents to v2 on-demand.
+   * Uses existing content for segmentation without re-extraction.
+   */
+  @Process('upgrade-to-v2')
+  async handleUpgrade(job: Job<{ materialId: string }>) {
+    const { materialId } = job.data;
+
+    this.logger.log(`[UPGRADE] Starting lazy upgrade for material: ${materialId}`);
+
+    try {
+      const material = await this.materialRepo.findOneBy({ id: materialId });
+
+      if (!material) {
+        this.logger.error(`[UPGRADE] Material not found: ${materialId}`);
+        return;
+      }
+
+      // Prevent duplicate upgrades
+      if (material.processingVersion === ProcessingVersion.V2) {
+        this.logger.debug(`[UPGRADE] Material ${materialId} is already v2, skipping`);
+        return;
+      }
+
+      // Check if already has segments (might be in progress)
+      const existingSegments = await this.segmentRepo.count({ where: { materialId } });
+      if (existingSegments > 0) {
+        this.logger.debug(`[UPGRADE] Material ${materialId} already has ${existingSegments} segments`);
+        material.processingVersion = ProcessingVersion.V2;
+        material.processingStatus = ProcessingStatus.COMPLETED;
+        await this.materialRepo.save(material);
+        return;
+      }
+
+      // Use existing content for segmentation (no re-extraction)
+      const text = material.content;
+      if (!text || text.trim().length < 50) {
+        this.logger.warn(`[UPGRADE] Material ${materialId} has insufficient content, skipping upgrade`);
+        // Leave as v1 - will continue using legacy flow
+        return;
+      }
+
+      // Mark as processing
+      material.processingStatus = ProcessingStatus.SEGMENTING;
+      await this.materialRepo.save(material);
+
+      // Run segmentation using existing method
+      await this.segmentMaterial(material, text);
+
+      // Mark as upgraded
+      material.processingVersion = ProcessingVersion.V2;
+      material.processingStatus = ProcessingStatus.COMPLETED;
+      await this.materialRepo.save(material);
+
+      this.logger.log(`[UPGRADE] Successfully upgraded material ${materialId} to v2`);
+    } catch (error) {
+      this.logger.error(`[UPGRADE] Failed to upgrade material ${materialId}:`, error);
+
+      // Mark as failed but keep v1 status so legacy flow continues
+      const material = await this.materialRepo.findOneBy({ id: materialId });
+      if (material) {
+        material.processingStatus = ProcessingStatus.FAILED;
+        await this.materialRepo.save(material);
+      }
+    }
+  }
 }
+

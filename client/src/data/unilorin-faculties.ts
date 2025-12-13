@@ -104,6 +104,9 @@ export const UNILORIN_FACULTIES = [
       'Nursing/Nursing Sciences',
       'Anatomy',
       'Medicine And Surgery',
+      'Medical Laboratory Science (MLS)',
+      'Physiotherapy',
+      'Physiology',
     ],
   },
   {

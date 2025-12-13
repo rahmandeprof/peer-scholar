@@ -27,6 +27,7 @@ interface User {
   verificationToken?: string | null;
   username?: string | null;
   displayNamePreference?: 'username' | 'fullname';
+  showOnLeaderboard?: boolean;
 }
 
 interface AuthContextType {

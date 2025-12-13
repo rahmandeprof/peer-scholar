@@ -283,6 +283,7 @@ export class StudyService {
       .addSelect('SUM(session.durationSeconds)', 'totalSeconds')
       .where('session.startTime >= :weekStart', { weekStart })
       .andWhere('session.completed = true')
+      .andWhere('user.showOnLeaderboard = true') // Privacy filter
       .groupBy('user.id')
       .addGroupBy('user.firstName')
       .addGroupBy('user.image')

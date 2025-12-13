@@ -152,4 +152,112 @@ Respond with ONLY valid JSON.`;
             }),
         };
     }
+
+    /**
+     * Build prompts for quiz generation from document segments
+     * This explicitly restricts the AI to only use provided segment content
+     */
+    buildQuizPromptsFromSegments(
+        segments: Array<{ text: string; pageStart?: number; pageEnd?: number; heading?: string }>,
+        topic: string,
+        difficulty: QuizDifficulty = QuizDifficulty.INTERMEDIATE,
+        questionCount: number = 5,
+    ): { systemPrompt: string; userPrompt: string } {
+        const formattedSegments = this.formatSegmentsForPrompt(segments);
+
+        const userPrompt = `Generate ${questionCount} quiz questions based ONLY on the following document segments.
+
+Topic: "${topic}"
+Difficulty: ${difficulty}
+
+IMPORTANT INSTRUCTIONS:
+- Generate questions ONLY from the content provided below
+- Do NOT use external knowledge or information not present in these segments
+- Each question must be answerable from the provided text
+- Reference specific concepts, terms, or facts from the segments
+
+DOCUMENT SEGMENTS:
+${formattedSegments}
+
+Requirements:
+- Include a diverse mix of question types (MCQ, true/false, fill-in-the-blank, scenario-based)
+- Match the difficulty level specified
+- Provide clear explanations referencing the relevant segment content
+- Generate unique IDs (q1, q2, q3, etc.)
+
+Respond with ONLY valid JSON following the quiz format.`;
+
+        return {
+            systemPrompt: this.getSystemPrompt(),
+            userPrompt,
+        };
+    }
+
+    /**
+     * Build prompts for flashcard generation from document segments
+     */
+    buildFlashcardPromptsFromSegments(
+        segments: Array<{ text: string; pageStart?: number; pageEnd?: number; heading?: string }>,
+        topic: string,
+        cardCount: number = 10,
+    ): { systemPrompt: string; userPrompt: string } {
+        const formattedSegments = this.formatSegmentsForPrompt(segments);
+
+        const userPrompt = `Generate ${cardCount} flashcards based ONLY on the following document segments.
+
+Topic: "${topic}"
+
+IMPORTANT INSTRUCTIONS:
+- Create flashcards ONLY from the content provided below
+- Do NOT use external knowledge or information not present in these segments
+- Focus on key definitions, concepts, and facts from the segments
+- Prioritize content suitable for spaced repetition study
+
+DOCUMENT SEGMENTS:
+${formattedSegments}
+
+Requirements:
+- Front of card should be a question, term, or concept
+- Back should be a concise, accurate answer from the text
+- Generate unique IDs (f1, f2, f3, etc.)
+- Focus on the most important concepts for learning
+
+Respond with ONLY valid JSON following the flashcard format.`;
+
+        return {
+            systemPrompt: this.getSystemPrompt(),
+            userPrompt,
+        };
+    }
+
+    /**
+     * Format segments for inclusion in prompts
+     */
+    private formatSegmentsForPrompt(
+        segments: Array<{ text: string; pageStart?: number; pageEnd?: number; heading?: string }>,
+    ): string {
+        return segments.map((segment, index) => {
+            let header = `[Segment ${index + 1}`;
+
+            if (segment.pageStart !== undefined) {
+                if (segment.pageEnd !== undefined && segment.pageEnd !== segment.pageStart) {
+                    header += ` - Pages ${segment.pageStart}-${segment.pageEnd}`;
+                } else {
+                    header += ` - Page ${segment.pageStart}`;
+                }
+            }
+
+            if (segment.heading) {
+                header += ` - "${segment.heading}"`;
+            }
+
+            header += ']';
+
+            return `${header}
+"""
+${segment.text}
+"""`;
+        }).join('\n\n');
+    }
 }
+

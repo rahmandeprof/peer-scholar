@@ -18,4 +18,9 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
     @IsOptional()
     @IsIn(['username', 'fullname'])
     displayNamePreference?: 'username' | 'fullname';
+
+    @IsBoolean()
+    @IsOptional()
+    showOnLeaderboard?: boolean;
 }
+

@@ -9,6 +9,7 @@ import { AdminModule } from '@/app/admin/admin.module';
 import { AuthModule } from '@/app/auth/auth.module';
 import { ChatModule } from '@/app/chat/chat.module';
 import { CommonModule } from '@/app/common/common.module';
+import { DocumentProcessingModule } from '@/app/document-processing/document-processing.module';
 import { OtpModule } from '@/app/otp/otp.module';
 import { QueueModule } from '@/app/queue/queue.module';
 import { QuizEngineModule } from '@/app/quiz-engine/quiz-engine.module';
@@ -51,6 +52,7 @@ import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
     CommonModule,
     AcademicModule,
     QuizEngineModule,
+    DocumentProcessingModule,
     ScheduleModule.forRoot(),
     ThrottlerModule.forRoot({
       throttlers: [

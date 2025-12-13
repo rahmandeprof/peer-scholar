@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Trophy, Medal, Crown, TrendingUp, User } from 'lucide-react';
+import { Trophy, Medal, Crown, TrendingUp, User, EyeOff } from 'lucide-react';
 import api from '../lib/api';
+import { useAuth } from '../contexts/AuthContext';
 
 interface LeaderboardEntry {
     rank: number;
@@ -22,6 +23,10 @@ interface LeaderboardData {
 export function WeeklyLeaderboard() {
     const [data, setData] = useState<LeaderboardData | null>(null);
     const [loading, setLoading] = useState(true);
+    const { user } = useAuth();
+
+    // Check if user has opted out of leaderboard
+    const userOptedOut = (user as any)?.showOnLeaderboard === false;
 
     useEffect(() => {
         fetchLeaderboard();
@@ -112,10 +117,10 @@ export function WeeklyLeaderboard() {
                     <div
                         key={entry.userId}
                         className={`flex items-center p-3 rounded-xl transition-all ${entry.isCurrentUser
-                                ? 'bg-gradient-to-r from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 border border-primary-200 dark:border-primary-700'
-                                : index === 0
-                                    ? 'bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/10'
-                                    : 'bg-gray-50 dark:bg-gray-700/30 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                            ? 'bg-gradient-to-r from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 border border-primary-200 dark:border-primary-700'
+                            : index === 0
+                                ? 'bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/10'
+                                : 'bg-gray-50 dark:bg-gray-700/30 hover:bg-gray-100 dark:hover:bg-gray-700/50'
                             }`}
                     >
                         {/* Rank */}
@@ -166,6 +171,17 @@ export function WeeklyLeaderboard() {
                     </div>
                 </div>
             )}
+
+            {/* Opted-out notice */}
+            {userOptedOut && (
+                <div className='mt-4 pt-4 border-t border-gray-200 dark:border-gray-700'>
+                    <div className='flex items-center gap-2 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 text-sm'>
+                        <EyeOff className='w-4 h-4 flex-shrink-0' />
+                        <span>You've opted out of rankings. Change this in <span className='font-medium'>Profile → Privacy Settings</span>.</span>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+

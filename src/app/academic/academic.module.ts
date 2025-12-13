@@ -6,6 +6,7 @@ import { UsersModule } from '@/app/users/users.module';
 
 import { Course } from './entities/course.entity';
 import { Department } from './entities/department.entity';
+import { DocumentSegment } from './entities/document-segment.entity';
 import { Faculty } from './entities/faculty.entity';
 import { Material } from './entities/material.entity';
 import { MaterialAnnotation } from './entities/material-annotation.entity';
@@ -52,6 +53,7 @@ import { MaterialProcessor } from './processors/material.processor';
       PublicNoteVote,
       HelpfulLink,
       MaterialFlag,
+      DocumentSegment,
     ]),
     BullModule.registerQueue({
       name: 'materials',

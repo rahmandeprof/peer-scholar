@@ -10,6 +10,9 @@ import {
   Lightbulb,
   Settings,
   Info,
+  BookOpen,
+  Target,
+  Zap,
 } from 'lucide-react';
 import api from '../lib/api';
 import { useModalBack } from '../hooks/useModalBack';
@@ -32,6 +35,8 @@ interface Question {
   hint?: string;
 }
 
+type Difficulty = 'beginner' | 'intermediate' | 'advanced';
+
 // Helper to get correct answer from either format
 const getCorrectAnswer = (q: Question): string => q.answer || q.correctAnswer || '';
 
@@ -48,10 +53,13 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [animating, setAnimating] = useState(false);
 
-  // Page range for quiz generation
+  // Quiz configuration state
   const [pageStart, setPageStart] = useState('');
   const [pageEnd, setPageEnd] = useState('');
   const [showConfig, setShowConfig] = useState(true);
+  const [difficulty, setDifficulty] = useState<Difficulty>('intermediate');
+  const [questionCount, setQuestionCount] = useState(5);
+  const [topic, setTopic] = useState('');
 
   useEffect(() => {
     if (isOpen && materialId) {
@@ -73,9 +81,18 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
     setShowConfig(true);
     setPageStart('');
     setPageEnd('');
+    setDifficulty('intermediate');
+    setQuestionCount(5);
+    setTopic('');
   };
 
-  const fetchQuiz = async (startPage?: number, endPage?: number, regenerate?: boolean) => {
+  const fetchQuiz = async (options?: {
+    startPage?: number;
+    endPage?: number;
+    regenerate?: boolean;
+    diff?: Difficulty;
+    count?: number;
+  }) => {
     setLoading(true);
     setError(null);
     setShowConfig(false);
@@ -84,9 +101,11 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
 
       // Send params in POST body
       const body: Record<string, unknown> = {};
-      if (startPage) body.pageStart = startPage;
-      if (endPage) body.pageEnd = endPage;
-      if (regenerate) body.regenerate = true;
+      if (options?.startPage) body.pageStart = options.startPage;
+      if (options?.endPage) body.pageEnd = options.endPage;
+      if (options?.regenerate) body.regenerate = true;
+      if (options?.diff) body.difficulty = options.diff;
+      if (options?.count) body.questionCount = options.count;
 
       const res = await api.post(url, body);
       if (!res.data || res.data.length === 0) {
@@ -106,7 +125,7 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
   const handleStartQuiz = () => {
     const start = pageStart ? parseInt(pageStart) : undefined;
     const end = pageEnd ? parseInt(pageEnd) : undefined;
-    fetchQuiz(start, end);
+    fetchQuiz({ startPage: start, endPage: end, diff: difficulty, count: questionCount });
   };
 
   const handleOptionSelect = (option: string) => {
@@ -201,61 +220,139 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
         <div className='flex-1 overflow-y-auto p-6 md:p-8'>
           {/* Configuration Panel - Show before generating */}
           {showConfig && !loading && questions.length === 0 && !error ? (
-            <div className='flex flex-col items-center py-8'>
-              <div className='w-16 h-16 bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 rounded-2xl flex items-center justify-center mb-6'>
-                <Settings className='w-8 h-8 text-purple-600 dark:text-purple-400' />
+            <div className='flex flex-col items-center py-4 md:py-8'>
+              <div className='w-14 h-14 md:w-16 md:h-16 bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 rounded-2xl flex items-center justify-center mb-4 md:mb-6'>
+                <Settings className='w-7 h-7 md:w-8 md:h-8 text-purple-600 dark:text-purple-400' />
               </div>
 
-              <h3 className='text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 text-center'>
+              <h3 className='text-lg md:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 text-center'>
                 Configure Your Quiz
               </h3>
-              <p className='text-gray-500 dark:text-gray-400 text-center mb-6 max-w-sm'>
-                Generate quiz questions from this material. Optionally specify a page range to focus on.
+              <p className='text-sm md:text-base text-gray-500 dark:text-gray-400 text-center mb-6 px-4 max-w-sm'>
+                Customize your quiz experience
               </p>
 
-              {/* Page Range Inputs */}
-              <div className='w-full max-w-sm mb-6'>
-                <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
-                  Page Range (Optional)
-                </label>
-                <div className='flex items-center gap-3'>
-                  <input
-                    type='number'
-                    value={pageStart}
-                    onChange={(e) => setPageStart(e.target.value)}
-                    placeholder='From'
-                    min='1'
-                    className='flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 outline-none text-center'
-                  />
-                  <span className='text-gray-400'>to</span>
-                  <input
-                    type='number'
-                    value={pageEnd}
-                    onChange={(e) => setPageEnd(e.target.value)}
-                    placeholder='To'
-                    min='1'
-                    className='flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 outline-none text-center'
-                  />
+              <div className='w-full max-w-md space-y-5 px-2'>
+                {/* Difficulty Selection - Mobile-first touch-friendly cards */}
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'>
+                    Difficulty Level
+                  </label>
+                  <div className='grid grid-cols-3 gap-2 md:gap-3'>
+                    {[
+                      { value: 'beginner', label: 'Easy', icon: BookOpen, color: 'green' },
+                      { value: 'intermediate', label: 'Medium', icon: Target, color: 'yellow' },
+                      { value: 'advanced', label: 'Hard', icon: Zap, color: 'red' },
+                    ].map((option) => {
+                      const Icon = option.icon;
+                      const isSelected = difficulty === option.value;
+                      const colorClasses = {
+                        green: isSelected
+                          ? 'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-green-300',
+                        yellow: isSelected
+                          ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-yellow-300',
+                        red: isSelected
+                          ? 'border-red-500 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-red-300',
+                      }[option.color];
+
+                      return (
+                        <button
+                          key={option.value}
+                          onClick={() => setDifficulty(option.value as Difficulty)}
+                          className={`flex flex-col items-center p-3 md:p-4 rounded-xl border-2 transition-all active:scale-95 ${colorClasses}`}
+                        >
+                          <Icon className={`w-5 h-5 md:w-6 md:h-6 mb-1 ${isSelected ? '' : 'text-gray-400'}`} />
+                          <span className={`text-xs md:text-sm font-medium ${isSelected ? '' : 'text-gray-600 dark:text-gray-400'}`}>
+                            {option.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Question Count - Touch-friendly stepper */}
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'>
+                    Number of Questions: <span className='text-purple-600 dark:text-purple-400 font-bold'>{questionCount}</span>
+                  </label>
+                  <div className='flex items-center gap-3'>
+                    <button
+                      onClick={() => setQuestionCount(Math.max(3, questionCount - 1))}
+                      className='w-12 h-12 rounded-xl border-2 border-gray-200 dark:border-gray-700 flex items-center justify-center text-xl font-bold text-gray-600 dark:text-gray-400 hover:border-purple-400 active:scale-95 transition-all'
+                    >
+                      −
+                    </button>
+                    <input
+                      type='range'
+                      min='3'
+                      max='15'
+                      value={questionCount}
+                      onChange={(e) => setQuestionCount(parseInt(e.target.value))}
+                      className='flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-600'
+                    />
+                    <button
+                      onClick={() => setQuestionCount(Math.min(15, questionCount + 1))}
+                      className='w-12 h-12 rounded-xl border-2 border-gray-200 dark:border-gray-700 flex items-center justify-center text-xl font-bold text-gray-600 dark:text-gray-400 hover:border-purple-400 active:scale-95 transition-all'
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                {/* Page Range Inputs - Collapsible on mobile */}
+                <details className='group'>
+                  <summary className='flex items-center justify-between cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+                    <span>Page Range (Optional)</span>
+                    <span className='text-xs text-gray-400 group-open:hidden'>Expand</span>
+                  </summary>
+                  <div className='flex items-center gap-3 mt-3'>
+                    <input
+                      type='number'
+                      value={pageStart}
+                      onChange={(e) => setPageStart(e.target.value)}
+                      placeholder='From'
+                      min='1'
+                      inputMode='numeric'
+                      className='flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 outline-none text-center'
+                    />
+                    <span className='text-gray-400'>to</span>
+                    <input
+                      type='number'
+                      value={pageEnd}
+                      onChange={(e) => setPageEnd(e.target.value)}
+                      placeholder='To'
+                      min='1'
+                      inputMode='numeric'
+                      className='flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 outline-none text-center'
+                    />
+                  </div>
+                </details>
+
+                {/* Tip */}
+                <div className='p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl'>
+                  <div className='flex items-start gap-2'>
+                    <Info className='w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5' />
+                    <p className='text-xs text-blue-700 dark:text-blue-300'>
+                      <strong>Tip:</strong> Questions are generated from document segments. Try different difficulty levels for variety!
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              {/* Disclaimer */}
-              <div className='w-full max-w-sm p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl mb-6'>
-                <div className='flex items-start gap-3'>
-                  <Info className='w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5' />
-                  <p className='text-sm text-blue-700 dark:text-blue-300'>
-                    <strong>Tip:</strong> By default, we use the first ~8-10 pages of content. If questions feel repetitive, try specifying a different page range to quiz from different sections.
-                  </p>
-                </div>
+              {/* Start Button - Fixed at bottom on mobile */}
+              <div className='w-full max-w-md px-2 mt-6'>
+                <button
+                  onClick={handleStartQuiz}
+                  className='w-full py-4 px-6 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 active:scale-[0.98] flex items-center justify-center gap-2'
+                >
+                  <Sparkles className='w-5 h-5' />
+                  Generate Quiz
+                </button>
               </div>
-
-              <button
-                onClick={handleStartQuiz}
-                className='w-full max-w-sm py-4 px-6 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 flex items-center justify-center gap-2'
-              >
-                <Sparkles className='w-5 h-5' />
-                Generate Quiz
-              </button>
             </div>
           ) : loading ? (
             <div className='flex flex-col items-center justify-center py-20'>
@@ -335,7 +432,7 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
                 <button
                   onClick={() => {
                     resetQuiz();
-                    fetchQuiz(undefined, undefined, true); // regenerate=true for fresh questions
+                    fetchQuiz({ regenerate: true }); // regenerate=true for fresh questions
                   }}
                   className='flex-1 px-2 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-medium text-sm md:text-base hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-purple-500/25 flex items-center justify-center whitespace-nowrap'
                 >
@@ -343,6 +440,22 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
                   New Questions
                 </button>
               </div>
+
+              {/* Change Settings Link */}
+              <button
+                onClick={() => {
+                  setQuestions([]);
+                  setCurrentQuestionIndex(0);
+                  setScore(0);
+                  setShowResult(false);
+                  setSelectedOption(null);
+                  setIsCorrect(null);
+                  setShowConfig(true);
+                }}
+                className='mt-4 text-sm text-purple-600 dark:text-purple-400 hover:underline transition-all'
+              >
+                ⚙️ Change difficulty or settings
+              </button>
             </div>
           ) : questions.length > 0 ? (
             <div

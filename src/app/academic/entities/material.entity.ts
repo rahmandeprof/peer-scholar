@@ -1,3 +1,4 @@
+import { DocumentSegment } from './document-segment.entity';
 import { MaterialChunk } from './material-chunk.entity';
 import { MaterialFavorite } from './material-favorite.entity';
 import { MaterialRating } from './material-rating.entity';
@@ -36,6 +37,22 @@ export enum MaterialStatus {
   PROCESSING = 'processing',
   READY = 'ready',
   FAILED = 'failed',
+}
+
+// Processing status for document segmentation pipeline
+export enum ProcessingStatus {
+  PENDING = 'pending',
+  EXTRACTING = 'extracting',
+  CLEANING = 'cleaning',
+  SEGMENTING = 'segmenting',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+}
+
+// Processing version - V1 = legacy content-based, V2 = segment-based
+export enum ProcessingVersion {
+  V1 = 'v1',  // Legacy - uses content field only
+  V2 = 'v2',  // Modern - uses DocumentSegments
 }
 
 // Support both old format (correctAnswer) and new format (answer, id, type, hint)
@@ -155,6 +172,37 @@ export class Material extends IDAndTimestamp {
 
   @OneToMany(() => MaterialFavorite, (fav) => fav.material)
   favorites: MaterialFavorite[];
+
+  @OneToMany(() => DocumentSegment, (segment) => segment.material)
+  segments: DocumentSegment[];
+
+  @Column({
+    name: 'processing_status',
+    type: 'varchar',
+    default: ProcessingStatus.PENDING,
+  })
+  processingStatus: ProcessingStatus;
+
+  @Column({ name: 'material_version', type: 'int', default: 1 })
+  materialVersion: number;
+
+  @Column({ name: 'quiz_generated_version', type: 'int', nullable: true })
+  quizGeneratedVersion?: number;
+
+  @Column({ name: 'flashcard_generated_version', type: 'int', nullable: true })
+  flashcardGeneratedVersion?: number;
+
+  // Processing version for lazy migration (v1 = legacy, v2 = segment-based)
+  @Column({
+    name: 'processing_version',
+    type: 'varchar',
+    default: ProcessingVersion.V1,
+  })
+  processingVersion: ProcessingVersion;
+
+  // Flag for content generated using legacy flow
+  @Column({ name: 'legacy_generated', type: 'boolean', default: false })
+  legacyGenerated: boolean;
 
   @Column({ name: 'average_rating', type: 'float', default: 0 })
   averageRating: number;

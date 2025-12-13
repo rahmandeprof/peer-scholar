@@ -7,15 +7,19 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
+import { InjectQueue } from '@nestjs/bull';
 
 import {
   AccessScope,
   Material,
   MaterialStatus,
   MaterialType,
+  ProcessingStatus,
+  ProcessingVersion,
   QuizQuestion as EntityQuizQuestion,
   FlashcardItem,
 } from '../academic/entities/material.entity';
+import { DocumentSegment } from '../academic/entities/document-segment.entity';
 import { MaterialChunk } from '../academic/entities/material-chunk.entity';
 import { Comment } from './entities/comment.entity';
 import { Conversation } from './entities/conversation.entity';
@@ -32,9 +36,11 @@ import { UsersService } from '@/app/users/users.service';
 import { REPUTATION_REWARDS } from '@/app/common/constants/reputation.constants';
 
 import { QuizGenerator, FlashcardGenerator, QuizDifficulty } from '@/app/quiz-engine';
+import { SegmentSelectorService } from '@/app/document-processing/services/segment-selector.service';
 
 import OpenAI from 'openai';
 import { Repository } from 'typeorm';
+import { Queue } from 'bull';
 
 @Injectable()
 export class ChatService {
@@ -62,6 +68,10 @@ export class ChatService {
     private readonly configService: ConfigService,
     private readonly quizGenerator: QuizGenerator,
     private readonly flashcardGenerator: FlashcardGenerator,
+    private readonly segmentSelector: SegmentSelectorService,
+    @InjectRepository(DocumentSegment)
+    private readonly segmentRepo: Repository<DocumentSegment>,
+    @InjectQueue('materials') private readonly materialsQueue: Queue,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
 
@@ -164,9 +174,18 @@ export class ChatService {
       pdfUrl: pdfUrl || (file.mimetype === 'application/pdf' ? url : undefined),
       fileType: file.mimetype,
       uploader: user,
+      // New uploads use v2 segment-based processing
+      processingVersion: ProcessingVersion.V2,
+      processingStatus: ProcessingStatus.PENDING,
     });
 
     const savedMaterial = await this.materialRepo.save(material);
+
+    // Queue background processing for segmentation
+    await this.materialsQueue.add('process-material', {
+      materialId: savedMaterial.id,
+      fileUrl: savedMaterial.fileUrl,
+    });
 
     await this.usersService.increaseReputation(
       user.id,
@@ -367,9 +386,29 @@ export class ChatService {
 
     if (!this.openai) return '';
 
-    const content = material.content;
+    // Try to use segments first
+    const segments = await this.segmentRepo.find({
+      where: { materialId: material.id },
+      order: { segmentIndex: 'ASC' },
+      take: 15, // Get first ~6000 tokens worth
+    });
 
-    if (!content) return '';
+    let contentForSummary = '';
+
+    if (segments.length > 0) {
+      // Use segment text
+      let tokenCount = 0;
+      for (const segment of segments) {
+        if (tokenCount + segment.tokenCount > 6000) break;
+        contentForSummary += segment.text + '\n\n';
+        tokenCount += segment.tokenCount;
+      }
+    } else {
+      // Fallback to legacy content
+      contentForSummary = material.content?.substring(0, 24000) || ''; // ~6000 tokens
+    }
+
+    if (!contentForSummary) return '';
 
     try {
       const response = await this.openai.chat.completions.create({
@@ -380,7 +419,7 @@ export class ChatService {
             content:
               'Summarize the following text concisely but comprehensively for a student.',
           },
-          { role: 'user', content: content.substring(0, 6000) },
+          { role: 'user', content: contentForSummary },
         ],
         max_tokens: 500,
       });
@@ -407,19 +446,39 @@ export class ChatService {
 
     if (!material) throw new NotFoundException('Material not found');
 
-    const materialContent = material.content;
-
-    if (!materialContent)
-      throw new BadRequestException(
-        'Material content is not available. Please re-upload the file.',
-      );
-
     // Return cached key points if available
     if (material.keyPoints && material.keyPoints.length > 0) {
       return material.keyPoints;
     }
 
     if (!this.openai) throw new InternalServerErrorException('AI service is not configured');
+
+    // Try to use segments first
+    const segments = await this.segmentRepo.find({
+      where: { materialId },
+      order: { segmentIndex: 'ASC' },
+      take: 15,
+    });
+
+    let contentForKeyPoints = '';
+
+    if (segments.length > 0) {
+      let tokenCount = 0;
+      for (const segment of segments) {
+        if (tokenCount + segment.tokenCount > 6000) break;
+        contentForKeyPoints += segment.text + '\n\n';
+        tokenCount += segment.tokenCount;
+      }
+    } else {
+      // Fallback to legacy content
+      contentForKeyPoints = material.content?.substring(0, 24000) || '';
+    }
+
+    if (!contentForKeyPoints) {
+      throw new BadRequestException(
+        'Material content is not available. Please re-upload the file.',
+      );
+    }
 
     try {
       const response = await this.openai.chat.completions.create({
@@ -430,7 +489,7 @@ export class ChatService {
             content:
               'Extract 5-7 key bullet points from the following text. Return them as a JSON array of strings.',
           },
-          { role: 'user', content: materialContent.substring(0, 6000) },
+          { role: 'user', content: contentForKeyPoints },
         ],
         response_format: { type: 'json_object' },
       });
@@ -479,92 +538,107 @@ export class ChatService {
 
     if (!material) throw new NotFoundException('Material not found');
 
-    // Check if material is still being processed
+    // Check if material is still being processed (legacy status check)
     if (material.status === MaterialStatus.PROCESSING || material.status === MaterialStatus.PENDING) {
-      // Check if processing has been stuck for too long (> 30 minutes = likely failed)
-      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
-      const materialUpdatedAt = new Date(material.updatedAt);
-
-      if (materialUpdatedAt < thirtyMinutesAgo) {
-        // Processing is stuck - mark as failed and show appropriate error
-        await this.materialRepo.update(material.id, { status: MaterialStatus.FAILED });
-        this.logger.warn(`Material ${material.id} was stuck in PROCESSING for >30 mins, marked as FAILED`);
-        throw new BadRequestException(
-          'UNSUPPORTED: This document could not be processed. The processing job may have failed. Please try re-uploading the file.',
-        );
-      }
-
       throw new BadRequestException(
         'PROCESSING: This material is still being analyzed. Please wait a moment and try again.',
       );
     }
 
+    // Check processing status for segment-based materials
+    if (material.processingStatus === ProcessingStatus.EXTRACTING ||
+      material.processingStatus === ProcessingStatus.CLEANING ||
+      material.processingStatus === ProcessingStatus.SEGMENTING) {
+      throw new BadRequestException(
+        'PROCESSING: This material is still being segmented. Please wait a moment and try again.',
+      );
+    }
+
     // Check if material processing failed
-    if (material.status === MaterialStatus.FAILED) {
+    if (material.status === MaterialStatus.FAILED || material.processingStatus === ProcessingStatus.FAILED) {
       throw new BadRequestException(
         'UNSUPPORTED: This document could not be processed. It may be a scanned image, password-protected, or in an unsupported format.',
       );
     }
 
-    // Return cached quiz if available AND no page range was requested AND not regenerating
-    if (!pageStart && !pageEnd && !regenerate && material.quiz) {
+    // Return cached quiz if:
+    // - No page range was requested (full doc quiz)
+    // - Not explicitly regenerating
+    // - Quiz exists and was generated for current material version
+    const cacheValid = material.quiz &&
+      material.quiz.length > 0 &&
+      material.quizGeneratedVersion === material.materialVersion;
+
+    if (!pageStart && !pageEnd && !regenerate && cacheValid) {
       return material.quiz;
     }
 
-    let materialContent = material.content;
+    // Try to use segments first (new architecture)
+    const segmentCount = await this.segmentRepo.count({ where: { materialId } });
 
-    // If content is null, try to extract it on-demand
-    if (!materialContent) {
-      try {
-        const axios = await import('axios');
-        const response = await axios.default.get(material.fileUrl, {
-          responseType: 'arraybuffer',
-        });
-        const buffer = Buffer.from(response.data);
-        materialContent = await this.conversionService.extractText(
-          buffer,
-          material.fileType,
-          material.title,
-        );
+    // Lazy upgrade: If v1 document with no segments, trigger upgrade
+    if (material.processingVersion === ProcessingVersion.V1 && segmentCount === 0) {
+      // Queue background upgrade
+      await this.materialsQueue.add('upgrade-to-v2', { materialId });
+      this.logger.log(`[LAZY-UPGRADE] Triggered upgrade for v1 material ${materialId}`);
 
-        // Save extracted content for future use
-        if (materialContent && materialContent.trim().length > 0) {
-          material.content = materialContent;
-          await this.materialRepo.save(material);
-        }
-      } catch (error: any) {
-        this.logger.error('Failed to extract text on-demand for quiz', error);
-
-        if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED' || error.response?.status === 404) {
-          throw new BadRequestException(
-            'The file could not be downloaded. It may have been deleted or the link is no longer valid.',
-          );
-        }
-
-        throw new BadRequestException(
-          'Unable to extract text from this file. This may be a scanned document or image-based PDF that requires OCR support.',
-        );
-      }
+      // Return upgrading status - frontend should poll for completion
+      return {
+        status: 'upgrading',
+        message: 'Preparing this material for smart study...',
+        materialId,
+      };
     }
 
-    // Check if content is empty or too short
-    if (!materialContent || materialContent.trim().length < 50) {
-      const isImageBased = material.fileType?.includes('image') ||
-        material.title?.toLowerCase().includes('scan') ||
-        material.title?.toLowerCase().includes('scanned');
+    if (segmentCount > 0) {
+      // Use segment-based generation
+      const { segments } = await this.segmentSelector.selectSegments(materialId, {
+        pageStart,
+        pageEnd,
+        maxTokens: 8000,
+        maxSegments: 20,
+      });
 
-      if (isImageBased) {
+      if (segments.length === 0) {
         throw new BadRequestException(
-          'This appears to be an image or scanned document. Quiz generation requires text-based content. OCR support coming soon!',
+          'No content segments found for the specified page range.',
         );
       }
 
+      const result = await this.quizGenerator.generateFromSegments(
+        segments,
+        material.title,
+        difficulty || QuizDifficulty.INTERMEDIATE,
+        questionCount || 5,
+      );
+
+      if (!result.success || !result.data) {
+        this.logger.error(`Quiz generation from segments failed: ${result.error}`);
+        throw new InternalServerErrorException(result.error || 'Failed to generate quiz');
+      }
+
+      const quiz = result.data.questions;
+
+      // Cache the result ONLY if it's a full quiz (no page range specified)
+      if (!pageStart && !pageEnd && quiz.length > 0) {
+        material.quiz = quiz as EntityQuizQuestion[];
+        material.quizGeneratedVersion = material.materialVersion;
+        await this.materialRepo.save(material);
+      }
+
+      return quiz;
+    }
+
+    // Fallback: Use legacy content-based generation for materials without segments
+    const materialContent = material.content;
+
+    if (!materialContent || materialContent.trim().length < 50) {
       throw new BadRequestException(
-        'This material doesn\'t contain enough text for quiz generation. It may be a scanned document, image-based PDF, or very short content.',
+        'This material doesn\'t have enough content for quiz generation. It may need to be reprocessed.',
       );
     }
 
-    // If page range is provided, extract content by page range
+    // Build text segment for legacy generation
     const CHARS_PER_PAGE = 3000;
     let textSegment = materialContent;
 
@@ -574,7 +648,7 @@ export class ChatService {
       textSegment = materialContent.substring(startChar, endChar);
     }
 
-    // Use the new QuizGenerator
+    // Use legacy QuizGenerator method
     const result = await this.quizGenerator.generate({
       topic: material.title,
       difficulty: difficulty || QuizDifficulty.INTERMEDIATE,
@@ -593,105 +667,119 @@ export class ChatService {
     // Cache the result ONLY if it's a full quiz (no page range specified)
     if (!pageStart && !pageEnd && quiz.length > 0) {
       material.quiz = quiz as EntityQuizQuestion[];
+      material.quizGeneratedVersion = material.materialVersion;
       await this.materialRepo.save(material);
     }
 
     return quiz;
   }
 
-  async generateFlashcards(materialId: string, cardCount?: number) {
+  async generateFlashcards(materialId: string, cardCount?: number, pageStart?: number, pageEnd?: number) {
     const material = await this.materialRepo.findOne({
       where: { id: materialId },
     });
 
     if (!material) throw new NotFoundException('Material not found');
 
-    // Check if material is still being processed
+    // Check if material is still being processed (legacy status check)
     if (material.status === MaterialStatus.PROCESSING || material.status === MaterialStatus.PENDING) {
-      // Check if processing has been stuck for too long (> 30 minutes = likely failed)
-      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
-      const materialUpdatedAt = new Date(material.updatedAt);
-
-      if (materialUpdatedAt < thirtyMinutesAgo) {
-        // Processing is stuck - mark as failed and show appropriate error
-        await this.materialRepo.update(material.id, { status: MaterialStatus.FAILED });
-        this.logger.warn(`Material ${material.id} was stuck in PROCESSING for >30 mins, marked as FAILED`);
-        throw new BadRequestException(
-          'UNSUPPORTED: This document could not be processed. The processing job may have failed. Please try re-uploading the file.',
-        );
-      }
-
       throw new BadRequestException(
         'PROCESSING: This material is still being analyzed. Please wait a moment and try again.',
       );
     }
 
+    // Check processing status for segment-based materials
+    if (material.processingStatus === ProcessingStatus.EXTRACTING ||
+      material.processingStatus === ProcessingStatus.CLEANING ||
+      material.processingStatus === ProcessingStatus.SEGMENTING) {
+      throw new BadRequestException(
+        'PROCESSING: This material is still being segmented. Please wait a moment and try again.',
+      );
+    }
+
     // Check if material processing failed
-    if (material.status === MaterialStatus.FAILED) {
+    if (material.status === MaterialStatus.FAILED || material.processingStatus === ProcessingStatus.FAILED) {
       throw new BadRequestException(
         'UNSUPPORTED: This document could not be processed. It may be a scanned image, password-protected, or in an unsupported format.',
       );
     }
 
-    // Return cached flashcards if available
-    if (material.flashcards && material.flashcards.length > 0) {
+    // Return cached flashcards if:
+    // - No page range specified (full doc flashcards)
+    // - Flashcards exist and were generated for current material version
+    const cacheValid = material.flashcards &&
+      material.flashcards.length > 0 &&
+      material.flashcardGeneratedVersion === material.materialVersion;
+
+    if (!pageStart && !pageEnd && cacheValid) {
       return material.flashcards;
     }
 
-    let materialContent = material.content;
+    // Try to use segments first (new architecture)
+    const segmentCount = await this.segmentRepo.count({ where: { materialId } });
 
-    // If content is null, try to extract it on-demand
-    if (!materialContent) {
-      try {
-        const axios = await import('axios');
-        const response = await axios.default.get(material.fileUrl, {
-          responseType: 'arraybuffer',
-        });
-        const buffer = Buffer.from(response.data);
-        materialContent = await this.conversionService.extractText(
-          buffer,
-          material.fileType,
-          material.title,
-        );
+    // Lazy upgrade: If v1 document with no segments, trigger upgrade
+    if (material.processingVersion === ProcessingVersion.V1 && segmentCount === 0) {
+      // Queue background upgrade
+      await this.materialsQueue.add('upgrade-to-v2', { materialId });
+      this.logger.log(`[LAZY-UPGRADE] Triggered flashcard upgrade for v1 material ${materialId}`);
 
-        // Save extracted content for future use
-        if (materialContent && materialContent.trim().length > 0) {
-          material.content = materialContent;
-          await this.materialRepo.save(material);
-        }
-      } catch (error: any) {
-        this.logger.error('Failed to extract text on-demand for flashcards', error);
-
-        if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED' || error.response?.status === 404) {
-          throw new BadRequestException(
-            'The file could not be downloaded. It may have been deleted or the link is no longer valid.',
-          );
-        }
-
-        throw new BadRequestException(
-          'Unable to extract text from this file. This may be a scanned document or image-based PDF that requires OCR support.',
-        );
-      }
+      // Return upgrading status - frontend should poll for completion
+      return {
+        status: 'upgrading',
+        message: 'Preparing this material for smart study...',
+        materialId,
+      };
     }
 
-    // Check if content is empty or too short
-    if (!materialContent || materialContent.trim().length < 50) {
-      const isImageBased = material.fileType?.includes('image') ||
-        material.title?.toLowerCase().includes('scan') ||
-        material.title?.toLowerCase().includes('scanned');
+    if (segmentCount > 0) {
+      // Use segment-based generation
+      const { segments } = await this.segmentSelector.selectSegments(materialId, {
+        maxTokens: 8000,
+        maxSegments: 20,
+        pageStart,
+        pageEnd,
+      });
 
-      if (isImageBased) {
+      if (segments.length === 0) {
         throw new BadRequestException(
-          'This appears to be an image or scanned document. Flashcard generation requires text-based content. OCR support coming soon!',
+          'No content segments found for flashcard generation.',
         );
       }
 
+      const result = await this.flashcardGenerator.generateFromSegments(
+        segments,
+        material.title,
+        cardCount || 10,
+      );
+
+      if (!result.success || !result.data) {
+        this.logger.error(`Flashcard generation from segments failed: ${result.error}`);
+        throw new InternalServerErrorException(result.error || 'Failed to generate flashcards');
+      }
+
+      const flashcards = result.data;
+
+      // Cache the result if it's a full flashcard set (no page range)
+      if (!pageStart && !pageEnd && flashcards.length > 0) {
+        material.flashcards = flashcards as FlashcardItem[];
+        material.flashcardGeneratedVersion = material.materialVersion;
+        await this.materialRepo.save(material);
+      }
+
+      return flashcards;
+    }
+
+    // Fallback: Use legacy content-based generation for materials without segments
+    const materialContent = material.content;
+
+    if (!materialContent || materialContent.trim().length < 50) {
       throw new BadRequestException(
-        'This material doesn\'t contain enough text for flashcard generation. It may be a scanned document, image-based PDF, or very short content.',
+        'This material doesn\'t have enough content for flashcard generation. It may need to be reprocessed.',
       );
     }
 
-    // Use the new FlashcardGenerator
+    // Use legacy FlashcardGenerator method
     const result = await this.flashcardGenerator.generate({
       topic: material.title,
       cardCount: cardCount || 10,
@@ -706,9 +794,10 @@ export class ChatService {
 
     const flashcards = result.data;
 
-    // Cache the result
-    if (flashcards.length > 0) {
+    // Cache the result if full document
+    if (!pageStart && !pageEnd && flashcards.length > 0) {
       material.flashcards = flashcards as FlashcardItem[];
+      material.flashcardGeneratedVersion = material.materialVersion;
       await this.materialRepo.save(material);
     }
 

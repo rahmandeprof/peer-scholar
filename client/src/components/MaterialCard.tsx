@@ -10,6 +10,9 @@ import {
   Trash2,
   Folder as FolderIcon,
   HeartOff,
+  Loader2,
+  AlertCircle,
+  CheckCircle,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -26,6 +29,9 @@ interface Material {
   fileType: string;
   size: number;
   createdAt: string;
+  status?: 'PENDING' | 'PROCESSING' | 'READY' | 'FAILED';
+  processingStatus?: 'PENDING' | 'EXTRACTING' | 'CLEANING' | 'SEGMENTING' | 'COMPLETED' | 'FAILED';
+  processingVersion?: 'v1' | 'v2';
   uploader: {
     id: string;
     firstName: string;
@@ -147,6 +153,28 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
               <span className='inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 border border-primary-100 dark:border-primary-800'>
                 {material.type}
               </span>
+
+              {/* Processing Status Badge */}
+              {material.status === 'PROCESSING' || material.status === 'PENDING' ||
+                material.processingStatus === 'EXTRACTING' || material.processingStatus === 'CLEANING' ||
+                material.processingStatus === 'SEGMENTING' || material.processingStatus === 'PENDING' ? (
+                <span className='inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-100 dark:border-amber-800'>
+                  <Loader2 className='w-3 h-3 animate-spin' />
+                  {material.processingStatus === 'EXTRACTING' ? 'Extracting' :
+                    material.processingStatus === 'SEGMENTING' ? 'Segmenting' :
+                      material.processingStatus === 'CLEANING' ? 'Cleaning' : 'Processing'}
+                </span>
+              ) : material.status === 'FAILED' || material.processingStatus === 'FAILED' ? (
+                <span className='inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 border border-red-100 dark:border-red-800'>
+                  <AlertCircle className='w-3 h-3' />
+                  Failed
+                </span>
+              ) : material.processingStatus === 'COMPLETED' ? (
+                <span className='inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 border border-green-100 dark:border-green-800'>
+                  <CheckCircle className='w-3 h-3' />
+                  Ready
+                </span>
+              ) : null}
 
               {/* Versions Badge */}
               {material.versions && material.versions.length > 0 && (

@@ -47,20 +47,17 @@ export function TimerSettingsModal({ isOpen, onClose }: TimerSettingsModalProps)
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             {/* Backdrop */}
             <div
-                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                 onClick={onClose}
             />
 
-            {/* Modal - Mobile-first: slides up from bottom on mobile, centered on desktop */}
-            <div className="relative w-full sm:max-w-md bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl shadow-xl max-h-[85vh] overflow-auto animate-slide-up sm:animate-fade-in">
-                {/* Handle for mobile */}
-                <div className="sm:hidden w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mt-3" />
-
+            {/* Modal - Always centered with consistent max-height */}
+            <div className="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-h-[85vh] overflow-hidden flex flex-col animate-modal-pop">
                 {/* Header */}
-                <div className="sticky top-0 bg-white dark:bg-gray-900 px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between flex-shrink-0">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-xl">
                             <Clock className="w-5 h-5 text-primary-600 dark:text-primary-400" />
@@ -77,8 +74,8 @@ export function TimerSettingsModal({ isOpen, onClose }: TimerSettingsModalProps)
                     </button>
                 </div>
 
-                {/* Content */}
-                <div className="p-6 space-y-6">
+                {/* Content - Scrollable */}
+                <div className="flex-1 overflow-y-auto p-5 space-y-5">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                         Customize your study, test, and rest durations to fit your learning style.
                     </p>
@@ -181,8 +178,8 @@ export function TimerSettingsModal({ isOpen, onClose }: TimerSettingsModalProps)
                     </div>
                 </div>
 
-                {/* Footer - Sticky save button for mobile */}
-                <div className="sticky bottom-0 bg-white dark:bg-gray-900 px-6 py-4 border-t border-gray-100 dark:border-gray-800">
+                {/* Footer - Save button */}
+                <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-800 flex-shrink-0">
                     <button
                         onClick={handleSave}
                         disabled={isLoading}
@@ -192,6 +189,15 @@ export function TimerSettingsModal({ isOpen, onClose }: TimerSettingsModalProps)
                     </button>
                 </div>
             </div>
+
+            {/* Animation styles */}
+            <style>{`
+                @keyframes modal-pop {
+                    0% { opacity: 0; transform: scale(0.95) translateY(10px); }
+                    100% { opacity: 1; transform: scale(1) translateY(0); }
+                }
+                .animate-modal-pop { animation: modal-pop 0.2s ease-out forwards; }
+            `}</style>
         </div>
     );
 }

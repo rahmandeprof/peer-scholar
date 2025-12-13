@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, RotateCw, Check, Repeat, Brain, Loader2 } from 'lucide-react';
+import { X, RotateCw, Check, Repeat, Brain, Loader2, Settings, Sparkles, Info, BookOpen } from 'lucide-react';
 import api from '../lib/api';
 import { useModalBack } from '../hooks/useModalBack';
 
@@ -35,23 +35,49 @@ export function FlashcardModal({
   const [isFlipped, setIsFlipped] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Configuration state
+  const [showConfig, setShowConfig] = useState(true);
+  const [cardCount, setCardCount] = useState(10);
+  const [pageStart, setPageStart] = useState('');
+  const [pageEnd, setPageEnd] = useState('');
+
   useEffect(() => {
     if (isOpen && materialId) {
-      fetchFlashcards();
+      // Don't auto-fetch, show config first
+      setShowConfig(true);
     } else {
       // Reset state when closed
-      setFlashcards([]);
-      setCurrentIndex(0);
-      setIsFlipped(false);
-      setError(null);
+      resetState();
     }
   }, [isOpen, materialId]);
 
-  const fetchFlashcards = async () => {
+  const resetState = () => {
+    setFlashcards([]);
+    setCurrentIndex(0);
+    setIsFlipped(false);
+    setError(null);
+    setShowConfig(true);
+    setCardCount(10);
+    setPageStart('');
+    setPageEnd('');
+    setLoading(false);
+  };
+
+  const fetchFlashcards = async (options?: {
+    count?: number;
+    startPage?: number;
+    endPage?: number;
+  }) => {
     setLoading(true);
     setError(null);
+    setShowConfig(false);
     try {
-      const res = await api.post(`/chat/flashcards/${materialId}`);
+      const body: Record<string, unknown> = {};
+      if (options?.count) body.cardCount = options.count;
+      if (options?.startPage) body.pageStart = options.startPage;
+      if (options?.endPage) body.pageEnd = options.endPage;
+
+      const res = await api.post(`/chat/flashcards/${materialId}`, body);
       if (!res.data || res.data.length === 0) {
         setError('No flashcards could be generated for this material. The content may be too short or not suitable for flashcard generation.');
       } else {
@@ -66,36 +92,53 @@ export function FlashcardModal({
     }
   };
 
+  const handleStartFlashcards = () => {
+    const start = pageStart ? parseInt(pageStart) : undefined;
+    const end = pageEnd ? parseInt(pageEnd) : undefined;
+    fetchFlashcards({ count: cardCount, startPage: start, endPage: end });
+  };
+
   const handleNext = () => {
     setIsFlipped(false);
     setTimeout(() => {
       setCurrentIndex((prev) => (prev + 1) % flashcards.length);
-    }, 150); // Wait for flip back
+    }, 150);
   };
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
   };
 
+  const handleRestart = () => {
+    setCurrentIndex(0);
+    setIsFlipped(false);
+  };
+
+  const handleNewCards = () => {
+    resetState();
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200'>
-      <div className='bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]'>
+    <div className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200'>
+      <div className='bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]'>
         {/* Header */}
-        <div className='flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800'>
+        <div className='flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800 flex-shrink-0'>
           <div className='flex items-center space-x-3'>
             <div className='p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl text-indigo-600 dark:text-indigo-400'>
-              <Brain className='w-6 h-6' />
+              <Brain className='w-5 h-5' />
             </div>
             <div>
-              <h2 className='text-xl font-bold text-gray-900 dark:text-white'>
+              <h2 className='text-lg font-bold text-gray-900 dark:text-white'>
                 Flashcards
               </h2>
               <p className='text-sm text-gray-500 dark:text-gray-400'>
                 {flashcards.length > 0
                   ? `Card ${currentIndex + 1} of ${flashcards.length}`
-                  : 'Generating study material...'}
+                  : showConfig
+                    ? 'Configure your deck'
+                    : 'Generating study cards...'}
               </p>
             </div>
           </div>
@@ -103,145 +146,240 @@ export function FlashcardModal({
             onClick={onClose}
             className='p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors'
           >
-            <X className='w-6 h-6 text-gray-500' />
+            <X className='w-5 h-5 text-gray-500' />
           </button>
         </div>
 
         {/* Content */}
-        <div className='flex-1 p-8 overflow-y-auto min-h-[400px] flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-950/50'>
-          {loading ? (
-            <div className='text-center space-y-4'>
-              <Loader2 className='w-12 h-12 animate-spin text-indigo-600 mx-auto' />
-              <p className='text-gray-600 dark:text-gray-400 font-medium'>
-                Analyzing material and creating flashcards...
+        <div className='flex-1 overflow-y-auto'>
+          {/* Configuration Panel */}
+          {showConfig && !loading && flashcards.length === 0 && !error ? (
+            <div className='flex flex-col items-center py-6 md:py-8 px-4'>
+              <div className='w-14 h-14 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 rounded-2xl flex items-center justify-center mb-4'>
+                <Settings className='w-7 h-7 text-indigo-600 dark:text-indigo-400' />
+              </div>
+
+              <h3 className='text-lg font-bold text-gray-900 dark:text-gray-100 mb-2 text-center'>
+                Configure Flashcards
+              </h3>
+              <p className='text-sm text-gray-500 dark:text-gray-400 text-center mb-6 max-w-sm'>
+                Customize your flashcard deck
               </p>
+
+              <div className='w-full max-w-md space-y-5'>
+                {/* Card Count - Touch-friendly stepper */}
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'>
+                    Number of Cards: <span className='text-indigo-600 dark:text-indigo-400 font-bold'>{cardCount}</span>
+                  </label>
+                  <div className='flex items-center gap-3'>
+                    <button
+                      onClick={() => setCardCount(Math.max(5, cardCount - 1))}
+                      className='w-12 h-12 rounded-xl border-2 border-gray-200 dark:border-gray-700 flex items-center justify-center text-xl font-bold text-gray-600 dark:text-gray-400 hover:border-indigo-400 active:scale-95 transition-all'
+                    >
+                      −
+                    </button>
+                    <input
+                      type='range'
+                      min='5'
+                      max='20'
+                      value={cardCount}
+                      onChange={(e) => setCardCount(parseInt(e.target.value))}
+                      className='flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-600'
+                    />
+                    <button
+                      onClick={() => setCardCount(Math.min(20, cardCount + 1))}
+                      className='w-12 h-12 rounded-xl border-2 border-gray-200 dark:border-gray-700 flex items-center justify-center text-xl font-bold text-gray-600 dark:text-gray-400 hover:border-indigo-400 active:scale-95 transition-all'
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                {/* Page Range - Collapsible */}
+                <details className='group'>
+                  <summary className='flex items-center justify-between cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+                    <span>Page Range (Optional)</span>
+                    <span className='text-xs text-gray-400 group-open:hidden'>Expand</span>
+                  </summary>
+                  <div className='flex items-center gap-3 mt-3'>
+                    <input
+                      type='number'
+                      value={pageStart}
+                      onChange={(e) => setPageStart(e.target.value)}
+                      placeholder='From'
+                      min='1'
+                      inputMode='numeric'
+                      className='flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 outline-none text-center'
+                    />
+                    <span className='text-gray-400'>to</span>
+                    <input
+                      type='number'
+                      value={pageEnd}
+                      onChange={(e) => setPageEnd(e.target.value)}
+                      placeholder='To'
+                      min='1'
+                      inputMode='numeric'
+                      className='flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 outline-none text-center'
+                    />
+                  </div>
+                </details>
+
+                {/* Tip */}
+                <div className='p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl'>
+                  <div className='flex items-start gap-2'>
+                    <Info className='w-4 h-4 text-indigo-500 flex-shrink-0 mt-0.5' />
+                    <p className='text-xs text-indigo-700 dark:text-indigo-300'>
+                      <strong>Tip:</strong> Flashcards are generated from document segments. Specify a page range to focus on specific sections!
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Start Button */}
+              <div className='w-full max-w-md mt-6'>
+                <button
+                  onClick={handleStartFlashcards}
+                  className='w-full py-4 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 active:scale-[0.98] flex items-center justify-center gap-2'
+                >
+                  <Sparkles className='w-5 h-5' />
+                  Generate Flashcards
+                </button>
+              </div>
+            </div>
+          ) : loading ? (
+            <div className='min-h-[400px] flex flex-col items-center justify-center p-8'>
+              <div className='text-center space-y-4'>
+                <Loader2 className='w-12 h-12 animate-spin text-indigo-600 mx-auto' />
+                <p className='text-gray-600 dark:text-gray-400 font-medium'>
+                  Analyzing material and creating flashcards...
+                </p>
+              </div>
             </div>
           ) : error?.includes('UNSUPPORTED') ? (
-            <div className='text-center space-y-4'>
-              <div className='w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto'>
-                <svg className='w-8 h-8 text-gray-500' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' />
-                </svg>
+            <div className='min-h-[400px] flex flex-col items-center justify-center p-8'>
+              <div className='text-center space-y-4'>
+                <div className='w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto'>
+                  <BookOpen className='w-8 h-8 text-gray-500' />
+                </div>
+                <h3 className='text-lg font-bold text-gray-900 dark:text-gray-100'>Unsupported Document</h3>
+                <p className='text-gray-600 dark:text-gray-400 max-w-sm mx-auto'>
+                  This document could not be processed for flashcard generation.
+                </p>
+                <button
+                  onClick={onClose}
+                  className='px-6 py-2 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-colors'
+                >
+                  Close
+                </button>
               </div>
-              <h3 className='text-lg font-bold text-gray-900 dark:text-gray-100'>Unsupported Document</h3>
-              <p className='text-gray-600 dark:text-gray-400 max-w-sm mx-auto'>
-                This document could not be processed for flashcard generation.
-              </p>
-              <p className='text-sm text-gray-500 max-w-sm mx-auto'>
-                It may be a scanned image, password-protected, or in an unsupported format.
-              </p>
-              <button
-                onClick={onClose}
-                className='px-6 py-2 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-colors'
-              >
-                Close
-              </button>
             </div>
           ) : error?.includes('PROCESSING') ? (
-            <div className='text-center space-y-4'>
-              <div className='w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto animate-pulse'>
-                <svg className='w-8 h-8 text-amber-600' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' />
-                </svg>
+            <div className='min-h-[400px] flex flex-col items-center justify-center p-8'>
+              <div className='text-center space-y-4'>
+                <div className='w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto animate-pulse'>
+                  <Loader2 className='w-8 h-8 text-amber-600 animate-spin' />
+                </div>
+                <h3 className='text-lg font-bold text-gray-900 dark:text-gray-100'>Still Processing</h3>
+                <p className='text-gray-600 dark:text-gray-400 max-w-sm mx-auto'>
+                  This material is still being analyzed. Please wait a moment and try again.
+                </p>
+                <button
+                  onClick={() => fetchFlashcards({ count: cardCount })}
+                  className='px-6 py-2 bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition-colors'
+                >
+                  Retry
+                </button>
               </div>
-              <h3 className='text-lg font-bold text-gray-900 dark:text-gray-100'>Still Processing</h3>
-              <p className='text-gray-600 dark:text-gray-400 max-w-sm mx-auto'>
-                This material is still being analyzed. Please wait a moment and try again.
-              </p>
-              <button
-                onClick={fetchFlashcards}
-                className='px-6 py-2 bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition-colors'
-              >
-                Retry
-              </button>
             </div>
           ) : error ? (
-            <div className='text-center space-y-4'>
-              <div className='w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto text-red-600'>
-                <X className='w-8 h-8' />
+            <div className='min-h-[400px] flex flex-col items-center justify-center p-8'>
+              <div className='text-center space-y-4'>
+                <div className='w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto text-red-600'>
+                  <X className='w-8 h-8' />
+                </div>
+                <h3 className='text-lg font-bold text-gray-900 dark:text-gray-100'>Generation Failed</h3>
+                <p className='text-gray-600 dark:text-gray-400 max-w-sm mx-auto'>
+                  {error}
+                </p>
+                <button
+                  onClick={handleNewCards}
+                  className='px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors'
+                >
+                  Try Again
+                </button>
               </div>
-              <p className='text-red-600 font-medium'>{error}</p>
-              <button
-                onClick={fetchFlashcards}
-                className='px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors'
-              >
-                Try Again
-              </button>
             </div>
           ) : flashcards.length > 0 ? (
-            <div className='w-full max-w-lg perspective-1000'>
+            <div className='min-h-[400px] flex flex-col items-center justify-center p-8 bg-gray-50 dark:bg-gray-950/50'>
+              {/* Flashcard */}
               <div
-                className={`relative w-full aspect-[3/2] cursor-pointer transition-transform duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''
-                  }`}
                 onClick={handleFlip}
+                className='w-full max-w-lg aspect-[3/2] perspective-1000 cursor-pointer'
               >
-                {/* Front */}
-                <div className='absolute inset-0 backface-hidden bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center p-8 text-center hover:shadow-2xl transition-shadow'>
-                  <span className='text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-4'>
-                    Term
-                  </span>
-                  <h3 className='text-3xl font-bold text-gray-900 dark:text-white'>
-                    {getFlashcardFront(flashcards[currentIndex])}
-                  </h3>
-                  <p className='mt-8 text-sm text-gray-400 flex items-center'>
-                    <RotateCw className='w-4 h-4 mr-2' />
-                    Click to flip
-                  </p>
-                </div>
-
-                {/* Back */}
-                <div className='absolute inset-0 backface-hidden rotate-y-180 bg-indigo-50 dark:bg-indigo-900/20 rounded-3xl shadow-xl border border-indigo-100 dark:border-indigo-800 flex flex-col items-center justify-center p-8 text-center'>
-                  <span className='text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-4'>
-                    Definition
-                  </span>
-                  <p className='text-xl font-medium text-gray-800 dark:text-gray-200 leading-relaxed'>
-                    {getFlashcardBack(flashcards[currentIndex])}
-                  </p>
+                <div
+                  className={`relative w-full h-full transition-transform duration-500 transform-style-preserve-3d ${isFlipped ? 'rotate-y-180' : ''
+                    }`}
+                  style={{
+                    transformStyle: 'preserve-3d',
+                    transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0)',
+                  }}
+                >
+                  {/* Front */}
+                  <div
+                    className='absolute inset-0 bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 flex flex-col items-center justify-center backface-hidden border-2 border-indigo-100 dark:border-indigo-900/50'
+                    style={{ backfaceVisibility: 'hidden' }}
+                  >
+                    <p className='text-xs text-indigo-500 uppercase tracking-wide mb-4'>Term</p>
+                    <p className='text-xl font-bold text-center text-gray-900 dark:text-white'>
+                      {getFlashcardFront(flashcards[currentIndex])}
+                    </p>
+                    <p className='text-sm text-gray-400 mt-6'>Tap to flip</p>
+                  </div>
+                  {/* Back */}
+                  <div
+                    className='absolute inset-0 bg-indigo-600 dark:bg-indigo-700 rounded-2xl shadow-lg p-8 flex flex-col items-center justify-center backface-hidden'
+                    style={{
+                      backfaceVisibility: 'hidden',
+                      transform: 'rotateY(180deg)',
+                    }}
+                  >
+                    <p className='text-xs text-indigo-200 uppercase tracking-wide mb-4'>Definition</p>
+                    <p className='text-lg font-medium text-center text-white'>
+                      {getFlashcardBack(flashcards[currentIndex])}
+                    </p>
+                  </div>
                 </div>
               </div>
+
+              {/* Controls */}
+              <div className='flex items-center gap-4 mt-8'>
+                <button
+                  onClick={handleRestart}
+                  className='p-3 bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors'
+                  title='Restart'
+                >
+                  <RotateCw className='w-5 h-5 text-gray-600 dark:text-gray-400' />
+                </button>
+                <button
+                  onClick={handleNext}
+                  className='px-8 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors flex items-center gap-2'
+                >
+                  Next Card
+                  <Repeat className='w-4 h-4' />
+                </button>
+                <button
+                  onClick={handleNewCards}
+                  className='p-3 bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors'
+                  title='New Deck'
+                >
+                  <Sparkles className='w-5 h-5 text-gray-600 dark:text-gray-400' />
+                </button>
+              </div>
             </div>
-          ) : (
-            <div className='text-center text-gray-500'>
-              No flashcards found.
-            </div>
-          )}
+          ) : null}
         </div>
-
-        {/* Footer Controls */}
-        {!loading && !error && flashcards.length > 0 && (
-          <div className='p-6 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex justify-between gap-3'>
-            <button
-              onClick={handleNext}
-              className='flex-1 flex items-center justify-center px-4 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors whitespace-nowrap'
-            >
-              <Repeat className='w-5 h-5 mr-2' />
-              Review
-            </button>
-            <button
-              onClick={handleNext}
-              className='flex-1 flex items-center justify-center px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 transition-all hover:scale-105 whitespace-nowrap'
-            >
-              <Check className='w-5 h-5 mr-2' />
-              I Know It
-            </button>
-          </div>
-        )}
       </div>
-
-      <style>{`
-        .perspective-1000 {
-          perspective: 1000px;
-        }
-        .transform-style-3d {
-          transform-style: preserve-3d;
-        }
-        .backface-hidden {
-          backface-visibility: hidden;
-        }
-        .rotate-y-180 {
-          transform: rotateY(180deg);
-        }
-      `}</style>
     </div>
   );
 }

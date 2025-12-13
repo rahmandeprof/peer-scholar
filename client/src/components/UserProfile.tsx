@@ -64,6 +64,7 @@ export function UserProfile({ onClose }: UserProfileProps) {
     yearOfStudy: user?.yearOfStudy ?? 1,
     username: user?.username ?? user?.email?.split('@')[0] ?? '',
     displayNamePreference: (user as any)?.displayNamePreference ?? 'fullname' as 'username' | 'fullname',
+    showOnLeaderboard: (user as any)?.showOnLeaderboard ?? true,
   });
 
   const [isEditing, setIsEditing] = useState(false);
@@ -137,6 +138,7 @@ export function UserProfile({ onClose }: UserProfileProps) {
         yearOfStudy: user.yearOfStudy ?? 1,
         username: user.username ?? user.email?.split('@')[0] ?? '',
         displayNamePreference: (user as any)?.displayNamePreference ?? 'fullname',
+        showOnLeaderboard: (user as any)?.showOnLeaderboard ?? true,
       });
     }
   };
@@ -160,6 +162,7 @@ export function UserProfile({ onClose }: UserProfileProps) {
         lastName: formData.lastName,
         username: formData.username,
         displayNamePreference: formData.displayNamePreference,
+        showOnLeaderboard: formData.showOnLeaderboard,
       });
 
       toast.success('Profile updated successfully');
@@ -576,30 +579,72 @@ export function UserProfile({ onClose }: UserProfileProps) {
                 </div>
               </div>
 
-              {/* Display Name Preference */}
-              <div className='flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg'>
-                <div>
-                  <p className='text-sm font-medium text-gray-900 dark:text-gray-100'>
-                    Show publicly as
-                  </p>
-                  <p className='text-xs text-gray-500 dark:text-gray-400'>
-                    How your name appears on uploads
-                  </p>
+              {/* Privacy Settings */}
+              <div className='space-y-3 pt-4 border-t border-gray-100 dark:border-gray-800'>
+                <h3 className='text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2'>
+                  <Shield className='w-4 h-4' />
+                  Privacy Settings
+                </h3>
+
+                {/* Display Name Preference */}
+                <div className='flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg'>
+                  <div>
+                    <p className='text-sm font-medium text-gray-900 dark:text-gray-100'>
+                      Display name publicly
+                    </p>
+                    <p className='text-xs text-gray-500 dark:text-gray-400'>
+                      How your name appears on uploads
+                    </p>
+                  </div>
+                  <select
+                    value={formData.displayNamePreference}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        displayNamePreference: e.target.value as 'username' | 'fullname',
+                      })
+                    }
+                    disabled={!isEditing}
+                    className='px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed'
+                  >
+                    <option value='fullname'>{formData.firstName} {formData.lastName}</option>
+                    <option value='username'>@{formData.username}</option>
+                  </select>
                 </div>
-                <select
-                  value={formData.displayNamePreference}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      displayNamePreference: e.target.value as 'username' | 'fullname',
-                    })
-                  }
-                  disabled={!isEditing}
-                  className='px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed'
-                >
-                  <option value='fullname'>{formData.firstName} {formData.lastName}</option>
-                  <option value='username'>@{formData.username}</option>
-                </select>
+
+                {/* Leaderboard Visibility Toggle */}
+                <div className='flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg'>
+                  <div>
+                    <p className='text-sm font-medium text-gray-900 dark:text-gray-100'>
+                      Show on leaderboard
+                    </p>
+                    <p className='text-xs text-gray-500 dark:text-gray-400'>
+                      Appear in weekly study rankings
+                    </p>
+                  </div>
+                  <div className='flex items-center gap-2'>
+                    <button
+                      type='button'
+                      onClick={() => isEditing && setFormData({ ...formData, showOnLeaderboard: !formData.showOnLeaderboard })}
+                      disabled={!isEditing}
+                      title={formData.showOnLeaderboard
+                        ? 'Others can see your ranking'
+                        : 'Your study time is tracked but hidden from others'}
+                      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${formData.showOnLeaderboard ? 'bg-purple-600' : 'bg-gray-200 dark:bg-gray-700'
+                        }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${formData.showOnLeaderboard ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+                {!formData.showOnLeaderboard && (
+                  <p className='text-xs text-amber-600 dark:text-amber-400 px-3 -mt-1'>
+                    💡 Your study time is still tracked for personal stats
+                  </p>
+                )}
               </div>
 
               {/* Mobile Menu Hub */}

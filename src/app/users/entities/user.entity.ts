@@ -114,7 +114,12 @@ export class User extends IDAndTimestamp {
   @Column({ name: 'username', type: 'varchar', length: 50, nullable: true })
   username: string | null;
 
+  // Privacy: whether to appear on leaderboards
+  @Column({ name: 'show_on_leaderboard', type: 'boolean', default: true })
+  showOnLeaderboard: boolean;
+
   // Display name preference - what to show publicly
   @Column({ name: 'display_name_preference', type: 'varchar', length: 20, default: 'fullname' })
   displayNamePreference: 'username' | 'fullname';
 }
+

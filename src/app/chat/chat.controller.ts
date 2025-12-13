@@ -132,13 +132,20 @@ export class ChatController {
     @Body('pageStart') pageStart?: number,
     @Body('pageEnd') pageEnd?: number,
     @Body('regenerate') regenerate?: boolean,
+    @Body('difficulty') difficulty?: 'beginner' | 'intermediate' | 'advanced',
+    @Body('questionCount') questionCount?: number,
   ) {
-    return this.chatService.generateQuiz(id, pageStart, pageEnd, regenerate);
+    return this.chatService.generateQuiz(id, pageStart, pageEnd, regenerate, difficulty as any, questionCount);
   }
 
   @Post('flashcards/:id')
-  generateFlashcards(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.chatService.generateFlashcards(id);
+  generateFlashcards(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body('cardCount') cardCount?: number,
+    @Body('pageStart') pageStart?: number,
+    @Body('pageEnd') pageEnd?: number,
+  ) {
+    return this.chatService.generateFlashcards(id, cardCount, pageStart, pageEnd);
   }
 
   @Get('summary/:id')
