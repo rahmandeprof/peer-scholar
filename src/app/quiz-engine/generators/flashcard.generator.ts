@@ -65,7 +65,7 @@ export class FlashcardGenerator {
             }
 
             // Parse JSON
-            const parseResult = this.llmService.parseJSON<Flashcard[]>(llmResponse.content);
+            const parseResult = this.llmService.parseJSON<Flashcard[] | Record<string, unknown>>(llmResponse.content);
 
             if (!parseResult.success || !parseResult.data) {
                 lastError = parseResult.error || 'Failed to parse JSON response';
@@ -73,8 +73,19 @@ export class FlashcardGenerator {
                 continue;
             }
 
+            // Unwrap if LLM returned object wrapper like { flashcards: [...] }
+            let flashcardData = parseResult.data;
+            if (!Array.isArray(flashcardData) && typeof flashcardData === 'object') {
+                // Try to find an array property
+                const arrayProp = Object.values(flashcardData).find(v => Array.isArray(v));
+                if (arrayProp) {
+                    this.logger.debug('Unwrapped flashcard array from object wrapper');
+                    flashcardData = arrayProp;
+                }
+            }
+
             // Validate with Zod
-            const validationResult = validateFlashcardResponse(parseResult.data);
+            const validationResult = validateFlashcardResponse(flashcardData);
 
             if (!validationResult.success) {
                 lastError = validationResult.errors?.message || 'Schema validation failed';
@@ -164,7 +175,7 @@ export class FlashcardGenerator {
                 continue;
             }
 
-            const parseResult = this.llmService.parseJSON<Flashcard[]>(llmResponse.content);
+            const parseResult = this.llmService.parseJSON<Flashcard[] | Record<string, unknown>>(llmResponse.content);
 
             if (!parseResult.success || !parseResult.data) {
                 lastError = parseResult.error || 'Failed to parse JSON response';
@@ -172,7 +183,17 @@ export class FlashcardGenerator {
                 continue;
             }
 
-            const validationResult = validateFlashcardResponse(parseResult.data);
+            // Unwrap if LLM returned object wrapper like { flashcards: [...] }
+            let flashcardData = parseResult.data;
+            if (!Array.isArray(flashcardData) && typeof flashcardData === 'object') {
+                const arrayProp = Object.values(flashcardData).find(v => Array.isArray(v));
+                if (arrayProp) {
+                    this.logger.debug('Unwrapped flashcard array from object wrapper');
+                    flashcardData = arrayProp;
+                }
+            }
+
+            const validationResult = validateFlashcardResponse(flashcardData);
 
             if (!validationResult.success) {
                 lastError = validationResult.errors?.message || 'Schema validation failed';
