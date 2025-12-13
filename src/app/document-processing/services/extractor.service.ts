@@ -3,7 +3,7 @@
  * Supports PDF, DOCX, TXT, PPT with page metadata when available
  */
 import { Injectable, Logger } from '@nestjs/common';
-import * as pdfParse from 'pdf-parse';
+import pdfParse from 'pdf-parse';
 // @ts-ignore
 import officeParser from 'officeparser';
 import * as mammoth from 'mammoth';

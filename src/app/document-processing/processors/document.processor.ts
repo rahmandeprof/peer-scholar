@@ -9,7 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import axios from 'axios';
 
-import { Material, ProcessingStatus } from '../../academic/entities/material.entity';
+import { Material, MaterialStatus, ProcessingStatus } from '../../academic/entities/material.entity';
 import { DocumentSegment } from '../../academic/entities/document-segment.entity';
 import { ExtractorService } from '../services/extractor.service';
 import { CleanerService } from '../services/cleaner.service';
@@ -94,7 +94,7 @@ export class DocumentProcessor {
             await this.materialRepo.update(materialId, {
                 content: cleanedText,
                 processingStatus: ProcessingStatus.COMPLETED,
-                status: 'ready', // Also update legacy status
+                status: MaterialStatus.READY, // Also update legacy status
             });
             await job.progress(100);
 
@@ -108,7 +108,7 @@ export class DocumentProcessor {
 
             // Mark as failed
             await this.updateProcessingStatus(materialId, ProcessingStatus.FAILED);
-            await this.materialRepo.update(materialId, { status: 'failed' });
+            await this.materialRepo.update(materialId, { status: MaterialStatus.FAILED });
 
             throw error;
         }

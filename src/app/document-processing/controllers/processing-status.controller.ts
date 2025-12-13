@@ -13,7 +13,7 @@ import { Repository } from 'typeorm';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 
-import { JwtAuthGuard } from '@/app/auth/jwt-auth.guard';
+import { AuthGuard } from '@nestjs/passport';
 import { Material, ProcessingStatus } from '@/app/academic/entities/material.entity';
 import { DocumentSegment } from '@/app/academic/entities/document-segment.entity';
 import { DOCUMENT_PROCESSING_QUEUE } from '../processors/document.processor';
@@ -27,7 +27,7 @@ export interface ProcessingStatusResponse {
 }
 
 @Controller('processing')
-@UseGuards(JwtAuthGuard)
+@UseGuards(AuthGuard('jwt'))
 export class ProcessingStatusController {
     constructor(
         @InjectRepository(Material)
