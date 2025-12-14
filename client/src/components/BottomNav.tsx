@@ -1,44 +1,84 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Users, User } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Users, User, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { UserProfile } from './UserProfile';
+import { UploadModal } from './UploadModal';
 
 export function BottomNav() {
   const [profileOpen, setProfileOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex flex-col items-center justify-center w-full h-full space-y-1 ${
-      isActive
-        ? 'text-primary-600 dark:text-primary-400'
-        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+    `flex flex-col items-center justify-center flex-1 h-full space-y-0.5 transition-all duration-200 active:scale-95 ${isActive
+      ? 'text-primary-600 dark:text-primary-400'
+      : 'text-gray-500 dark:text-gray-400'
+    }`;
+
+  const navLinkInner = (isActive: boolean) =>
+    `flex flex-col items-center justify-center px-3 py-1.5 rounded-2xl transition-colors ${isActive ? 'bg-primary-100 dark:bg-primary-900/40' : ''
     }`;
 
   return (
     <>
-      <div className='md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 flex items-center justify-around px-2 z-50 pb-safe'>
+      {/* Bottom Navigation */}
+      <div className='md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-t border-gray-200/50 dark:border-gray-800/50 flex items-center z-50 safe-area-pb'>
+        {/* Left nav items */}
         <NavLink to='/dashboard' className={navLinkClass}>
-          <LayoutDashboard className='w-6 h-6' />
-          <span className='text-[10px] font-medium'>Home</span>
+          {({ isActive }) => (
+            <div className={navLinkInner(isActive)}>
+              <LayoutDashboard className='w-5 h-5' />
+              <span className='text-[10px] font-semibold'>Home</span>
+            </div>
+          )}
         </NavLink>
         <NavLink to='/department' className={navLinkClass}>
-          <BookOpen className='w-6 h-6' />
-          <span className='text-[10px] font-medium'>Library</span>
+          {({ isActive }) => (
+            <div className={navLinkInner(isActive)}>
+              <BookOpen className='w-5 h-5' />
+              <span className='text-[10px] font-semibold'>Library</span>
+            </div>
+          )}
         </NavLink>
+
+        {/* Center FAB Upload Button */}
+        <div className='flex items-center justify-center px-2'>
+          <button
+            onClick={() => setUploadOpen(true)}
+            className='w-14 h-14 -mt-6 bg-gradient-to-tr from-primary-600 to-primary-500 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-500/30 active:scale-95 transition-transform'
+            aria-label='Upload material'
+          >
+            <Plus className='w-7 h-7 text-white' strokeWidth={2.5} />
+          </button>
+        </div>
+
+        {/* Right nav items */}
         <NavLink to='/study-partner' className={navLinkClass}>
-          <Users className='w-6 h-6' />
-          <span className='text-[10px] font-medium'>Partner</span>
+          {({ isActive }) => (
+            <div className={navLinkInner(isActive)}>
+              <Users className='w-5 h-5' />
+              <span className='text-[10px] font-semibold'>Partner</span>
+            </div>
+          )}
         </NavLink>
 
         <button
           onClick={() => setProfileOpen(true)}
-          className='flex flex-col items-center justify-center w-full h-full space-y-1 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+          className='flex flex-col items-center justify-center flex-1 h-full space-y-0.5 text-gray-500 dark:text-gray-400 active:scale-95 transition-all duration-200'
         >
-          <User className='w-6 h-6' />
-          <span className='text-[10px] font-medium'>Profile</span>
+          <div className='flex flex-col items-center justify-center px-3 py-1.5 rounded-2xl'>
+            <User className='w-5 h-5' />
+            <span className='text-[10px] font-semibold'>Profile</span>
+          </div>
         </button>
       </div>
 
+      {/* Modals */}
       {profileOpen && <UserProfile onClose={() => setProfileOpen(false)} />}
+      <UploadModal
+        isOpen={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        onUploadComplete={() => setUploadOpen(false)}
+      />
     </>
   );
 }
