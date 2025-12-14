@@ -436,34 +436,32 @@ export function UserProfile({ onClose }: UserProfileProps) {
               </div>
 
               <div className='flex flex-wrap justify-center gap-3 mb-6'>
-                <div className='bg-yellow-50 dark:bg-yellow-900/20 px-3 py-2 rounded-xl border border-yellow-200 dark:border-yellow-800 flex items-center min-w-0 max-w-[180px] flex-shrink'>
-                  <Trophy className='w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2' />
-                  <div>
-                    <div className='w-full'>
-                      <div className='flex justify-between items-end mb-1'>
-                        <p className='text-xs text-yellow-600 dark:text-yellow-400 font-medium uppercase tracking-wider'>
-                          Reputation
-                        </p>
-                        <span className='text-xs font-bold text-yellow-700 dark:text-yellow-300'>
-                          {(user.reputation || 0) % 500} / 500 XP
-                        </span>
-                      </div>
-                      <p className='text-lg font-bold text-yellow-700 dark:text-yellow-300 leading-none mb-2'>
-                        {user.reputation || 0}
+                <div className='bg-yellow-50 dark:bg-yellow-900/20 px-3 py-2 rounded-xl border border-yellow-200 dark:border-yellow-800 flex items-center min-w-0 max-w-full sm:max-w-[200px]'>
+                  <Trophy className='w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2 flex-shrink-0' />
+                  <div className='min-w-0 flex-1'>
+                    <div className='flex flex-col xs:flex-row xs:justify-between xs:items-end mb-1 gap-0.5'>
+                      <p className='text-xs text-yellow-600 dark:text-yellow-400 font-medium uppercase tracking-wider'>
+                        Reputation
                       </p>
-                      {/* Level Progress Bar */}
-                      <div className='w-full h-1.5 bg-yellow-200 dark:bg-yellow-900/50 rounded-full overflow-hidden'>
-                        <div
-                          className='h-full bg-yellow-500 rounded-full transition-all duration-500'
-                          style={{
-                            width: `${((user.reputation || 0) % 500) / 5}%`,
-                          }}
-                        />
-                      </div>
-                      <p className='text-[10px] text-yellow-600/80 dark:text-yellow-400/80 mt-1 text-right'>
-                        To Level {Math.floor((user.reputation || 0) / 500) + 1}
-                      </p>
+                      <span className='text-xs font-bold text-yellow-700 dark:text-yellow-300'>
+                        {(user.reputation || 0) % 500} / 500 XP
+                      </span>
                     </div>
+                    <p className='text-lg font-bold text-yellow-700 dark:text-yellow-300 leading-none mb-2'>
+                      {user.reputation || 0}
+                    </p>
+                    {/* Level Progress Bar */}
+                    <div className='w-full h-1.5 bg-yellow-200 dark:bg-yellow-900/50 rounded-full overflow-hidden'>
+                      <div
+                        className='h-full bg-yellow-500 rounded-full transition-all duration-500'
+                        style={{
+                          width: `${((user.reputation || 0) % 500) / 5}%`,
+                        }}
+                      />
+                    </div>
+                    <p className='text-[10px] text-yellow-600/80 dark:text-yellow-400/80 mt-1 text-right'>
+                      To Level {Math.floor((user.reputation || 0) / 500) + 1}
+                    </p>
                   </div>
                 </div>
                 {user.isVerified && (
@@ -522,7 +520,7 @@ export function UserProfile({ onClose }: UserProfileProps) {
                     type='email'
                     value={user.email}
                     disabled
-                    className='w-full pl-10 pr-10 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-500 cursor-not-allowed'
+                    className='w-full pl-10 pr-10 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-500 cursor-not-allowed truncate'
                   />
                   <div className='absolute right-3 top-1/2 transform -translate-y-1/2'>
                     {user.isVerified ? (
@@ -588,8 +586,8 @@ export function UserProfile({ onClose }: UserProfileProps) {
                 </h3>
 
                 {/* Display Name Preference */}
-                <div className='flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg'>
-                  <div>
+                <div className='flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg gap-2'>
+                  <div className='min-w-0 flex-1'>
                     <p className='text-sm font-medium text-gray-900 dark:text-gray-100'>
                       Display name publicly
                     </p>
@@ -606,10 +604,10 @@ export function UserProfile({ onClose }: UserProfileProps) {
                       })
                     }
                     disabled={!isEditing}
-                    className='px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed'
+                    className='px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed max-w-[120px] truncate flex-shrink-0'
                   >
-                    <option value='fullname'>{formData.firstName} {formData.lastName}</option>
-                    <option value='username'>@{formData.username}</option>
+                    <option value='fullname'>{formData.firstName?.slice(0, 8)}{formData.firstName?.length > 8 ? '...' : ''}</option>
+                    <option value='username'>@{formData.username?.slice(0, 10)}{formData.username?.length > 10 ? '...' : ''}</option>
                   </select>
                 </div>
 
@@ -741,16 +739,17 @@ export function UserProfile({ onClose }: UserProfileProps) {
                   Faculty
                 </label>
                 <div className='relative group'>
-                  <Building className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4' />
+                  <Building className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10' />
                   <select
                     value={formData.faculty}
                     disabled
-                    className='w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-500 cursor-not-allowed appearance-none'
+                    className='w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-500 cursor-not-allowed appearance-none truncate'
+                    title={formData.faculty}
                   >
                     <option value={formData.faculty}>{formData.faculty}</option>
                   </select>
                   {/* Tooltip */}
-                  <div className='absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10'>
+                  <div className='absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 max-w-[250px] truncate'>
                     Contact Support to request a transfer
                     <div className='absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900'></div>
                   </div>
@@ -762,18 +761,19 @@ export function UserProfile({ onClose }: UserProfileProps) {
                   Department
                 </label>
                 <div className='relative group'>
-                  <Building className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4' />
+                  <Building className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10' />
                   <select
                     value={formData.department}
                     disabled
-                    className='w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-500 cursor-not-allowed appearance-none'
+                    className='w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-500 cursor-not-allowed appearance-none truncate'
+                    title={formData.department}
                   >
                     <option value={formData.department}>
                       {formData.department}
                     </option>
                   </select>
                   {/* Tooltip */}
-                  <div className='absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10'>
+                  <div className='absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 max-w-[250px] truncate'>
                     Contact Support to request a transfer
                     <div className='absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900'></div>
                   </div>
