@@ -6,11 +6,13 @@ import { ChatModule } from '@/app/chat/chat.module';
 import { UsersModule } from '@/app/users/users.module';
 
 import { StudySession } from './entities/study-session.entity';
+import { FlashcardProgress } from './entities/flashcard-progress.entity';
 import { User } from '@/app/users/entities/user.entity';
 
 import { StudyController } from './study.controller';
 
 import { StudyService } from './study.service';
+import { SpacedRepetitionService } from './services/spaced-repetition.service';
 import { ChallengeCacheService } from './challenge-cache.service';
 
 import { StudyProcessor } from './processors/study.processor';
@@ -18,14 +20,14 @@ import { StudyGateway } from './study.gateway';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([StudySession, User]),
+    TypeOrmModule.forFeature([StudySession, FlashcardProgress, User]),
     UsersModule,
     ChatModule,
     JwtModule.register({}), // Uses ConfigService for secret at runtime
   ],
   controllers: [StudyController],
-  providers: [StudyService, StudyProcessor, StudyGateway, ChallengeCacheService],
-  exports: [StudyService],
+  providers: [StudyService, SpacedRepetitionService, StudyProcessor, StudyGateway, ChallengeCacheService],
+  exports: [StudyService, SpacedRepetitionService],
 })
 export class StudyModule { }
 

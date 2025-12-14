@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UseGuards, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, Post, Param, Req, UseGuards, UnauthorizedException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -7,6 +7,7 @@ import { StudySessionType } from './entities/study-session.entity';
 import { User } from '@/app/users/entities/user.entity';
 
 import { StudyService } from './study.service';
+import { SpacedRepetitionService, QualityRating } from './services/spaced-repetition.service';
 
 import { Request } from 'express';
 
@@ -18,6 +19,7 @@ interface RequestWithUser extends Request {
 export class StudyController {
   constructor(
     private readonly studyService: StudyService,
+    private readonly spacedRepetitionService: SpacedRepetitionService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) { }
@@ -159,5 +161,79 @@ export class StudyController {
       body.timestamp,
       body.materialId,
     );
+  }
+
+  // ==================== Spaced Repetition Endpoints ====================
+
+  /**
+   * Get flashcards due for review
+   */
+  @UseGuards(AuthGuard('jwt'))
+  @Get('flashcards/:materialId/due')
+  async getDueFlashcards(
+    @Req() req: RequestWithUser,
+    @Param('materialId') materialId: string,
+    @Body() body: { totalCards: number },
+  ) {
+    if (!req.user) {
+      throw new UnauthorizedException('User not found');
+    }
+    // Note: totalCards should be passed from frontend based on material's flashcard count
+    const totalCards = body?.totalCards || 20; // Default fallback
+    return this.spacedRepetitionService.getDueCards(req.user.id, materialId, totalCards);
+  }
+
+  /**
+   * Get progress stats for flashcard study
+   */
+  @UseGuards(AuthGuard('jwt'))
+  @Get('flashcards/:materialId/stats')
+  async getFlashcardStats(
+    @Req() req: RequestWithUser,
+    @Param('materialId') materialId: string,
+    @Body() body: { totalCards: number },
+  ) {
+    if (!req.user) {
+      throw new UnauthorizedException('User not found');
+    }
+    const totalCards = body?.totalCards || 20;
+    return this.spacedRepetitionService.getProgressStats(req.user.id, materialId, totalCards);
+  }
+
+  /**
+   * Record a review result for a flashcard
+   */
+  @UseGuards(AuthGuard('jwt'))
+  @Post('flashcards/:materialId/review')
+  async recordFlashcardReview(
+    @Req() req: RequestWithUser,
+    @Param('materialId') materialId: string,
+    @Body() body: { cardIndex: number; quality: QualityRating },
+  ) {
+    if (!req.user) {
+      throw new UnauthorizedException('User not found');
+    }
+    return this.spacedRepetitionService.recordReview(
+      req.user.id,
+      materialId,
+      body.cardIndex,
+      body.quality,
+    );
+  }
+
+  /**
+   * Reset all progress for a material
+   */
+  @UseGuards(AuthGuard('jwt'))
+  @Post('flashcards/:materialId/reset')
+  async resetFlashcardProgress(
+    @Req() req: RequestWithUser,
+    @Param('materialId') materialId: string,
+  ) {
+    if (!req.user) {
+      throw new UnauthorizedException('User not found');
+    }
+    await this.spacedRepetitionService.resetMaterial(req.user.id, materialId);
+    return { success: true };
   }
 }

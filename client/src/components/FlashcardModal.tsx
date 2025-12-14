@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, RotateCw, Repeat, Brain, Loader2, Settings, Sparkles, Info, BookOpen } from 'lucide-react';
+import { X, RotateCw, Repeat, Brain, Loader2, Settings, Sparkles, Info, BookOpen, Timer, CheckCircle } from 'lucide-react';
 import api from '../lib/api';
 import { useModalBack } from '../hooks/useModalBack';
 
@@ -41,6 +41,11 @@ export function FlashcardModal({
   const [pageStart, setPageStart] = useState('');
   const [pageEnd, setPageEnd] = useState('');
 
+  // Spaced repetition / review mode
+  const [reviewMode, setReviewMode] = useState(false);
+  const [cardsReviewed, setCardsReviewed] = useState(0);
+  const [submittingReview, setSubmittingReview] = useState(false);
+
   useEffect(() => {
     if (isOpen && materialId) {
       // Don't auto-fetch, show config first
@@ -61,6 +66,9 @@ export function FlashcardModal({
     setPageStart('');
     setPageEnd('');
     setLoading(false);
+    setReviewMode(false);
+    setCardsReviewed(0);
+    setSubmittingReview(false);
   };
 
   const fetchFlashcards = async (options?: {
@@ -116,6 +124,36 @@ export function FlashcardModal({
 
   const handleNewCards = () => {
     resetState();
+  };
+
+  // Spaced repetition: Submit review quality rating
+  const handleReviewResponse = async (quality: 0 | 1 | 2 | 3 | 4 | 5) => {
+    if (!reviewMode || submittingReview) return;
+
+    setSubmittingReview(true);
+    try {
+      await api.post(`/study/flashcards/${materialId}/review`, {
+        cardIndex: currentIndex,
+        quality,
+      });
+      setCardsReviewed(prev => prev + 1);
+
+      // Move to next card or finish
+      if (currentIndex < flashcards.length - 1) {
+        setIsFlipped(false);
+        setTimeout(() => {
+          setCurrentIndex(prev => prev + 1);
+        }, 150);
+      } else {
+        // Session complete - could show summary here
+        setIsFlipped(false);
+        setCurrentIndex(0);
+      }
+    } catch (err) {
+      console.error('Failed to record review:', err);
+    } finally {
+      setSubmittingReview(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -353,28 +391,85 @@ export function FlashcardModal({
               </div>
 
               {/* Controls */}
-              <div className='flex items-center gap-4 mt-8'>
+              <div className='flex flex-col items-center gap-4 mt-8'>
+                {/* Review Mode Toggle */}
                 <button
-                  onClick={handleRestart}
-                  className='p-3 bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors'
-                  title='Restart'
+                  onClick={() => setReviewMode(!reviewMode)}
+                  className={`text-xs px-3 py-1 rounded-full transition-colors ${reviewMode
+                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                      : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                    }`}
                 >
-                  <RotateCw className='w-5 h-5 text-gray-600 dark:text-gray-400' />
+                  <Timer className='w-3 h-3 inline mr-1' />
+                  {reviewMode ? 'Review Mode ON' : 'Study Mode'}
                 </button>
-                <button
-                  onClick={handleNext}
-                  className='px-8 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors flex items-center gap-2'
-                >
-                  Next Card
-                  <Repeat className='w-4 h-4' />
-                </button>
-                <button
-                  onClick={handleNewCards}
-                  className='p-3 bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors'
-                  title='New Deck'
-                >
-                  <Sparkles className='w-5 h-5 text-gray-600 dark:text-gray-400' />
-                </button>
+
+                {/* Review Mode: Show rating buttons when flipped */}
+                {reviewMode && isFlipped ? (
+                  <div className='flex flex-wrap items-center justify-center gap-2'>
+                    <button
+                      onClick={() => handleReviewResponse(0)}
+                      disabled={submittingReview}
+                      className='px-4 py-2 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-colors text-sm disabled:opacity-50'
+                    >
+                      Again
+                    </button>
+                    <button
+                      onClick={() => handleReviewResponse(3)}
+                      disabled={submittingReview}
+                      className='px-4 py-2 bg-orange-500 text-white rounded-xl font-medium hover:bg-orange-600 transition-colors text-sm disabled:opacity-50'
+                    >
+                      Hard
+                    </button>
+                    <button
+                      onClick={() => handleReviewResponse(4)}
+                      disabled={submittingReview}
+                      className='px-4 py-2 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 transition-colors text-sm disabled:opacity-50'
+                    >
+                      Good
+                    </button>
+                    <button
+                      onClick={() => handleReviewResponse(5)}
+                      disabled={submittingReview}
+                      className='px-4 py-2 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-colors text-sm disabled:opacity-50'
+                    >
+                      Easy
+                    </button>
+                  </div>
+                ) : (
+                  /* Normal Controls */
+                  <div className='flex items-center gap-4'>
+                    <button
+                      onClick={handleRestart}
+                      className='p-3 bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors'
+                      title='Restart'
+                    >
+                      <RotateCw className='w-5 h-5 text-gray-600 dark:text-gray-400' />
+                    </button>
+                    <button
+                      onClick={handleNext}
+                      className='px-8 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors flex items-center gap-2'
+                    >
+                      Next Card
+                      <Repeat className='w-4 h-4' />
+                    </button>
+                    <button
+                      onClick={handleNewCards}
+                      className='p-3 bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors'
+                      title='New Deck'
+                    >
+                      <Sparkles className='w-5 h-5 text-gray-600 dark:text-gray-400' />
+                    </button>
+                  </div>
+                )}
+
+                {/* Review progress indicator */}
+                {reviewMode && cardsReviewed > 0 && (
+                  <p className='text-xs text-gray-500 flex items-center gap-1'>
+                    <CheckCircle className='w-3 h-3 text-green-500' />
+                    {cardsReviewed} cards reviewed this session
+                  </p>
+                )}
               </div>
             </div>
           ) : null}
