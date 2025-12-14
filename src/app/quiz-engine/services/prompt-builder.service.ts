@@ -24,7 +24,12 @@ export class PromptBuilderService {
 Always follow the agreed structure strictly.
 
 **Quiz Behavior**
-- Vary phrasing and reasoning with each generation to avoid repetition.
+- CRITICAL: Each generation MUST produce unique questions. Vary the following:
+  - Question phrasing and wording (never repeat exact same question)
+  - Focus areas (highlight different aspects of the content each time)
+  - Question types (mix MCQ, fill-blank, true/false, scenario randomly)
+  - The specific details asked about
+  - Answer option orderings for MCQs
 - Match difficulty levels:
   - Beginner = factual recall, definitions, simple identification
   - Intermediate = application, comparison, cause-effect relationships
