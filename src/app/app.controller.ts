@@ -6,7 +6,7 @@ import { Public } from '@/app/auth/decorators';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(private readonly appService: AppService) { }
 
   @Public()
   @Get()
@@ -17,6 +17,14 @@ export class AppController {
   @Public()
   @Get('/healthcheck')
   healthCheck() {
-    return 'OK';
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: Math.floor(process.uptime()),
+      memory: {
+        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+      },
+    };
   }
 }

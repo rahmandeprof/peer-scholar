@@ -1,3 +1,7 @@
+// Sentry must be imported first before any other modules
+import './instrument';
+import * as Sentry from '@sentry/nestjs';
+
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
@@ -24,7 +28,7 @@ async function bootstrap() {
 
   app.setGlobalPrefix('v1');
 
-  // Global exception filter
+  // Global exception filters - Sentry captures before our custom filter handles
   app.useGlobalFilters(new GlobalExceptionFilter());
 
   // Global logging interceptor

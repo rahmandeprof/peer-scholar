@@ -44,6 +44,8 @@
     "@nestjs/websockets": "^11.1.9",
     "@ngneat/falso": "^7.3.0",
     "@paralleldrive/cuid2": "^2.2.2",
+    "@sentry/nestjs": "^10.30.0",
+    "@sentry/profiling-node": "^10.30.0",
     "@types/passport-google-oauth20": "^2.0.17",
     "axios": "^1.9.0",
     "bcrypt": "^6.0.0",

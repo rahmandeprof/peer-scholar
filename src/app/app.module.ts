@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { SentryModule } from '@sentry/nestjs/setup';
 
 import { AcademicModule } from '@/app/academic/academic.module';
 import { AdminModule } from '@/app/admin/admin.module';
@@ -34,6 +35,7 @@ import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
 
 @Module({
   imports: [
+    SentryModule.forRoot(), // Must be first for proper error capturing
     ConfigModule.forRoot({
       isGlobal: true,
       expandVariables: true,
