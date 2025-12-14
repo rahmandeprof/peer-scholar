@@ -426,7 +426,6 @@ const DepartmentView: React.FC = () => {
         materialId={selectedMaterialId}
       />
     </div>
-    </div >
   );
 };
 
