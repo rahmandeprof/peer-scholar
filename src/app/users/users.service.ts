@@ -555,6 +555,13 @@ export class UsersService {
   }
 
   async getActivity(userId: string, materialId?: string) {
+    // Helper to strip content from material (avoid logging sensitive data)
+    const stripContent = (material: any) => {
+      if (!material) return null;
+      const { content, ...rest } = material;
+      return rest;
+    };
+
     // If materialId provided, get progress for that specific material
     if (materialId) {
       const progress = await this.readingProgressRepo.findOne({
@@ -565,7 +572,7 @@ export class UsersService {
       if (progress) {
         return {
           lastReadMaterialId: materialId,
-          lastReadMaterial: progress.material,
+          lastReadMaterial: stripContent(progress.material),
           lastReadPage: progress.lastPage,
         };
       }
@@ -588,7 +595,7 @@ export class UsersService {
 
     return {
       lastReadMaterialId: user.lastReadMaterialId,
-      lastReadMaterial: user.lastReadMaterial,
+      lastReadMaterial: stripContent(user.lastReadMaterial),
       lastReadPage: user.lastReadPage,
     };
   }
