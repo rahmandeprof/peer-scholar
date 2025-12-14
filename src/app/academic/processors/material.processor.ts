@@ -10,6 +10,8 @@ import { MaterialChunk } from '../entities/material-chunk.entity';
 import { OcrService } from '@/app/document-processing/services/ocr.service';
 import { PdfImageService } from '@/app/document-processing/services/pdf-image.service';
 import { CleanerService } from '@/app/document-processing/services/cleaner.service';
+import { QuizGenerator, QuizDifficulty } from '@/app/quiz-engine';
+import { SegmentSelectorService } from '@/app/document-processing/services/segment-selector.service';
 
 import axios from 'axios';
 import { Job } from 'bull';
@@ -36,6 +38,8 @@ export class MaterialProcessor {
     private ocrService: OcrService,
     private pdfImageService: PdfImageService,
     private cleanerService: CleanerService,
+    private quizGenerator: QuizGenerator,
+    private segmentSelector: SegmentSelectorService,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
 
@@ -280,6 +284,11 @@ export class MaterialProcessor {
       await this.materialRepo.save(material);
 
       this.logger.debug('Material processing completed');
+
+      // Pre-generate quiz in background for faster first access
+      this.preGenerateQuiz(material).catch((err) => {
+        this.logger.warn(`[PRE-GEN] Quiz pre-generation failed for ${materialId}:`, err.message);
+      });
     } catch (error) {
       this.logger.error(`Failed to process material: ${materialId}`, error);
       await this.materialRepo.update(materialId, {
@@ -690,6 +699,50 @@ export class MaterialProcessor {
         material.processingStatus = ProcessingStatus.FAILED;
         await this.materialRepo.save(material);
       }
+    }
+  }
+
+  /**
+   * Pre-generate a quiz for the material in background
+   * This runs after processing completes so first user request gets cached quiz
+   */
+  private async preGenerateQuiz(material: Material): Promise<void> {
+    try {
+      this.logger.log(`[PRE-GEN] Starting quiz pre-generation for material ${material.id}`);
+
+      // Select segments for quiz generation
+      const { segments } = await this.segmentSelector.selectSegments(material.id, {
+        maxTokens: 8000,
+        maxSegments: 20,
+      });
+
+      if (segments.length === 0) {
+        this.logger.warn(`[PRE-GEN] No segments available for ${material.id}, skipping pre-gen`);
+        return;
+      }
+
+      // Generate quiz with default settings (intermediate, 5 questions)
+      const result = await this.quizGenerator.generateFromSegments(
+        segments,
+        material.title,
+        QuizDifficulty.INTERMEDIATE,
+        5,
+      );
+
+      if (!result.success || !result.data) {
+        this.logger.warn(`[PRE-GEN] Quiz generation failed for ${material.id}: ${result.error}`);
+        return;
+      }
+
+      // Cache the quiz on the material
+      material.quiz = result.data.questions as any;
+      material.quizGeneratedVersion = material.materialVersion;
+      await this.materialRepo.save(material);
+
+      this.logger.log(`[PRE-GEN] Successfully pre-generated ${result.data.questions.length} quiz questions for material ${material.id}`);
+    } catch (error) {
+      // Don't throw - this is a background optimization, not critical path
+      this.logger.warn(`[PRE-GEN] Pre-generation failed for ${material.id}:`, error instanceof Error ? error.message : error);
     }
   }
 }

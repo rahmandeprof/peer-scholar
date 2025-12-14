@@ -572,7 +572,7 @@ export class ChatService {
       material.quizGeneratedVersion === material.materialVersion;
 
     if (!pageStart && !pageEnd && !regenerate && cacheValid) {
-      this.logger.log(`[CACHE-HIT] Quiz cache hit for material ${materialId}, returning ${material.quiz.length} cached questions`);
+      this.logger.log(`[CACHE-HIT] Quiz cache hit for material ${materialId}, returning ${material.quiz?.length ?? 0} cached questions`);
       return material.quiz;
     }
 
@@ -723,7 +723,7 @@ export class ChatService {
       material.flashcardGeneratedVersion === material.materialVersion;
 
     if (!pageStart && !pageEnd && cacheValid) {
-      this.logger.log(`[CACHE-HIT] Flashcard cache hit for material ${materialId}, returning ${material.flashcards.length} cached cards`);
+      this.logger.log(`[CACHE-HIT] Flashcard cache hit for material ${materialId}, returning ${material.flashcards?.length ?? 0} cached cards`);
       return material.flashcards;
     }
 

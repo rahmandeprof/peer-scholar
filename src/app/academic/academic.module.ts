@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { UsersModule } from '@/app/users/users.module';
 import { DocumentProcessingModule } from '@/app/document-processing/document-processing.module';
+import { QuizEngineModule } from '@/app/quiz-engine/quiz-engine.module';
 
 import { Course } from './entities/course.entity';
 import { Department } from './entities/department.entity';
@@ -61,6 +62,7 @@ import { MaterialProcessor } from './processors/material.processor';
     }),
     UsersModule,
     DocumentProcessingModule,
+    QuizEngineModule,
   ],
   controllers: [
     AcademicController,
