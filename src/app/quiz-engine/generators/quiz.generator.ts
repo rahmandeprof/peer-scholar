@@ -4,7 +4,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { LLMService } from '../services/llm.service';
 import { PromptBuilderService } from '../services/prompt-builder.service';
-import { validateQuizResponse } from '../schemas/quiz.schema';
 import {
     QuizDifficulty,
     QuizGenerationRequest,

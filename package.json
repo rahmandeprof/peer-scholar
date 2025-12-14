@@ -69,7 +69,6 @@
     "passport-google-oauth20": "^2.0.0",
     "passport-jwt": "^4.0.1",
     "pdf-parse": "^2.4.5",
-    "pdf-poppler": "^0.2.3",
     "pg": "^8.16.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
