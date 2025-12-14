@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 
