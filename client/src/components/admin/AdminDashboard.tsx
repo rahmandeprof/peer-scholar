@@ -12,6 +12,8 @@ import {
     RefreshCw,
     FileText,
     User,
+    PlayCircle,
+    Clock,
 } from 'lucide-react';
 import api from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -56,6 +58,11 @@ export function AdminDashboard() {
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
+    // Stuck materials state
+    const [stuckCount, setStuckCount] = useState(0);
+    const [reprocessing, setReprocessing] = useState(false);
+    const [lastReprocessResult, setLastReprocessResult] = useState<{ count: number; failed: number } | null>(null);
+
     // Check admin access
     useEffect(() => {
         if (user && user.role !== 'admin') {
@@ -76,8 +83,34 @@ export function AdminDashboard() {
         }
     };
 
+    const fetchStuckCount = async () => {
+        try {
+            const res = await api.get('/admin/stuck-materials/count');
+            setStuckCount(res.data.count);
+        } catch (err) {
+            console.error('Failed to fetch stuck count:', err);
+        }
+    };
+
+    const handleReprocessStuck = async () => {
+        setReprocessing(true);
+        setLastReprocessResult(null);
+        try {
+            const res = await api.post('/admin/reprocess-stuck');
+            toast.success(res.data.message);
+            setLastReprocessResult({ count: res.data.count, failed: res.data.failed });
+            // Refresh the count
+            fetchStuckCount();
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Failed to reprocess materials');
+        } finally {
+            setReprocessing(false);
+        }
+    };
+
     useEffect(() => {
         fetchFlaggedMaterials();
+        fetchStuckCount();
     }, []);
 
     const fetchFlags = async (materialId: string) => {
@@ -174,7 +207,46 @@ export function AdminDashboard() {
                 </div>
             </div>
 
-            <div className='max-w-7xl mx-auto p-4'>
+            <div className='max-w-7xl mx-auto p-4 space-y-6'>
+                {/* Stuck Materials Card */}
+                <div className='bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5'>
+                    <div className='flex items-center justify-between'>
+                        <div className='flex items-center'>
+                            <div className='w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mr-4'>
+                                <Clock className='w-6 h-6 text-amber-600 dark:text-amber-400' />
+                            </div>
+                            <div>
+                                <h2 className='text-lg font-bold text-gray-900 dark:text-white'>
+                                    Stuck Materials
+                                </h2>
+                                <p className='text-sm text-gray-500 dark:text-gray-400'>
+                                    {stuckCount} material{stuckCount !== 1 ? 's' : ''} with pending processing
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleReprocessStuck}
+                            disabled={reprocessing || stuckCount === 0}
+                            className='px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white rounded-xl font-medium flex items-center gap-2 transition-colors'
+                        >
+                            {reprocessing ? (
+                                <Loader2 className='w-5 h-5 animate-spin' />
+                            ) : (
+                                <PlayCircle className='w-5 h-5' />
+                            )}
+                            {reprocessing ? 'Reprocessing...' : 'Reprocess All'}
+                        </button>
+                    </div>
+                    {lastReprocessResult && (
+                        <div className='mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg text-green-700 dark:text-green-400 text-sm'>
+                            ✓ Queued {lastReprocessResult.count} materials for processing
+                            {lastReprocessResult.failed > 0 && (
+                                <span className='text-red-500 ml-2'>({lastReprocessResult.failed} failed)</span>
+                            )}
+                        </div>
+                    )}
+                </div>
+
                 <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
                     {/* Flagged Materials List */}
                     <div className='bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden'>
