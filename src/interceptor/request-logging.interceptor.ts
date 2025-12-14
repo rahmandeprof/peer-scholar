@@ -13,14 +13,37 @@ import { Observable, tap } from 'rxjs';
 
 // Fields to redact from logs for security/privacy
 const SENSITIVE_FIELDS = [
-  'content',       // Document content
-  'password',      // User passwords
-  'token',         // Auth tokens
-  'access_token',  // JWT tokens
-  'refreshToken',  // Refresh tokens
-  'verificationToken', // Email verification
-  'text',          // Segment text (can be large)
+  // Document content
+  'content',
+  'text',
+  'textSegment',
+  'rawContent',
+  'cleanedText',
+  // Auth/Security
+  'password',
+  'token',
+  'access_token',
+  'refreshToken',
+  'verificationToken',
+  'apiKey',
+  // Quiz/Flashcard content (academic material)
+  'question',
+  'answer',
+  'explanation',
+  'hint',
+  'options',
+  'front',
+  'back',
+  'term',
+  'definition',
+  // File data
+  'buffer',
+  'file',
+  'fileData',
 ];
+
+// Max array items to show before summarizing
+const MAX_ARRAY_ITEMS_TO_LOG = 3;
 
 @Injectable()
 export class RequestLoggingInterceptor implements NestInterceptor {
@@ -42,7 +65,8 @@ export class RequestLoggingInterceptor implements NestInterceptor {
   handleHTTPRequest(req: Request, next: CallHandler): Observable<unknown> {
     const now = Date.now();
 
-    const { method, url, body, ip, query } = req;
+    const { method, url, ip, query } = req;
+    const body = req.body;
 
     const requestHash = createId();
 
@@ -60,11 +84,12 @@ export class RequestLoggingInterceptor implements NestInterceptor {
         next: (responseBody) => {
           const duration = Date.now() - now;
 
+          // Summarize response for logging (avoid bloating logs)
+          const logSafeResponse = this.summarizeResponse(responseBody, url);
+
           this.logger.log(
             `HTTP response ${requestHash} +${duration.toString()}ms`,
-            typeof responseBody === 'object' && responseBody !== null
-              ? this.sanitizeForLogging(responseBody)
-              : responseBody,
+            logSafeResponse,
           );
           this.logger.log(
             `========= [END] HTTP request ${requestHash} =========`,
@@ -72,6 +97,46 @@ export class RequestLoggingInterceptor implements NestInterceptor {
         },
       }),
     );
+  }
+
+  /**
+   * Summarize response body for logging - prevents log bloat
+   */
+  private summarizeResponse(responseBody: unknown, url: string): unknown {
+    // For quiz/flashcard endpoints, just log summary
+    if (url.includes('/chat/quiz/') || url.includes('/chat/flashcards/')) {
+      if (Array.isArray(responseBody)) {
+        return { _summary: `Generated ${responseBody.length} items`, type: 'quiz/flashcard' };
+      }
+      if (typeof responseBody === 'object' && responseBody !== null) {
+        const obj = responseBody as Record<string, unknown>;
+        if (obj.status === 'upgrading') {
+          return { status: 'upgrading', materialId: obj.materialId };
+        }
+      }
+    }
+
+    // For material content endpoints, summarize
+    if (url.includes('/materials/') && typeof responseBody === 'object' && responseBody !== null) {
+      return this.sanitizeForLogging(responseBody);
+    }
+
+    // For arrays, limit what we log
+    if (Array.isArray(responseBody)) {
+      if (responseBody.length > MAX_ARRAY_ITEMS_TO_LOG) {
+        return {
+          _summary: `Array with ${responseBody.length} items`,
+          _preview: responseBody.slice(0, MAX_ARRAY_ITEMS_TO_LOG).map(item => this.sanitizeForLogging(item)),
+        };
+      }
+      return responseBody.map(item => this.sanitizeForLogging(item));
+    }
+
+    if (typeof responseBody === 'object' && responseBody !== null) {
+      return this.sanitizeForLogging(responseBody);
+    }
+
+    return responseBody;
   }
 
   /**
@@ -83,6 +148,10 @@ export class RequestLoggingInterceptor implements NestInterceptor {
     }
 
     if (Array.isArray(obj)) {
+      // Limit array logging to prevent bloat
+      if (obj.length > MAX_ARRAY_ITEMS_TO_LOG) {
+        return { _summary: `Array[${obj.length}]`, _preview: obj.slice(0, 2).map(item => this.sanitizeForLogging(item)) };
+      }
       return obj.map(item => this.sanitizeForLogging(item));
     }
 
@@ -108,3 +177,4 @@ export class RequestLoggingInterceptor implements NestInterceptor {
     return sanitized;
   }
 }
+
