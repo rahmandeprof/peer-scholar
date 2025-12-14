@@ -12,6 +12,7 @@ import {
   AccessScope,
   Material,
   MaterialStatus,
+  ProcessingStatus,
 } from './entities/material.entity';
 import { MaterialAnnotation } from './entities/material-annotation.entity';
 import { MaterialFavorite } from './entities/material-favorite.entity';
@@ -71,10 +72,7 @@ export class MaterialsService {
   // ... (existing getPresignedUrl)
 
   async create(dto: CreateMaterialDto, user: User) {
-    // ... (existing create logic)
-
     const material = this.materialRepo.create({
-      // ... (existing fields)
       title: dto.title,
       description: dto.description,
       type: dto.type,
@@ -91,16 +89,24 @@ export class MaterialsService {
       targetYear: dto.targetYear,
       uploader: user,
       status: MaterialStatus.PENDING,
-      fileHash: dto.fileHash, // Add fileHash
+      processingStatus: ProcessingStatus.PENDING,
+      fileHash: dto.fileHash,
       parent: dto.parentMaterialId
         ? ({ id: dto.parentMaterialId } as Material)
         : undefined,
     });
 
-    // ... (rest of create)
     const savedMaterial = await this.materialRepo.save(material);
 
-    // ...
+    // Queue background processing for text extraction and segmentation
+    await this.materialsQueue.add('process-material', {
+      materialId: savedMaterial.id,
+      fileUrl: savedMaterial.fileUrl,
+    });
+
+    // Reward user for uploading
+    await this.usersService.increaseReputation(user.id, 10);
+
     return savedMaterial;
   }
 
