@@ -55,6 +55,44 @@ export function FlashcardModal({
     endPage?: number;
   } | undefined>(undefined);
 
+  // Touch swipe handling for mobile
+  const touchStartX = React.useRef<number | null>(null);
+  const touchStartY = React.useRef<number | null>(null);
+  const [swipeOffset, setSwipeOffset] = useState(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const deltaX = e.touches[0].clientX - touchStartX.current;
+    const deltaY = e.touches[0].clientY - (touchStartY.current || 0);
+    // Only track horizontal swipes (not vertical scrolling)
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      setSwipeOffset(deltaX * 0.3); // Dampen the swipe feedback
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    const swipeThreshold = 80; // Minimum swipe distance
+
+    if (deltaX < -swipeThreshold && !isFlipped) {
+      // Swipe left → next card
+      handleNext();
+    } else if (deltaX > swipeThreshold && !isFlipped) {
+      // Swipe right → previous card
+      handlePrev();
+    }
+
+    touchStartX.current = null;
+    touchStartY.current = null;
+    setSwipeOffset(0);
+  };
+
   // Cleanup polling on unmount
   useEffect(() => {
     return () => {
@@ -159,6 +197,13 @@ export function FlashcardModal({
     setIsFlipped(false);
     setTimeout(() => {
       setCurrentIndex((prev) => (prev + 1) % flashcards.length);
+    }, 150);
+  };
+
+  const handlePrev = () => {
+    setIsFlipped(false);
+    setTimeout(() => {
+      setCurrentIndex((prev) => (prev - 1 + flashcards.length) % flashcards.length);
     }, 150);
   };
 
@@ -417,10 +462,14 @@ export function FlashcardModal({
             </div>
           ) : flashcards.length > 0 ? (
             <div className='min-h-[400px] flex flex-col items-center justify-center p-8 bg-gray-50 dark:bg-gray-950/50'>
-              {/* Flashcard */}
+              {/* Flashcard with swipe support */}
               <div
                 onClick={handleFlip}
-                className='w-full max-w-lg aspect-[3/2] perspective-1000 cursor-pointer'
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                className='w-full max-w-lg aspect-[3/2] perspective-1000 cursor-pointer touch-pan-y select-none'
+                style={{ transform: `translateX(${swipeOffset}px)`, transition: swipeOffset === 0 ? 'transform 0.2s' : 'none' }}
               >
                 <div
                   className={`relative w-full h-full transition-transform duration-500 transform-style-preserve-3d ${isFlipped ? 'rotate-y-180' : ''
@@ -439,7 +488,7 @@ export function FlashcardModal({
                     <p className='text-xl font-bold text-center text-gray-900 dark:text-white'>
                       {getFlashcardFront(flashcards[currentIndex])}
                     </p>
-                    <p className='text-sm text-gray-400 mt-6'>Tap to flip</p>
+                    <p className='text-sm text-gray-400 mt-6'>Tap to flip · Swipe for next</p>
                   </div>
                   {/* Back */}
                   <div

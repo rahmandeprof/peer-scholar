@@ -38,18 +38,18 @@ export const ProfileHeader = memo<ProfileHeaderProps>(({ user }) => {
                 </div>
             </div>
 
-            {/* Stats Row */}
-            <div className="flex justify-center gap-4">
+            {/* Stats Row - Wraps on mobile */}
+            <div className="flex justify-center gap-3 flex-wrap px-2">
                 {/* Reputation Badge */}
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 px-4 py-2 rounded-xl border border-yellow-200 dark:border-yellow-800 flex items-center">
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 px-3 py-2 rounded-xl border border-yellow-200 dark:border-yellow-800 flex items-center min-w-[160px] max-w-[200px]">
                     <Trophy className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2 flex-shrink-0" />
-                    <div className="min-w-0">
-                        <div className="flex justify-between items-end mb-1">
-                            <p className="text-xs text-yellow-600 dark:text-yellow-400 font-medium uppercase tracking-wider">
+                    <div className="min-w-0 flex-1">
+                        <div className="flex justify-between items-end mb-1 gap-1">
+                            <p className="text-xs text-yellow-600 dark:text-yellow-400 font-medium uppercase tracking-wider truncate">
                                 Reputation
                             </p>
-                            <span className="text-xs font-bold text-yellow-700 dark:text-yellow-300 ml-2">
-                                {(user.reputation || 0) % 500} / 500 XP
+                            <span className="text-xs font-bold text-yellow-700 dark:text-yellow-300 whitespace-nowrap">
+                                {(user.reputation || 0) % 500}/500
                             </span>
                         </div>
                         <p className="text-lg font-bold text-yellow-700 dark:text-yellow-300 leading-none mb-2">
@@ -63,15 +63,15 @@ export const ProfileHeader = memo<ProfileHeaderProps>(({ user }) => {
                             />
                         </div>
                         <p className="text-[10px] text-yellow-600/80 dark:text-yellow-400/80 mt-1 text-right">
-                            To Level {currentLevel}
+                            Lvl {currentLevel}
                         </p>
                     </div>
                 </div>
 
                 {/* Verified Badge */}
                 {user.isVerified && (
-                    <div className="bg-blue-50 dark:bg-blue-900/20 px-4 py-2 rounded-xl border border-blue-200 dark:border-blue-800 flex items-center">
-                        <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-2" />
+                    <div className="bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-xl border border-blue-200 dark:border-blue-800 flex items-center">
+                        <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-2 flex-shrink-0" />
                         <div>
                             <p className="text-xs text-blue-600 dark:text-blue-400 font-medium uppercase tracking-wider">
                                 Status

@@ -152,7 +152,7 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
                 </p>
               )}
             </div>
-            <div className='flex items-center space-x-2'>
+            <div className='flex items-center gap-2 flex-wrap justify-end flex-shrink-0'>
               <span className='inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 border border-primary-100 dark:border-primary-800'>
                 {material.type}
               </span>
@@ -185,10 +185,10 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
               {material.isOcrProcessed && (
                 <span
                   className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${(material.ocrConfidence ?? 0) >= 80
-                      ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-100 dark:border-blue-800'
-                      : (material.ocrConfidence ?? 0) >= 50
-                        ? 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-100 dark:border-yellow-800'
-                        : 'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border-orange-100 dark:border-orange-800'
+                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-100 dark:border-blue-800'
+                    : (material.ocrConfidence ?? 0) >= 50
+                      ? 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-100 dark:border-yellow-800'
+                      : 'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border-orange-100 dark:border-orange-800'
                     }`}
                   title={`Scanned document - OCR confidence: ${(material.ocrConfidence ?? 0).toFixed(0)}%`}
                 >
