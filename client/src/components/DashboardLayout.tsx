@@ -389,7 +389,7 @@ export function DashboardLayout() {
         </div>
 
         {/* Content Area */}
-        <div className='flex-1 overflow-hidden relative animate-fade-in'>
+        <div className='flex-1 overflow-y-auto relative animate-fade-in'>
           <Outlet
             context={{
               openUploadModal: () => setUploadModalOpen(true),
