@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { BookOpen, FileText, Upload, Loader2 } from 'lucide-react';
