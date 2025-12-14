@@ -603,6 +603,5 @@ export function AcademicControlCenter() {
         materialId={selectedMaterialForCollection}
       />
     </div>
-    </div >
   );
 }
