@@ -83,6 +83,8 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName,
         department: user.department,
+        faculty: user.faculty,
+        school: user.school,
         yearOfStudy: user.yearOfStudy,
         currentStreak: streak.currentStreak,
         longestStreak: streak.longestStreak,

@@ -198,9 +198,9 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
         }
       `}</style>
 
-      <div className='bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden relative flex flex-col animate-pop-in'>
+      <div className='bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-hidden relative flex flex-col animate-pop-in'>
         {/* Header */}
-        <div className='flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-800'>
+        <div className='flex-shrink-0 flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-800'>
           <div className='flex items-center space-x-2'>
             <div className='p-2 bg-purple-100 dark:bg-purple-900/30 rounded-xl text-purple-600 dark:text-purple-400'>
               <Trophy className='w-5 h-5' />
@@ -217,7 +217,7 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
           </button>
         </div>
 
-        <div className='flex-1 overflow-y-auto p-6 md:p-8'>
+        <div className='flex-1 min-h-0 overflow-y-auto p-6 md:p-8'>
           {/* Configuration Panel - Show before generating */}
           {showConfig && !loading && questions.length === 0 && !error ? (
             <div className='flex flex-col items-center py-4 md:py-8'>
