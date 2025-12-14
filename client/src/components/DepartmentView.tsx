@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { BookOpen, FileText, Upload, Loader2 } from 'lucide-react';
@@ -140,20 +140,6 @@ const DepartmentView: React.FC = () => {
     setRecentMaterials((prev) => prev.filter((m) => m.id !== id));
     setTotalMaterials(prev => prev - 1);
   };
-
-  // Pull-to-refresh handler
-  const handlePullRefresh = useCallback(async () => {
-    if (!user?.department) return;
-
-    setCurrentPage(1);
-    const promises = [fetchTrending(), fetchRecent(1, true)];
-
-    if (typeof user.department !== 'string' && user.department.id) {
-      promises.push(fetchCourses(user.department.id));
-    }
-
-    await Promise.all(promises);
-  }, [user, fetchRecent, fetchCourses, fetchTrending]);
 
   if (loading) {
     return (
