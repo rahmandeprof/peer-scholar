@@ -49,6 +49,8 @@ export class QuizGenerator {
 
         let lastError = '';
         let totalAttempts = 0;
+        let bestAttemptQuestions: QuizResponse['questions'] = [];
+        let bestAttemptData: QuizResponse | null = null;
 
         // Retry loop for validation failures
         for (let retry = 0; retry < this.maxValidationRetries; retry++) {
@@ -76,26 +78,62 @@ export class QuizGenerator {
                 continue;
             }
 
-            // Validate with Zod
-            const validationResult = validateQuizResponse(parseResult.data);
+            // Filter out questions with < 2 options (hybrid filtering)
+            const allQuestions = parseResult.data.questions || [];
+            const validQuestions = allQuestions.filter(q =>
+                Array.isArray(q.options) &&
+                q.options.length >= 2 &&
+                q.question?.length >= 10 &&
+                q.answer?.length >= 1 &&
+                q.explanation?.length >= 10
+            );
 
-            if (!validationResult.success) {
-                lastError = validationResult.errors?.message || 'Schema validation failed';
-                this.logger.warn(`Validation failed on attempt ${retry + 1}: ${lastError}`);
-                continue;
+            const invalidCount = allQuestions.length - validQuestions.length;
+            if (invalidCount > 0) {
+                this.logger.warn(`Filtered out ${invalidCount} invalid questions (< 2 options or missing fields)`);
             }
 
-            // Success!
-            this.logger.debug(`Quiz generated successfully after ${totalAttempts} attempt(s)`);
+            // Track best attempt
+            if (validQuestions.length > bestAttemptQuestions.length) {
+                bestAttemptQuestions = validQuestions;
+                bestAttemptData = parseResult.data;
+            }
 
+            // Check if we have enough valid questions (at least 50% or minimum 3)
+            const minRequired = Math.max(3, Math.floor(questionCount * 0.5));
+            if (validQuestions.length >= minRequired || validQuestions.length >= questionCount) {
+                // Success with filtered questions
+                this.logger.debug(`Quiz generated successfully after ${totalAttempts} attempt(s) with ${validQuestions.length} valid questions`);
+
+                return {
+                    success: true,
+                    data: {
+                        ...parseResult.data,
+                        questions: validQuestions,
+                    } as QuizResponse,
+                    retryCount: totalAttempts,
+                };
+            }
+
+            // Not enough valid questions, retry
+            lastError = `Only ${validQuestions.length} valid questions (need ${minRequired})`;
+            this.logger.warn(`Insufficient valid questions on attempt ${retry + 1}: ${lastError}`);
+        }
+
+        // All retries exhausted - return best attempt if we have any valid questions
+        if (bestAttemptQuestions.length > 0 && bestAttemptData) {
+            this.logger.warn(`Returning best attempt with ${bestAttemptQuestions.length} valid questions after ${totalAttempts} retries`);
             return {
                 success: true,
-                data: validationResult.data as QuizResponse,
+                data: {
+                    ...bestAttemptData,
+                    questions: bestAttemptQuestions,
+                } as QuizResponse,
                 retryCount: totalAttempts,
             };
         }
 
-        // All retries failed
+        // Complete failure - no valid questions at all
         this.logger.error(`Quiz generation failed after ${totalAttempts} attempts: ${lastError}`);
 
         return {
@@ -179,6 +217,8 @@ export class QuizGenerator {
 
         let lastError = '';
         let totalAttempts = 0;
+        let bestAttemptQuestions: QuizResponse['questions'] = [];
+        let bestAttemptData: QuizResponse | null = null;
 
         // Retry loop for validation failures
         for (let retry = 0; retry < this.maxValidationRetries; retry++) {
@@ -204,23 +244,61 @@ export class QuizGenerator {
                 continue;
             }
 
-            const validationResult = validateQuizResponse(parseResult.data);
+            // Filter out questions with < 2 options (hybrid filtering)
+            const allQuestions = parseResult.data.questions || [];
+            const validQuestions = allQuestions.filter(q =>
+                Array.isArray(q.options) &&
+                q.options.length >= 2 &&
+                q.question?.length >= 10 &&
+                q.answer?.length >= 1 &&
+                q.explanation?.length >= 10
+            );
 
-            if (!validationResult.success) {
-                lastError = validationResult.errors?.message || 'Schema validation failed';
-                this.logger.warn(`Validation failed on attempt ${retry + 1}: ${lastError}`);
-                continue;
+            const invalidCount = allQuestions.length - validQuestions.length;
+            if (invalidCount > 0) {
+                this.logger.warn(`Filtered out ${invalidCount} invalid questions (< 2 options or missing fields)`);
             }
 
-            this.logger.debug(`Quiz generated from segments successfully after ${totalAttempts} attempt(s)`);
+            // Track best attempt
+            if (validQuestions.length > bestAttemptQuestions.length) {
+                bestAttemptQuestions = validQuestions;
+                bestAttemptData = parseResult.data;
+            }
 
+            // Check if we have enough valid questions (at least 50% or minimum 3)
+            const minRequired = Math.max(3, Math.floor(adjustedQuestionCount * 0.5));
+            if (validQuestions.length >= minRequired || validQuestions.length >= adjustedQuestionCount) {
+                this.logger.debug(`Quiz generated from segments successfully after ${totalAttempts} attempt(s) with ${validQuestions.length} valid questions`);
+
+                return {
+                    success: true,
+                    data: {
+                        ...parseResult.data,
+                        questions: validQuestions,
+                    } as QuizResponse,
+                    retryCount: totalAttempts,
+                };
+            }
+
+            // Not enough valid questions, retry
+            lastError = `Only ${validQuestions.length} valid questions (need ${minRequired})`;
+            this.logger.warn(`Insufficient valid questions on attempt ${retry + 1}: ${lastError}`);
+        }
+
+        // All retries exhausted - return best attempt if we have any valid questions
+        if (bestAttemptQuestions.length > 0 && bestAttemptData) {
+            this.logger.warn(`Returning best attempt with ${bestAttemptQuestions.length} valid questions after ${totalAttempts} retries`);
             return {
                 success: true,
-                data: validationResult.data as QuizResponse,
+                data: {
+                    ...bestAttemptData,
+                    questions: bestAttemptQuestions,
+                } as QuizResponse,
                 retryCount: totalAttempts,
             };
         }
 
+        // Complete failure - no valid questions at all
         this.logger.error(`Quiz generation from segments failed after ${totalAttempts} attempts: ${lastError}`);
 
         return {
