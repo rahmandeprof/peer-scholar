@@ -205,6 +205,13 @@ export class Material extends IDAndTimestamp {
   @Column({ name: 'legacy_generated', type: 'boolean', default: false })
   legacyGenerated: boolean;
 
+  // OCR processing tracking
+  @Column({ name: 'is_ocr_processed', type: 'boolean', default: false })
+  isOcrProcessed: boolean;
+
+  @Column({ name: 'ocr_confidence', type: 'float', nullable: true })
+  ocrConfidence?: number;
+
   @Column({ name: 'average_rating', type: 'float', default: 0 })
   averageRating: number;
 

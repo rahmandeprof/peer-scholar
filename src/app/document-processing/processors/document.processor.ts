@@ -67,6 +67,7 @@ export class DocumentProcessor {
             await job.progress(40);
 
             let isOcr = false;
+            let ocrConfidence: number | undefined;
 
             // Check if OCR is needed (scanned PDF detected)
             if (extractionResult.requiresOcr && mimeType.includes('pdf')) {
@@ -88,6 +89,7 @@ export class DocumentProcessor {
                         isOcr: true,
                     };
                     isOcr = true;
+                    ocrConfidence = ocrResult.confidence;
 
                     this.logger.log(`OCR completed for ${materialId}: ${ocrResult.text.length} chars, ${ocrResult.confidence.toFixed(1)}% confidence`);
                 } catch (ocrError) {
@@ -132,6 +134,10 @@ export class DocumentProcessor {
                 content: cleanedText,
                 processingStatus: ProcessingStatus.COMPLETED,
                 status: MaterialStatus.READY, // Also update legacy status
+                ...(isOcr && {
+                    isOcrProcessed: true,
+                    ocrConfidence: ocrConfidence,
+                }),
             });
             await job.progress(100);
 

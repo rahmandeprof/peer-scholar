@@ -13,6 +13,7 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle,
+  Scan,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -32,6 +33,8 @@ interface Material {
   status?: 'pending' | 'processing' | 'ready' | 'failed';
   processingStatus?: 'pending' | 'extracting' | 'cleaning' | 'segmenting' | 'completed' | 'failed' | 'ocr_extracting';
   processingVersion?: 'v1' | 'v2';
+  isOcrProcessed?: boolean;
+  ocrConfidence?: number;
   uploader: {
     id: string;
     firstName: string;
@@ -177,6 +180,26 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
                   Ready
                 </span>
               ) : null}
+
+              {/* OCR Quality Badge */}
+              {material.isOcrProcessed && (
+                <span
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${(material.ocrConfidence ?? 0) >= 80
+                      ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-100 dark:border-blue-800'
+                      : (material.ocrConfidence ?? 0) >= 50
+                        ? 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-100 dark:border-yellow-800'
+                        : 'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border-orange-100 dark:border-orange-800'
+                    }`}
+                  title={`Scanned document - OCR confidence: ${(material.ocrConfidence ?? 0).toFixed(0)}%`}
+                >
+                  <Scan className='w-3 h-3' />
+                  {(material.ocrConfidence ?? 0) >= 80
+                    ? 'Scanned'
+                    : (material.ocrConfidence ?? 0) >= 50
+                      ? 'Scanned (Fair)'
+                      : 'Scanned (Low)'}
+                </span>
+              )}
 
               {/* Versions Badge */}
               {material.versions && material.versions.length > 0 && (

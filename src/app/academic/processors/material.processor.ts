@@ -640,8 +640,10 @@ export class MaterialProcessor {
               return;
             }
 
-            // Update material content with OCR result
+            // Update material content with OCR result and track OCR usage
             material.content = text;
+            material.isOcrProcessed = true;
+            material.ocrConfidence = ocrResult.confidence;
 
           } catch (ocrError) {
             this.logger.error(`[UPGRADE] OCR failed for ${materialId}:`, ocrError);
