@@ -81,7 +81,7 @@ export class ChatService {
 
     // Configurable AI models with sensible defaults
     this.chatModel = this.configService.get<string>('OPENAI_CHAT_MODEL') ?? 'gpt-3.5-turbo';
-    this.generationModel = this.configService.get<string>('OPENAI_GENERATION_MODEL') ?? 'gpt-4o';
+    this.generationModel = this.configService.get<string>('OPENAI_GENERATION_MODEL') ?? 'gpt-4o-mini';
   }
 
   // Extract text from file (pdf, docx, txt)
