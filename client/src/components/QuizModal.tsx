@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Check,
@@ -66,10 +66,35 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
   // Offline mode tracking
   const [isOfflineMode, setIsOfflineMode] = useState(false);
 
+  // Upgrading status tracking
+  const [isUpgrading, setIsUpgrading] = useState(false);
+  const pollingRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastOptionsRef = React.useRef<{
+    startPage?: number;
+    endPage?: number;
+    diff?: Difficulty;
+    count?: number;
+  } | undefined>(undefined);
+
+  // Cleanup polling on unmount or close
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) {
+        clearTimeout(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, []);
+
   useEffect(() => {
     if (isOpen && materialId) {
       fetchQuiz();
     } else {
+      // Clear polling when modal closes
+      if (pollingRef.current) {
+        clearTimeout(pollingRef.current);
+        pollingRef.current = null;
+      }
       resetQuiz();
     }
   }, [isOpen, materialId]);
@@ -89,6 +114,7 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
     setDifficulty('intermediate');
     setQuestionCount(5);
     setIsOfflineMode(false);
+    setIsUpgrading(false);
     // setTopic(''); // Reserved for future topic-specific quiz filtering
   };
 
@@ -103,6 +129,14 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
     setError(null);
     setShowConfig(false);
     setIsOfflineMode(false);
+    setIsUpgrading(false);
+    lastOptionsRef.current = options;
+
+    // Clear any existing polling
+    if (pollingRef.current) {
+      clearTimeout(pollingRef.current);
+      pollingRef.current = null;
+    }
 
     try {
       const url = `/chat/quiz/${materialId}`;
@@ -116,7 +150,20 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
       if (options?.count) body.questionCount = options.count;
 
       const res = await api.post(url, body);
-      if (!res.data || res.data.length === 0) {
+
+      // Handle upgrading status - material is being upgraded to v2
+      if (res.data && res.data.status === 'upgrading') {
+        setIsUpgrading(true);
+        setLoading(false);
+        // Poll again after 3 seconds
+        pollingRef.current = setTimeout(() => {
+          fetchQuiz(lastOptionsRef.current);
+        }, 3000);
+        return;
+      }
+
+      // Check for valid quiz data (should be an array)
+      if (!res.data || !Array.isArray(res.data) || res.data.length === 0) {
         setError('No questions could be generated for this material. The content may be too short or not suitable for quiz generation.');
       } else {
         setQuestions(res.data);
@@ -140,7 +187,9 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
       setError(message);
       console.error('Failed to fetch quiz:', message);
     } finally {
-      setLoading(false);
+      if (!isUpgrading) {
+        setLoading(false);
+      }
     }
   };
 
@@ -386,6 +435,19 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
                   Generate Quiz
                 </button>
               </div>
+            </div>
+          ) : isUpgrading ? (
+            <div className='flex flex-col items-center justify-center py-20'>
+              <div className='relative'>
+                <div className='absolute inset-0 bg-indigo-500 blur-xl opacity-20 rounded-full animate-pulse'></div>
+                <Sparkles className='w-12 h-12 text-indigo-600 animate-bounce relative z-10' />
+              </div>
+              <p className='mt-6 text-gray-600 dark:text-gray-400 font-medium animate-pulse'>
+                Preparing this material for smart study...
+              </p>
+              <p className='mt-2 text-sm text-gray-500 dark:text-gray-500'>
+                This only happens once. Please wait a moment.
+              </p>
             </div>
           ) : loading ? (
             <div className='flex flex-col items-center justify-center py-20'>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, RotateCw, Repeat, Brain, Loader2, Settings, Sparkles, Info, BookOpen, Timer, CheckCircle } from 'lucide-react';
 import api from '../lib/api';
 import { useModalBack } from '../hooks/useModalBack';
@@ -46,11 +46,35 @@ export function FlashcardModal({
   const [cardsReviewed, setCardsReviewed] = useState(0);
   const [submittingReview, setSubmittingReview] = useState(false);
 
+  // Upgrading status tracking
+  const [isUpgrading, setIsUpgrading] = useState(false);
+  const pollingRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastOptionsRef = React.useRef<{
+    count?: number;
+    startPage?: number;
+    endPage?: number;
+  } | undefined>(undefined);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) {
+        clearTimeout(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, []);
+
   useEffect(() => {
     if (isOpen && materialId) {
       // Don't auto-fetch, show config first
       setShowConfig(true);
     } else {
+      // Clear polling when modal closes
+      if (pollingRef.current) {
+        clearTimeout(pollingRef.current);
+        pollingRef.current = null;
+      }
       // Reset state when closed
       resetState();
     }
@@ -69,6 +93,7 @@ export function FlashcardModal({
     setReviewMode(false);
     setCardsReviewed(0);
     setSubmittingReview(false);
+    setIsUpgrading(false);
   };
 
   const fetchFlashcards = async (options?: {
@@ -79,6 +104,15 @@ export function FlashcardModal({
     setLoading(true);
     setError(null);
     setShowConfig(false);
+    setIsUpgrading(false);
+    lastOptionsRef.current = options;
+
+    // Clear any existing polling
+    if (pollingRef.current) {
+      clearTimeout(pollingRef.current);
+      pollingRef.current = null;
+    }
+
     try {
       const body: Record<string, unknown> = {};
       if (options?.count) body.cardCount = options.count;
@@ -86,7 +120,20 @@ export function FlashcardModal({
       if (options?.endPage) body.pageEnd = options.endPage;
 
       const res = await api.post(`/chat/flashcards/${materialId}`, body);
-      if (!res.data || res.data.length === 0) {
+
+      // Handle upgrading status - material is being upgraded to v2
+      if (res.data && res.data.status === 'upgrading') {
+        setIsUpgrading(true);
+        setLoading(false);
+        // Poll again after 3 seconds
+        pollingRef.current = setTimeout(() => {
+          fetchFlashcards(lastOptionsRef.current);
+        }, 3000);
+        return;
+      }
+
+      // Check for valid flashcard data (should be an array)
+      if (!res.data || !Array.isArray(res.data) || res.data.length === 0) {
         setError('No flashcards could be generated for this material. The content may be too short or not suitable for flashcard generation.');
       } else {
         setFlashcards(res.data);
@@ -96,7 +143,9 @@ export function FlashcardModal({
       setError(message);
       console.error('Failed to fetch flashcards:', message);
     } finally {
-      setLoading(false);
+      if (!isUpgrading) {
+        setLoading(false);
+      }
     }
   };
 
@@ -285,6 +334,24 @@ export function FlashcardModal({
                 </button>
               </div>
             </div>
+          ) : isUpgrading ? (
+            <div className='min-h-[400px] flex flex-col items-center justify-center p-8'>
+              <div className='text-center space-y-4'>
+                <div className='relative inline-block'>
+                  <div className='absolute inset-0 bg-indigo-500 blur-xl opacity-20 rounded-full animate-pulse'></div>
+                  <Sparkles className='w-12 h-12 text-indigo-600 animate-bounce relative z-10 mx-auto' />
+                </div>
+                <h3 className='text-lg font-bold text-gray-900 dark:text-gray-100'>
+                  Preparing Material
+                </h3>
+                <p className='text-gray-600 dark:text-gray-400 max-w-sm mx-auto'>
+                  Getting this material ready for smart study. This only happens once.
+                </p>
+                <p className='text-sm text-gray-500 animate-pulse'>
+                  Please wait a moment...
+                </p>
+              </div>
+            </div>
           ) : loading ? (
             <div className='min-h-[400px] flex flex-col items-center justify-center p-8'>
               <div className='text-center space-y-4'>
@@ -396,8 +463,8 @@ export function FlashcardModal({
                 <button
                   onClick={() => setReviewMode(!reviewMode)}
                   className={`text-xs px-3 py-1 rounded-full transition-colors ${reviewMode
-                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                      : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                    : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
                     }`}
                 >
                   <Timer className='w-3 h-3 inline mr-1' />
