@@ -572,8 +572,17 @@ export class ChatService {
       material.quizGeneratedVersion === material.materialVersion;
 
     if (!pageStart && !pageEnd && !regenerate && cacheValid) {
+      this.logger.log(`[CACHE-HIT] Quiz cache hit for material ${materialId}, returning ${material.quiz.length} cached questions`);
       return material.quiz;
     }
+
+    // Log cache miss reason
+    const missReason = pageStart || pageEnd ? 'page-range-specified' :
+      regenerate ? 'regenerate-requested' :
+        !material.quiz ? 'no-cached-quiz' :
+          material.quiz.length === 0 ? 'empty-cached-quiz' :
+            'version-mismatch';
+    this.logger.log(`[CACHE-MISS] Quiz cache miss for material ${materialId}, reason: ${missReason}`);
 
     // Try to use segments first (new architecture)
     const segmentCount = await this.segmentRepo.count({ where: { materialId } });
@@ -714,8 +723,16 @@ export class ChatService {
       material.flashcardGeneratedVersion === material.materialVersion;
 
     if (!pageStart && !pageEnd && cacheValid) {
+      this.logger.log(`[CACHE-HIT] Flashcard cache hit for material ${materialId}, returning ${material.flashcards.length} cached cards`);
       return material.flashcards;
     }
+
+    // Log cache miss reason
+    const missReason = pageStart || pageEnd ? 'page-range-specified' :
+      !material.flashcards ? 'no-cached-flashcards' :
+        material.flashcards.length === 0 ? 'empty-cached-flashcards' :
+          'version-mismatch';
+    this.logger.log(`[CACHE-MISS] Flashcard cache miss for material ${materialId}, reason: ${missReason}`);
 
     // Try to use segments first (new architecture)
     const segmentCount = await this.segmentRepo.count({ where: { materialId } });
