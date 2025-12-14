@@ -4,9 +4,13 @@ import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
 import { initOfflineSync } from './lib/offlineReadingTracker'
+import { initOfflineQuizSync } from './lib/offlineQuizStore'
 
 // Initialize offline reading sync
 initOfflineSync();
+
+// Initialize offline quiz sync
+initOfflineQuizSync();
 
 // Handle dynamic import errors (stale chunks after deployment)
 // When a deployment happens, old JS chunks are replaced with new ones

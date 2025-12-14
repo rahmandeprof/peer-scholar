@@ -13,9 +13,11 @@ import {
   BookOpen,
   Target,
   Zap,
+  WifiOff,
 } from 'lucide-react';
 import api from '../lib/api';
 import { useModalBack } from '../hooks/useModalBack';
+import { cacheQuiz, getCachedQuiz, savePendingResult } from '../lib/offlineQuizStore';
 
 interface QuizModalProps {
   isOpen: boolean;
@@ -61,6 +63,9 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
   const [questionCount, setQuestionCount] = useState(5);
   // const [topic, setTopic] = useState(''); // Reserved for future topic-specific quiz filtering
 
+  // Offline mode tracking
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
+
   useEffect(() => {
     if (isOpen && materialId) {
       fetchQuiz();
@@ -83,6 +88,7 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
     setPageEnd('');
     setDifficulty('intermediate');
     setQuestionCount(5);
+    setIsOfflineMode(false);
     // setTopic(''); // Reserved for future topic-specific quiz filtering
   };
 
@@ -96,6 +102,8 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
     setLoading(true);
     setError(null);
     setShowConfig(false);
+    setIsOfflineMode(false);
+
     try {
       const url = `/chat/quiz/${materialId}`;
 
@@ -112,8 +120,22 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
         setError('No questions could be generated for this material. The content may be too short or not suitable for quiz generation.');
       } else {
         setQuestions(res.data);
+        // Cache for offline use (auto-cache strategy)
+        cacheQuiz(materialId, res.data, 'Quiz');
       }
     } catch (err: any) {
+      // If offline or network error, try loading from cache
+      if (!navigator.onLine || err.message?.includes('Network') || err.code === 'ERR_NETWORK') {
+        console.log('Offline or network error, trying cache...');
+        const cached = await getCachedQuiz(materialId);
+        if (cached) {
+          setQuestions(cached.questions);
+          setIsOfflineMode(true);
+          console.log(`Loaded ${cached.questions.length} cached questions for offline use`);
+          return;
+        }
+      }
+
       const message = err.response?.data?.message || 'Failed to generate quiz. Please try again.';
       setError(message);
       console.error('Failed to fetch quiz:', message);
@@ -150,6 +172,11 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
       // toast.success('Quiz result saved!'); // Optional: don't spam user if not needed, but good for feedback
     } catch (err) {
       console.error('Failed to save quiz result', err);
+      // If offline, save locally for later sync
+      if (!navigator.onLine) {
+        await savePendingResult(materialId, finalScore, questions.length);
+        console.log('Quiz result saved locally for offline sync');
+      }
       // toast.error('Failed to save quiz result');
     }
   };
@@ -208,6 +235,12 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
             <span className='font-bold text-lg text-gray-900 dark:text-gray-100'>
               Quick Quiz
             </span>
+            {isOfflineMode && (
+              <span className='flex items-center gap-1 text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full'>
+                <WifiOff className='w-3 h-3' />
+                Offline
+              </span>
+            )}
           </div>
           <button
             onClick={onClose}
