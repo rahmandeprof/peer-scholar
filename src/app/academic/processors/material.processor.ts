@@ -60,6 +60,7 @@ export class MaterialProcessor {
       }
 
       material.status = MaterialStatus.PROCESSING;
+      material.processingStatus = ProcessingStatus.EXTRACTING; // Fix: Update processingStatus for frontend
       await this.materialRepo.save(material);
 
       // 1. Download file
@@ -200,7 +201,10 @@ export class MaterialProcessor {
           'This document appears to be a scanned image or contains no extractable text. AI features like summary and chat may be limited.';
       }
 
-      // 3. Chunk Text (only if we have meaningful text)
+      // 3. Clean and chunk Text (only if we have meaningful text)
+      material.processingStatus = ProcessingStatus.CLEANING;
+      await this.materialRepo.save(material);
+
       if (
         text !==
         'This document appears to be a scanned image or contains no extractable text. AI features like summary and chat may be limited.'
@@ -265,17 +269,22 @@ export class MaterialProcessor {
 
       material.status = MaterialStatus.READY;
       material.content = text;
-      material.processingStatus = ProcessingStatus.COMPLETED;
+      material.processingStatus = ProcessingStatus.SEGMENTING;
       await this.materialRepo.save(material);
 
       // Trigger segmentation for the new architecture
       await this.segmentMaterial(material, text);
+
+      // Mark as completed
+      material.processingStatus = ProcessingStatus.COMPLETED;
+      await this.materialRepo.save(material);
 
       this.logger.debug('Material processing completed');
     } catch (error) {
       this.logger.error(`Failed to process material: ${materialId}`, error);
       await this.materialRepo.update(materialId, {
         status: MaterialStatus.FAILED,
+        processingStatus: ProcessingStatus.FAILED, // Fix: Update processingStatus for frontend
       });
     }
   }

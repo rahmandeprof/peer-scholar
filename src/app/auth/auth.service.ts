@@ -62,6 +62,8 @@ export class AuthService {
         firstName: string;
         lastName: string;
         department: string;
+        faculty?: string;
+        school?: string;
         yearOfStudy: number;
       },
   ) {
