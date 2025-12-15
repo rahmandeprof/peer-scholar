@@ -10,6 +10,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from '@/app/app.module';
 
 import { LoggingInterceptor } from './app/common/interceptors/logging.interceptor';
+import { RequestIdInterceptor } from './app/common/interceptors/request-id.interceptor';
 
 import { EnvironmentVariables } from '@/validation/env.validation';
 
@@ -36,8 +37,11 @@ async function bootstrap() {
   // Global exception filters - Sentry captures before our custom filter handles
   app.useGlobalFilters(new GlobalExceptionFilter());
 
-  // Global logging interceptor
-  app.useGlobalInterceptors(new LoggingInterceptor());
+  // Global interceptors - RequestIdInterceptor must be first for tracing
+  app.useGlobalInterceptors(
+    new RequestIdInterceptor(),
+    new LoggingInterceptor(),
+  );
   // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
