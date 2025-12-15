@@ -20,6 +20,7 @@ import { GlobalExceptionFilter } from './app/common/filters/http-exception.filte
 import { validationExceptionFactory } from './utils/validation';
 
 import compression from 'compression';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -65,6 +66,19 @@ async function bootstrap() {
   });
 
   const port = config.get<number>('PORT');
+
+  // Swagger API documentation (development only for security)
+  if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_SWAGGER === 'true') {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('PeerToLearn API')
+      .setDescription('API documentation for PeerToLearn study platform')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('api/docs', app, document);
+    console.log(`📚 Swagger docs available at /api/docs`);
+  }
 
   await app.listen(port);
 }
