@@ -138,6 +138,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(newToken);
       setUser(newUser);
       toast.success(`Welcome back, ${newUser.firstName}!`);
+
+      // Replace browser history to prevent back button going to auth pages
+      // This is important for PWA UX - users shouldn't see login/signup after authenticating
+      window.history.replaceState(null, '', '/dashboard');
     },
     [toast],
   );
