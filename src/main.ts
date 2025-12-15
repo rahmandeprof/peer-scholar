@@ -18,10 +18,15 @@ import { CLIENT_URL_REGEX, PREVIEW_CLIENT_URL_REGEX } from '@/utils/constants';
 import { GlobalExceptionFilter } from './app/common/filters/http-exception.filter';
 import { validationExceptionFactory } from './utils/validation';
 
+import compression from 'compression';
+
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.set('query parser', 'extended');
+
+  // Enable gzip compression for all responses
+  app.use(compression());
 
   const config: ConfigService<EnvironmentVariables, true> =
     app.get(ConfigService);
