@@ -93,6 +93,12 @@ export async function cacheQuiz(
     questions: Question[],
     materialTitle: string = 'Untitled Quiz'
 ): Promise<void> {
+    // Validate materialId is a valid key
+    if (!materialId || typeof materialId !== 'string') {
+        console.warn('cacheQuiz: Invalid materialId, skipping cache');
+        return;
+    }
+
     try {
         const db = await openDB();
         const tx = db.transaction(STORE_QUIZZES, 'readwrite');
@@ -124,6 +130,12 @@ export async function cacheQuiz(
  * Get a cached quiz by material ID
  */
 export async function getCachedQuiz(materialId: string): Promise<CachedQuiz | null> {
+    // Validate materialId is a valid key
+    if (!materialId || typeof materialId !== 'string') {
+        console.warn('getCachedQuiz: Invalid materialId');
+        return null;
+    }
+
     try {
         const db = await openDB();
         const tx = db.transaction(STORE_QUIZZES, 'readonly');
@@ -199,6 +211,12 @@ async function cleanupOldQuizzes(): Promise<void> {
  * Delete a specific cached quiz
  */
 export async function deleteCachedQuiz(materialId: string): Promise<void> {
+    // Validate materialId is a valid key
+    if (!materialId || typeof materialId !== 'string') {
+        console.warn('deleteCachedQuiz: Invalid materialId');
+        return;
+    }
+
     try {
         const db = await openDB();
         const tx = db.transaction(STORE_QUIZZES, 'readwrite');
@@ -413,6 +431,10 @@ export function initOfflineQuizSync(): void {
  * Check if quiz exists in cache
  */
 export async function isQuizCached(materialId: string): Promise<boolean> {
+    // Validate materialId is a valid key
+    if (!materialId || typeof materialId !== 'string') {
+        return false;
+    }
     const cached = await getCachedQuiz(materialId);
     return cached !== null;
 }
