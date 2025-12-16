@@ -1,0 +1,10 @@
+# PeerToLearn - Robots.txt
+User-agent: *
+Allow: /
+
+# Disallow admin and API routes
+Disallow: /admin
+Disallow: /api
+
+# Sitemap (when available)
+# Sitemap: https://peertolearn.com/sitemap.xml

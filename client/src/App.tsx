@@ -29,6 +29,7 @@ const StudyPartner = lazy(() => import('./components/StudyPartner').then(m => ({
 const TargetGPCalculator = lazy(() => import('./components/TargetGPCalculator').then(m => ({ default: m.TargetGPCalculator })));
 const QuizArena = lazy(() => import('./components/QuizArena').then(m => ({ default: m.QuizArena })));
 const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard'));
+const NotFound = lazy(() => import('./components/NotFound'));
 
 // Suspense fallback for route loading
 const RouteLoadingFallback = () => (
@@ -192,8 +193,8 @@ function AppContent() {
             }
           />
 
-          {/* Catch all redirect */}
-          <Route path='*' element={<Navigate to='/' replace />} />
+          {/* 404 Not Found */}
+          <Route path='*' element={<NotFound />} />
         </Routes>
       </Suspense>
     </div>
@@ -201,6 +202,9 @@ function AppContent() {
 }
 
 function App() {
+  // Lazy load InstallPrompt
+  const InstallPrompt = lazy(() => import('./components/InstallPrompt'));
+
   return (
     <ErrorBoundary>
       <ThemeProvider>
@@ -208,6 +212,10 @@ function App() {
           <AuthProvider>
             <NetworkProvider>
               <AppContent />
+              {/* PWA Install Prompt */}
+              <Suspense fallback={null}>
+                <InstallPrompt />
+              </Suspense>
             </NetworkProvider>
           </AuthProvider>
         </ToastProvider>

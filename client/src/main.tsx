@@ -12,6 +12,19 @@ initOfflineSync();
 // Initialize offline quiz sync
 initOfflineQuizSync();
 
+// Register service worker for PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then((registration) => {
+        console.log('SW registered:', registration.scope);
+      })
+      .catch((error) => {
+        console.log('SW registration failed:', error);
+      });
+  });
+}
+
 // Handle dynamic import errors (stale chunks after deployment)
 // When a deployment happens, old JS chunks are replaced with new ones
 // Users with cached HTML may try to load non-existent old chunks

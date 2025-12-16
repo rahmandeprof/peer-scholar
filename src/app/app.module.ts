@@ -59,6 +59,11 @@ import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
     ThrottlerModule.forRoot({
       throttlers: [
         {
+          name: 'global',
+          ttl: 60000, // 1 minute
+          limit: 100, // 100 requests per minute
+        },
+        {
           name: 'quiz',
           ttl: 86400000, // 24 hours
           limit: 10,
