@@ -91,6 +91,22 @@ export function AdminDashboard() {
     const [failedCount, setFailedCount] = useState(0);
     const [reprocessingFailed, setReprocessingFailed] = useState(false);
 
+    // Reports state
+    const [reports, setReports] = useState<{
+        id: string;
+        reason: string;
+        description?: string;
+        createdAt: string;
+        material: { id: string; title: string } | null;
+        reporter: { id: string; firstName: string; lastName: string; email: string } | null;
+    }[]>([]);
+    const [showReports, setShowReports] = useState(false);
+
+    // Material lookup state
+    const [materialIdInput, setMaterialIdInput] = useState('');
+    const [materialLookupLoading, setMaterialLookupLoading] = useState(false);
+    const [clearingCache, setClearingCache] = useState(false);
+
     // Check admin access
     useEffect(() => {
         if (user && user.role !== 'admin') {
@@ -186,13 +202,55 @@ export function AdminDashboard() {
         }
     };
 
+    const fetchReports = async () => {
+        try {
+            const res = await api.get('/admin/reports');
+            setReports(res.data.reports);
+        } catch (err) {
+            console.error('Failed to fetch reports:', err);
+        }
+    };
+
+    const handleClearMaterialCache = async () => {
+        if (!materialIdInput.trim()) {
+            toast.error('Please enter a material ID');
+            return;
+        }
+        setClearingCache(true);
+        try {
+            const res = await api.post(`/admin/materials/${materialIdInput}/clear-cache`);
+            toast.success(res.data.message);
+            setMaterialIdInput('');
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Failed to clear cache');
+        } finally {
+            setClearingCache(false);
+        }
+    };
+
+    const handleViewSegments = async () => {
+        if (!materialIdInput.trim()) {
+            toast.error('Please enter a material ID');
+            return;
+        }
+        setMaterialLookupLoading(true);
+        try {
+            const res = await api.get(`/admin/materials/${materialIdInput}/segments`);
+            toast.success(`Found ${res.data.segmentCount} segments (${res.data.totalTokens} tokens)`);
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Material not found');
+        } finally {
+            setMaterialLookupLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchFlaggedMaterials();
         fetchStuckCount();
         fetchStats();
         fetchQueueStatus();
+        fetchReports();
 
-        // Refresh queue status every 30 seconds
         const interval = setInterval(fetchQueueStatus, 30000);
         return () => clearInterval(interval);
     }, []);
@@ -410,6 +468,74 @@ export function AdminDashboard() {
                             {reprocessingFailed ? 'Reprocessing...' : 'Retry All'}
                         </button>
                     </div>
+                </div>
+
+                {/* Material Lookup Card */}
+                <div className='bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4'>
+                    <div className='flex items-center gap-2 mb-3'>
+                        <Search className='w-4 h-4 text-gray-500' />
+                        <h3 className='font-semibold text-gray-900 dark:text-white text-sm'>Material Actions</h3>
+                    </div>
+                    <div className='flex gap-2'>
+                        <input
+                            type='text'
+                            value={materialIdInput}
+                            onChange={(e) => setMaterialIdInput(e.target.value)}
+                            placeholder='Material ID (UUID)'
+                            className='flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+                        />
+                        <button
+                            onClick={handleViewSegments}
+                            disabled={materialLookupLoading}
+                            className='px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg text-sm font-medium'
+                        >
+                            {materialLookupLoading ? <Loader2 className='w-4 h-4 animate-spin' /> : 'Segments'}
+                        </button>
+                        <button
+                            onClick={handleClearMaterialCache}
+                            disabled={clearingCache}
+                            className='px-3 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white rounded-lg text-sm font-medium'
+                        >
+                            {clearingCache ? <Loader2 className='w-4 h-4 animate-spin' /> : 'Clear Cache'}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Reports Section */}
+                <div className='bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden'>
+                    <button
+                        onClick={() => setShowReports(!showReports)}
+                        className='w-full p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                    >
+                        <div className='flex items-center gap-2'>
+                            <AlertTriangle className='w-4 h-4 text-orange-500' />
+                            <h3 className='font-semibold text-gray-900 dark:text-white text-sm'>Material Reports ({reports.length})</h3>
+                        </div>
+                        <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${showReports ? 'rotate-90' : ''}`} />
+                    </button>
+                    {showReports && reports.length > 0 && (
+                        <div className='border-t border-gray-100 dark:border-gray-800 max-h-64 overflow-y-auto'>
+                            {reports.map((report) => (
+                                <div key={report.id} className='p-3 border-b border-gray-100 dark:border-gray-800 last:border-b-0'>
+                                    <div className='flex items-center justify-between mb-1'>
+                                        <span className='text-sm font-medium text-gray-900 dark:text-white'>{report.reason}</span>
+                                        <span className='text-xs text-gray-500'>{new Date(report.createdAt).toLocaleDateString()}</span>
+                                    </div>
+                                    {report.description && (
+                                        <p className='text-xs text-gray-600 dark:text-gray-400 mb-1'>{report.description}</p>
+                                    )}
+                                    <div className='flex items-center gap-2 text-xs text-gray-500'>
+                                        <span>{report.material?.title || 'Unknown material'}</span>
+                                        <span>•</span>
+                                        <span>by {report.reporter?.firstName} {report.reporter?.lastName}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    {showReports && reports.length === 0 && (
+                        <div className='p-4 text-center text-gray-500 text-sm'>No reports found</div>
+                    )}
                 </div>
 
                 {/* Stuck Materials Card */}
