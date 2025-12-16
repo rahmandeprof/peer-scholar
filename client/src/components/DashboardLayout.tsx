@@ -82,9 +82,16 @@ export function DashboardLayout() {
           <div className='flex items-center space-x-3'>
             <div className='flex items-center justify-center'>
               <img
-                src='/logo.jpg'
+                src='/logo-black.png'
                 alt='PeerToLearn Logo'
-                className='w-10 h-10 object-contain'
+                className='w-10 h-10 object-contain dark:hidden'
+                fetchPriority='high'
+                decoding='async'
+              />
+              <img
+                src='/logo-blue.png'
+                alt='PeerToLearn Logo'
+                className='w-10 h-10 object-contain hidden dark:block'
                 fetchPriority='high'
                 decoding='async'
               />
@@ -370,9 +377,16 @@ export function DashboardLayout() {
         <div className='md:hidden h-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 flex items-center justify-between px-4 z-[100]'>
           <div className='flex items-center space-x-2'>
             <img
-              src='/logo.jpg'
+              src='/logo-black.png'
               alt='Logo'
-              className='w-8 h-8 object-contain'
+              className='w-8 h-8 object-contain dark:hidden'
+              fetchPriority='high'
+              decoding='async'
+            />
+            <img
+              src='/logo-blue.png'
+              alt='Logo'
+              className='w-8 h-8 object-contain hidden dark:block'
               fetchPriority='high'
               decoding='async'
             />
@@ -396,8 +410,8 @@ export function DashboardLayout() {
               refreshTrigger,
             }}
           />
-        </div>
-      </main>
+        </div >
+      </main >
 
       <BottomNav />
 
@@ -429,6 +443,6 @@ export function DashboardLayout() {
         confirmText='Sign Out'
         isDangerous={true}
       />
-    </div>
+    </div >
   );
 }
