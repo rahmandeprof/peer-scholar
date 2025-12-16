@@ -375,42 +375,162 @@ export class ChatService {
     });
 
     if (!material) throw new NotFoundException('Material not found');
-    if (!material.content)
+
+    // Check if processing is still in progress - wait for completion
+    const activeProcessingStates = [
+      ProcessingStatus.PENDING,
+      ProcessingStatus.EXTRACTING,
+      ProcessingStatus.OCR_EXTRACTING,
+      ProcessingStatus.CLEANING,
+      ProcessingStatus.SEGMENTING,
+    ];
+
+    if (activeProcessingStates.includes(material.processingStatus)) {
       throw new BadRequestException(
-        'Material content is not available. Please re-upload the file.',
+        'Material is still being processed. Please wait a moment and try again.',
       );
+    }
 
     return this.getOrGenerateSummary(material);
   }
 
   private async getOrGenerateSummary(material: Material): Promise<string> {
+    // Return cached summary if available
     if (material.summary) return material.summary;
 
-    if (!this.openai) return '';
+    if (!this.openai) {
+      throw new InternalServerErrorException('AI service is not configured');
+    }
 
-    // Try to use segments first
+    // Get all segments for this material
     const segments = await this.segmentRepo.find({
       where: { materialId: material.id },
       order: { segmentIndex: 'ASC' },
-      take: 15, // Get first ~6000 tokens worth
     });
 
-    let contentForSummary = '';
-
+    // If we have segments, use them
     if (segments.length > 0) {
-      // Use segment text
-      let tokenCount = 0;
-      for (const segment of segments) {
-        if (tokenCount + segment.tokenCount > 6000) break;
-        contentForSummary += segment.text + '\n\n';
-        tokenCount += segment.tokenCount;
+      // Large document: use hierarchical summarization
+      if (segments.length > 30) {
+        this.logger.debug(`Using hierarchical summarization for ${segments.length} segments`);
+        return this.hierarchicalSummarize(material, segments);
       }
-    } else {
-      // Fallback to legacy content
-      contentForSummary = material.content?.substring(0, 24000) || ''; // ~6000 tokens
+      // Standard: use first ~6000 tokens
+      return this.summarizeSegments(material, segments);
     }
 
-    if (!contentForSummary) return '';
+    // Legacy fallback: use material.content if available
+    if (material.content) {
+      this.logger.debug('Using legacy content fallback for summary');
+      const legacyContent = material.content.substring(0, 24000); // ~6000 tokens
+      return this.summarizeAndCache(material, legacyContent);
+    }
+
+    // No content available at all
+    throw new BadRequestException(
+      'Material content is not available. Please wait for processing to complete or re-upload the file.',
+    );
+  }
+
+  /**
+   * Summarize segments for standard-sized documents (<30 segments)
+   */
+  private async summarizeSegments(
+    material: Material,
+    segments: DocumentSegment[],
+  ): Promise<string> {
+    let contentForSummary = '';
+    let tokenCount = 0;
+
+    for (const segment of segments) {
+      if (tokenCount + segment.tokenCount > 6000) break;
+      contentForSummary += segment.text + '\n\n';
+      tokenCount += segment.tokenCount;
+    }
+
+    return this.summarizeAndCache(material, contentForSummary);
+  }
+
+  /**
+   * Hierarchical summarization for large documents (>30 segments)
+   * Splits into chunks, summarizes each, then creates final summary
+   */
+  private async hierarchicalSummarize(
+    material: Material,
+    segments: DocumentSegment[],
+  ): Promise<string> {
+    // Split segments into ~5 chunks
+    const chunkCount = Math.min(5, Math.ceil(segments.length / 10));
+    const chunkSize = Math.ceil(segments.length / chunkCount);
+    const chunkTexts: string[] = [];
+
+    for (let i = 0; i < segments.length; i += chunkSize) {
+      const chunkSegments = segments.slice(i, i + chunkSize);
+      let chunkText = '';
+      let tokenCount = 0;
+
+      for (const seg of chunkSegments) {
+        if (tokenCount + seg.tokenCount > 4000) break;
+        chunkText += seg.text + '\n\n';
+        tokenCount += seg.tokenCount;
+      }
+
+      if (chunkText.trim()) chunkTexts.push(chunkText);
+    }
+
+    this.logger.debug(`Summarizing ${chunkTexts.length} chunks for hierarchical summary`);
+
+    // Summarize each chunk in parallel
+    const chunkSummaries = await Promise.all(
+      chunkTexts.map(chunk => this.summarizeText(chunk, 200)),
+    );
+
+    // Filter out empty summaries
+    const validSummaries = chunkSummaries.filter(s => s && s.trim());
+
+    if (validSummaries.length === 0) {
+      throw new InternalServerErrorException('Failed to generate summary from chunks');
+    }
+
+    // Create final summary from chunk summaries
+    const combinedSummaries = validSummaries.join('\n\n---\n\n');
+    const finalSummary = await this.summarizeText(
+      `The following are summaries of different sections of a document. Create a cohesive overall summary:\n\n${combinedSummaries}`,
+      500,
+    );
+
+    // Cache the result
+    if (finalSummary) {
+      material.summary = finalSummary;
+      await this.materialRepo.save(material);
+    }
+
+    return finalSummary;
+  }
+
+  /**
+   * Helper: Summarize content and cache result
+   */
+  private async summarizeAndCache(material: Material, content: string): Promise<string> {
+    if (!content.trim()) {
+      throw new BadRequestException('No content available to summarize');
+    }
+
+    const summary = await this.summarizeText(content, 500);
+
+    if (summary) {
+      material.summary = summary;
+      await this.materialRepo.save(material);
+    }
+
+    return summary;
+  }
+
+  /**
+   * Helper: Core text summarization (no caching)
+   */
+  private async summarizeText(content: string, maxTokens: number): Promise<string> {
+    if (!this.openai) return '';
 
     try {
       const response = await this.openai.chat.completions.create({
@@ -419,25 +539,17 @@ export class ChatService {
           {
             role: 'system',
             content:
-              'Summarize the following text concisely but comprehensively for a student.',
+              'Summarize the following text concisely but comprehensively for a student. Focus on key concepts and main ideas.',
           },
-          { role: 'user', content: contentForSummary },
+          { role: 'user', content },
         ],
-        max_tokens: 500,
+        max_tokens: maxTokens,
       });
 
-      const summary = response.choices[0].message.content ?? '';
-
-      if (summary) {
-        material.summary = summary;
-        await this.materialRepo.save(material);
-      }
-
-      return summary;
+      return response.choices[0].message.content ?? '';
     } catch (e) {
       this.logger.error('Failed to generate summary', e);
-
-      return '';
+      throw new InternalServerErrorException('Failed to generate summary. Please try again.');
     }
   }
 

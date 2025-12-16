@@ -289,6 +289,11 @@ export class MaterialProcessor {
       this.preGenerateQuiz(material).catch((err) => {
         this.logger.warn(`[PRE-GEN] Quiz pre-generation failed for ${materialId}:`, err.message);
       });
+
+      // Pre-generate summary in background for faster first access
+      this.preGenerateSummary(material).catch((err) => {
+        this.logger.warn(`[PRE-GEN] Summary pre-generation failed for ${materialId}:`, err.message);
+      });
     } catch (error) {
       this.logger.error(`Failed to process material: ${materialId}`, error);
       await this.materialRepo.update(materialId, {
@@ -743,6 +748,77 @@ export class MaterialProcessor {
     } catch (error) {
       // Don't throw - this is a background optimization, not critical path
       this.logger.warn(`[PRE-GEN] Pre-generation failed for ${material.id}:`, error instanceof Error ? error.message : error);
+    }
+  }
+
+  /**
+   * Pre-generate a summary for the material in background
+   * This runs after processing completes so first user request gets cached summary
+   */
+  private async preGenerateSummary(material: Material): Promise<void> {
+    // Skip if already has summary
+    if (material.summary) {
+      this.logger.debug(`[PRE-GEN] Material ${material.id} already has summary, skipping`);
+      return;
+    }
+
+    if (!this.openai) {
+      this.logger.warn(`[PRE-GEN] OpenAI not configured, skipping summary pre-generation`);
+      return;
+    }
+
+    try {
+      this.logger.log(`[PRE-GEN] Starting summary pre-generation for material ${material.id}`);
+
+      // Get segments for this material
+      const segments = await this.segmentRepo.find({
+        where: { materialId: material.id },
+        order: { segmentIndex: 'ASC' },
+        take: 20, // First ~8000 tokens
+      });
+
+      if (segments.length === 0) {
+        this.logger.warn(`[PRE-GEN] No segments available for ${material.id}, skipping summary pre-gen`);
+        return;
+      }
+
+      // Build content from segments
+      let content = '';
+      let tokenCount = 0;
+      for (const segment of segments) {
+        if (tokenCount + segment.tokenCount > 6000) break;
+        content += segment.text + '\n\n';
+        tokenCount += segment.tokenCount;
+      }
+
+      if (!content.trim()) {
+        this.logger.warn(`[PRE-GEN] No content extracted for ${material.id}`);
+        return;
+      }
+
+      // Generate summary
+      const response = await this.openai.chat.completions.create({
+        model: this.configService.get<string>('OPENAI_CHAT_MODEL') ?? 'gpt-3.5-turbo',
+        messages: [
+          {
+            role: 'system',
+            content: 'Summarize the following text concisely but comprehensively for a student. Focus on key concepts and main ideas.',
+          },
+          { role: 'user', content },
+        ],
+        max_tokens: 500,
+      });
+
+      const summary = response.choices[0].message.content ?? '';
+
+      if (summary) {
+        material.summary = summary;
+        await this.materialRepo.save(material);
+        this.logger.log(`[PRE-GEN] Successfully pre-generated summary for material ${material.id}`);
+      }
+    } catch (error) {
+      // Don't throw - this is a background optimization, not critical path
+      this.logger.warn(`[PRE-GEN] Summary pre-generation failed for ${material.id}:`, error instanceof Error ? error.message : error);
     }
   }
 }
