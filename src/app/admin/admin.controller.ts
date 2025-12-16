@@ -533,6 +533,159 @@ export class AdminController {
       },
     };
   }
+
+  // ========== NICE-TO-HAVE ENDPOINTS ==========
+
+  /**
+   * Get usage analytics
+   */
+  @Get('analytics')
+  async getAnalytics() {
+    this.logger.log('Admin requested analytics');
+
+    // Get registrations by day for last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const [
+      recentUsers,
+      recentMaterials,
+      recentQuizzes,
+      topUploaders,
+      materialsByStatus,
+    ] = await Promise.all([
+      // Users in last 30 days
+      this.userRepo.createQueryBuilder('user')
+        .where('user.createdAt >= :date', { date: thirtyDaysAgo })
+        .getCount(),
+      // Materials in last 30 days
+      this.materialRepo.createQueryBuilder('material')
+        .where('material.createdAt >= :date', { date: thirtyDaysAgo })
+        .getCount(),
+      // Quizzes in last 30 days
+      this.quizResultRepo.createQueryBuilder('quiz')
+        .where('quiz.createdAt >= :date', { date: thirtyDaysAgo })
+        .getCount(),
+      // Top uploaders (top 5)
+      this.materialRepo.createQueryBuilder('material')
+        .select('material.uploaderId', 'uploaderId')
+        .addSelect('COUNT(*)', 'count')
+        .leftJoin('material.uploader', 'user')
+        .addSelect('user.firstName', 'firstName')
+        .addSelect('user.lastName', 'lastName')
+        .groupBy('material.uploaderId')
+        .addGroupBy('user.firstName')
+        .addGroupBy('user.lastName')
+        .orderBy('count', 'DESC')
+        .limit(5)
+        .getRawMany(),
+      // Materials by status
+      this.materialRepo.createQueryBuilder('material')
+        .select('material.processingStatus', 'status')
+        .addSelect('COUNT(*)', 'count')
+        .groupBy('material.processingStatus')
+        .getRawMany(),
+    ]);
+
+    return {
+      last30Days: {
+        users: recentUsers,
+        materials: recentMaterials,
+        quizzes: recentQuizzes,
+      },
+      topUploaders: topUploaders.map((u: any) => ({
+        firstName: u.firstName,
+        lastName: u.lastName,
+        count: parseInt(u.count, 10),
+      })),
+      materialsByStatus: materialsByStatus.reduce((acc: any, item: any) => {
+        acc[item.status || 'null'] = parseInt(item.count, 10);
+        return acc;
+      }, {}),
+    };
+  }
+
+  /**
+   * Get recent admin activity logs (from database where available)
+   */
+  @Get('logs')
+  async getLogs() {
+    this.logger.log('Admin requested logs');
+
+    // Get recent materials processed/failed
+    const recentActivity = await this.materialRepo.find({
+      select: ['id', 'title', 'status', 'processingStatus', 'createdAt', 'updatedAt'],
+      order: { updatedAt: 'DESC' },
+      take: 50,
+    });
+
+    // Get recent quiz results
+    const recentQuizzes = await this.quizResultRepo.find({
+      relations: ['user', 'material'],
+      order: { createdAt: 'DESC' },
+      take: 20,
+    });
+
+    return {
+      recentMaterialActivity: recentActivity.map(m => ({
+        id: m.id,
+        title: m.title,
+        status: m.status,
+        processingStatus: m.processingStatus,
+        createdAt: m.createdAt,
+        updatedAt: m.updatedAt,
+      })),
+      recentQuizzes: recentQuizzes.map(q => ({
+        id: q.id,
+        userId: q.user?.id,
+        userName: q.user ? `${q.user.firstName} ${q.user.lastName}` : 'Unknown',
+        materialTitle: q.material?.title || 'Unknown',
+        score: q.score,
+        totalQuestions: q.totalQuestions,
+        createdAt: q.createdAt,
+      })),
+    };
+  }
+
+  /**
+   * Bulk delete materials
+   */
+  @Post('bulk-delete')
+  async bulkDeleteMaterials(@Body('ids') ids: string[]) {
+    this.logger.log(`Admin requested bulk delete of ${ids?.length || 0} materials`);
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      throw new BadRequestException('No material IDs provided');
+    }
+
+    if (ids.length > 50) {
+      throw new BadRequestException('Cannot delete more than 50 materials at once');
+    }
+
+    const deleted: string[] = [];
+    const errors: { id: string; error: string }[] = [];
+
+    for (const id of ids) {
+      try {
+        const material = await this.materialRepo.findOne({ where: { id } });
+        if (!material) {
+          errors.push({ id, error: 'Not found' });
+          continue;
+        }
+        await this.materialRepo.remove(material);
+        deleted.push(id);
+        this.logger.log(`Deleted material: ${id}`);
+      } catch (error) {
+        errors.push({ id, error: error instanceof Error ? error.message : 'Unknown error' });
+        this.logger.error(`Failed to delete material ${id}:`, error);
+      }
+    }
+
+    return {
+      success: true,
+      message: `Deleted ${deleted.length} of ${ids.length} materials`,
+      deleted,
+      errors,
+    };
+  }
 }
-
-
