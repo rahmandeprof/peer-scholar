@@ -14,6 +14,14 @@ import {
     User,
     PlayCircle,
     Clock,
+    Users,
+    BookOpen,
+    Brain,
+    AlertOctagon,
+    Server,
+    Zap,
+    Ban,
+    Search,
 } from 'lucide-react';
 import api from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -63,6 +71,26 @@ export function AdminDashboard() {
     const [reprocessing, setReprocessing] = useState(false);
     const [lastReprocessResult, setLastReprocessResult] = useState<{ count: number; failed: number } | null>(null);
 
+    // Stats state
+    const [stats, setStats] = useState<{
+        users: { total: number };
+        materials: { total: number; ready: number; processing: number; failed: number; missingSummary: number };
+        quizzes: { taken: number };
+    } | null>(null);
+
+    // Queue status state
+    const [queueStatus, setQueueStatus] = useState<{
+        counts: { waiting: number; active: number; completed: number; failed: number; delayed: number };
+    } | null>(null);
+
+    // Backfill state
+    const [backfilling, setBackfilling] = useState(false);
+    const [backfillResult, setBackfillResult] = useState<{ processed: number; total: number } | null>(null);
+
+    // Failed materials reprocess state
+    const [failedCount, setFailedCount] = useState(0);
+    const [reprocessingFailed, setReprocessingFailed] = useState(false);
+
     // Check admin access
     useEffect(() => {
         if (user && user.role !== 'admin') {
@@ -99,8 +127,8 @@ export function AdminDashboard() {
             const res = await api.post('/admin/reprocess-stuck');
             toast.success(res.data.message);
             setLastReprocessResult({ count: res.data.count, failed: res.data.failed });
-            // Refresh the count
             fetchStuckCount();
+            fetchStats();
         } catch (err: any) {
             toast.error(err.response?.data?.message || 'Failed to reprocess materials');
         } finally {
@@ -108,9 +136,65 @@ export function AdminDashboard() {
         }
     };
 
+    const fetchStats = async () => {
+        try {
+            const res = await api.get('/admin/stats');
+            setStats(res.data);
+            setFailedCount(res.data.materials?.failed || 0);
+        } catch (err) {
+            console.error('Failed to fetch stats:', err);
+        }
+    };
+
+    const fetchQueueStatus = async () => {
+        try {
+            const res = await api.get('/admin/queue-status');
+            if (res.data.success) {
+                setQueueStatus(res.data);
+            }
+        } catch (err) {
+            console.error('Failed to fetch queue status:', err);
+        }
+    };
+
+    const handleBackfillSummaries = async () => {
+        setBackfilling(true);
+        setBackfillResult(null);
+        try {
+            const res = await api.post('/admin/backfill-summaries', { limit: 10 });
+            toast.success(res.data.message);
+            setBackfillResult({ processed: res.data.processed, total: res.data.total });
+            fetchStats();
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Failed to backfill summaries');
+        } finally {
+            setBackfilling(false);
+        }
+    };
+
+    const handleReprocessFailed = async () => {
+        setReprocessingFailed(true);
+        try {
+            const res = await api.post('/admin/reprocess-failed');
+            toast.success(res.data.message);
+            fetchStats();
+            fetchStuckCount();
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Failed to reprocess failed materials');
+        } finally {
+            setReprocessingFailed(false);
+        }
+    };
+
     useEffect(() => {
         fetchFlaggedMaterials();
         fetchStuckCount();
+        fetchStats();
+        fetchQueueStatus();
+
+        // Refresh queue status every 30 seconds
+        const interval = setInterval(fetchQueueStatus, 30000);
+        return () => clearInterval(interval);
     }, []);
 
     const fetchFlags = async (materialId: string) => {
@@ -208,6 +292,126 @@ export function AdminDashboard() {
             </div>
 
             <div className='max-w-7xl mx-auto p-4 space-y-6'>
+                {/* Stats Grid */}
+                {stats && (
+                    <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
+                        <div className='bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4'>
+                            <div className='flex items-center gap-3'>
+                                <div className='w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center'>
+                                    <Users className='w-5 h-5 text-blue-600 dark:text-blue-400' />
+                                </div>
+                                <div>
+                                    <p className='text-2xl font-bold text-gray-900 dark:text-white'>{stats.users.total}</p>
+                                    <p className='text-xs text-gray-500 dark:text-gray-400'>Total Users</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className='bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4'>
+                            <div className='flex items-center gap-3'>
+                                <div className='w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center'>
+                                    <BookOpen className='w-5 h-5 text-green-600 dark:text-green-400' />
+                                </div>
+                                <div>
+                                    <p className='text-2xl font-bold text-gray-900 dark:text-white'>{stats.materials.total}</p>
+                                    <p className='text-xs text-gray-500 dark:text-gray-400'>Materials ({stats.materials.ready} ready)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className='bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4'>
+                            <div className='flex items-center gap-3'>
+                                <div className='w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center'>
+                                    <Brain className='w-5 h-5 text-purple-600 dark:text-purple-400' />
+                                </div>
+                                <div>
+                                    <p className='text-2xl font-bold text-gray-900 dark:text-white'>{stats.quizzes.taken}</p>
+                                    <p className='text-xs text-gray-500 dark:text-gray-400'>Quizzes Taken</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className='bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4'>
+                            <div className='flex items-center gap-3'>
+                                <div className='w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center'>
+                                    <AlertOctagon className='w-5 h-5 text-red-600 dark:text-red-400' />
+                                </div>
+                                <div>
+                                    <p className='text-2xl font-bold text-gray-900 dark:text-white'>{stats.materials.failed}</p>
+                                    <p className='text-xs text-gray-500 dark:text-gray-400'>Failed Processing</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Queue Status & Actions Row */}
+                <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                    {/* Queue Status */}
+                    {queueStatus && (
+                        <div className='bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4'>
+                            <div className='flex items-center gap-2 mb-3'>
+                                <Server className='w-4 h-4 text-gray-500' />
+                                <h3 className='font-semibold text-gray-900 dark:text-white text-sm'>Queue Status</h3>
+                            </div>
+                            <div className='grid grid-cols-3 gap-2 text-center'>
+                                <div className='p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg'>
+                                    <p className='text-lg font-bold text-yellow-600 dark:text-yellow-400'>{queueStatus.counts.waiting}</p>
+                                    <p className='text-xs text-gray-500'>Waiting</p>
+                                </div>
+                                <div className='p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg'>
+                                    <p className='text-lg font-bold text-blue-600 dark:text-blue-400'>{queueStatus.counts.active}</p>
+                                    <p className='text-xs text-gray-500'>Active</p>
+                                </div>
+                                <div className='p-2 bg-red-50 dark:bg-red-900/20 rounded-lg'>
+                                    <p className='text-lg font-bold text-red-600 dark:text-red-400'>{queueStatus.counts.failed}</p>
+                                    <p className='text-xs text-gray-500'>Failed</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Backfill Summaries */}
+                    <div className='bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4'>
+                        <div className='flex items-center gap-2 mb-3'>
+                            <Zap className='w-4 h-4 text-amber-500' />
+                            <h3 className='font-semibold text-gray-900 dark:text-white text-sm'>Backfill Summaries</h3>
+                        </div>
+                        <p className='text-xs text-gray-500 dark:text-gray-400 mb-3'>
+                            {stats?.materials.missingSummary || 0} materials need summaries
+                        </p>
+                        <button
+                            onClick={handleBackfillSummaries}
+                            disabled={backfilling || (stats?.materials.missingSummary || 0) === 0}
+                            className='w-full px-3 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white rounded-lg font-medium text-sm flex items-center justify-center gap-2'
+                        >
+                            {backfilling ? <Loader2 className='w-4 h-4 animate-spin' /> : <Zap className='w-4 h-4' />}
+                            {backfilling ? 'Generating...' : 'Generate 10'}
+                        </button>
+                        {backfillResult && (
+                            <p className='mt-2 text-xs text-green-600 dark:text-green-400'>
+                                ✓ Generated {backfillResult.processed}/{backfillResult.total}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Reprocess Failed */}
+                    <div className='bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4'>
+                        <div className='flex items-center gap-2 mb-3'>
+                            <AlertOctagon className='w-4 h-4 text-red-500' />
+                            <h3 className='font-semibold text-gray-900 dark:text-white text-sm'>Failed Materials</h3>
+                        </div>
+                        <p className='text-xs text-gray-500 dark:text-gray-400 mb-3'>
+                            {failedCount} materials failed processing
+                        </p>
+                        <button
+                            onClick={handleReprocessFailed}
+                            disabled={reprocessingFailed || failedCount === 0}
+                            className='w-full px-3 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded-lg font-medium text-sm flex items-center justify-center gap-2'
+                        >
+                            {reprocessingFailed ? <Loader2 className='w-4 h-4 animate-spin' /> : <RefreshCw className='w-4 h-4' />}
+                            {reprocessingFailed ? 'Reprocessing...' : 'Retry All'}
+                        </button>
+                    </div>
+                </div>
+
                 {/* Stuck Materials Card */}
                 <div className='bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5'>
                     <div className='flex items-center justify-between'>
