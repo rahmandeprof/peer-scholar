@@ -107,6 +107,21 @@ export function AdminDashboard() {
     const [materialLookupLoading, setMaterialLookupLoading] = useState(false);
     const [clearingCache, setClearingCache] = useState(false);
 
+    // Analytics state
+    const [analytics, setAnalytics] = useState<{
+        last30Days: { users: number; materials: number; quizzes: number };
+        topUploaders: { firstName: string; lastName: string; count: number }[];
+        materialsByStatus: Record<string, number>;
+    } | null>(null);
+    const [showAnalytics, setShowAnalytics] = useState(false);
+
+    // Logs state
+    const [logs, setLogs] = useState<{
+        recentMaterialActivity: { id: string; title: string; status: string; processingStatus: string; updatedAt: string }[];
+        recentQuizzes: { id: string; userName: string; materialTitle: string; score: number; totalQuestions: number; createdAt: string }[];
+    } | null>(null);
+    const [showLogs, setShowLogs] = useState(false);
+
     // Check admin access
     useEffect(() => {
         if (user && user.role !== 'admin') {
@@ -244,12 +259,32 @@ export function AdminDashboard() {
         }
     };
 
+    const fetchAnalytics = async () => {
+        try {
+            const res = await api.get('/admin/analytics');
+            setAnalytics(res.data);
+        } catch (err) {
+            console.error('Failed to fetch analytics:', err);
+        }
+    };
+
+    const fetchLogs = async () => {
+        try {
+            const res = await api.get('/admin/logs');
+            setLogs(res.data);
+        } catch (err) {
+            console.error('Failed to fetch logs:', err);
+        }
+    };
+
     useEffect(() => {
         fetchFlaggedMaterials();
         fetchStuckCount();
         fetchStats();
         fetchQueueStatus();
         fetchReports();
+        fetchAnalytics();
+        fetchLogs();
 
         const interval = setInterval(fetchQueueStatus, 30000);
         return () => clearInterval(interval);
@@ -476,28 +511,30 @@ export function AdminDashboard() {
                         <Search className='w-4 h-4 text-gray-500' />
                         <h3 className='font-semibold text-gray-900 dark:text-white text-sm'>Material Actions</h3>
                     </div>
-                    <div className='flex gap-2'>
+                    <div className='space-y-2'>
                         <input
                             type='text'
                             value={materialIdInput}
                             onChange={(e) => setMaterialIdInput(e.target.value)}
                             placeholder='Material ID (UUID)'
-                            className='flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+                            className='w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
                         />
-                        <button
-                            onClick={handleViewSegments}
-                            disabled={materialLookupLoading}
-                            className='px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg text-sm font-medium'
-                        >
-                            {materialLookupLoading ? <Loader2 className='w-4 h-4 animate-spin' /> : 'Segments'}
-                        </button>
-                        <button
-                            onClick={handleClearMaterialCache}
-                            disabled={clearingCache}
-                            className='px-3 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white rounded-lg text-sm font-medium'
-                        >
-                            {clearingCache ? <Loader2 className='w-4 h-4 animate-spin' /> : 'Clear Cache'}
-                        </button>
+                        <div className='flex gap-2'>
+                            <button
+                                onClick={handleViewSegments}
+                                disabled={materialLookupLoading}
+                                className='flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-1'
+                            >
+                                {materialLookupLoading ? <Loader2 className='w-4 h-4 animate-spin' /> : 'Segments'}
+                            </button>
+                            <button
+                                onClick={handleClearMaterialCache}
+                                disabled={clearingCache}
+                                className='flex-1 px-3 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-1'
+                            >
+                                {clearingCache ? <Loader2 className='w-4 h-4 animate-spin' /> : 'Clear Cache'}
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -538,38 +575,139 @@ export function AdminDashboard() {
                     )}
                 </div>
 
-                {/* Stuck Materials Card */}
-                <div className='bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5'>
-                    <div className='flex items-center justify-between'>
+                {/* Analytics Section */}
+                <div className='bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden'>
+                    <button
+                        onClick={() => setShowAnalytics(!showAnalytics)}
+                        className='w-full p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                    >
+                        <div className='flex items-center gap-2'>
+                            <Zap className='w-4 h-4 text-purple-500' />
+                            <h3 className='font-semibold text-gray-900 dark:text-white text-sm'>Analytics (Last 30 Days)</h3>
+                        </div>
+                        <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${showAnalytics ? 'rotate-90' : ''}`} />
+                    </button>
+                    {showAnalytics && analytics && (
+                        <div className='border-t border-gray-100 dark:border-gray-800 p-4 space-y-4'>
+                            {/* 30-Day Stats */}
+                            <div className='grid grid-cols-3 gap-2 text-center'>
+                                <div className='p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg'>
+                                    <p className='text-xl font-bold text-blue-600 dark:text-blue-400'>{analytics.last30Days.users}</p>
+                                    <p className='text-xs text-gray-500'>New Users</p>
+                                </div>
+                                <div className='p-3 bg-green-50 dark:bg-green-900/20 rounded-lg'>
+                                    <p className='text-xl font-bold text-green-600 dark:text-green-400'>{analytics.last30Days.materials}</p>
+                                    <p className='text-xs text-gray-500'>Materials</p>
+                                </div>
+                                <div className='p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg'>
+                                    <p className='text-xl font-bold text-purple-600 dark:text-purple-400'>{analytics.last30Days.quizzes}</p>
+                                    <p className='text-xs text-gray-500'>Quizzes</p>
+                                </div>
+                            </div>
+                            {/* Top Uploaders */}
+                            {analytics.topUploaders.length > 0 && (
+                                <div>
+                                    <h4 className='text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2'>Top Uploaders</h4>
+                                    <div className='space-y-1'>
+                                        {analytics.topUploaders.slice(0, 3).map((u, i) => (
+                                            <div key={i} className='flex items-center justify-between text-sm'>
+                                                <span className='text-gray-700 dark:text-gray-300'>{u.firstName} {u.lastName}</span>
+                                                <span className='font-medium text-gray-900 dark:text-white'>{u.count} uploads</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {/* Logs Section */}
+                <div className='bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden'>
+                    <button
+                        onClick={() => setShowLogs(!showLogs)}
+                        className='w-full p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                    >
+                        <div className='flex items-center gap-2'>
+                            <FileText className='w-4 h-4 text-gray-500' />
+                            <h3 className='font-semibold text-gray-900 dark:text-white text-sm'>Activity Logs</h3>
+                        </div>
+                        <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${showLogs ? 'rotate-90' : ''}`} />
+                    </button>
+                    {showLogs && logs && (
+                        <div className='border-t border-gray-100 dark:border-gray-800 max-h-80 overflow-y-auto'>
+                            {/* Recent Quiz Results */}
+                            {logs.recentQuizzes.length > 0 && (
+                                <div className='p-4 border-b border-gray-100 dark:border-gray-800'>
+                                    <h4 className='text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2'>Recent Quizzes</h4>
+                                    <div className='space-y-2'>
+                                        {logs.recentQuizzes.slice(0, 5).map((q) => (
+                                            <div key={q.id} className='flex items-center justify-between text-xs'>
+                                                <div className='flex-1 min-w-0'>
+                                                    <span className='text-gray-700 dark:text-gray-300 truncate block'>{q.userName}</span>
+                                                    <span className='text-gray-500 truncate block'>{q.materialTitle}</span>
+                                                </div>
+                                                <span className={`font-medium ml-2 ${q.score >= q.totalQuestions / 2 ? 'text-green-600' : 'text-red-600'}`}>
+                                                    {q.score}/{q.totalQuestions}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {/* Recent Material Activity */}
+                            {logs.recentMaterialActivity.length > 0 && (
+                                <div className='p-4'>
+                                    <h4 className='text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2'>Recent Materials</h4>
+                                    <div className='space-y-2'>
+                                        {logs.recentMaterialActivity.slice(0, 5).map((m) => (
+                                            <div key={m.id} className='flex items-center justify-between text-xs'>
+                                                <span className='text-gray-700 dark:text-gray-300 truncate flex-1'>{m.title}</span>
+                                                <span className={`ml-2 px-2 py-0.5 rounded text-xs font-medium ${m.processingStatus === 'COMPLETED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                                    m.processingStatus === 'FAILED' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                                        'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                                    }`}>
+                                                    {m.processingStatus}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+                <div className='bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 sm:p-5'>
+                    <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
                         <div className='flex items-center'>
-                            <div className='w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mr-4'>
-                                <Clock className='w-6 h-6 text-amber-600 dark:text-amber-400' />
+                            <div className='w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0'>
+                                <Clock className='w-5 h-5 sm:w-6 sm:h-6 text-amber-600 dark:text-amber-400' />
                             </div>
                             <div>
-                                <h2 className='text-lg font-bold text-gray-900 dark:text-white'>
+                                <h2 className='text-base sm:text-lg font-bold text-gray-900 dark:text-white'>
                                     Stuck Materials
                                 </h2>
-                                <p className='text-sm text-gray-500 dark:text-gray-400'>
-                                    {stuckCount} material{stuckCount !== 1 ? 's' : ''} with pending processing
+                                <p className='text-xs sm:text-sm text-gray-500 dark:text-gray-400'>
+                                    {stuckCount} material{stuckCount !== 1 ? 's' : ''} pending
                                 </p>
                             </div>
                         </div>
                         <button
                             onClick={handleReprocessStuck}
                             disabled={reprocessing || stuckCount === 0}
-                            className='px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white rounded-xl font-medium flex items-center gap-2 transition-colors'
+                            className='w-full sm:w-auto px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-colors'
                         >
                             {reprocessing ? (
-                                <Loader2 className='w-5 h-5 animate-spin' />
+                                <Loader2 className='w-4 h-4 animate-spin' />
                             ) : (
-                                <PlayCircle className='w-5 h-5' />
+                                <PlayCircle className='w-4 h-4' />
                             )}
-                            {reprocessing ? 'Reprocessing...' : 'Reprocess All'}
+                            {reprocessing ? 'Processing...' : 'Reprocess'}
                         </button>
                     </div>
                     {lastReprocessResult && (
-                        <div className='mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg text-green-700 dark:text-green-400 text-sm'>
-                            ✓ Queued {lastReprocessResult.count} materials for processing
+                        <div className='mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg text-green-700 dark:text-green-400 text-xs sm:text-sm'>
+                            ✓ Queued {lastReprocessResult.count} materials
                             {lastReprocessResult.failed > 0 && (
                                 <span className='text-red-500 ml-2'>({lastReprocessResult.failed} failed)</span>
                             )}
