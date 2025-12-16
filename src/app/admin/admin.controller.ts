@@ -1,12 +1,17 @@
-import { Controller, Get, Post, UseGuards, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, UseGuards, Logger, NotFoundException, ParseUUIDPipe } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { InjectQueue } from '@nestjs/bull';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, IsNull, Not } from 'typeorm';
 import { Queue } from 'bull';
+import OpenAI from 'openai';
+import { ConfigService } from '@nestjs/config';
 
 import { UsersService } from '@/app/users/users.service';
 import { Material, MaterialStatus, ProcessingStatus } from '@/app/academic/entities/material.entity';
+import { DocumentSegment } from '@/app/academic/entities/document-segment.entity';
+import { User } from '@/app/users/entities/user.entity';
+import { QuizResult } from '@/app/chat/entities/quiz-result.entity';
 
 import { Role } from '@/app/auth/decorators';
 
@@ -17,14 +22,29 @@ import { Paginate, PaginateQuery } from 'nestjs-paginate';
 @Role('admin')
 export class AdminController {
   private readonly logger = new Logger(AdminController.name);
+  private openai?: OpenAI;
 
   constructor(
     private readonly usersService: UsersService,
     @InjectRepository(Material)
     private readonly materialRepo: Repository<Material>,
+    @InjectRepository(DocumentSegment)
+    private readonly segmentRepo: Repository<DocumentSegment>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
+    @InjectRepository(QuizResult)
+    private readonly quizResultRepo: Repository<QuizResult>,
     @InjectQueue('materials')
     private readonly materialsQueue: Queue,
-  ) { }
+    private readonly configService: ConfigService,
+  ) {
+    const apiKey = this.configService.get<string>('OPENAI_API_KEY');
+    if (apiKey) {
+      this.openai = new OpenAI({ apiKey });
+    }
+  }
+
+  // ========== EXISTING ENDPOINTS ==========
 
   @Get('users')
   findAll(@Paginate() query: PaginateQuery) {
@@ -33,13 +53,11 @@ export class AdminController {
 
   /**
    * Reprocess all stuck materials (pending status)
-   * Finds materials that are stuck in PENDING status and queues them for processing
    */
   @Post('reprocess-stuck')
   async reprocessStuckMaterials() {
     this.logger.log('Admin requested reprocessing of stuck materials');
 
-    // Find all materials that are stuck in pending status
     const stuckMaterials = await this.materialRepo.find({
       where: [
         { status: MaterialStatus.PENDING },
@@ -50,15 +68,9 @@ export class AdminController {
     });
 
     if (stuckMaterials.length === 0) {
-      return {
-        success: true,
-        message: 'No stuck materials found',
-        count: 0,
-        materials: [],
-      };
+      return { success: true, message: 'No stuck materials found', count: 0, materials: [] };
     }
 
-    // Queue all materials for processing
     const queued: string[] = [];
     const failed: string[] = [];
 
@@ -69,7 +81,7 @@ export class AdminController {
           fileUrl: material.fileUrl,
         });
         queued.push(material.id);
-        this.logger.log(`Queued stuck material for processing: ${material.id} (${material.title})`);
+        this.logger.log(`Queued stuck material: ${material.id} (${material.title})`);
       } catch (error) {
         failed.push(material.id);
         this.logger.error(`Failed to queue material ${material.id}:`, error);
@@ -91,9 +103,6 @@ export class AdminController {
     };
   }
 
-  /**
-   * Get count of stuck materials
-   */
   @Get('stuck-materials/count')
   async getStuckMaterialsCount() {
     const count = await this.materialRepo.count({
@@ -102,7 +111,274 @@ export class AdminController {
         { processingStatus: ProcessingStatus.PENDING },
       ],
     });
-
     return { count };
   }
+
+  // ========== NEW HIGH-PRIORITY ENDPOINTS ==========
+
+  /**
+   * Get dashboard stats
+   */
+  @Get('stats')
+  async getStats() {
+    this.logger.log('Admin requested stats');
+
+    const [
+      totalUsers,
+      totalMaterials,
+      materialsReady,
+      materialsProcessing,
+      materialsFailed,
+      totalQuizzesTaken,
+      materialsMissingSummary,
+    ] = await Promise.all([
+      this.userRepo.count(),
+      this.materialRepo.count(),
+      this.materialRepo.count({ where: { status: MaterialStatus.READY } }),
+      this.materialRepo.count({
+        where: [
+          { processingStatus: ProcessingStatus.PENDING },
+          { processingStatus: ProcessingStatus.EXTRACTING },
+          { processingStatus: ProcessingStatus.OCR_EXTRACTING },
+          { processingStatus: ProcessingStatus.CLEANING },
+          { processingStatus: ProcessingStatus.SEGMENTING },
+        ],
+      }),
+      this.materialRepo.count({ where: { processingStatus: ProcessingStatus.FAILED } }),
+      this.quizResultRepo.count(),
+      this.materialRepo.count({
+        where: { summary: IsNull(), processingStatus: ProcessingStatus.COMPLETED },
+      }),
+    ]);
+
+    return {
+      users: { total: totalUsers },
+      materials: {
+        total: totalMaterials,
+        ready: materialsReady,
+        processing: materialsProcessing,
+        failed: materialsFailed,
+        missingSummary: materialsMissingSummary,
+      },
+      quizzes: { taken: totalQuizzesTaken },
+    };
+  }
+
+  /**
+   * Backfill summaries for materials that don't have them
+   */
+  @Post('backfill-summaries')
+  async backfillSummaries(@Body('limit') limit: number = 10) {
+    this.logger.log(`Admin requested summary backfill (limit: ${limit})`);
+
+    if (!this.openai) {
+      return { success: false, message: 'OpenAI not configured', processed: 0 };
+    }
+
+    // Find materials without summaries that are completed
+    const materials = await this.materialRepo.find({
+      where: { summary: IsNull(), processingStatus: ProcessingStatus.COMPLETED },
+      take: Math.min(limit, 50), // Cap at 50 to prevent overload
+      order: { createdAt: 'DESC' },
+    });
+
+    if (materials.length === 0) {
+      return { success: true, message: 'No materials need summaries', processed: 0 };
+    }
+
+    const results: { id: string; title: string; success: boolean; error?: string }[] = [];
+
+    for (const material of materials) {
+      try {
+        // Get segments for this material
+        const segments = await this.segmentRepo.find({
+          where: { materialId: material.id },
+          order: { segmentIndex: 'ASC' },
+          take: 15,
+        });
+
+        if (segments.length === 0) {
+          results.push({ id: material.id, title: material.title, success: false, error: 'No segments' });
+          continue;
+        }
+
+        // Build content from segments
+        let content = '';
+        let tokenCount = 0;
+        for (const segment of segments) {
+          if (tokenCount + segment.tokenCount > 6000) break;
+          content += segment.text + '\n\n';
+          tokenCount += segment.tokenCount;
+        }
+
+        if (!content.trim()) {
+          results.push({ id: material.id, title: material.title, success: false, error: 'Empty content' });
+          continue;
+        }
+
+        // Generate summary
+        const response = await this.openai.chat.completions.create({
+          model: this.configService.get<string>('OPENAI_CHAT_MODEL') ?? 'gpt-3.5-turbo',
+          messages: [
+            {
+              role: 'system',
+              content: 'Summarize the following text concisely but comprehensively for a student.',
+            },
+            { role: 'user', content },
+          ],
+          max_tokens: 500,
+        });
+
+        const summary = response.choices[0].message.content ?? '';
+
+        if (summary) {
+          material.summary = summary;
+          await this.materialRepo.save(material);
+          results.push({ id: material.id, title: material.title, success: true });
+          this.logger.log(`Generated summary for material: ${material.id}`);
+        } else {
+          results.push({ id: material.id, title: material.title, success: false, error: 'Empty response' });
+        }
+      } catch (error) {
+        const errMsg = error instanceof Error ? error.message : 'Unknown error';
+        results.push({ id: material.id, title: material.title, success: false, error: errMsg });
+        this.logger.error(`Failed to generate summary for ${material.id}:`, error);
+      }
+    }
+
+    const successCount = results.filter(r => r.success).length;
+    return {
+      success: true,
+      message: `Generated ${successCount} of ${materials.length} summaries`,
+      processed: successCount,
+      total: materials.length,
+      results,
+    };
+  }
+
+  /**
+   * Toggle user ban status
+   */
+  @Post('users/:id/ban')
+  async toggleUserBan(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body('reason') reason?: string,
+  ) {
+    this.logger.log(`Admin toggling ban for user: ${id}`);
+
+    const user = await this.userRepo.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Toggle ban status
+    user.banned = !user.banned;
+    user.banReason = user.banned ? (reason || 'Banned by admin') : null;
+    user.banExpires = null; // Permanent ban for now
+
+    await this.userRepo.save(user);
+
+    this.logger.log(`User ${id} ${user.banned ? 'banned' : 'unbanned'}`);
+
+    return {
+      success: true,
+      message: user.banned ? 'User banned successfully' : 'User unbanned successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        banned: user.banned,
+        banReason: user.banReason,
+      },
+    };
+  }
+
+  /**
+   * Get Bull queue status
+   */
+  @Get('queue-status')
+  async getQueueStatus() {
+    this.logger.log('Admin requested queue status');
+
+    try {
+      const [waiting, active, completed, failed, delayed] = await Promise.all([
+        this.materialsQueue.getWaitingCount(),
+        this.materialsQueue.getActiveCount(),
+        this.materialsQueue.getCompletedCount(),
+        this.materialsQueue.getFailedCount(),
+        this.materialsQueue.getDelayedCount(),
+      ]);
+
+      return {
+        success: true,
+        queue: 'materials',
+        counts: { waiting, active, completed, failed, delayed },
+        total: waiting + active + completed + failed + delayed,
+      };
+    } catch (error) {
+      this.logger.error('Failed to get queue status:', error);
+      return {
+        success: false,
+        message: 'Failed to get queue status. Redis may not be connected.',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Reprocess failed materials only
+   */
+  @Post('reprocess-failed')
+  async reprocessFailedMaterials() {
+    this.logger.log('Admin requested reprocessing of failed materials');
+
+    const failedMaterials = await this.materialRepo.find({
+      where: { processingStatus: ProcessingStatus.FAILED },
+      select: ['id', 'title', 'fileUrl', 'status', 'processingStatus', 'createdAt'],
+      order: { createdAt: 'DESC' },
+    });
+
+    if (failedMaterials.length === 0) {
+      return { success: true, message: 'No failed materials found', count: 0, materials: [] };
+    }
+
+    const queued: string[] = [];
+    const errors: string[] = [];
+
+    for (const material of failedMaterials) {
+      try {
+        // Reset status before reprocessing
+        await this.materialRepo.update(material.id, {
+          processingStatus: ProcessingStatus.PENDING,
+          status: MaterialStatus.PENDING,
+        });
+
+        await this.materialsQueue.add('process-material', {
+          materialId: material.id,
+          fileUrl: material.fileUrl,
+        });
+        queued.push(material.id);
+        this.logger.log(`Requeued failed material: ${material.id} (${material.title})`);
+      } catch (error) {
+        errors.push(material.id);
+        this.logger.error(`Failed to requeue material ${material.id}:`, error);
+      }
+    }
+
+    return {
+      success: true,
+      message: `Queued ${queued.length} failed materials for reprocessing`,
+      count: queued.length,
+      failed: errors.length,
+      materials: failedMaterials.map(m => ({
+        id: m.id,
+        title: m.title,
+        status: m.status,
+        processingStatus: m.processingStatus,
+        createdAt: m.createdAt,
+      })),
+    };
+  }
 }
+
