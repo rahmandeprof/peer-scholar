@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body, UseGuards, Logger, NotFoundException, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, UseGuards, Logger, NotFoundException, ParseUUIDPipe, BadRequestException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { InjectQueue } from '@nestjs/bull';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -10,6 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { UsersService } from '@/app/users/users.service';
 import { Material, MaterialStatus, ProcessingStatus } from '@/app/academic/entities/material.entity';
 import { DocumentSegment } from '@/app/academic/entities/document-segment.entity';
+import { MaterialReport } from '@/app/academic/entities/material-report.entity';
 import { User } from '@/app/users/entities/user.entity';
 import { QuizResult } from '@/app/chat/entities/quiz-result.entity';
 
@@ -30,6 +31,8 @@ export class AdminController {
     private readonly materialRepo: Repository<Material>,
     @InjectRepository(DocumentSegment)
     private readonly segmentRepo: Repository<DocumentSegment>,
+    @InjectRepository(MaterialReport)
+    private readonly reportRepo: Repository<MaterialReport>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
     @InjectRepository(QuizResult)
@@ -114,7 +117,7 @@ export class AdminController {
     return { count };
   }
 
-  // ========== NEW HIGH-PRIORITY ENDPOINTS ==========
+  // ========== HIGH-PRIORITY ENDPOINTS ==========
 
   /**
    * Get dashboard stats
@@ -175,10 +178,9 @@ export class AdminController {
       return { success: false, message: 'OpenAI not configured', processed: 0 };
     }
 
-    // Find materials without summaries that are completed
     const materials = await this.materialRepo.find({
       where: { summary: IsNull(), processingStatus: ProcessingStatus.COMPLETED },
-      take: Math.min(limit, 50), // Cap at 50 to prevent overload
+      take: Math.min(limit, 50),
       order: { createdAt: 'DESC' },
     });
 
@@ -190,7 +192,6 @@ export class AdminController {
 
     for (const material of materials) {
       try {
-        // Get segments for this material
         const segments = await this.segmentRepo.find({
           where: { materialId: material.id },
           order: { segmentIndex: 'ASC' },
@@ -202,7 +203,6 @@ export class AdminController {
           continue;
         }
 
-        // Build content from segments
         let content = '';
         let tokenCount = 0;
         for (const segment of segments) {
@@ -216,14 +216,10 @@ export class AdminController {
           continue;
         }
 
-        // Generate summary
         const response = await this.openai.chat.completions.create({
           model: this.configService.get<string>('OPENAI_CHAT_MODEL') ?? 'gpt-3.5-turbo',
           messages: [
-            {
-              role: 'system',
-              content: 'Summarize the following text concisely but comprehensively for a student.',
-            },
+            { role: 'system', content: 'Summarize the following text concisely but comprehensively for a student.' },
             { role: 'user', content },
           ],
           max_tokens: 500,
@@ -271,10 +267,9 @@ export class AdminController {
       throw new NotFoundException('User not found');
     }
 
-    // Toggle ban status
     user.banned = !user.banned;
     user.banReason = user.banned ? (reason || 'Banned by admin') : null;
-    user.banExpires = null; // Permanent ban for now
+    user.banExpires = null;
 
     await this.userRepo.save(user);
 
@@ -348,7 +343,6 @@ export class AdminController {
 
     for (const material of failedMaterials) {
       try {
-        // Reset status before reprocessing
         await this.materialRepo.update(material.id, {
           processingStatus: ProcessingStatus.PENDING,
           status: MaterialStatus.PENDING,
@@ -380,5 +374,165 @@ export class AdminController {
       })),
     };
   }
+
+  // ========== MEDIUM-PRIORITY ENDPOINTS ==========
+
+  /**
+   * Get segments for a material (debug view)
+   */
+  @Get('materials/:id/segments')
+  async getMaterialSegments(@Param('id', new ParseUUIDPipe()) id: string) {
+    this.logger.log(`Admin requested segments for material: ${id}`);
+
+    const material = await this.materialRepo.findOne({
+      where: { id },
+      select: ['id', 'title', 'processingStatus', 'materialVersion'],
+    });
+
+    if (!material) {
+      throw new NotFoundException('Material not found');
+    }
+
+    const segments = await this.segmentRepo.find({
+      where: { materialId: id },
+      order: { segmentIndex: 'ASC' },
+    });
+
+    return {
+      material: {
+        id: material.id,
+        title: material.title,
+        processingStatus: material.processingStatus,
+        materialVersion: material.materialVersion,
+      },
+      segmentCount: segments.length,
+      totalTokens: segments.reduce((sum, s) => sum + s.tokenCount, 0),
+      segments: segments.map(s => ({
+        id: s.id,
+        index: s.segmentIndex,
+        pageStart: s.pageStart,
+        pageEnd: s.pageEnd,
+        tokenCount: s.tokenCount,
+        source: s.source,
+        textPreview: s.text.substring(0, 200) + (s.text.length > 200 ? '...' : ''),
+      })),
+    };
+  }
+
+  /**
+   * Clear cached data for a material (quiz, summary, key points)
+   */
+  @Post('materials/:id/clear-cache')
+  async clearMaterialCache(@Param('id', new ParseUUIDPipe()) id: string) {
+    this.logger.log(`Admin clearing cache for material: ${id}`);
+
+    const material = await this.materialRepo.findOne({ where: { id } });
+
+    if (!material) {
+      throw new NotFoundException('Material not found');
+    }
+
+    const hadSummary = !!material.summary;
+    const hadQuiz = material.quiz && material.quiz.length > 0;
+    const hadKeyPoints = material.keyPoints && material.keyPoints.length > 0;
+    const hadFlashcards = material.flashcards && material.flashcards.length > 0;
+
+    material.summary = null as any;
+    material.quiz = null as any;
+    material.keyPoints = null as any;
+    material.flashcards = null as any;
+    material.quizGeneratedVersion = null as any;
+
+    await this.materialRepo.save(material);
+
+    this.logger.log(`Cache cleared for material ${id}`);
+
+    return {
+      success: true,
+      message: 'Cache cleared successfully',
+      cleared: {
+        summary: hadSummary,
+        quiz: hadQuiz,
+        keyPoints: hadKeyPoints,
+        flashcards: hadFlashcards,
+      },
+    };
+  }
+
+  /**
+   * Get all material reports
+   */
+  @Get('reports')
+  async getReports() {
+    this.logger.log('Admin requested all reports');
+
+    const reports = await this.reportRepo.find({
+      relations: ['material', 'reporter'],
+      order: { createdAt: 'DESC' },
+      take: 100,
+    });
+
+    return {
+      count: reports.length,
+      reports: reports.map(r => ({
+        id: r.id,
+        reason: r.reason,
+        description: r.description,
+        createdAt: r.createdAt,
+        material: r.material ? {
+          id: r.material.id,
+          title: r.material.title,
+        } : null,
+        reporter: r.reporter ? {
+          id: r.reporter.id,
+          firstName: r.reporter.firstName,
+          lastName: r.reporter.lastName,
+          email: r.reporter.email,
+        } : null,
+      })),
+    };
+  }
+
+  /**
+   * Change user role
+   */
+  @Post('users/:id/role')
+  async changeUserRole(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body('role') role: string,
+  ) {
+    this.logger.log(`Admin changing role for user ${id} to ${role}`);
+
+    if (!role || !['user', 'admin'].includes(role)) {
+      throw new BadRequestException('Invalid role. Must be "user" or "admin"');
+    }
+
+    const user = await this.userRepo.findOne({ where: { id } });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const previousRole = user.role;
+    user.role = role;
+
+    await this.userRepo.save(user);
+
+    this.logger.log(`User ${id} role changed from ${previousRole} to ${role}`);
+
+    return {
+      success: true,
+      message: `User role changed to ${role}`,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        previousRole,
+      },
+    };
+  }
 }
+
 
