@@ -20,7 +20,6 @@ import {
     AlertOctagon,
     Server,
     Zap,
-    Ban,
     Search,
 } from 'lucide-react';
 import api from '../../lib/api';
