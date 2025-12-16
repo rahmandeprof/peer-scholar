@@ -162,7 +162,22 @@ function AppContent() {
           <Route
             path='/'
             element={
-              <div className='min-h-screen flex items-center justify-center px-4 py-12'>
+              <div className='min-h-screen flex flex-col items-center justify-center px-4 py-12'>
+                {/* Logo header for auth page */}
+                {!isAuthenticated && (
+                  <div className='mb-8 flex flex-col items-center'>
+                    <img
+                      src='/wordmark-black.png'
+                      alt='PeerToLearn'
+                      className='h-16 md:h-20 object-contain dark:hidden'
+                    />
+                    <img
+                      src='/wordmark-blue.png'
+                      alt='PeerToLearn'
+                      className='h-16 md:h-20 object-contain hidden dark:block'
+                    />
+                  </div>
+                )}
                 {isAuthenticated ? (
                   <Navigate
                     to={location.state?.from?.pathname || '/dashboard'}

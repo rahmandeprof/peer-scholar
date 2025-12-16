@@ -1,0 +1,29 @@
+{
+    "name": "PeerToLearn",
+    "short_name": "PeerToLearn",
+    "description": "Collaborative Academic Learning Platform - Share notes, study together, and ace your exams",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#4F46E5",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/logo-blue.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/logo-blue.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "screenshots": [],
+    "categories": [
+        "education",
+        "productivity"
+    ]
+}
