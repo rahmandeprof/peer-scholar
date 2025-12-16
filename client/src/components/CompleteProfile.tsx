@@ -35,7 +35,7 @@ export default function CompleteProfile() {
       user?.department &&
       user?.yearOfStudy
     ) {
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
     }
   }, [user, navigate, isLoading]);
 
@@ -53,7 +53,7 @@ export default function CompleteProfile() {
 
       await refreshUser();
       toast.success('Profile completed successfully!');
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
     } catch (error: any) {
       console.error('Failed to complete profile', error);
       toast.error(error.response?.data?.message || 'Failed to update profile');

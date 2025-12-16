@@ -30,7 +30,7 @@ export function GoogleCallback() {
         .then((res) => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const fullUser = (res.data as any).data || res.data;
-          
+
           login(token, fullUser);
 
           const isProfileComplete =
@@ -40,20 +40,20 @@ export function GoogleCallback() {
             const redirect = localStorage.getItem('login_redirect');
             if (redirect) {
               localStorage.removeItem('login_redirect');
-              navigate(redirect);
+              navigate(redirect, { replace: true });
             } else {
-              navigate('/');
+              navigate('/dashboard', { replace: true });
             }
           } else {
-            navigate('/complete-profile');
+            navigate('/complete-profile', { replace: true });
           }
         })
         .catch((err) => {
           console.error('Failed to fetch profile during google callback', err);
-          navigate('/login?error=auth_failed');
+          navigate('/?error=auth_failed', { replace: true });
         });
     } else {
-      navigate('/login?error=no_token');
+      navigate('/?error=no_token', { replace: true });
     }
   }, [searchParams, login, navigate]);
 
