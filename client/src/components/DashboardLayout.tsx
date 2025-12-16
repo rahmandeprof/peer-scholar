@@ -11,8 +11,11 @@ import {
   HelpCircle,
   Briefcase,
   Shield,
+  Moon,
+  Sun,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { StudySessionGoals } from './StudySessionGoals';
 import { UploadModal } from './UploadModal';
 import { BottomNav } from './BottomNav';
@@ -39,6 +42,7 @@ export function DashboardLayout() {
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { user, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const toolsRef = useRef<HTMLDivElement>(null);
 
@@ -394,12 +398,23 @@ export function DashboardLayout() {
               PeerToLearn
             </span>
           </div>
-          <button
-            onClick={() => setUploadModalOpen(true)}
-            className='p-2 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-colors shadow-lg shadow-primary-500/20'
-          >
-            <Upload className='w-5 h-5' />
-          </button>
+          <div className='flex items-center gap-2'>
+            {/* Dark mode toggle */}
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className='p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors'
+              title='Toggle dark mode'
+            >
+              <Sun className='w-5 h-5 hidden dark:block' />
+              <Moon className='w-5 h-5 dark:hidden' />
+            </button>
+            <button
+              onClick={() => setUploadModalOpen(true)}
+              className='p-2 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-colors shadow-lg shadow-primary-500/20'
+            >
+              <Upload className='w-5 h-5' />
+            </button>
+          </div>
         </div>
 
         {/* Content Area */}

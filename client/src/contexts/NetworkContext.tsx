@@ -6,6 +6,7 @@ interface NetworkPreferences {
 }
 
 interface NetworkContextType {
+  isOnline: boolean;
   isLowBandwidth: boolean;
   connectionType: string;
   saveData: boolean;
@@ -18,6 +19,7 @@ const NetworkContext = createContext<NetworkContextType | undefined>(undefined);
 export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [connectionType, setConnectionType] = useState<string>('4g');
   const [saveData, setSaveData] = useState<boolean>(false);
   const [preferences, setPreferences] = useState<NetworkPreferences>(() => {
@@ -25,9 +27,9 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({
     return saved
       ? JSON.parse(saved)
       : {
-          autoPlayVideos: false,
-          highQualityImages: false, // Default to false (smart mode)
-        };
+        autoPlayVideos: false,
+        highQualityImages: false, // Default to false (smart mode)
+      };
   });
 
   useEffect(() => {
@@ -54,6 +56,20 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, []);
 
+  // Track online/offline status
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   const updatePreferences = (prefs: Partial<NetworkPreferences>) => {
     setPreferences((prev) => {
       const newPrefs = { ...prev, ...prefs };
@@ -77,6 +93,7 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({
   return (
     <NetworkContext.Provider
       value={{
+        isOnline,
         isLowBandwidth,
         connectionType,
         saveData,

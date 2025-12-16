@@ -202,8 +202,9 @@ function AppContent() {
 }
 
 function App() {
-  // Lazy load InstallPrompt
+  // Lazy load InstallPrompt and OfflineIndicator
   const InstallPrompt = lazy(() => import('./components/InstallPrompt'));
+  const OfflineIndicator = lazy(() => import('./components/OfflineIndicator'));
 
   return (
     <ErrorBoundary>
@@ -211,6 +212,10 @@ function App() {
         <ToastProvider>
           <AuthProvider>
             <NetworkProvider>
+              {/* Offline Status Banner */}
+              <Suspense fallback={null}>
+                <OfflineIndicator />
+              </Suspense>
               <AppContent />
               {/* PWA Install Prompt */}
               <Suspense fallback={null}>
