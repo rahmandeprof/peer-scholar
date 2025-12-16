@@ -121,6 +121,12 @@ export function AdminDashboard() {
     } | null>(null);
     const [showLogs, setShowLogs] = useState(false);
 
+    // Bulk delete state
+    const [bulkDeleteIds, setBulkDeleteIds] = useState('');
+    const [bulkDeleting, setBulkDeleting] = useState(false);
+    const [bulkDeleteResult, setBulkDeleteResult] = useState<{ deleted: string[]; errors: { id: string; error: string }[] } | null>(null);
+    const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+
     // Check admin access
     useEffect(() => {
         if (user && user.role !== 'admin') {
@@ -273,6 +279,36 @@ export function AdminDashboard() {
             setLogs(res.data);
         } catch (err) {
             console.error('Failed to fetch logs:', err);
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        const ids = bulkDeleteIds
+            .split(/[,\n]+/)
+            .map(id => id.trim())
+            .filter(id => id.length > 0);
+
+        if (ids.length === 0) return;
+
+        setBulkDeleting(true);
+        setBulkDeleteResult(null);
+        try {
+            const res = await api.post('/admin/bulk-delete', { materialIds: ids });
+            setBulkDeleteResult(res.data);
+            if (res.data.deleted.length > 0) {
+                toast.success(`Deleted ${res.data.deleted.length} material(s)`);
+                setBulkDeleteIds('');
+                fetchFlaggedMaterials(); // Refresh lists
+                fetchStats();
+            }
+            if (res.data.errors.length > 0) {
+                toast.warning(`${res.data.errors.length} deletion(s) failed`);
+            }
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Bulk delete failed');
+        } finally {
+            setBulkDeleting(false);
+            setShowBulkDeleteConfirm(false);
         }
     };
 
@@ -714,6 +750,83 @@ export function AdminDashboard() {
                     )}
                 </div>
 
+                {/* Bulk Delete Section */}
+                <div className='bg-white dark:bg-gray-900 rounded-2xl border border-red-200 dark:border-red-900/50 p-4 sm:p-6 shadow-sm'>
+                    <div className='flex items-center mb-4'>
+                        <div className='w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0'>
+                            <Trash2 className='w-5 h-5 sm:w-6 sm:h-6 text-red-600 dark:text-red-400' />
+                        </div>
+                        <div>
+                            <h2 className='text-base sm:text-lg font-bold text-gray-900 dark:text-white'>
+                                Bulk Delete Materials
+                            </h2>
+                            <p className='text-xs sm:text-sm text-gray-500 dark:text-gray-400'>
+                                Delete multiple materials by ID (max 50)
+                            </p>
+                        </div>
+                    </div>
+
+                    <textarea
+                        value={bulkDeleteIds}
+                        onChange={(e) => setBulkDeleteIds(e.target.value)}
+                        placeholder="Enter material IDs (one per line or comma-separated)\ne.g.:\nuuid-1\nuuid-2\nor: uuid-1, uuid-2, uuid-3"
+                        className='w-full h-32 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm resize-none focus:ring-2 focus:ring-red-500 outline-none'
+                    />
+
+                    <div className='flex flex-col sm:flex-row gap-2 mt-3'>
+                        <button
+                            onClick={() => {
+                                const ids = bulkDeleteIds
+                                    .split(/[,\n]+/)
+                                    .map(id => id.trim())
+                                    .filter(id => id.length > 0);
+                                if (ids.length === 0) {
+                                    toast.warning('Please enter at least one material ID');
+                                    return;
+                                }
+                                if (ids.length > 50) {
+                                    toast.warning('Maximum 50 IDs allowed at once');
+                                    return;
+                                }
+                                setShowBulkDeleteConfirm(true);
+                            }}
+                            disabled={bulkDeleting || !bulkDeleteIds.trim()}
+                            className='flex-1 sm:flex-none px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-colors'
+                        >
+                            {bulkDeleting ? (
+                                <Loader2 className='w-4 h-4 animate-spin' />
+                            ) : (
+                                <Trash2 className='w-4 h-4' />
+                            )}
+                            {bulkDeleting ? 'Deleting...' : 'Delete Materials'}
+                        </button>
+                        <button
+                            onClick={() => {
+                                setBulkDeleteIds('');
+                                setBulkDeleteResult(null);
+                            }}
+                            className='px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium text-sm hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors'
+                        >
+                            Clear
+                        </button>
+                    </div>
+
+                    {bulkDeleteResult && (
+                        <div className='mt-3 space-y-2'>
+                            {bulkDeleteResult.deleted.length > 0 && (
+                                <div className='p-3 bg-green-50 dark:bg-green-900/20 rounded-lg text-green-700 dark:text-green-400 text-xs sm:text-sm'>
+                                    ✓ Successfully deleted {bulkDeleteResult.deleted.length} material(s)
+                                </div>
+                            )}
+                            {bulkDeleteResult.errors.length > 0 && (
+                                <div className='p-3 bg-red-50 dark:bg-red-900/20 rounded-lg text-red-700 dark:text-red-400 text-xs sm:text-sm'>
+                                    ✗ Failed: {bulkDeleteResult.errors.map(e => `${e.id} (${e.error})`).join(', ')}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
                 <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
                     {/* Flagged Materials List */}
                     <div className='bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden'>
@@ -876,6 +989,17 @@ export function AdminDashboard() {
                     </div>
                 </div>
             </div>
+
+            {/* Bulk Delete Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={showBulkDeleteConfirm}
+                onClose={() => setShowBulkDeleteConfirm(false)}
+                onConfirm={handleBulkDelete}
+                title='Bulk Delete Materials'
+                message={`Are you sure you want to delete ${bulkDeleteIds.split(/[,\n]+/).filter(id => id.trim()).length} material(s)? This cannot be undone.`}
+                confirmText='Delete All'
+                isDangerous={true}
+            />
 
             {/* Delete Confirmation Modal */}
             <ConfirmationModal
