@@ -42,7 +42,7 @@ export function DashboardLayout() {
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { user, logout } = useAuth();
-  const { theme, setTheme } = useTheme();
+  const { toggleTheme } = useTheme();
   const navigate = useNavigate();
   const toolsRef = useRef<HTMLDivElement>(null);
 
@@ -401,7 +401,7 @@ export function DashboardLayout() {
           <div className='flex items-center gap-2'>
             {/* Dark mode toggle */}
             <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              onClick={toggleTheme}
               className='p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors'
               title='Toggle dark mode'
             >
