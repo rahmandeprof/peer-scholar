@@ -220,14 +220,14 @@ export function StreakCalendar({ compact = false }: StreakCalendarProps) {
                                         className={`w-3 h-3 rounded-sm ${day.date
                                             ? getColorClass(getIntensity(day.minutes))
                                             : 'bg-transparent'
-                                            } transition-all hover:scale-125 cursor-pointer relative`}
+                                            } transition-all hover:scale-125 cursor-pointer relative ${hoveredDay?.date === day.date ? 'isolate z-[100]' : ''}`}
                                         onMouseEnter={() => day.date && setHoveredDay(day)}
                                         onMouseLeave={() => setHoveredDay(null)}
                                     >
                                         {/* Tooltip */}
                                         {hoveredDay?.date === day.date && day.date && (
-                                            <div className='absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none'>
-                                                <div className='bg-gray-900 dark:bg-gray-700 text-white text-xs px-2 py-1 rounded-lg whitespace-nowrap shadow-lg'>
+                                            <div className='absolute bottom-full left-1/2 -translate-x-1/2 mb-3 z-[9999] pointer-events-none'>
+                                                <div className='bg-gray-900 dark:bg-gray-700 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-xl border border-gray-700 dark:border-gray-600'>
                                                     <div className='font-medium'>
                                                         {formatDate(day.date)}
                                                     </div>
@@ -237,6 +237,8 @@ export function StreakCalendar({ compact = false }: StreakCalendarProps) {
                                                             : 'No activity'}
                                                     </div>
                                                 </div>
+                                                {/* Arrow pointer */}
+                                                <div className='absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45 border-r border-b border-gray-700 dark:border-gray-600'></div>
                                             </div>
                                         )}
                                     </div>
