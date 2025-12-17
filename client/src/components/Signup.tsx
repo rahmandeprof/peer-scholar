@@ -54,7 +54,7 @@ export function Signup({ onSwitch }: SignupProps) {
   };
 
   return (
-    <div className='w-full max-w-md p-8 space-y-6 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 my-8'>
+    <div className='w-full max-w-md p-6 md:p-8 space-y-6 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700'>
       <div className='text-center space-y-2'>
         <h1 className='text-3xl font-bold text-gray-900 dark:text-white'>
           Create Account

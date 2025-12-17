@@ -163,7 +163,7 @@ function AppContent() {
           <Route
             path='/'
             element={
-              <div className='min-h-screen flex flex-col items-center justify-center px-4 py-12'>
+              <div className='min-h-screen flex flex-col items-center justify-center px-4 py-6 sm:py-12 overflow-y-auto'>
                 {/* Logo header for auth page */}
                 {!isAuthenticated && (
                   <div className='mb-8 flex flex-col items-center'>
