@@ -15,11 +15,12 @@ import { User } from '@/app/users/entities/user.entity';
 import { QuizResult } from '@/app/chat/entities/quiz-result.entity';
 
 import { Role } from '@/app/auth/decorators';
+import { RolesGuard } from '@/app/auth/guards/roles.guard';
 
 import { Paginate, PaginateQuery } from 'nestjs-paginate';
 
 @Controller('admin')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), RolesGuard)
 @Role('admin')
 export class AdminController {
   private readonly logger = new Logger(AdminController.name);
