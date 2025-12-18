@@ -26,6 +26,7 @@
     "prepare": "node -e \"try { require('fs').accessSync('.husky'); require('child_process').execSync('node .husky/install.mjs') } catch (e) { console.log('Skipping husky install') }\""
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.954.0",
     "@jorgebodega/typeorm-factory": "^2.1.0",
     "@jorgebodega/typeorm-seeding": "^7.1.0",
     "@nestjs-modules/mailer": "^2.0.2",

@@ -29,7 +29,7 @@ import { User } from '@/app/users/entities/user.entity';
 
 import { ContextActionDto, ContextActionType } from './dto/context-action.dto';
 
-import { CloudinaryService } from '@/app/common/services/cloudinary.service';
+import { StorageService } from '@/app/common/services/storage.service';
 import { ConversionService } from '@/app/common/services/conversion.service';
 import { UsersService } from '@/app/users/users.service';
 
@@ -63,7 +63,7 @@ export class ChatService {
     @InjectRepository(Comment)
     private readonly commentRepo: Repository<Comment>,
     private readonly usersService: UsersService,
-    private readonly cloudinaryService: CloudinaryService,
+    private readonly storageService: StorageService,
     private readonly conversionService: ConversionService,
     private readonly configService: ConfigService,
     private readonly quizGenerator: QuizGenerator,
@@ -110,7 +110,7 @@ export class ChatService {
     let url = '';
 
     try {
-      const uploadResult = await this.cloudinaryService.uploadFile(file);
+      const uploadResult = await this.storageService.uploadFile(file);
       url = uploadResult.url;
     } catch (error) {
       this.logger.error(
@@ -145,7 +145,7 @@ export class ChatService {
           originalname: file.originalname.replace(/\.[^/.]+$/, '.pdf'),
           mimetype: 'application/pdf',
         };
-        const pdfUpload = await this.cloudinaryService.uploadFile(pdfFile);
+        const pdfUpload = await this.storageService.uploadFile(pdfFile);
         pdfUrl = pdfUpload.url;
 
         // Extract text from the GENERATED PDF (reliable)
@@ -216,7 +216,7 @@ export class ChatService {
       const publicId = this.extractPublicIdFromUrl(material.fileUrl);
 
       if (publicId) {
-        await this.cloudinaryService.deleteFile(publicId);
+        await this.storageService.deleteFile(publicId);
       }
     }
 
@@ -225,7 +225,7 @@ export class ChatService {
       const publicId = this.extractPublicIdFromUrl(material.pdfUrl);
 
       if (publicId) {
-        await this.cloudinaryService.deleteFile(publicId);
+        await this.storageService.deleteFile(publicId);
       }
     }
 
