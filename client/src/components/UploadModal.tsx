@@ -28,12 +28,6 @@ interface R2Config {
   headers: Record<string, string>;
 }
 
-interface PresignResponse {
-  provider: 'r2' | 'cloudinary';
-  primary: R2Config | CloudinaryConfig;
-  fallback: (CloudinaryConfig & { maxSize: number; provider: 'cloudinary' }) | null;
-}
-
 interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -81,7 +75,9 @@ export function UploadModal({
     const buffer = await file.arrayBuffer();
     const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+    const hashHex = hashArray
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
     return hashHex;
   };
 
@@ -100,7 +96,11 @@ export function UploadModal({
       try {
         const duplicateRes = await api.post('/materials/check-duplicate', {
           hash,
-          department: specificDepartment || (typeof user?.department === 'string' ? user.department : (user?.department as any)?.name),
+          department:
+            specificDepartment ||
+            (typeof user?.department === 'string'
+              ? user.department
+              : (user?.department as any)?.name),
         });
 
         if (duplicateRes.data) {
@@ -129,7 +129,10 @@ export function UploadModal({
     }
   };
 
-  const proceedWithUpload = async (fileHash: string, parentMaterialId?: string) => {
+  const proceedWithUpload = async (
+    fileHash: string,
+    parentMaterialId?: string,
+  ) => {
     // 1. Get presigned URL with provider info
     const presignRes = await api.get(
       `/materials/presign?fileType=${encodeURIComponent(file!.type)}&filename=${encodeURIComponent(file!.name)}`,
@@ -157,7 +160,9 @@ export function UploadModal({
       return primary.publicUrl;
     };
 
-    const uploadToCloudinary = async (config: CloudinaryConfig): Promise<string> => {
+    const uploadToCloudinary = async (
+      config: CloudinaryConfig,
+    ): Promise<string> => {
       // Validate config has required fields
       if (!config?.url || !config?.apiKey || !config?.signature) {
         throw new Error('Invalid Cloudinary configuration');
@@ -174,7 +179,8 @@ export function UploadModal({
         formData.append('timestamp', String(config.uploadTimestamp || ''));
         formData.append('signature', config.signature);
         if (config.folder) formData.append('folder', config.folder);
-        if (config.uploadPreset) formData.append('upload_preset', config.uploadPreset);
+        if (config.uploadPreset)
+          formData.append('upload_preset', config.uploadPreset);
         if (config.uniqueFilename) formData.append('unique_filename', 'true');
         if (config.overwrite) formData.append('overwrite', 'true');
 
@@ -205,7 +211,8 @@ export function UploadModal({
           formData.append('timestamp', String(config.uploadTimestamp || ''));
           formData.append('signature', config.signature);
           if (config.folder) formData.append('folder', config.folder);
-          if (config.uploadPreset) formData.append('upload_preset', config.uploadPreset);
+          if (config.uploadPreset)
+            formData.append('upload_preset', config.uploadPreset);
           if (config.uniqueFilename) formData.append('unique_filename', 'true');
           if (config.overwrite) formData.append('overwrite', 'true');
 
@@ -280,13 +287,13 @@ export function UploadModal({
         typeof user?.faculty === 'string'
           ? user.faculty
           : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (user?.faculty as any)?.name;
+            (user?.faculty as any)?.name;
     } else if (visibility === 'department') {
       targetDepartment =
         typeof user?.department === 'string'
           ? user.department
           : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (user?.department as any)?.name;
+            (user?.department as any)?.name;
     }
 
     await api.post('/materials', {
@@ -329,16 +336,22 @@ export function UploadModal({
     <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'>
       {showDuplicateModal ? (
         <div className='bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full p-6'>
-          <h3 className='text-xl font-bold text-gray-900 dark:text-gray-100 mb-4'>Duplicate Material Found</h3>
+          <h3 className='text-xl font-bold text-gray-900 dark:text-gray-100 mb-4'>
+            Duplicate Material Found
+          </h3>
           <p className='text-gray-600 dark:text-gray-400 mb-6'>
             A material with the same content already exists: <br />
-            <strong>{duplicateMaterial?.title}</strong> uploaded by {duplicateMaterial?.uploader?.firstName} {duplicateMaterial?.uploader?.lastName}.
+            <strong>{duplicateMaterial?.title}</strong> uploaded by{' '}
+            {duplicateMaterial?.uploader?.firstName}{' '}
+            {duplicateMaterial?.uploader?.lastName}.
           </p>
           <div className='flex flex-col space-y-3'>
             <button
               onClick={async () => {
                 try {
-                  await api.post(`/materials/${duplicateMaterial.id}/contributor`);
+                  await api.post(
+                    `/materials/${duplicateMaterial.id}/contributor`,
+                  );
                   toast.success('You have been added as a contributor!');
                   setShowDuplicateModal(false);
                   onClose();
@@ -354,7 +367,10 @@ export function UploadModal({
               onClick={() => {
                 setShowDuplicateModal(false);
                 // Proceed with upload but pass parentMaterialId
-                void proceedWithUpload(duplicateMaterial?.fileHash, duplicateMaterial?.id);
+                void proceedWithUpload(
+                  duplicateMaterial?.fileHash,
+                  duplicateMaterial?.id,
+                );
               }}
               className='w-full py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors'
             >
@@ -464,7 +480,7 @@ export function UploadModal({
                     {typeof user?.faculty === 'string'
                       ? user.faculty
                       : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      (user?.faculty as any)?.name || ''}
+                        (user?.faculty as any)?.name || ''}
                     )
                   </option>
                   <option value='department'>
@@ -472,11 +488,13 @@ export function UploadModal({
                     {typeof user?.department === 'string'
                       ? user.department
                       : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      (user?.department as any)?.name || ''}
+                        (user?.department as any)?.name || ''}
                     )
                   </option>
                   <option value='specific_faculty'>Specific Faculty</option>
-                  <option value='specific_department'>Specific Department</option>
+                  <option value='specific_department'>
+                    Specific Department
+                  </option>
                 </select>
               </div>
 
@@ -487,7 +505,9 @@ export function UploadModal({
                 <select
                   value={targetYear}
                   onChange={(e) =>
-                    setTargetYear(e.target.value ? parseInt(e.target.value) : '')
+                    setTargetYear(
+                      e.target.value ? parseInt(e.target.value) : '',
+                    )
                   }
                   className='w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none'
                 >
