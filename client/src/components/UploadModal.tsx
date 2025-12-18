@@ -7,6 +7,33 @@ import { useToast } from '../contexts/ToastContext';
 import { UNILORIN_FACULTIES } from '../data/unilorin-faculties';
 import { useModalBack } from '../hooks/useModalBack';
 
+// Type definitions for presign response
+interface CloudinaryConfig {
+  url: string;
+  signature: string;
+  uploadTimestamp: number;
+  apiKey: string;
+  folder: string;
+  uploadPreset: string;
+  uniqueFilename: boolean;
+  overwrite: boolean;
+  method: 'POST';
+}
+
+interface R2Config {
+  url: string;
+  publicUrl: string;
+  key: string;
+  method: 'PUT';
+  headers: Record<string, string>;
+}
+
+interface PresignResponse {
+  provider: 'r2' | 'cloudinary';
+  primary: R2Config | CloudinaryConfig;
+  fallback: (CloudinaryConfig & { maxSize: number; provider: 'cloudinary' }) | null;
+}
+
 interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -130,7 +157,12 @@ export function UploadModal({
       return primary.publicUrl;
     };
 
-    const uploadToCloudinary = async (config: typeof fallback): Promise<string> => {
+    const uploadToCloudinary = async (config: CloudinaryConfig): Promise<string> => {
+      // Validate config has required fields
+      if (!config?.url || !config?.apiKey || !config?.signature) {
+        throw new Error('Invalid Cloudinary configuration');
+      }
+
       // Cloudinary uses POST with form data
       const CHUNK_SIZE = 6 * 1024 * 1024; // 6MB
 
@@ -139,7 +171,7 @@ export function UploadModal({
         const formData = new FormData();
         formData.append('file', file!);
         formData.append('api_key', config.apiKey);
-        formData.append('timestamp', config.uploadTimestamp.toString());
+        formData.append('timestamp', String(config.uploadTimestamp || ''));
         formData.append('signature', config.signature);
         if (config.folder) formData.append('folder', config.folder);
         if (config.uploadPreset) formData.append('upload_preset', config.uploadPreset);
@@ -170,7 +202,7 @@ export function UploadModal({
           const formData = new FormData();
           formData.append('file', chunk);
           formData.append('api_key', config.apiKey);
-          formData.append('timestamp', config.uploadTimestamp.toString());
+          formData.append('timestamp', String(config.uploadTimestamp || ''));
           formData.append('signature', config.signature);
           if (config.folder) formData.append('folder', config.folder);
           if (config.uploadPreset) formData.append('upload_preset', config.uploadPreset);
@@ -215,14 +247,15 @@ export function UploadModal({
           console.log('Falling back to Cloudinary...');
           toast.info('Trying alternative upload method...');
           setUploadProgress(0);
-          fileUrl = await uploadToCloudinary(fallback);
+          // Extract CloudinaryConfig from fallback (which has extra maxSize/provider fields)
+          fileUrl = await uploadToCloudinary(fallback as CloudinaryConfig);
         } else {
           throw r2Error; // Re-throw if no fallback available
         }
       }
     } else {
-      // Cloudinary-only mode
-      fileUrl = await uploadToCloudinary(primary);
+      // Cloudinary-only mode - primary is CloudinaryConfig
+      fileUrl = await uploadToCloudinary(primary as CloudinaryConfig);
     }
 
     if (!fileUrl) {
