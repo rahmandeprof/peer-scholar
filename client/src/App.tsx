@@ -29,6 +29,7 @@ const StudyPartner = lazy(() => import('./components/StudyPartner').then(m => ({
 const TargetGPCalculator = lazy(() => import('./components/TargetGPCalculator').then(m => ({ default: m.TargetGPCalculator })));
 const QuizArena = lazy(() => import('./components/QuizArena').then(m => ({ default: m.QuizArena })));
 const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard'));
+const AdminRoute = lazy(() => import('./components/AdminRoute'));
 const NotFound = lazy(() => import('./components/NotFound'));
 
 // Suspense fallback for route loading
@@ -157,7 +158,13 @@ function AppContent() {
             <Route path='/materials/:id' element={<MaterialView />} />
             <Route path='/tools/gp-calculator' element={<TargetGPCalculator />} />
             <Route path='/arena/:challengeId' element={<QuizArena />} />
-            <Route path='/admin' element={<AdminDashboard />} />
+            <Route path='/admin' element={
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              </Suspense>
+            } />
           </Route>
 
           <Route

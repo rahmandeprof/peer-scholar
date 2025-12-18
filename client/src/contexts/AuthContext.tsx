@@ -124,10 +124,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast.error('Session expired. Please log in again.');
     };
 
+    const handleForbidden = (event: Event) => {
+      const customEvent = event as CustomEvent<{ message: string }>;
+      toast.error(customEvent.detail?.message || 'Access denied');
+    };
+
     window.addEventListener('auth:unauthorized', handleUnauthorized);
+    window.addEventListener('auth:forbidden', handleForbidden);
 
     return () => {
       window.removeEventListener('auth:unauthorized', handleUnauthorized);
+      window.removeEventListener('auth:forbidden', handleForbidden);
     };
   }, [toast]);
 

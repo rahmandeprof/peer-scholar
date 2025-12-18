@@ -43,6 +43,13 @@ api.interceptors.response.use(
         window.dispatchEvent(new Event('auth:unauthorized'));
       }
 
+      if (status === 403) {
+        // Dispatch custom event for forbidden access (e.g., non-admin trying admin routes)
+        window.dispatchEvent(new CustomEvent('auth:forbidden', {
+          detail: { message: (error.response.data as { message?: string })?.message || 'Access denied' }
+        }));
+      }
+
       const data = error.response.data as {
         message?: string;
         errors?: unknown;
