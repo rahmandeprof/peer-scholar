@@ -29,8 +29,11 @@ export class MaterialsController {
   constructor(private readonly materialsService: MaterialsService) { }
 
   @Get('presign')
-  getPresignedUrl() {
-    return this.materialsService.getPresignedUrl();
+  getPresignedUrl(
+    @Query('fileType') fileType?: string,
+    @Query('filename') filename?: string,
+  ) {
+    return this.materialsService.getPresignedUrl(fileType || 'application/octet-stream', filename);
   }
 
   @Post()

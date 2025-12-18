@@ -27,6 +27,7 @@ import { User } from '@/app/users/entities/user.entity';
 import { CreateMaterialDto } from './dto/create-material.dto';
 
 import { ConversionService } from '@/app/common/services/conversion.service';
+import { R2Service } from '@/app/common/services/r2.service';
 import { UsersService } from '@/app/users/users.service';
 
 import axios from 'axios';
@@ -36,6 +37,7 @@ import { Brackets, Repository, WhereExpressionBuilder } from 'typeorm';
 
 @Injectable()
 export class MaterialsService {
+  private readonly storageProvider: 'r2' | 'cloudinary';
   constructor(
     @InjectRepository(Material)
     private materialRepo: Repository<Material>,
@@ -45,6 +47,7 @@ export class MaterialsService {
     @InjectQueue('materials') private materialsQueue: Queue,
     private usersService: UsersService,
     private conversionService: ConversionService,
+    private r2Service: R2Service,
     @InjectRepository(MaterialRating)
     private ratingRepo: Repository<MaterialRating>,
     @InjectRepository(MaterialFavorite)
@@ -67,6 +70,12 @@ export class MaterialsService {
       api_key: this.configService.get('CLOUD_API_KEY'),
       api_secret: this.configService.get('CLOUD_API_SECRET'),
     });
+
+    // Determine storage provider
+    const configuredProvider = this.configService.get<string>('STORAGE_PROVIDER');
+    this.storageProvider = configuredProvider === 'r2' && this.r2Service.isConfigured()
+      ? 'r2'
+      : 'cloudinary';
   }
 
   // ... (existing getPresignedUrl)
@@ -112,7 +121,52 @@ export class MaterialsService {
 
   // ... (existing methods)
 
-  getPresignedUrl() {
+  /**
+   * Get presigned URL for direct upload
+   * Returns provider-aware response with optional fallback for Cloudinary
+   */
+  async getPresignedUrl(fileType: string, filename?: string) {
+    const MAX_CLOUDINARY_SIZE = 9.5 * 1024 * 1024; // 9.5MB (buffer for 10MB limit)
+
+    // Primary: R2 if configured
+    if (this.storageProvider === 'r2') {
+      const r2Presign = await this.r2Service.getPresignedUploadUrl(fileType, filename);
+
+      // Also include Cloudinary fallback for files < 10MB
+      const cloudinaryFallback = this.getCloudinaryPresign();
+
+      return {
+        provider: 'r2' as const,
+        primary: {
+          url: r2Presign.uploadUrl,
+          publicUrl: r2Presign.publicUrl,
+          key: r2Presign.key,
+          method: 'PUT',
+          headers: {
+            'Content-Type': fileType,
+          },
+        },
+        fallback: {
+          provider: 'cloudinary' as const,
+          maxSize: MAX_CLOUDINARY_SIZE,
+          ...cloudinaryFallback,
+        },
+      };
+    }
+
+    // Default: Cloudinary only
+    const cloudinaryPresign = this.getCloudinaryPresign();
+    return {
+      provider: 'cloudinary' as const,
+      primary: cloudinaryPresign,
+      fallback: null,
+    };
+  }
+
+  /**
+   * Get Cloudinary presigned URL (legacy method, now private)
+   */
+  private getCloudinaryPresign() {
     const timestamp = Math.floor(new Date().getTime() / 1000);
     const folder = 'materials';
     const resourceType = 'auto';
@@ -139,6 +193,7 @@ export class MaterialsService {
       uploadPreset: 'ml_default',
       uniqueFilename: true,
       overwrite: true,
+      method: 'POST' as const,
     };
   }
 

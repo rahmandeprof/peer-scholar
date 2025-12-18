@@ -6,6 +6,7 @@ import {
     DeleteObjectCommand,
     ListObjectsV2Command,
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 
@@ -50,6 +51,62 @@ export class R2Service {
         });
 
         this.logger.log('R2 storage client initialized');
+    }
+
+    /**
+     * Generate a presigned URL for direct frontend upload to R2
+     * Returns the presigned URL, the final public URL, and the object key
+     */
+    async getPresignedUploadUrl(
+        fileType: string,
+        originalFilename?: string,
+    ): Promise<{
+        uploadUrl: string;
+        publicUrl: string;
+        key: string;
+        expiresIn: number;
+    }> {
+        const ext = originalFilename
+            ? path.extname(originalFilename)
+            : this.getExtensionFromMimeType(fileType);
+        const fileName = `${uuidv4()}${ext}`;
+        const key = `materials/${fileName}`;
+        const expiresIn = 3600; // 1 hour
+
+        const command = new PutObjectCommand({
+            Bucket: this.bucketName,
+            Key: key,
+            ContentType: fileType,
+        });
+
+        const uploadUrl = await getSignedUrl(this.client, command, { expiresIn });
+
+        return {
+            uploadUrl,
+            publicUrl: `${this.publicUrl}/${key}`,
+            key,
+            expiresIn,
+        };
+    }
+
+    /**
+     * Get file extension from MIME type
+     */
+    private getExtensionFromMimeType(mimeType: string): string {
+        const mimeToExt: Record<string, string> = {
+            'application/pdf': '.pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+            'application/msword': '.doc',
+            'application/vnd.ms-powerpoint': '.ppt',
+            'application/vnd.ms-excel': '.xls',
+            'text/plain': '.txt',
+            'image/jpeg': '.jpg',
+            'image/png': '.png',
+            'image/gif': '.gif',
+        };
+        return mimeToExt[mimeType] || '';
     }
 
     /**
@@ -143,4 +200,12 @@ export class R2Service {
         const accountId = this.configService.get<string>('R2_ACCOUNT_ID');
         return !!accountId;
     }
+
+    /**
+     * Get the public URL base
+     */
+    getPublicUrl(): string {
+        return this.publicUrl;
+    }
 }
+
