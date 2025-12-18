@@ -7,7 +7,7 @@ import { useToast } from '../contexts/ToastContext';
 import { UNILORIN_FACULTIES } from '../data/unilorin-faculties';
 import { useModalBack } from '../hooks/useModalBack';
 
-// Type definitions for presign response
+// Type definition for Cloudinary presign response
 interface CloudinaryConfig {
   url: string;
   signature: string;
@@ -18,14 +18,6 @@ interface CloudinaryConfig {
   uniqueFilename: boolean;
   overwrite: boolean;
   method: 'POST';
-}
-
-interface R2Config {
-  url: string;
-  publicUrl: string;
-  key: string;
-  method: 'PUT';
-  headers: Record<string, string>;
 }
 
 interface UploadModalProps {
