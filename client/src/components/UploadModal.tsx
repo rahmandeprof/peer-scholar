@@ -64,13 +64,23 @@ export function UploadModal({
   // ... (existing handlers)
 
   const calculateFileHash = async (file: File): Promise<string> => {
-    const buffer = await file.arrayBuffer();
-    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('');
-    return hashHex;
+    try {
+      // Check if crypto.subtle is available (requires HTTPS)
+      if (!crypto?.subtle) {
+        console.warn('crypto.subtle not available, using fallback hash');
+        return `fallback-${Date.now()}-${file.size}`;
+      }
+      const buffer = await file.arrayBuffer();
+      const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray
+        .map((b) => (b !== undefined ? b.toString(16) : '00').padStart(2, '0'))
+        .join('');
+      return hashHex;
+    } catch (err) {
+      console.warn('Hash calculation failed, using fallback:', err);
+      return `fallback-${Date.now()}-${file.size}`;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
