@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard as Home,
@@ -22,7 +22,7 @@ import { BottomNav } from './BottomNav';
 import { UserProfile } from './UserProfile';
 import { WelcomeModal } from './WelcomeModal';
 import api from '../lib/api';
-import { useOnClickOutside } from '../hooks/useOnClickOutside';
+
 import { FeatureSpotlightModal } from './FeatureSpotlightModal';
 import { ConfirmationModal } from './ConfirmationModal';
 
@@ -36,7 +36,6 @@ export function DashboardLayout() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [toolsOpen, setToolsOpen] = useState(false);
   const [showGpSpotlight, setShowGpSpotlight] = useState(false);
   const [history, setHistory] = useState<Conversation[]>([]);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
@@ -44,9 +43,7 @@ export function DashboardLayout() {
   const { user, logout } = useAuth();
   const { toggleTheme } = useTheme();
   const navigate = useNavigate();
-  const toolsRef = useRef<HTMLDivElement>(null);
 
-  useOnClickOutside(toolsRef, () => setToolsOpen(false));
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center space-x-3 px-3 py-2 rounded-xl transition-all duration-200 ${isActive
@@ -107,145 +104,123 @@ export function DashboardLayout() {
         </div>
 
         <div className='flex-1 overflow-y-auto py-4 custom-scrollbar'>
-          <nav className='px-3'>
-            {/* Home Section */}
-            <div className='mb-6'>
+          <nav className='px-4 space-y-6'>
+            {/* Primary Section */}
+            <div>
               <NavLink to='/dashboard' className={navLinkClass}>
-                <Home className='w-5 h-5 mr-3' />
-                Home
+                <Home className='w-5 h-5 flex-shrink-0' />
+                <span>Home</span>
               </NavLink>
             </div>
 
             {/* Community Section */}
-            <div className='mb-6'>
-              <div className='px-4 mb-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider'>
+            <div>
+              <div className='px-3 pb-2 text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest'>
                 Community
               </div>
               <div className='space-y-1'>
                 <NavLink to='/department' className={navLinkClass}>
-                  <BookOpen className='w-5 h-5 mr-3' />
-                  Department Library
+                  <BookOpen className='w-5 h-5 flex-shrink-0' />
+                  <span>Departmental Library</span>
                 </NavLink>
                 <NavLink to='/study-partner' className={navLinkClass}>
-                  <Users className='w-5 h-5 mr-3' />
-                  Study Partner
+                  <Users className='w-5 h-5 flex-shrink-0' />
+                  <span>Study Partner</span>
                 </NavLink>
                 <button
                   onClick={() => setUploadModalOpen(true)}
-                  className='w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-left font-medium bg-primary-500 text-white hover:bg-primary-600 transition-all duration-200 shadow-lg shadow-primary-500/20'
+                  className='w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-left font-medium bg-primary-500 text-white hover:bg-primary-600 transition-all duration-200 shadow-md shadow-primary-500/25'
                 >
-                  <Upload className='w-5 h-5 mr-3 text-white' />
-                  Upload Material
+                  <Upload className='w-5 h-5 flex-shrink-0' />
+                  <span>Upload Material</span>
                 </button>
               </div>
             </div>
 
             {/* Tools Section */}
             <div>
-              <div className='px-4 mb-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider'>
+              <div className='px-3 pb-2 text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest'>
                 Tools
               </div>
-              <div className='space-y-1 relative'>
-                <button
-                  onClick={() => setToolsOpen(!toolsOpen)}
-                  className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl transition-all duration-200 ${toolsOpen
-                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
-                    }`}
+              <div className='space-y-1'>
+                <NavLink
+                  to='/tools/gp-calculator'
+                  className={navLinkClass}
+                  onClick={() => {
+                    const hasSeen = localStorage.getItem('has_seen_gp_calculator');
+                    if (!hasSeen) {
+                      localStorage.setItem('has_seen_gp_calculator', 'true');
+                      setShowGpSpotlight(true);
+                    }
+                  }}
                 >
-                  <Briefcase className='w-5 h-5 mr-3' />
-                  <span>Tools</span>
-                </button>
+                  <Calculator className='w-5 h-5 flex-shrink-0' />
+                  <span>GP Calculator</span>
+                </NavLink>
+                <div className='px-1'>
+                  <StudySessionGoals />
+                </div>
+              </div>
+            </div>
 
-                {toolsOpen && (
-                  <>
-                    <div
-                      className='fixed inset-0 z-[60]'
-                      onClick={() => setToolsOpen(false)}
-                    />
-                    <div
-                      ref={toolsRef}
-                      className='fixed left-72 ml-4 top-1/2 -translate-y-1/2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-4 z-[70] animate-in fade-in zoom-in-95 duration-100 grid grid-cols-2 gap-3'
+            {/* Recent Chats Section */}
+            {history.length > 0 && (
+              <div>
+                <div className='px-3 pb-2 text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest'>
+                  Recent Chats
+                </div>
+                <div className='space-y-1'>
+                  {history.slice(0, 5).map((chat) => (
+                    <NavLink
+                      key={chat.id}
+                      to={`/chat/${chat.id}`}
+                      className={({ isActive }) =>
+                        `block px-3 py-2 rounded-xl text-sm truncate transition-all duration-200 ${isActive
+                          ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
+                          : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300'
+                        }`
+                      }
                     >
-                      <NavLink
-                        to='/tools/gp-calculator'
-                        className='flex flex-col items-center justify-center p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-center group'
-                        onClick={(e) => {
-                          const hasSeen = localStorage.getItem(
-                            'has_seen_gp_calculator',
-                          );
-                          if (!hasSeen) {
-                            e.preventDefault();
-                            setShowGpSpotlight(true);
-                            localStorage.setItem(
-                              'has_seen_gp_calculator',
-                              'true',
-                            );
-                            setToolsOpen(false);
-                          } else {
-                            setToolsOpen(false);
-                          }
-                        }}
-                      >
-                        <div className='w-10 h-10 bg-white dark:bg-gray-700 rounded-full flex items-center justify-center shadow-sm mb-2 group-hover:scale-110 transition-transform'>
-                          <Calculator className='w-5 h-5' />
-                        </div>
-                        <span className='text-xs font-medium'>
-                          GP Calculator
-                        </span>
-                      </NavLink>
+                      {chat.title}
+                    </NavLink>
+                  ))}
+                </div>
+              </div>
+            )}
 
-                      <div className='col-span-2'>
-                        <StudySessionGoals />
-                      </div>
-                    </div>
-                  </>
-                )}
+            {/* Support Section */}
+            <div>
+              <div className='px-3 pb-2 text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest'>
+                Support
+              </div>
+              <div className='space-y-1'>
+                <button
+                  onClick={() =>
+                    window.open(
+                      'mailto:abdulrahmanabdulsalam93@gmail.com?subject=Feedback',
+                      '_blank',
+                    )
+                  }
+                  className='w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200 transition-all duration-200 text-left'
+                >
+                  <HelpCircle className='w-5 h-5 flex-shrink-0' />
+                  <span>Feedback</span>
+                </button>
+                <button
+                  onClick={() =>
+                    window.open(
+                      'mailto:abdulrahmanabdulsalam93@gmail.com?subject=Support Request',
+                      '_blank',
+                    )
+                  }
+                  className='w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200 transition-all duration-200 text-left'
+                >
+                  <Briefcase className='w-5 h-5 flex-shrink-0' />
+                  <span>Support</span>
+                </button>
               </div>
             </div>
           </nav>
-
-          {history.length > 0 && (
-            <div className='mt-6 px-3'>
-              <div className='px-4 mb-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider'>
-                Recent Chats
-              </div>
-              <div className='space-y-1'>
-                {history.slice(0, 5).map((chat) => (
-                  <NavLink
-                    key={chat.id}
-                    to={`/chat/${chat.id}`}
-                    className={({ isActive }) =>
-                      `block px-3 py-2 rounded-lg text-sm truncate transition-colors ${isActive
-                        ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                      }`
-                    }
-                  >
-                    {chat.title}
-                  </NavLink>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className='mt-auto px-3 pb-4'>
-            <div className='px-3 mb-1.5 mt-4 text-xs font-semibold text-gray-500 uppercase tracking-wider'>
-              Support
-            </div>
-            <button
-              onClick={() =>
-                window.open(
-                  'mailto:abdulrahmanabdulsalam93@gmail.com',
-                  '_blank',
-                )
-              }
-              className='w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-all duration-200 text-left'
-            >
-              <HelpCircle className='w-5 h-5 mr-3' />
-              Feedback & Support
-            </button>
-          </div>
         </div>
 
         <div className='p-4 border-t border-gray-200/50 dark:border-gray-800/50'>
