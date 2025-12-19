@@ -357,15 +357,24 @@ export class MaterialProcessor {
     }
   }
 
+  /**
+   * Extract text from a file via OCR
+   * Works with any file URL (R2, Cloudinary, or any HTTP source)
+   * Uses local PDF-to-image conversion + Tesseract for PDFs
+   * Uses GPT-4 Vision only for direct image files
+   */
   private async extractTextViaOCR(
     fileUrl: string,
     isImage = false,
   ): Promise<string> {
-    if (!this.openai) return '';
-
     try {
       if (isImage) {
-        // For single images, send URL directly
+        // For single images, use GPT-4 Vision if available, otherwise skip
+        if (!this.openai) {
+          this.logger.warn('OpenAI not configured, skipping image OCR');
+          return '';
+        }
+
         const response = await this.openai.chat.completions.create({
           model: 'gpt-4o',
           messages: [
@@ -390,66 +399,41 @@ export class MaterialProcessor {
         return response.choices[0].message.content ?? '';
       }
 
-      // Cloudinary PDF-to-Image URL construction
-      // We'll grab the first 5 pages to avoid excessive token usage/cost,
-      // or we can try to grab more if needed. For now, let's try 5 pages.
-      const pagesToScan = 5;
-      let combinedText = '';
+      // For PDFs: Download, convert to images, and run Tesseract OCR
+      // This works with ANY file URL (R2, Cloudinary, or any HTTP source)
+      this.logger.log(`[OCR-FALLBACK] Downloading PDF for local OCR: ${fileUrl}`);
 
-      // The fileUrl is like: https://res.cloudinary.com/cloudname/image/upload/v12345/folder/file.pdf
-      // To get page 1 as image: https://res.cloudinary.com/cloudname/image/upload/pg_1/v12345/folder/file.jpg
+      const pdfResponse = await axios.get(fileUrl, {
+        responseType: 'arraybuffer',
+        timeout: 60000, // 60 seconds timeout
+      });
+      const pdfBuffer = Buffer.from(pdfResponse.data);
 
-      // Regex to insert pg_X parameter
-      const urlParts = fileUrl.split('/upload/');
+      this.logger.log(`[OCR-FALLBACK] PDF downloaded: ${pdfBuffer.length} bytes`);
 
-      if (urlParts.length !== 2) return '';
+      // Convert PDF to images using pdftoppm
+      const images = await this.pdfImageService.convertToImages(pdfBuffer);
 
-      const baseUrl = urlParts[0] + '/upload';
-      const filePart = urlParts[1];
-      // Remove extension and ensure it ends with .jpg for the request
-      const fileId = filePart.substring(0, filePart.lastIndexOf('.'));
-
-      for (let i = 1; i <= pagesToScan; i++) {
-        const imageUrl = `${baseUrl}/pg_${i.toString()}/${fileId}.jpg`;
-
-        try {
-          // eslint-disable-next-line no-await-in-loop
-          const response = await this.openai.chat.completions.create({
-            model: 'gpt-4o',
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  {
-                    type: 'text',
-                    text: 'Transcribe the text from this document page exactly. Do not add any commentary.',
-                  },
-                  {
-                    type: 'image_url',
-                    image_url: {
-                      url: imageUrl,
-                    },
-                  },
-                ],
-              },
-            ],
-          });
-
-          const pageText = response.choices[0].message.content;
-
-          if (pageText) {
-            combinedText += pageText + '\n\n';
-          }
-        } catch {
-          // If a page fails (e.g., page doesn't exist), we stop
-          break;
-        }
+      if (images.length === 0) {
+        this.logger.warn('[OCR-FALLBACK] No images generated from PDF');
+        return '';
       }
 
-      return combinedText;
-    } catch (error) {
-      this.logger.error('Failed to perform OCR via Vision', error);
+      this.logger.log(`[OCR-FALLBACK] Converted PDF to ${images.length} images`);
 
+      // Run Tesseract OCR on images
+      const ocrResult = await this.ocrService.extractFromImages(images);
+
+      // Clean the OCR text
+      const cleanedText = this.ocrService.cleanOcrText(ocrResult.text);
+
+      this.logger.log(
+        `[OCR-FALLBACK] OCR extracted ${cleanedText.length} chars with ${ocrResult.confidence.toFixed(1)}% confidence`,
+      );
+
+      return cleanedText;
+    } catch (error) {
+      this.logger.error('[OCR-FALLBACK] Failed to perform OCR:', error);
       return '';
     }
   }
