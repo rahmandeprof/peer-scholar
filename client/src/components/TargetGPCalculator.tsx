@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Calculator, TrendingUp, AlertCircle, CheckCircle2 } from 'lucide-react';
+import {
+  Calculator,
+  TrendingUp,
+  AlertCircle,
+  CheckCircle2,
+} from 'lucide-react';
 
 export function TargetGPCalculator() {
   const [currentCGPA, setCurrentCGPA] = useState<string>('');
@@ -97,6 +102,25 @@ export function TargetGPCalculator() {
         <p className='text-gray-600 dark:text-gray-400'>
           Calculate what you need this semester to hit your target CGPA.
         </p>
+        <div className='text-sm text-gray-500 dark:text-gray-500 mt-3 max-w-md mx-auto'>
+          <p className='font-medium text-gray-700 dark:text-gray-300 mb-2'>
+            How to use:
+          </p>
+          <ol className='text-left space-y-1 list-decimal list-inside'>
+            <li>
+              Enter your <strong>current CGPA</strong> (from your transcript)
+            </li>
+            <li>
+              Enter <strong>total units</strong> you've completed so far
+            </li>
+            <li>
+              Enter the units you're <strong>taking this semester</strong>
+            </li>
+            <li>
+              Adjust the slider to set your <strong>target CGPA</strong>
+            </li>
+          </ol>
+        </div>
       </div>
 
       <div className='bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-xl border border-gray-100 dark:border-gray-700 space-y-8'>
