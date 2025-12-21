@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { X, Upload as UploadIcon, FileText, Check } from 'lucide-react';
 import api from '../lib/api';
@@ -54,6 +54,38 @@ export function UploadModal({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Ref for file input to properly reset the DOM element
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Complete form reset function
+  const resetForm = useCallback(() => {
+    setFile(null);
+    setTitle('');
+    setTopic('');
+    setCategory('note');
+    setVisibility('public');
+    setCourseCode('');
+    setSpecificFaculty('');
+    setSpecificDepartment('');
+    setTargetYear('');
+    setShowDuplicateModal(false);
+    setDuplicateMaterial(null);
+    setUploading(false);
+    setUploadProgress(0);
+    setSuccess(false);
+    setError(null);
+    // Reset the file input DOM element to allow re-selecting the same file
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, []);
+
+  // Handle modal close with form reset
+  const handleClose = useCallback(() => {
+    resetForm();
+    onClose();
+  }, [resetForm, onClose]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -289,13 +321,13 @@ export function UploadModal({
         typeof user?.faculty === 'string'
           ? user.faculty
           : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (user?.faculty as any)?.name;
+          (user?.faculty as any)?.name;
     } else if (visibility === 'department') {
       targetDepartment =
         typeof user?.department === 'string'
           ? user.department
           : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (user?.department as any)?.name;
+          (user?.department as any)?.name;
     }
 
     await api.post('/materials', {
@@ -318,17 +350,11 @@ export function UploadModal({
 
     setSuccess(true);
     toast.success('Material uploaded successfully!');
-    setFile(null);
-    setTitle('');
-    setTopic('');
-    setCourseCode('');
-    setTargetYear('');
-    setUploadProgress(0);
 
     if (onUploadComplete) onUploadComplete();
     setTimeout(() => {
+      resetForm();
       onClose();
-      setSuccess(false);
     }, 2000);
   };
 
@@ -405,7 +431,7 @@ export function UploadModal({
               Upload Material
             </h2>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className='p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors'
             >
               <X className='w-6 h-6 text-gray-500' />
@@ -482,7 +508,7 @@ export function UploadModal({
                     {typeof user?.faculty === 'string'
                       ? user.faculty
                       : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        (user?.faculty as any)?.name || ''}
+                      (user?.faculty as any)?.name || ''}
                     )
                   </option>
                   <option value='department'>
@@ -490,7 +516,7 @@ export function UploadModal({
                     {typeof user?.department === 'string'
                       ? user.department
                       : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        (user?.department as any)?.name || ''}
+                      (user?.department as any)?.name || ''}
                     )
                   </option>
                   <option value='specific_faculty'>Specific Faculty</option>
@@ -606,6 +632,7 @@ export function UploadModal({
 
               <div className='border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer relative'>
                 <input
+                  ref={fileInputRef}
                   type='file'
                   onChange={handleFileChange}
                   className='absolute inset-0 w-full h-full opacity-0 cursor-pointer'
