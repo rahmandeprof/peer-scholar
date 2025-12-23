@@ -67,7 +67,10 @@ export function AdminDashboard() {
 
     // Stuck materials state
     const [stuckCount, setStuckCount] = useState(0);
+    const [staleCount, setStaleCount] = useState(0);
+    const [activeProcessingCount, setActiveProcessingCount] = useState(0);
     const [reprocessing, setReprocessing] = useState(false);
+    const [reprocessingStale, setReprocessingStale] = useState(false);
     const [lastReprocessResult, setLastReprocessResult] = useState<{ count: number; failed: number } | null>(null);
 
     // Stats state
@@ -101,7 +104,8 @@ export function AdminDashboard() {
     }[]>([]);
     const [showReports, setShowReports] = useState(false);
 
-    // Material lookup state
+    // Force reprocess state
+    const [forceReprocessing, setForceReprocessing] = useState(false);
     const [materialIdInput, setMaterialIdInput] = useState('');
     const [materialLookupLoading, setMaterialLookupLoading] = useState(false);
     const [clearingCache, setClearingCache] = useState(false);
@@ -150,7 +154,14 @@ export function AdminDashboard() {
     const fetchStuckCount = async () => {
         try {
             const res = await api.get('/admin/stuck-materials/count');
-            setStuckCount(res.data.count);
+            // Handle both old format (count) and new format (pending, stale, total)
+            if (typeof res.data.total !== 'undefined') {
+                setStuckCount(res.data.pending || 0);
+                setStaleCount(res.data.stale || 0);
+                setActiveProcessingCount(res.data.activeProcessing || 0);
+            } else {
+                setStuckCount(res.data.count || 0);
+            }
         } catch (err) {
             console.error('Failed to fetch stuck count:', err);
         }
@@ -219,6 +230,39 @@ export function AdminDashboard() {
             toast.error(err.response?.data?.message || 'Failed to reprocess failed materials');
         } finally {
             setReprocessingFailed(false);
+        }
+    };
+
+    const handleReprocessStale = async () => {
+        setReprocessingStale(true);
+        try {
+            const res = await api.post('/admin/reprocess-stale', { staleMinutes: 30 });
+            toast.success(res.data.message);
+            fetchStats();
+            fetchStuckCount();
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Failed to reprocess stale materials');
+        } finally {
+            setReprocessingStale(false);
+        }
+    };
+
+    const handleForceReprocess = async () => {
+        if (!materialIdInput.trim()) {
+            toast.error('Please enter a material ID');
+            return;
+        }
+        setForceReprocessing(true);
+        try {
+            const res = await api.post(`/admin/materials/${materialIdInput}/force-reprocess`);
+            toast.success(res.data.message);
+            setMaterialIdInput('');
+            fetchStats();
+            fetchStuckCount();
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Failed to force reprocess material');
+        } finally {
+            setForceReprocessing(false);
         }
     };
 
@@ -570,6 +614,14 @@ export function AdminDashboard() {
                                 {clearingCache ? <Loader2 className='w-4 h-4 animate-spin' /> : 'Clear Cache'}
                             </button>
                         </div>
+                        <button
+                            onClick={handleForceReprocess}
+                            disabled={forceReprocessing || !materialIdInput.trim()}
+                            className='w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-1'
+                        >
+                            {forceReprocessing ? <Loader2 className='w-4 h-4 animate-spin' /> : <RefreshCw className='w-4 h-4' />}
+                            {forceReprocessing ? 'Processing...' : 'Force Reprocess'}
+                        </button>
                     </div>
                 </div>
 
@@ -723,22 +775,36 @@ export function AdminDashboard() {
                                     Stuck Materials
                                 </h2>
                                 <p className='text-xs sm:text-sm text-gray-500 dark:text-gray-400'>
-                                    {stuckCount} material{stuckCount !== 1 ? 's' : ''} pending
+                                    {stuckCount} pending • {staleCount} stale (>30min) • {activeProcessingCount} active
                                 </p>
                             </div>
                         </div>
-                        <button
-                            onClick={handleReprocessStuck}
-                            disabled={reprocessing || stuckCount === 0}
-                            className='w-full sm:w-auto px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-colors'
-                        >
-                            {reprocessing ? (
-                                <Loader2 className='w-4 h-4 animate-spin' />
-                            ) : (
-                                <PlayCircle className='w-4 h-4' />
-                            )}
-                            {reprocessing ? 'Processing...' : 'Reprocess'}
-                        </button>
+                        <div className='flex gap-2'>
+                            <button
+                                onClick={handleReprocessStuck}
+                                disabled={reprocessing || stuckCount === 0}
+                                className='flex-1 sm:flex-none px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-colors'
+                            >
+                                {reprocessing ? (
+                                    <Loader2 className='w-4 h-4 animate-spin' />
+                                ) : (
+                                    <PlayCircle className='w-4 h-4' />
+                                )}
+                                {reprocessing ? 'Processing...' : 'Pending'}
+                            </button>
+                            <button
+                                onClick={handleReprocessStale}
+                                disabled={reprocessingStale || staleCount === 0}
+                                className='flex-1 sm:flex-none px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-colors'
+                            >
+                                {reprocessingStale ? (
+                                    <Loader2 className='w-4 h-4 animate-spin' />
+                                ) : (
+                                    <RefreshCw className='w-4 h-4' />
+                                )}
+                                {reprocessingStale ? 'Processing...' : 'Stale'}
+                            </button>
+                        </div>
                     </div>
                     {lastReprocessResult && (
                         <div className='mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg text-green-700 dark:text-green-400 text-xs sm:text-sm'>
