@@ -56,11 +56,11 @@ export class AdminController {
   }
 
   /**
-   * Reprocess all stuck materials (pending status)
+   * Reprocess all stuck materials (pending status only)
    */
   @Post('reprocess-stuck')
   async reprocessStuckMaterials() {
-    this.logger.log('Admin requested reprocessing of stuck materials');
+    this.logger.log('Admin requested reprocessing of stuck materials (pending only)');
 
     const stuckMaterials = await this.materialRepo.find({
       where: [
@@ -107,15 +107,164 @@ export class AdminController {
     };
   }
 
+  /**
+   * Reprocess stale materials - materials stuck in active processing states for too long
+   * Default: materials stuck for more than 30 minutes in EXTRACTING, OCR_EXTRACTING, CLEANING, or SEGMENTING
+   */
+  @Post('reprocess-stale')
+  async reprocessStaleMaterials(@Body('staleMinutes') staleMinutes: number = 30) {
+    this.logger.log(`Admin requested reprocessing of stale materials (>${staleMinutes} minutes)`);
+
+    const staleThreshold = new Date();
+    staleThreshold.setMinutes(staleThreshold.getMinutes() - staleMinutes);
+
+    // Find materials stuck in active processing states for too long
+    const staleMaterials = await this.materialRepo
+      .createQueryBuilder('material')
+      .where('material.processingStatus IN (:...statuses)', {
+        statuses: [
+          ProcessingStatus.EXTRACTING,
+          ProcessingStatus.OCR_EXTRACTING,
+          ProcessingStatus.CLEANING,
+          ProcessingStatus.SEGMENTING,
+        ],
+      })
+      .andWhere('material.updatedAt < :threshold', { threshold: staleThreshold })
+      .select(['material.id', 'material.title', 'material.fileUrl', 'material.status', 'material.processingStatus', 'material.createdAt', 'material.updatedAt'])
+      .orderBy('material.updatedAt', 'ASC')
+      .getMany();
+
+    if (staleMaterials.length === 0) {
+      return { success: true, message: 'No stale materials found', count: 0, materials: [] };
+    }
+
+    const queued: string[] = [];
+    const errors: string[] = [];
+
+    for (const material of staleMaterials) {
+      try {
+        // Reset to PENDING before reprocessing
+        await this.materialRepo.update(material.id, {
+          processingStatus: ProcessingStatus.PENDING,
+          status: MaterialStatus.PENDING,
+        });
+
+        await this.materialsQueue.add('process-material', {
+          materialId: material.id,
+          fileUrl: material.fileUrl,
+        });
+        queued.push(material.id);
+        this.logger.log(`Requeued stale material: ${material.id} (${material.title}) - was ${material.processingStatus}`);
+      } catch (error) {
+        errors.push(material.id);
+        this.logger.error(`Failed to requeue stale material ${material.id}:`, error);
+      }
+    }
+
+    return {
+      success: true,
+      message: `Requeued ${queued.length} stale materials for reprocessing`,
+      count: queued.length,
+      failed: errors.length,
+      staleThresholdMinutes: staleMinutes,
+      materials: staleMaterials.map(m => ({
+        id: m.id,
+        title: m.title,
+        status: m.status,
+        processingStatus: m.processingStatus,
+        createdAt: m.createdAt,
+        updatedAt: m.updatedAt,
+      })),
+    };
+  }
+
+  /**
+   * Force reprocess a single material - resets it to PENDING regardless of current state
+   */
+  @Post('materials/:id/force-reprocess')
+  async forceReprocessMaterial(@Param('id', new ParseUUIDPipe()) id: string) {
+    this.logger.log(`Admin requested force reprocess for material: ${id}`);
+
+    const material = await this.materialRepo.findOne({
+      where: { id },
+      select: ['id', 'title', 'fileUrl', 'status', 'processingStatus'],
+    });
+
+    if (!material) {
+      throw new NotFoundException('Material not found');
+    }
+
+    const previousStatus = material.processingStatus;
+
+    // Reset to PENDING
+    await this.materialRepo.update(id, {
+      processingStatus: ProcessingStatus.PENDING,
+      status: MaterialStatus.PENDING,
+    });
+
+    // Queue for reprocessing
+    await this.materialsQueue.add('process-material', {
+      materialId: material.id,
+      fileUrl: material.fileUrl,
+    });
+
+    this.logger.log(`Force requeued material: ${id} (${material.title}) - was ${previousStatus}`);
+
+    return {
+      success: true,
+      message: `Material ${id} queued for reprocessing`,
+      material: {
+        id: material.id,
+        title: material.title,
+        previousStatus,
+        newStatus: ProcessingStatus.PENDING,
+      },
+    };
+  }
+
   @Get('stuck-materials/count')
   async getStuckMaterialsCount() {
-    const count = await this.materialRepo.count({
+    // Count materials in PENDING status
+    const pendingCount = await this.materialRepo.count({
       where: [
         { status: MaterialStatus.PENDING },
         { processingStatus: ProcessingStatus.PENDING },
       ],
     });
-    return { count };
+
+    // Count materials in active processing states (potentially stale)
+    const activeCount = await this.materialRepo.count({
+      where: [
+        { processingStatus: ProcessingStatus.EXTRACTING },
+        { processingStatus: ProcessingStatus.OCR_EXTRACTING },
+        { processingStatus: ProcessingStatus.CLEANING },
+        { processingStatus: ProcessingStatus.SEGMENTING },
+      ],
+    });
+
+    // Count stale materials (active states for > 30 minutes)
+    const staleThreshold = new Date();
+    staleThreshold.setMinutes(staleThreshold.getMinutes() - 30);
+
+    const staleCount = await this.materialRepo
+      .createQueryBuilder('material')
+      .where('material.processingStatus IN (:...statuses)', {
+        statuses: [
+          ProcessingStatus.EXTRACTING,
+          ProcessingStatus.OCR_EXTRACTING,
+          ProcessingStatus.CLEANING,
+          ProcessingStatus.SEGMENTING,
+        ],
+      })
+      .andWhere('material.updatedAt < :threshold', { threshold: staleThreshold })
+      .getCount();
+
+    return {
+      pending: pendingCount,
+      activeProcessing: activeCount,
+      stale: staleCount,
+      total: pendingCount + staleCount, // Total "stuck" = pending + stale
+    };
   }
 
   // ========== HIGH-PRIORITY ENDPOINTS ==========
