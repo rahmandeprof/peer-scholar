@@ -88,12 +88,12 @@ export class PdfImageService {
 
             const process = spawn('pdftoppm', args);
 
-            // Timeout after 5 minutes to prevent hanging on huge PDFs
+            // Timeout after 10 minutes to prevent hanging on huge PDFs
             const timeout = setTimeout(() => {
-                this.logger.error('pdftoppm timed out after 5 minutes');
+                this.logger.error('pdftoppm timed out after 10 minutes');
                 process.kill('SIGKILL');
-                reject(new Error('pdftoppm timed out after 5 minutes'));
-            }, 300000);
+                reject(new Error('pdftoppm timed out after 10 minutes'));
+            }, 600000);
 
             let stderr = '';
 
