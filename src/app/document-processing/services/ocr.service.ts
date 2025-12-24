@@ -25,9 +25,15 @@ export interface OcrPageContent {
 export class OcrService {
     private readonly logger = new Logger(OcrService.name);
 
-    // Safety limits
-    private readonly MAX_PAGES = 50;
+    // Safety limits - configurable via environment
+    private readonly MAX_PAGES: number;
     private readonly MIN_CONFIDENCE = 30; // Minimum confidence to accept OCR result
+
+    constructor() {
+        // Allow configuring max pages via environment, default to 50
+        this.MAX_PAGES = parseInt(process.env.OCR_MAX_PAGES || '50', 10);
+        this.logger.log(`OCR initialized with MAX_PAGES=${this.MAX_PAGES}`);
+    }
 
     /**
      * Lazy load Tesseract.js only when needed

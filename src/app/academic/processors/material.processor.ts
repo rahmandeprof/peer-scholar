@@ -67,11 +67,18 @@ export class MaterialProcessor {
       material.processingStatus = ProcessingStatus.EXTRACTING; // Fix: Update processingStatus for frontend
       await this.materialRepo.save(material);
 
-      // 1. Download file
+      // 1. Download file with timeout to prevent hanging on large files
       const response = await axios.get(fileUrl, {
         responseType: 'arraybuffer',
+        timeout: 120000, // 2 minutes timeout for download
+        maxContentLength: 50 * 1024 * 1024, // 50MB max file size
+        maxBodyLength: 50 * 1024 * 1024,
       });
       const buffer = Buffer.from(response.data);
+
+      // Log file size for debugging
+      const fileSizeMB = (buffer.length / (1024 * 1024)).toFixed(2);
+      this.logger.log(`[DOWNLOAD] Material ${materialId}: ${fileSizeMB}MB downloaded`);
 
       // 2. Extract text
       let text = '';

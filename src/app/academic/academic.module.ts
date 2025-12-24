@@ -59,6 +59,16 @@ import { MaterialProcessor } from './processors/material.processor';
     ]),
     BullModule.registerQueue({
       name: 'materials',
+      defaultJobOptions: {
+        timeout: 600000, // 10 minutes max processing time
+        attempts: 2, // Retry once on failure
+        backoff: {
+          type: 'exponential',
+          delay: 5000, // Start with 5 seconds
+        },
+        removeOnComplete: 100, // Keep last 100 completed jobs
+        removeOnFail: 50, // Keep last 50 failed jobs for debugging
+      },
     }),
     UsersModule,
     DocumentProcessingModule,

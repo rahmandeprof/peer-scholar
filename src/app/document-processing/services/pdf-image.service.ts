@@ -88,6 +88,13 @@ export class PdfImageService {
 
             const process = spawn('pdftoppm', args);
 
+            // Timeout after 5 minutes to prevent hanging on huge PDFs
+            const timeout = setTimeout(() => {
+                this.logger.error('pdftoppm timed out after 5 minutes');
+                process.kill('SIGKILL');
+                reject(new Error('pdftoppm timed out after 5 minutes'));
+            }, 300000);
+
             let stderr = '';
 
             process.stderr.on('data', (data) => {
@@ -95,6 +102,7 @@ export class PdfImageService {
             });
 
             process.on('close', (code) => {
+                clearTimeout(timeout);
                 if (code === 0) {
                     resolve();
                 } else {
@@ -104,6 +112,7 @@ export class PdfImageService {
             });
 
             process.on('error', (err) => {
+                clearTimeout(timeout);
                 this.logger.error(`pdftoppm spawn error: ${err.message}`);
                 reject(new Error(`Failed to spawn pdftoppm: ${err.message}. Make sure poppler-utils is installed.`));
             });
