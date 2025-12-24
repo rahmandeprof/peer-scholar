@@ -10,12 +10,13 @@ import {
   Eye,
   Download,
   Share2,
+  RefreshCw,
 } from 'lucide-react';
-import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { ConfirmationModal } from './ConfirmationModal';
 import { FileViewerModal } from './FileViewerModal';
 import { LoadingState } from './LoadingState';
+import { useMaterials, invalidateMaterialsCache } from '../hooks/useApi';
 
 interface Material {
   id: string;
@@ -49,8 +50,9 @@ interface CommunityMaterialsProps {
 }
 
 export function CommunityMaterials({ onChat }: CommunityMaterialsProps) {
-  const [materials, setMaterials] = useState<Material[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Use SWR-cached materials hook for instant loading on revisit
+  const { materials, isLoading, isValidating, refresh } = useMaterials();
+
   const [filter, setFilter] = useState('');
   const [sortField, setSortField] = useState<SortField>('createdAt');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
@@ -61,23 +63,16 @@ export function CommunityMaterials({ onChat }: CommunityMaterialsProps) {
   const [viewingMaterial, setViewingMaterial] = useState<ViewerMaterial | null>(
     null,
   );
+  const [localMaterials, setLocalMaterials] = useState<Material[]>([]);
 
   const { user } = useAuth();
 
-  const fetchMaterials = async () => {
-    try {
-      const res = await api.get('/chat/materials');
-      setMaterials(res.data);
-    } catch {
-      // console.error('Failed to fetch materials', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Sync SWR data to local state for optimistic updates
   useEffect(() => {
-    void fetchMaterials();
-  }, []);
+    if (materials) {
+      setLocalMaterials(materials as Material[]);
+    }
+  }, [materials]);
 
   const handleDeleteClick = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -87,18 +82,24 @@ export function CommunityMaterials({ onChat }: CommunityMaterialsProps) {
   const handleConfirmDelete = async () => {
     if (!deleteConfirmation.id) return;
 
+    const idToDelete = deleteConfirmation.id;
+
+    // Optimistic update: remove from local state immediately
+    setLocalMaterials((prev) => prev.filter((m) => m.id !== idToDelete));
+    setDeleteConfirmation({ isOpen: false, id: null });
+
     try {
-      await api.delete(`/chat/materials/${deleteConfirmation.id}`);
-      setMaterials((prev) =>
-        prev.filter((m) => m.id !== deleteConfirmation.id),
-      );
-      setDeleteConfirmation({ isOpen: false, id: null });
+      const api = (await import('../lib/api')).default;
+      await api.delete(`/chat/materials/${idToDelete}`);
+      // Invalidate cache to ensure fresh data on next fetch
+      await invalidateMaterialsCache();
     } catch {
-      // console.error('Failed to delete material', err);
+      // Revert optimistic update on error
+      refresh();
     }
   };
 
-  const filteredMaterials = materials
+  const filteredMaterials = localMaterials
     .filter(
       (m) =>
         m.title.toLowerCase().includes(filter.toLowerCase()) ||
@@ -134,6 +135,9 @@ export function CommunityMaterials({ onChat }: CommunityMaterialsProps) {
             <h2 className='text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center'>
               <BookOpen className='w-6 h-6 mr-2 text-primary-600' />
               Community Materials
+              {isValidating && !isLoading && (
+                <RefreshCw className='w-4 h-4 ml-2 animate-spin text-gray-400' />
+              )}
             </h2>
             <p className='text-gray-500 dark:text-gray-400 text-sm mt-1'>
               Access resources shared by other students
@@ -141,6 +145,13 @@ export function CommunityMaterials({ onChat }: CommunityMaterialsProps) {
           </div>
 
           <div className='flex items-center space-x-4 w-full md:w-auto'>
+            <button
+              onClick={() => refresh()}
+              className='p-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors'
+              title='Refresh materials'
+            >
+              <RefreshCw className={`w-5 h-5 ${isValidating ? 'animate-spin' : ''}`} />
+            </button>
             <div className='relative flex-1 md:w-64'>
               <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5' />
               <input
@@ -196,7 +207,7 @@ export function CommunityMaterials({ onChat }: CommunityMaterialsProps) {
       </div>
 
       <div className='flex-1 overflow-y-auto p-6'>
-        {loading ? (
+        {isLoading ? (
           <LoadingState message='Fetching community materials...' />
         ) : filteredMaterials.length === 0 ? (
           <div className='text-center py-20 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800'>
