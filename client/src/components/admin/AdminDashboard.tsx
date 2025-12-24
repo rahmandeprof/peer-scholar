@@ -775,7 +775,7 @@ export function AdminDashboard() {
                                     Stuck Materials
                                 </h2>
                                 <p className='text-xs sm:text-sm text-gray-500 dark:text-gray-400'>
-                                    {stuckCount} pending • {staleCount} stale (>30min) • {activeProcessingCount} active
+                                    {stuckCount} pending • {staleCount} stale (&gt;30min) • {activeProcessingCount} active
                                 </p>
                             </div>
                         </div>
