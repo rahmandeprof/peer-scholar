@@ -56,6 +56,21 @@ export enum ProcessingVersion {
   V2 = 'v2',  // Modern - uses DocumentSegments
 }
 
+/**
+ * Check if a processing status indicates active processing (not completed/failed)
+ * Use this to avoid duplicating status checks throughout the codebase
+ */
+export function isActivelyProcessing(status: ProcessingStatus): boolean {
+  const activeStates = [
+    ProcessingStatus.PENDING,
+    ProcessingStatus.EXTRACTING,
+    ProcessingStatus.OCR_EXTRACTING,
+    ProcessingStatus.CLEANING,
+    ProcessingStatus.SEGMENTING,
+  ];
+  return activeStates.includes(status);
+}
+
 // Support both old format (correctAnswer) and new format (answer, id, type, hint)
 export interface QuizQuestion {
   id?: string;

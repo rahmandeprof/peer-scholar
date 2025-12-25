@@ -3,13 +3,12 @@ import {
   ExecutionContext,
   HttpException,
   Injectable,
+  Logger,
   NestInterceptor,
   RequestTimeoutException,
 } from '@nestjs/common';
 
 import { Environment } from '@/validation/env.validation';
-
-import { WinstonLoggerService } from '@/logger/winston-logger/winston-logger.service';
 
 import configuration from '@/config/configuration';
 
@@ -19,6 +18,8 @@ import { catchError } from 'rxjs/operators';
 
 @Injectable()
 export class ErrorsInterceptor implements NestInterceptor {
+  private readonly logger = new Logger(ErrorsInterceptor.name);
+
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     return next.handle().pipe(
       catchError((err) => {
@@ -30,7 +31,7 @@ export class ErrorsInterceptor implements NestInterceptor {
                 err.response?.status ?? 500,
               ),
           );
-        } else if (err.message.includes('timeout')) {
+        } else if (err.message?.includes('timeout')) {
           return throwError(
             () => new RequestTimeoutException('Request timed out'),
           );
@@ -42,10 +43,7 @@ export class ErrorsInterceptor implements NestInterceptor {
 
         if (errorStatus === 500) {
           if (IS_PRODUCTION) {
-            const logger = new WinstonLoggerService();
-
-            logger.setContext('ErrorsInterceptor');
-            logger.error(errorMessage, { stack: err.stack });
+            this.logger.error(errorMessage, err.stack);
             errorMessage =
               'Oops! Something went wrong on our end. Please try again later.';
           }
@@ -58,3 +56,4 @@ export class ErrorsInterceptor implements NestInterceptor {
     );
   }
 }
+

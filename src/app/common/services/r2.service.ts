@@ -163,7 +163,7 @@ export class R2Service {
     }
 
     /**
-     * Delete all files with a given prefix
+     * Delete all files with a given prefix (batch operation)
      */
     async deleteByPrefix(prefix: string): Promise<void> {
         try {
@@ -180,14 +180,27 @@ export class R2Service {
                 return;
             }
 
-            // Delete each object
-            for (const object of listed.Contents) {
-                if (object.Key) {
-                    await this.deleteFile(object.Key);
-                }
-            }
+            // Batch delete objects (S3 supports up to 1000 objects per batch)
+            const objectsToDelete = listed.Contents
+                .filter(obj => obj.Key)
+                .map(obj => ({ Key: obj.Key! }));
 
-            this.logger.log(`Deleted ${listed.Contents.length} objects with prefix: ${prefix}`);
+            if (objectsToDelete.length === 0) return;
+
+            // Import DeleteObjectsCommand dynamically to avoid breaking if not needed
+            const { DeleteObjectsCommand } = await import('@aws-sdk/client-s3');
+
+            const deleteCommand = new DeleteObjectsCommand({
+                Bucket: this.bucketName,
+                Delete: {
+                    Objects: objectsToDelete,
+                    Quiet: true, // Don't return success info for each object
+                },
+            });
+
+            await this.client.send(deleteCommand);
+
+            this.logger.log(`Batch deleted ${objectsToDelete.length} objects with prefix: ${prefix}`);
         } catch (error) {
             this.logger.error(`R2 delete by prefix failed for ${prefix}`, error);
         }

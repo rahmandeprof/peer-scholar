@@ -18,6 +18,7 @@ import {
   ProcessingVersion,
   QuizQuestion as EntityQuizQuestion,
   FlashcardItem,
+  isActivelyProcessing,
 } from '../academic/entities/material.entity';
 import { DocumentSegment } from '../academic/entities/document-segment.entity';
 import { MaterialChunk } from '../academic/entities/material-chunk.entity';
@@ -106,18 +107,17 @@ export class ChatService {
       topic?: string;
     },
   ) {
-    // Upload to Cloudinary
+    // Upload to storage - fail early if this fails
     let url = '';
 
     try {
       const uploadResult = await this.storageService.uploadFile(file);
       url = uploadResult.url;
     } catch (error) {
-      this.logger.error(
-        'Failed to upload file to Cloudinary, using placeholder',
-        error,
+      this.logger.error('Failed to upload file to storage', error);
+      throw new InternalServerErrorException(
+        'Failed to upload file. Please try again.',
       );
-      url = 'https://placeholder.com/file-upload-failed';
     }
 
     // Handle File Processing (Text Extraction & PDF Conversion)
@@ -211,25 +211,32 @@ export class ChatService {
       throw new NotFoundException('You can only delete your own materials');
     }
 
-    // Delete from Cloudinary
-    if (material.fileUrl) {
-      const publicId = this.extractPublicIdFromUrl(material.fileUrl);
+    // Capture URLs before deletion for storage cleanup
+    const fileUrl = material.fileUrl;
+    const pdfUrl = material.pdfUrl;
 
-      if (publicId) {
-        await this.storageService.deleteFile(publicId);
-      }
-    }
-
-    // Delete PDF version if exists and different
-    if (material.pdfUrl && material.pdfUrl !== material.fileUrl) {
-      const publicId = this.extractPublicIdFromUrl(material.pdfUrl);
-
-      if (publicId) {
-        await this.storageService.deleteFile(publicId);
-      }
-    }
-
+    // Delete from DB first (critical operation)
     await this.materialRepo.remove(material);
+
+    // Cleanup storage files (best-effort, non-blocking)
+    // If these fail, files become orphaned but DB is consistent
+    if (fileUrl) {
+      const publicId = this.extractPublicIdFromUrl(fileUrl);
+      if (publicId) {
+        this.storageService.deleteFile(publicId).catch((err) => {
+          this.logger.warn(`Failed to delete storage file ${publicId}:`, err);
+        });
+      }
+    }
+
+    if (pdfUrl && pdfUrl !== fileUrl) {
+      const publicId = this.extractPublicIdFromUrl(pdfUrl);
+      if (publicId) {
+        this.storageService.deleteFile(publicId).catch((err) => {
+          this.logger.warn(`Failed to delete PDF file ${publicId}:`, err);
+        });
+      }
+    }
 
     return { success: true };
   }
@@ -377,15 +384,7 @@ export class ChatService {
     if (!material) throw new NotFoundException('Material not found');
 
     // Check if processing is still in progress - wait for completion
-    const activeProcessingStates = [
-      ProcessingStatus.PENDING,
-      ProcessingStatus.EXTRACTING,
-      ProcessingStatus.OCR_EXTRACTING,
-      ProcessingStatus.CLEANING,
-      ProcessingStatus.SEGMENTING,
-    ];
-
-    if (activeProcessingStates.includes(material.processingStatus)) {
+    if (isActivelyProcessing(material.processingStatus)) {
       throw new BadRequestException(
         'Material is still being processed. Please wait a moment and try again.',
       );
