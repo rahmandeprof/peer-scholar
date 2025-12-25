@@ -77,8 +77,33 @@ export class QuizGenerator {
                 continue;
             }
 
+            // Handle potential object wrappers - LLM might return nested objects
+            let quizData = parseResult.data;
+            if (!quizData.questions && typeof quizData === 'object') {
+                this.logger.debug(`Quiz response missing questions array. Keys: ${Object.keys(quizData as object).join(', ')}`);
+
+                // Try to find questions array in nested objects
+                for (const [key, value] of Object.entries(quizData as object)) {
+                    if (typeof value === 'object' && value !== null && 'questions' in value) {
+                        this.logger.debug(`Unwrapped quiz data from nested key: ${key}`);
+                        quizData = value as QuizResponse;
+                        break;
+                    }
+                    // Also check for direct questions array in nested object
+                    if (Array.isArray(value) && value.length > 0 && value[0]?.question) {
+                        this.logger.debug(`Found questions array directly in key: ${key}`);
+                        quizData = { questions: value } as QuizResponse;
+                        break;
+                    }
+                }
+
+                if (!quizData.questions) {
+                    this.logger.warn(`Could not find questions in response. Structure: ${JSON.stringify(quizData).substring(0, 500)}`);
+                }
+            }
+
             // Filter out questions with < 2 options (hybrid filtering)
-            const allQuestions = parseResult.data.questions || [];
+            const allQuestions = quizData.questions || [];
             const validQuestions = allQuestions.filter(q =>
                 Array.isArray(q.options) &&
                 q.options.length >= 2 &&
@@ -95,7 +120,7 @@ export class QuizGenerator {
             // Track best attempt
             if (validQuestions.length > bestAttemptQuestions.length) {
                 bestAttemptQuestions = validQuestions;
-                bestAttemptData = parseResult.data;
+                bestAttemptData = quizData;
             }
 
             // Check if we have enough valid questions (at least 50% or minimum 3)
@@ -107,7 +132,7 @@ export class QuizGenerator {
                 return {
                     success: true,
                     data: {
-                        ...parseResult.data,
+                        ...quizData,
                         questions: validQuestions,
                     } as QuizResponse,
                     retryCount: totalAttempts,
@@ -243,8 +268,33 @@ export class QuizGenerator {
                 continue;
             }
 
+            // Handle potential object wrappers - LLM might return nested objects
+            let quizData = parseResult.data;
+            if (!quizData.questions && typeof quizData === 'object') {
+                this.logger.debug(`Quiz response missing questions array. Keys: ${Object.keys(quizData as object).join(', ')}`);
+
+                // Try to find questions array in nested objects
+                for (const [key, value] of Object.entries(quizData as object)) {
+                    if (typeof value === 'object' && value !== null && 'questions' in value) {
+                        this.logger.debug(`Unwrapped quiz data from nested key: ${key}`);
+                        quizData = value as QuizResponse;
+                        break;
+                    }
+                    // Also check for direct questions array in nested object
+                    if (Array.isArray(value) && value.length > 0 && value[0]?.question) {
+                        this.logger.debug(`Found questions array directly in key: ${key}`);
+                        quizData = { questions: value } as QuizResponse;
+                        break;
+                    }
+                }
+
+                if (!quizData.questions) {
+                    this.logger.warn(`Could not find questions in response. Structure: ${JSON.stringify(quizData).substring(0, 500)}`);
+                }
+            }
+
             // Filter out questions with < 2 options (hybrid filtering)
-            const allQuestions = parseResult.data.questions || [];
+            const allQuestions = quizData.questions || [];
             const validQuestions = allQuestions.filter(q =>
                 Array.isArray(q.options) &&
                 q.options.length >= 2 &&
@@ -261,7 +311,7 @@ export class QuizGenerator {
             // Track best attempt
             if (validQuestions.length > bestAttemptQuestions.length) {
                 bestAttemptQuestions = validQuestions;
-                bestAttemptData = parseResult.data;
+                bestAttemptData = quizData;
             }
 
             // Check if we have enough valid questions (at least 50% or minimum 3)
@@ -272,7 +322,7 @@ export class QuizGenerator {
                 return {
                     success: true,
                     data: {
-                        ...parseResult.data,
+                        ...quizData,
                         questions: validQuestions,
                     } as QuizResponse,
                     retryCount: totalAttempts,
