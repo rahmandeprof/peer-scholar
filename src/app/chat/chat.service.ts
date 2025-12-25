@@ -4,6 +4,7 @@ import {
   InternalServerErrorException,
   Logger,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -736,7 +737,9 @@ export class ChatService {
 
       if (!result.success || !result.data) {
         this.logger.error(`Quiz generation from segments failed: ${result.error}`);
-        throw new InternalServerErrorException(result.error || 'Failed to generate quiz');
+        throw new UnprocessableEntityException(
+          result.error || 'Failed to generate quiz. Please try again.',
+        );
       }
 
       const quiz = result.data.questions;
@@ -781,7 +784,9 @@ export class ChatService {
 
     if (!result.success || !result.data) {
       this.logger.error(`Quiz generation failed: ${result.error}`);
-      throw new InternalServerErrorException(result.error || 'Failed to generate quiz');
+      throw new UnprocessableEntityException(
+        result.error || 'Failed to generate quiz. Please try again.',
+      );
     }
 
     const quiz = result.data.questions;
@@ -885,7 +890,9 @@ export class ChatService {
 
       if (!result.success || !result.data) {
         this.logger.error(`Flashcard generation from segments failed: ${result.error}`);
-        throw new InternalServerErrorException(result.error || 'Failed to generate flashcards');
+        throw new UnprocessableEntityException(
+          result.error || 'Failed to generate flashcards. Please try again.',
+        );
       }
 
       const flashcards = result.data;
@@ -919,7 +926,9 @@ export class ChatService {
 
     if (!result.success || !result.data) {
       this.logger.error(`Flashcard generation failed: ${result.error}`);
-      throw new InternalServerErrorException(result.error || 'Failed to generate flashcards');
+      throw new UnprocessableEntityException(
+        result.error || 'Failed to generate flashcards. Please try again.',
+      );
     }
 
     const flashcards = result.data;
