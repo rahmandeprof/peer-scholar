@@ -40,6 +40,7 @@ import { CollectionModal } from './CollectionModal';
 import { PublicNotesPanel } from './PublicNotesPanel';
 import HelpfulLinksPanel from './HelpfulLinksPanel';
 import { PenTool, Folder, MessageSquare, Link2 } from 'lucide-react';
+import { MaterialViewSkeleton } from './Skeleton';
 
 interface Material {
   id: string;
@@ -350,11 +351,7 @@ export const MaterialView = () => {
   };
 
   if (loading) {
-    return (
-      <div className='flex items-center justify-center h-full'>
-        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600'></div>
-      </div>
-    );
+    return <MaterialViewSkeleton />;
   }
 
   if (!material) {
@@ -380,11 +377,9 @@ export const MaterialView = () => {
             </button>
             <div className='min-w-0 flex-1 overflow-hidden'>
               <h1 className='text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2 overflow-hidden'>
-                <div className='relative overflow-hidden w-full'>
-                  <span className='whitespace-nowrap md:animate-none animate-marquee md:w-auto block'>
-                    {material.title}
-                  </span>
-                </div>
+                <span className='truncate md:whitespace-normal'>
+                  {material.title}
+                </span>
                 {/* Desktop Rating */}
                 <div className='hidden md:flex items-center shrink-0'>
                   <StarRating rating={averageRating} size={12} readonly />

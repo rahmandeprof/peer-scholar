@@ -247,105 +247,125 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
 
                 {/* Dropdown Menu - Rendered via Portal to escape stacking context */}
                 {menuOpen && createPortal(
-                  <div
-                    ref={dropdownRef}
-                    className='fixed w-48 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 py-1 animate-pop-in max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent'
-                    style={{
-                      overscrollBehavior: 'contain',
-                      zIndex: 9999,
-                      top: menuRef.current ? menuRef.current.getBoundingClientRect().bottom + 8 : 0,
-                      left: menuRef.current ? Math.min(menuRef.current.getBoundingClientRect().right - 192, window.innerWidth - 200) : 0,
-                    }}
-                    onWheel={(e) => {
-                      e.stopPropagation();
-                      const el = e.currentTarget;
-                      const isAtTop = el.scrollTop === 0;
-                      const isAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+                  (() => {
+                    // Calculate position with viewport boundary check
+                    const rect = menuRef.current?.getBoundingClientRect();
+                    const dropdownHeight = 200; // max-h-[200px]
+                    const spaceBelow = rect ? window.innerHeight - rect.bottom : 0;
+                    const shouldFlipUp = spaceBelow < dropdownHeight + 16;
 
-                      // Prevent scroll from leaking to parent when at boundaries
-                      if ((isAtTop && e.deltaY < 0) || (isAtBottom && e.deltaY > 0)) {
-                        e.preventDefault();
-                      }
-                    }}
-                    onTouchMove={(e) => e.stopPropagation()}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownload();
-                      }}
-                      className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
-                    >
-                      <Download className='w-4 h-4 mr-2' />
-                      Download
-                    </button>
+                    const top = rect
+                      ? (shouldFlipUp
+                        ? Math.max(8, rect.top - dropdownHeight - 8)
+                        : rect.bottom + 8)
+                      : 0;
+                    const left = rect
+                      ? Math.min(rect.right - 192, window.innerWidth - 200)
+                      : 0;
 
-                    {/* New: Add to Collection */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setMenuOpen(false);
-                        if (onAddToCollection) onAddToCollection(material.id);
-                      }}
-                      className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
-                    >
-                      <FolderIcon className='w-4 h-4 mr-2' />
-                      Add to Collection
-                    </button>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleShare();
-                      }}
-                      className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
-                    >
-                      <Share2 className='w-4 h-4 mr-2' />
-                      Share
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSummarize();
-                      }}
-                      className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
-                    >
-                      <SummarizeIcon className='w-4 h-4 mr-2' />
-                      Summarize
-                    </button>
-
-                    {/* Remove from Favorites - only shown when handler is provided */}
-                    {onRemoveFromFavorites && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMenuOpen(false);
-                          onRemoveFromFavorites(material.id);
+                    return (
+                      <div
+                        ref={dropdownRef}
+                        className='fixed w-48 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 py-1 animate-pop-in max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent'
+                        style={{
+                          overscrollBehavior: 'contain',
+                          zIndex: 9999,
+                          top,
+                          left,
                         }}
-                        className='w-full px-4 py-2 text-left text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 flex items-center'
-                      >
-                        <HeartOff className='w-4 h-4 mr-2' />
-                        Remove from Favorites
-                      </button>
-                    )}
-
-                    {(isOwner || isAdmin) && (
-                      <button
-                        onClick={(e) => {
+                        onWheel={(e) => {
                           e.stopPropagation();
-                          setMenuOpen(false);
-                          setDeleteModalOpen(true);
+                          const el = e.currentTarget;
+                          const isAtTop = el.scrollTop === 0;
+                          const isAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+
+                          // Prevent scroll from leaking to parent when at boundaries
+                          if ((isAtTop && e.deltaY < 0) || (isAtBottom && e.deltaY > 0)) {
+                            e.preventDefault();
+                          }
                         }}
-                        className='w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center border-t border-gray-100 dark:border-gray-700'
+                        onTouchMove={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <Trash2 className='w-4 h-4 mr-2' />
-                        Delete
-                      </button>
-                    )}
-                  </div>,
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownload();
+                          }}
+                          className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
+                        >
+                          <Download className='w-4 h-4 mr-2' />
+                          Download
+                        </button>
+
+                        {/* New: Add to Collection */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMenuOpen(false);
+                            if (onAddToCollection) onAddToCollection(material.id);
+                          }}
+                          className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
+                        >
+                          <FolderIcon className='w-4 h-4 mr-2' />
+                          Add to Collection
+                        </button>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleShare();
+                          }}
+                          className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
+                        >
+                          <Share2 className='w-4 h-4 mr-2' />
+                          Share
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSummarize();
+                          }}
+                          className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
+                        >
+                          <SummarizeIcon className='w-4 h-4 mr-2' />
+                          Summarize
+                        </button>
+
+                        {/* Remove from Favorites - only shown when handler is provided */}
+                        {onRemoveFromFavorites && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMenuOpen(false);
+                              onRemoveFromFavorites(material.id);
+                            }}
+                            className='w-full px-4 py-2 text-left text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 flex items-center'
+                          >
+                            <HeartOff className='w-4 h-4 mr-2' />
+                            Remove from Favorites
+                          </button>
+                        )}
+
+                        {(isOwner || isAdmin) && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMenuOpen(false);
+                              setDeleteModalOpen(true);
+                            }}
+                            className='w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center border-t border-gray-100 dark:border-gray-700'
+                          >
+                            <Trash2 className='w-4 h-4 mr-2' />
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })(),
                   document.body
-                )}
+                )
+                }
               </div>
             </div>
           </div>

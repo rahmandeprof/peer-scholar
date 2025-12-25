@@ -369,6 +369,27 @@ export function AdminDashboard() {
         return () => clearInterval(interval);
     }, []);
 
+    // Refresh all dashboard data
+    const refreshAll = async () => {
+        setLoading(true);
+        try {
+            await Promise.all([
+                fetchFlaggedMaterials(),
+                fetchStuckCount(),
+                fetchStats(),
+                fetchQueueStatus(),
+                fetchReports(),
+                fetchAnalytics(),
+                fetchLogs(),
+            ]);
+            toast.success('Dashboard refreshed');
+        } catch (err) {
+            toast.error('Failed to refresh some data');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const fetchFlags = async (materialId: string) => {
         setLoadingFlags(true);
         try {
@@ -455,8 +476,10 @@ export function AdminDashboard() {
                         </div>
                     </div>
                     <button
-                        onClick={fetchFlaggedMaterials}
-                        className='p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors'
+                        onClick={refreshAll}
+                        disabled={loading}
+                        className='p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50'
+                        title='Refresh all data'
                     >
                         <RefreshCw className={`w-5 h-5 text-gray-500 ${loading ? 'animate-spin' : ''}`} />
                     </button>
