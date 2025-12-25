@@ -76,11 +76,30 @@ export class FlashcardGenerator {
             // Unwrap if LLM returned object wrapper like { flashcards: [...] }
             let flashcardData = parseResult.data;
             if (!Array.isArray(flashcardData) && typeof flashcardData === 'object') {
-                // Try to find an array property
-                const arrayProp = Object.values(flashcardData).find(v => Array.isArray(v));
+                this.logger.debug(`LLM returned object instead of array, attempting to unwrap. Keys: ${Object.keys(flashcardData as object).join(', ')}`);
+
+                // Try to find an array property at first level
+                const arrayProp = Object.values(flashcardData as object).find(v => Array.isArray(v));
                 if (arrayProp) {
                     this.logger.debug('Unwrapped flashcard array from object wrapper');
                     flashcardData = arrayProp;
+                } else {
+                    // Try deeper nesting - look for arrays in nested objects
+                    for (const value of Object.values(flashcardData as object)) {
+                        if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                            const nestedArray = Object.values(value as object).find(v => Array.isArray(v));
+                            if (nestedArray) {
+                                this.logger.debug('Unwrapped flashcard array from nested object wrapper');
+                                flashcardData = nestedArray;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // If still not an array, log the structure for debugging
+                if (!Array.isArray(flashcardData)) {
+                    this.logger.warn(`Could not unwrap array from object. Structure: ${JSON.stringify(flashcardData).substring(0, 500)}`);
                 }
             }
 
@@ -186,10 +205,30 @@ export class FlashcardGenerator {
             // Unwrap if LLM returned object wrapper like { flashcards: [...] }
             let flashcardData = parseResult.data;
             if (!Array.isArray(flashcardData) && typeof flashcardData === 'object') {
-                const arrayProp = Object.values(flashcardData).find(v => Array.isArray(v));
+                this.logger.debug(`LLM returned object instead of array, attempting to unwrap. Keys: ${Object.keys(flashcardData as object).join(', ')}`);
+
+                // Try to find an array property at first level
+                const arrayProp = Object.values(flashcardData as object).find(v => Array.isArray(v));
                 if (arrayProp) {
                     this.logger.debug('Unwrapped flashcard array from object wrapper');
                     flashcardData = arrayProp;
+                } else {
+                    // Try deeper nesting - look for arrays in nested objects
+                    for (const value of Object.values(flashcardData as object)) {
+                        if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                            const nestedArray = Object.values(value as object).find(v => Array.isArray(v));
+                            if (nestedArray) {
+                                this.logger.debug('Unwrapped flashcard array from nested object wrapper');
+                                flashcardData = nestedArray;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // If still not an array, log the structure for debugging
+                if (!Array.isArray(flashcardData)) {
+                    this.logger.warn(`Could not unwrap array from object. Structure: ${JSON.stringify(flashcardData).substring(0, 500)}`);
                 }
             }
 
