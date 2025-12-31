@@ -80,18 +80,18 @@ export function ErrorModal({
 
     return (
         <div
-            className='fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200'
+            className='fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200'
             onClick={onClose}
             role='dialog'
             aria-modal='true'
             aria-labelledby='error-modal-title'
         >
             <div
-                className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md border ${config.borderColor} animate-in zoom-in-95 duration-200`}
+                className={`bg-white dark:bg-gray-800 rounded-t-2xl md:rounded-2xl shadow-2xl w-full md:max-w-md border-t md:border ${config.borderColor} animate-in slide-in-from-bottom md:zoom-in-95 duration-200`}
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className='flex items-start justify-between p-5 border-b border-gray-100 dark:border-gray-700'>
+                <div className='flex items-start justify-between p-4 md:p-5 border-b border-gray-100 dark:border-gray-700'>
                     <div className='flex items-center gap-3'>
                         <div className={`p-2 rounded-xl ${config.bgColor}`}>
                             <Icon className={`w-5 h-5 ${config.iconColor}`} />
@@ -113,32 +113,32 @@ export function ErrorModal({
                 </div>
 
                 {/* Content */}
-                <div className='p-5'>
+                <div className='p-4 md:p-5'>
                     <p className='text-gray-600 dark:text-gray-300 leading-relaxed'>
                         {message}
                     </p>
                 </div>
 
-                {/* Footer */}
-                <div className='flex items-center justify-end gap-3 p-5 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 rounded-b-2xl'>
+                {/* Footer - Full width buttons on mobile */}
+                <div className='flex flex-col-reverse md:flex-row items-stretch md:items-center justify-end gap-2 md:gap-3 p-4 md:p-5 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 rounded-b-2xl'>
+                    <button
+                        onClick={onClose}
+                        className='w-full md:w-auto px-4 py-3 md:py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition-colors'
+                    >
+                        Dismiss
+                    </button>
                     {onRetry && (
                         <button
                             onClick={() => {
                                 onClose();
                                 onRetry();
                             }}
-                            className='px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors flex items-center gap-2'
+                            className='w-full md:w-auto px-4 py-3 md:py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2'
                         >
                             <RefreshCw className='w-4 h-4' />
                             {retryLabel}
                         </button>
                     )}
-                    <button
-                        onClick={onClose}
-                        className='px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition-colors'
-                    >
-                        Dismiss
-                    </button>
                 </div>
             </div>
         </div>

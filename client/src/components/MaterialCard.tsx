@@ -19,6 +19,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmationModal } from './ConfirmationModal';
 import { getDisplayName } from '../lib/displayName';
+import { getApiErrorMessage } from '../lib/errorUtils';
 import api from '../lib/api';
 
 interface Material {
@@ -109,8 +110,8 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
     try {
       await navigator.clipboard.writeText(url);
       toast.success('Link copied to clipboard!');
-    } catch {
-      toast.error('Failed to copy link');
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Failed to copy link'));
     }
     setMenuOpen(false);
   };
@@ -125,8 +126,8 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
       await api.delete(`/chat/materials/${material.id}`);
       toast.success('Material deleted successfully');
       if (onDelete) onDelete(material.id);
-    } catch {
-      toast.error('Failed to delete material');
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Failed to delete material'));
     }
     setDeleteModalOpen(false);
   };
