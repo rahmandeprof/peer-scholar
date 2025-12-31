@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   Moon,
   Sun,
+  Loader2,
 } from 'lucide-react';
 import api from '../lib/api';
 import { accumulateReadingTime } from '../lib/offlineReadingTracker';
@@ -19,7 +20,6 @@ import { getDisplayName } from '../lib/displayName';
 import { addToViewingHistory } from '../lib/viewingHistory';
 import { useTheme } from '../contexts/ThemeContext';
 import { AISidebar } from './AISidebar';
-import { QuizModal } from './QuizModal';
 import { TextFileViewer } from './TextFileViewer';
 import { PDFViewer } from './PDFViewer';
 import { ContextMenu } from './ContextMenu';
@@ -32,7 +32,6 @@ import { useSocket } from '../contexts/SocketContext';
 import { TTSPlayer } from './TTSPlayer';
 import { Headphones, Layers } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
-import { FlashcardModal } from './FlashcardModal';
 import { FeatureSpotlightModal } from './FeatureSpotlightModal';
 import { ReportModal } from './ReportModal';
 import { Jotter } from './Jotter';
@@ -41,6 +40,20 @@ import { PublicNotesPanel } from './PublicNotesPanel';
 import HelpfulLinksPanel from './HelpfulLinksPanel';
 import { PenTool, Folder, MessageSquare, Link2 } from 'lucide-react';
 import { MaterialViewSkeleton } from './Skeleton';
+
+// Lazy-loaded heavy modals for better code splitting
+const QuizModal = lazy(() => import('./QuizModal').then(m => ({ default: m.QuizModal })));
+const FlashcardModal = lazy(() => import('./FlashcardModal').then(m => ({ default: m.FlashcardModal })));
+
+// Loading spinner for lazy modals
+const ModalLoadingFallback = () => (
+  <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm'>
+    <div className='bg-white dark:bg-gray-800 rounded-xl p-6 flex flex-col items-center gap-3'>
+      <Loader2 className='w-8 h-8 animate-spin text-primary-600' />
+      <p className='text-sm text-gray-500 dark:text-gray-400'>Loading...</p>
+    </div>
+  </div>
+);
 
 interface Material {
   id: string;
@@ -772,16 +785,24 @@ export const MaterialView = () => {
         </button>
         */}
 
-        <QuizModal
-          isOpen={quizOpen}
-          onClose={() => setQuizOpen(false)}
-          materialId={material?.id || ''}
-        />
-        <FlashcardModal
-          isOpen={flashcardModalOpen}
-          onClose={() => setFlashcardModalOpen(false)}
-          materialId={material?.id || ''}
-        />
+        {quizOpen && (
+          <Suspense fallback={<ModalLoadingFallback />}>
+            <QuizModal
+              isOpen={quizOpen}
+              onClose={() => setQuizOpen(false)}
+              materialId={material?.id || ''}
+            />
+          </Suspense>
+        )}
+        {flashcardModalOpen && (
+          <Suspense fallback={<ModalLoadingFallback />}>
+            <FlashcardModal
+              isOpen={flashcardModalOpen}
+              onClose={() => setFlashcardModalOpen(false)}
+              materialId={material?.id || ''}
+            />
+          </Suspense>
+        )}
         <SessionEndModal
           isOpen={sessionEndModalOpen}
           onStartQuiz={handleStartQuiz}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard as Home,
@@ -13,18 +13,31 @@ import {
   Shield,
   Moon,
   Sun,
+  Loader2,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { StudySessionGoals } from './StudySessionGoals';
-import { UploadModal } from './UploadModal';
 import { BottomNav } from './BottomNav';
-import { UserProfile } from './UserProfile';
 import { WelcomeModal } from './WelcomeModal';
 import api from '../lib/api';
 
 import { FeatureSpotlightModal } from './FeatureSpotlightModal';
 import { ConfirmationModal } from './ConfirmationModal';
+
+// Lazy-loaded heavy modals for better code splitting
+const UploadModal = lazy(() => import('./UploadModal').then(m => ({ default: m.UploadModal })));
+const UserProfile = lazy(() => import('./UserProfile').then(m => ({ default: m.UserProfile })));
+
+// Loading spinner for lazy modals
+const ModalLoadingFallback = () => (
+  <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm'>
+    <div className='bg-white dark:bg-gray-800 rounded-xl p-6 flex flex-col items-center gap-3'>
+      <Loader2 className='w-8 h-8 animate-spin text-primary-600' />
+      <p className='text-sm text-gray-500 dark:text-gray-400'>Loading...</p>
+    </div>
+  </div>
+);
 
 interface Conversation {
   id: string;
@@ -405,12 +418,20 @@ export function DashboardLayout() {
 
       <BottomNav />
 
-      <UploadModal
-        isOpen={uploadModalOpen}
-        onClose={() => setUploadModalOpen(false)}
-        onUploadComplete={handleUploadComplete}
-      />
-      {profileOpen && <UserProfile onClose={() => setProfileOpen(false)} />}
+      {uploadModalOpen && (
+        <Suspense fallback={<ModalLoadingFallback />}>
+          <UploadModal
+            isOpen={uploadModalOpen}
+            onClose={() => setUploadModalOpen(false)}
+            onUploadComplete={handleUploadComplete}
+          />
+        </Suspense>
+      )}
+      {profileOpen && (
+        <Suspense fallback={<ModalLoadingFallback />}>
+          <UserProfile onClose={() => setProfileOpen(false)} />
+        </Suspense>
+      )}
       <WelcomeModal />
       <FeatureSpotlightModal
         isOpen={showGpSpotlight}
