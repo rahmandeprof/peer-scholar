@@ -62,6 +62,16 @@ export function getRecentlyOpened(limit: number = 3): ViewedMaterial[] {
     return getViewingHistory().slice(0, limit);
 }
 
+export function removeFromViewingHistory(materialId: string): void {
+    try {
+        const history = getViewingHistory();
+        const filtered = history.filter(m => m.id !== materialId);
+        localStorage.setItem(VIEWING_HISTORY_KEY, JSON.stringify(filtered));
+    } catch (error) {
+        console.error('Failed to remove from viewing history:', error);
+    }
+}
+
 export function clearViewingHistory(): void {
     localStorage.removeItem(VIEWING_HISTORY_KEY);
 }

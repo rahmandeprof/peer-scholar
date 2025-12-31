@@ -20,6 +20,7 @@ import { useToast } from '../contexts/ToastContext';
 import { ConfirmationModal } from './ConfirmationModal';
 import { getDisplayName } from '../lib/displayName';
 import { getApiErrorMessage } from '../lib/errorUtils';
+import { removeFromViewingHistory } from '../lib/viewingHistory';
 import api from '../lib/api';
 
 interface Material {
@@ -124,6 +125,8 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
   const handleDelete = async () => {
     try {
       await api.delete(`/chat/materials/${material.id}`);
+      // Remove from localStorage viewing history
+      removeFromViewingHistory(material.id);
       toast.success('Material deleted successfully');
       if (onDelete) onDelete(material.id);
     } catch (err) {
