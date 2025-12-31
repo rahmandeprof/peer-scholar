@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Users, UserPlus, Check, X, Mail, Shield, Clock, Swords } from 'lucide-react';
 import api from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
+import { getApiErrorMessage } from '../lib/errorUtils';
 import confetti from 'canvas-confetti';
 import { useSocket } from '../contexts/SocketContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -51,8 +52,8 @@ export function StudyPartner() {
       setPartners(Array.isArray(partnersRes.data) ? partnersRes.data : []);
       setRequests(requestsRes.data);
       setSentRequests(sentRes.data);
-    } catch {
-      // console.error('Failed to fetch partner data', err);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Failed to load partner data'));
     }
   };
 
@@ -68,28 +69,28 @@ export function StudyPartner() {
       });
 
       socket.on('receive_challenge', (data: { senderId: string; materialId: string }) => {
-          // Show a custom toast or modal to accept
-          // For simplicity, using a toast with action (if library supports) or just a confirm dialog
-          // Since standard toast might not support buttons easily without custom component,
-          // I'll use a simple window.confirm for MVP or a custom toast if I can.
-          // Let's try a custom toast content if the context allows, or just a separate state for "challengeRequest".
-          
-          // Actually, let's use a state to show a modal/alert in the UI.
-          // But since this might happen anywhere, a global toast is better.
-          // Let's assume toast supports it or we just auto-redirect to a "Challenge Pending" state?
-          // No, "When accepted, redirect".
-          
-          // I'll trigger a browser notification or just a simple confirm for now to be robust.
-          // "User X challenges you! Accept?"
-          // If yes -> emit 'challenge_response'
-          
-          // Better: Set a state "pendingChallenge" and render a modal.
-          setPendingChallenge(data);
+        // Show a custom toast or modal to accept
+        // For simplicity, using a toast with action (if library supports) or just a confirm dialog
+        // Since standard toast might not support buttons easily without custom component,
+        // I'll use a simple window.confirm for MVP or a custom toast if I can.
+        // Let's try a custom toast content if the context allows, or just a separate state for "challengeRequest".
+
+        // Actually, let's use a state to show a modal/alert in the UI.
+        // But since this might happen anywhere, a global toast is better.
+        // Let's assume toast supports it or we just auto-redirect to a "Challenge Pending" state?
+        // No, "When accepted, redirect".
+
+        // I'll trigger a browser notification or just a simple confirm for now to be robust.
+        // "User X challenges you! Accept?"
+        // If yes -> emit 'challenge_response'
+
+        // Better: Set a state "pendingChallenge" and render a modal.
+        setPendingChallenge(data);
       });
 
       socket.on('start_challenge', (data: { challengeId: string; materialId: string; questions: any[] }) => {
-          toast.success('Challenge Accepted! Entering Arena...');
-          navigate(`/arena/${data.challengeId}`, { state: { questions: data.questions } });
+        toast.success('Challenge Accepted! Entering Arena...');
+        navigate(`/arena/${data.challengeId}`, { state: { questions: data.questions } });
       });
 
       return () => {
@@ -108,7 +109,7 @@ export function StudyPartner() {
     try {
       const res = await api.post('/users/partner/invite', { email: inviteEmail });
       toast.success('Invite sent successfully!');
-      
+
       // Notify via socket if connected
       if (socket && res.data.receiverId) {
         socket.emit('invite_user', { senderId: user?.id, receiverId: res.data.receiverId });
@@ -137,8 +138,8 @@ export function StudyPartner() {
       await api.delete(`/users/partner/invite/${id}`);
       toast.success('Invite cancelled');
       setSentRequests((prev) => prev.filter((req) => req.id !== id));
-    } catch {
-      toast.error('Failed to cancel invite');
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Failed to cancel invite'));
     }
   };
 
@@ -157,8 +158,8 @@ export function StudyPartner() {
         toast.success('Request rejected');
       }
       fetchData();
-    } catch {
-      toast.error('Failed to process request');
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Failed to process request'));
     }
   };
 
@@ -167,7 +168,7 @@ export function StudyPartner() {
     const date = new Date(dateString);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
-    
+
     if (diff < 5 * 60 * 1000) return 'Online now';
     if (diff < 60 * 60 * 1000) return `${Math.floor(diff / 60000)}m ago`;
     if (diff < 24 * 60 * 60 * 1000) return `${Math.floor(diff / 3600000)}h ago`;
@@ -221,14 +222,14 @@ export function StudyPartner() {
                       {formatLastSeen(partner.lastSeen)}
                     </div>
                   </div>
-                  
+
                   <div className='space-y-2'>
                     <div className='flex items-center text-primary-100 font-medium'>
                       <span className='w-2.5 h-2.5 bg-green-400 rounded-full mr-2 shadow-[0_0_8px_rgba(74,222,128,0.6)]'></span>
                       {partner.currentStreak} day streak
                     </div>
                   </div>
-                  
+
                   <div className='grid grid-cols-2 gap-3 mt-4'>
                     <button
                       onClick={async () => {
@@ -273,34 +274,34 @@ export function StudyPartner() {
                         // we can only challenge if we are "in a material context" or we prompt to select one?
                         // Simplified: Check if we have a materialId in localStorage or context?
                         // Or just prompt "Go to a material to challenge".
-                        
+
                         // Actually, let's check if we are in a material view context if this component is used there.
                         // If not, maybe disable or show tooltip.
-                        
+
                         // For this implementation, let's assume the user navigates to the material first,
                         // then opens the "Study Partner" sidebar (which we haven't fully implemented as a sidebar yet, it's a page).
                         // BUT, the requirements say "In the Peer Sidebar, add a 'Challenge' button".
                         // So I should probably assume this component is used in the sidebar or I should make it usable there.
-                        
+
                         // Let's just emit the event. If no materialId, the backend/frontend should handle it.
                         // Wait, the backend needs materialId to generate the quiz.
                         // I'll grab it from the URL if possible (if this component is rendered in a sidebar on /materials/:id).
-                        
+
                         const pathParts = window.location.pathname.split('/');
                         const materialId = pathParts.includes('materials') ? pathParts[pathParts.indexOf('materials') + 1] : null;
 
                         if (!materialId) {
-                            toast.error('Open a material to challenge a friend!');
-                            return;
+                          toast.error('Open a material to challenge a friend!');
+                          return;
                         }
 
                         if (socket) {
-                            socket.emit('challenge_request', {
-                                senderId: user?.id,
-                                receiverId: partner.id,
-                                materialId
-                            });
-                            toast.success('Challenge sent! Waiting for acceptance...');
+                          socket.emit('challenge_request', {
+                            senderId: user?.id,
+                            receiverId: partner.id,
+                            materialId
+                          });
+                          toast.success('Challenge sent! Waiting for acceptance...');
                         }
                       }}
                       className='py-2 bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white rounded-xl font-bold transition-colors flex items-center justify-center text-sm shadow-lg'
@@ -441,45 +442,45 @@ export function StudyPartner() {
       {/* Challenge Request Modal */}
       {pendingChallenge && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-yellow-500/50 animate-in fade-in zoom-in duration-200">
-                <div className="text-center mb-6">
-                    <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-yellow-600 dark:text-yellow-400">
-                        <Swords className="w-8 h-8" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Challenge Incoming!</h3>
-                    <p className="text-gray-600 dark:text-gray-400">
-                        You have been challenged to a quiz battle! Do you accept?
-                    </p>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                    <button
-                        onClick={() => {
-                            setPendingChallenge(null);
-                            // Reject logic if needed
-                        }}
-                        className="py-3 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    >
-                        Decline
-                    </button>
-                    <button
-                        onClick={() => {
-                            if (socket) {
-                                socket.emit('challenge_response', {
-                                    senderId: pendingChallenge.senderId,
-                                    receiverId: user?.id,
-                                    materialId: pendingChallenge.materialId,
-                                    accept: true
-                                });
-                                toast.success('Challenge Accepted! Preparing arena...');
-                                setPendingChallenge(null);
-                            }
-                        }}
-                        className="py-3 px-4 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-bold transition-colors shadow-lg shadow-yellow-500/30"
-                    >
-                        Accept Battle!
-                    </button>
-                </div>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-yellow-500/50 animate-in fade-in zoom-in duration-200">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-yellow-600 dark:text-yellow-400">
+                <Swords className="w-8 h-8" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Challenge Incoming!</h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                You have been challenged to a quiz battle! Do you accept?
+              </p>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => {
+                  setPendingChallenge(null);
+                  // Reject logic if needed
+                }}
+                className="py-3 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Decline
+              </button>
+              <button
+                onClick={() => {
+                  if (socket) {
+                    socket.emit('challenge_response', {
+                      senderId: pendingChallenge.senderId,
+                      receiverId: user?.id,
+                      materialId: pendingChallenge.materialId,
+                      accept: true
+                    });
+                    toast.success('Challenge Accepted! Preparing arena...');
+                    setPendingChallenge(null);
+                  }
+                }}
+                className="py-3 px-4 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-bold transition-colors shadow-lg shadow-yellow-500/30"
+              >
+                Accept Battle!
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
+import { ErrorModal, type ErrorModalType } from '../components/ui/ErrorModal';
 
 type ToastType = 'success' | 'error' | 'info' | 'warning';
 
@@ -17,12 +18,29 @@ interface Toast {
   duration?: number;
 }
 
+interface ErrorModalState {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  type: ErrorModalType;
+  onRetry?: () => void;
+  retryLabel?: string;
+}
+
 interface ToastContextType {
   showToast: (message: string, type?: ToastType, duration?: number) => void;
   success: (message: string, duration?: number) => void;
   error: (message: string, duration?: number) => void;
   info: (message: string, duration?: number) => void;
   warning: (message: string, duration?: number) => void;
+  showErrorModal: (options: {
+    title: string;
+    message: string;
+    type?: ErrorModalType;
+    onRetry?: () => void;
+    retryLabel?: string;
+  }) => void;
+  closeErrorModal: () => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -35,8 +53,16 @@ export function useToast() {
   return context;
 }
 
+const initialModalState: ErrorModalState = {
+  isOpen: false,
+  title: '',
+  message: '',
+  type: 'error',
+};
+
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [errorModal, setErrorModal] = useState<ErrorModalState>(initialModalState);
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
@@ -84,6 +110,30 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     [showToast],
   );
 
+  const showErrorModal = useCallback(
+    (options: {
+      title: string;
+      message: string;
+      type?: ErrorModalType;
+      onRetry?: () => void;
+      retryLabel?: string;
+    }) => {
+      setErrorModal({
+        isOpen: true,
+        title: options.title,
+        message: options.message,
+        type: options.type || 'error',
+        onRetry: options.onRetry,
+        retryLabel: options.retryLabel,
+      });
+    },
+    [],
+  );
+
+  const closeErrorModal = useCallback(() => {
+    setErrorModal(initialModalState);
+  }, []);
+
   const getIcon = (type: ToastType) => {
     switch (type) {
       case 'success':
@@ -111,8 +161,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   };
 
   const contextValue = useMemo(
-    () => ({ showToast, success, error, info, warning }),
-    [showToast, success, error, info, warning],
+    () => ({ showToast, success, error, info, warning, showErrorModal, closeErrorModal }),
+    [showToast, success, error, info, warning, showErrorModal, closeErrorModal],
   );
 
   return (
@@ -137,6 +187,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           </div>
         ))}
       </div>
+
+      {/* Error Modal */}
+      <ErrorModal
+        isOpen={errorModal.isOpen}
+        onClose={closeErrorModal}
+        title={errorModal.title}
+        message={errorModal.message}
+        type={errorModal.type}
+        onRetry={errorModal.onRetry}
+        retryLabel={errorModal.retryLabel}
+      />
     </ToastContext.Provider>
   );
 }
+

@@ -11,6 +11,7 @@ import {
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { getApiErrorMessage } from '../lib/errorUtils';
 
 interface PublicNote {
     id: string;
@@ -73,7 +74,7 @@ export function PublicNotesPanel({
             const res = await api.get(`/materials/${materialId}/public-notes`);
             setNotes(res.data);
         } catch (error) {
-            console.error('Failed to fetch public notes', error);
+            showToast(getApiErrorMessage(error, 'Failed to load notes'), 'error');
         } finally {
             setLoading(false);
         }
@@ -99,7 +100,7 @@ export function PublicNotesPanel({
             fetchNotes();
             onNoteAdded?.();
         } catch (error) {
-            showToast('Failed to add note', 'error');
+            showToast(getApiErrorMessage(error, 'Failed to add note'), 'error');
         } finally {
             setSubmitting(false);
         }
@@ -119,7 +120,7 @@ export function PublicNotesPanel({
                 )
             );
         } catch (error) {
-            showToast('Failed to vote', 'error');
+            showToast(getApiErrorMessage(error, 'Failed to vote'), 'error');
         }
     };
 
@@ -129,7 +130,7 @@ export function PublicNotesPanel({
             setNotes((prev) => prev.filter((n) => n.id !== noteId));
             showToast('Note deleted', 'success');
         } catch (error) {
-            showToast('Failed to delete note', 'error');
+            showToast(getApiErrorMessage(error, 'Failed to delete note'), 'error');
         }
     };
 
