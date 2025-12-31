@@ -472,6 +472,68 @@ export class AdminController {
   }
 
   /**
+   * Clear completed jobs from the queue
+   */
+  @Post('queue/clear-completed')
+  async clearCompletedJobs() {
+    this.logger.log('Admin requested clearing completed jobs');
+    try {
+      await this.materialsQueue.clean(0, 'completed');
+      return { success: true, message: 'Completed jobs cleared' };
+    } catch (error) {
+      this.logger.error('Failed to clear completed jobs:', error);
+      return {
+        success: false,
+        message: 'Failed to clear completed jobs',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Clear failed jobs from the queue
+   */
+  @Post('queue/clear-failed')
+  async clearFailedJobs() {
+    this.logger.log('Admin requested clearing failed jobs');
+    try {
+      await this.materialsQueue.clean(0, 'failed');
+      return { success: true, message: 'Failed jobs cleared' };
+    } catch (error) {
+      this.logger.error('Failed to clear failed jobs:', error);
+      return {
+        success: false,
+        message: 'Failed to clear failed jobs',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Retry all failed jobs in the queue
+   */
+  @Post('queue/retry-failed')
+  async retryFailedJobs() {
+    this.logger.log('Admin requested retrying failed jobs');
+    try {
+      const failed = await this.materialsQueue.getFailed();
+      let retried = 0;
+      for (const job of failed) {
+        await job.retry();
+        retried++;
+      }
+      return { success: true, message: `Retried ${retried} failed jobs`, count: retried };
+    } catch (error) {
+      this.logger.error('Failed to retry failed jobs:', error);
+      return {
+        success: false,
+        message: 'Failed to retry failed jobs',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
    * Reprocess failed materials only
    */
   @Post('reprocess-failed')

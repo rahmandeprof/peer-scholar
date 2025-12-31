@@ -131,6 +131,11 @@ export function AdminDashboard() {
     const [bulkDeleteResult, setBulkDeleteResult] = useState<{ deleted: string[]; errors: { id: string; error: string }[] } | null>(null);
     const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
+    // Queue management state
+    const [clearingCompleted, setClearingCompleted] = useState(false);
+    const [clearingFailed, setClearingFailed] = useState(false);
+    const [retryingFailed, setRetryingFailed] = useState(false);
+
     // Check admin access
     useEffect(() => {
         if (user && user.role !== 'admin') {
@@ -201,6 +206,45 @@ export function AdminDashboard() {
             }
         } catch (err) {
             console.error('Failed to fetch queue status:', err);
+        }
+    };
+
+    const handleClearCompleted = async () => {
+        setClearingCompleted(true);
+        try {
+            await api.post('/admin/queue/clear-completed');
+            toast.success('Completed jobs cleared');
+            fetchQueueStatus();
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Failed to clear completed jobs');
+        } finally {
+            setClearingCompleted(false);
+        }
+    };
+
+    const handleClearFailed = async () => {
+        setClearingFailed(true);
+        try {
+            await api.post('/admin/queue/clear-failed');
+            toast.success('Failed jobs cleared');
+            fetchQueueStatus();
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Failed to clear failed jobs');
+        } finally {
+            setClearingFailed(false);
+        }
+    };
+
+    const handleRetryFailed = async () => {
+        setRetryingFailed(true);
+        try {
+            const res = await api.post('/admin/queue/retry-failed');
+            toast.success(res.data.message || 'Retried failed jobs');
+            fetchQueueStatus();
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Failed to retry failed jobs');
+        } finally {
+            setRetryingFailed(false);
         }
     };
 
@@ -546,7 +590,7 @@ export function AdminDashboard() {
                                 <Server className='w-4 h-4 text-gray-500' />
                                 <h3 className='font-semibold text-gray-900 dark:text-white text-sm'>Queue Status</h3>
                             </div>
-                            <div className='grid grid-cols-3 gap-2 text-center'>
+                            <div className='grid grid-cols-4 gap-2 text-center mb-3'>
                                 <div className='p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg'>
                                     <p className='text-lg font-bold text-yellow-600 dark:text-yellow-400'>{queueStatus.counts.waiting}</p>
                                     <p className='text-xs text-gray-500'>Waiting</p>
@@ -555,10 +599,47 @@ export function AdminDashboard() {
                                     <p className='text-lg font-bold text-blue-600 dark:text-blue-400'>{queueStatus.counts.active}</p>
                                     <p className='text-xs text-gray-500'>Active</p>
                                 </div>
+                                <div className='p-2 bg-green-50 dark:bg-green-900/20 rounded-lg'>
+                                    <p className='text-lg font-bold text-green-600 dark:text-green-400'>{queueStatus.counts.completed}</p>
+                                    <p className='text-xs text-gray-500'>Completed</p>
+                                </div>
                                 <div className='p-2 bg-red-50 dark:bg-red-900/20 rounded-lg'>
                                     <p className='text-lg font-bold text-red-600 dark:text-red-400'>{queueStatus.counts.failed}</p>
                                     <p className='text-xs text-gray-500'>Failed</p>
                                 </div>
+                            </div>
+                            {/* Queue Actions */}
+                            <div className='flex flex-wrap gap-2'>
+                                {queueStatus.counts.completed > 0 && (
+                                    <button
+                                        onClick={handleClearCompleted}
+                                        disabled={clearingCompleted}
+                                        className='text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 disabled:opacity-50 flex items-center gap-1'
+                                    >
+                                        {clearingCompleted ? <Loader2 className='w-3 h-3 animate-spin' /> : <Trash2 className='w-3 h-3' />}
+                                        Clear Done
+                                    </button>
+                                )}
+                                {queueStatus.counts.failed > 0 && (
+                                    <>
+                                        <button
+                                            onClick={handleRetryFailed}
+                                            disabled={retryingFailed}
+                                            className='text-xs px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900/50 disabled:opacity-50 flex items-center gap-1'
+                                        >
+                                            {retryingFailed ? <Loader2 className='w-3 h-3 animate-spin' /> : <RefreshCw className='w-3 h-3' />}
+                                            Retry Failed
+                                        </button>
+                                        <button
+                                            onClick={handleClearFailed}
+                                            disabled={clearingFailed}
+                                            className='text-xs px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 disabled:opacity-50 flex items-center gap-1'
+                                        >
+                                            {clearingFailed ? <Loader2 className='w-3 h-3 animate-spin' /> : <Trash2 className='w-3 h-3' />}
+                                            Clear Failed
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     )}
