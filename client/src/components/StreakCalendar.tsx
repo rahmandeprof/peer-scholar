@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Flame, Calendar, TrendingUp } from 'lucide-react';
 import api from '../lib/api';
 
@@ -16,6 +17,8 @@ export function StreakCalendar({ compact = false }: StreakCalendarProps) {
     const [activity, setActivity] = useState<ActivityDay[]>([]);
     const [loading, setLoading] = useState(true);
     const [hoveredDay, setHoveredDay] = useState<ActivityDay | null>(null);
+    const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number } | null>(null);
+    const cellRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
     useEffect(() => {
         const fetchActivity = async () => {
@@ -130,144 +133,174 @@ export function StreakCalendar({ compact = false }: StreakCalendarProps) {
     }
 
     return (
-        <div className='bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-4 md:p-6'>
-            {/* Header */}
-            <div className='flex items-center justify-between mb-4'>
-                <div className='flex items-center gap-2'>
-                    <div className='p-2 bg-orange-100 dark:bg-orange-900/30 rounded-xl'>
-                        <Flame className='w-5 h-5 text-orange-500' />
-                    </div>
-                    <div>
-                        <h3 className='font-bold text-gray-900 dark:text-gray-100'>
-                            Study Activity
-                        </h3>
-                        <p className='text-xs text-gray-500 dark:text-gray-400'>
-                            Last 30 days
-                        </p>
-                    </div>
-                </div>
-
-                {/* Quick Stats */}
-                <div className='flex items-center gap-4 text-sm'>
-                    <div className='text-center'>
-                        <div className='font-bold text-orange-500'>{currentStreak}</div>
-                        <div className='text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
-                            Streak
+        <>
+            <div className='bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-4 md:p-6'>
+                {/* Header */}
+                <div className='flex items-center justify-between mb-4'>
+                    <div className='flex items-center gap-2'>
+                        <div className='p-2 bg-orange-100 dark:bg-orange-900/30 rounded-xl'>
+                            <Flame className='w-5 h-5 text-orange-500' />
+                        </div>
+                        <div>
+                            <h3 className='font-bold text-gray-900 dark:text-gray-100'>
+                                Study Activity
+                            </h3>
+                            <p className='text-xs text-gray-500 dark:text-gray-400'>
+                                Last 30 days
+                            </p>
                         </div>
                     </div>
-                    <div className='text-center'>
-                        <div className='font-bold text-green-500'>{totalDays}</div>
-                        <div className='text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
-                            Active
-                        </div>
-                    </div>
-                    <div className='text-center hidden sm:block'>
-                        <div className='font-bold text-primary-500'>
-                            {Math.round(totalMinutes / 60)}h
-                        </div>
-                        <div className='text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
-                            Total
-                        </div>
-                    </div>
-                </div>
-            </div>
 
-            {/* Calendar Grid */}
-            <div className='relative'>
-                {/* Day labels */}
-                <div className='hidden sm:flex flex-col gap-1 absolute -left-6 top-0 text-[10px] text-gray-400'>
-                    <span className='h-3'>S</span>
-                    <span className='h-3'>M</span>
-                    <span className='h-3'>T</span>
-                    <span className='h-3'>W</span>
-                    <span className='h-3'>T</span>
-                    <span className='h-3'>F</span>
-                    <span className='h-3'>S</span>
-                </div>
-
-                {/* Activity Grid - overflow-visible for tooltips */}
-                <div className='flex gap-1 overflow-x-auto overflow-y-visible pb-4 scrollbar-thin'>
-                    {/* Group days into weeks */}
-                    {(() => {
-                        const weeks: ActivityDay[][] = [];
-                        let currentWeek: ActivityDay[] = [];
-
-                        // Add empty cells for alignment at the start
-                        if (activity.length > 0) {
-                            const firstDayOfWeek = getDayOfWeek(activity[0].date);
-                            for (let i = 0; i < firstDayOfWeek; i++) {
-                                currentWeek.push({ date: '', minutes: 0, sessions: 0 });
-                            }
-                        }
-
-                        activity.forEach((day) => {
-                            currentWeek.push(day);
-                            if (getDayOfWeek(day.date) === 6) {
-                                weeks.push(currentWeek);
-                                currentWeek = [];
-                            }
-                        });
-
-                        if (currentWeek.length > 0) {
-                            weeks.push(currentWeek);
-                        }
-
-                        return weeks.map((week, weekIndex) => (
-                            <div key={weekIndex} className='flex flex-col gap-1'>
-                                {week.map((day, dayIndex) => (
-                                    <div
-                                        key={day.date || `empty-${weekIndex}-${dayIndex}`}
-                                        className={`w-4 h-4 md:w-3 md:h-3 rounded-sm ${day.date
-                                            ? getColorClass(getIntensity(day.minutes))
-                                            : 'bg-transparent'
-                                            } transition-all hover:scale-125 cursor-pointer relative ${hoveredDay?.date === day.date ? 'isolate z-[100]' : ''}`}
-                                        onMouseEnter={() => day.date && setHoveredDay(day)}
-                                        onMouseLeave={() => setHoveredDay(null)}
-                                    >
-                                        {/* Tooltip */}
-                                        {hoveredDay?.date === day.date && day.date && (
-                                            <div className='absolute bottom-full left-1/2 -translate-x-1/2 mb-3 z-[9999] pointer-events-none'>
-                                                <div className='bg-gray-900 dark:bg-gray-700 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-xl border border-gray-700 dark:border-gray-600'>
-                                                    <div className='font-medium'>
-                                                        {formatDate(day.date)}
-                                                    </div>
-                                                    <div className='text-gray-300'>
-                                                        {day.minutes > 0
-                                                            ? `${day.minutes}m • ${day.sessions} session${day.sessions !== 1 ? 's' : ''}`
-                                                            : 'No activity'}
-                                                    </div>
-                                                </div>
-                                                {/* Arrow pointer */}
-                                                <div className='absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45 border-r border-b border-gray-700 dark:border-gray-600'></div>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
+                    {/* Quick Stats */}
+                    <div className='flex items-center gap-4 text-sm'>
+                        <div className='text-center'>
+                            <div className='font-bold text-orange-500'>{currentStreak}</div>
+                            <div className='text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
+                                Streak
                             </div>
-                        ));
-                    })()}
+                        </div>
+                        <div className='text-center'>
+                            <div className='font-bold text-green-500'>{totalDays}</div>
+                            <div className='text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
+                                Active
+                            </div>
+                        </div>
+                        <div className='text-center hidden sm:block'>
+                            <div className='font-bold text-primary-500'>
+                                {Math.round(totalMinutes / 60)}h
+                            </div>
+                            <div className='text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
+                                Total
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Legend */}
-                <div className='flex items-center justify-between mt-3 text-xs text-gray-500 dark:text-gray-400'>
-                    <div className='flex items-center gap-1'>
-                        <Calendar className='w-3 h-3' />
-                        <span>Less</span>
-                        {[0, 1, 2, 3, 4].map((intensity) => (
-                            <div
-                                key={intensity}
-                                className={`w-3 h-3 rounded-sm ${getColorClass(intensity)}`}
-                            />
-                        ))}
-                        <span>More</span>
+                {/* Calendar Grid */}
+                <div className='relative'>
+                    {/* Day labels */}
+                    <div className='hidden sm:flex flex-col gap-1 absolute -left-6 top-0 text-[10px] text-gray-400'>
+                        <span className='h-3'>S</span>
+                        <span className='h-3'>M</span>
+                        <span className='h-3'>T</span>
+                        <span className='h-3'>W</span>
+                        <span className='h-3'>T</span>
+                        <span className='h-3'>F</span>
+                        <span className='h-3'>S</span>
                     </div>
 
-                    <div className='hidden sm:flex items-center gap-1'>
-                        <TrendingUp className='w-3 h-3' />
-                        <span>{getMotivationalMessage(currentStreak)}</span>
+                    {/* Activity Grid - overflow-visible for tooltips */}
+                    <div className='flex gap-1 overflow-x-auto overflow-y-visible pb-4 scrollbar-thin'>
+                        {/* Group days into weeks */}
+                        {(() => {
+                            const weeks: ActivityDay[][] = [];
+                            let currentWeek: ActivityDay[] = [];
+
+                            // Add empty cells for alignment at the start
+                            if (activity.length > 0) {
+                                const firstDayOfWeek = getDayOfWeek(activity[0].date);
+                                for (let i = 0; i < firstDayOfWeek; i++) {
+                                    currentWeek.push({ date: '', minutes: 0, sessions: 0 });
+                                }
+                            }
+
+                            activity.forEach((day) => {
+                                currentWeek.push(day);
+                                if (getDayOfWeek(day.date) === 6) {
+                                    weeks.push(currentWeek);
+                                    currentWeek = [];
+                                }
+                            });
+
+                            if (currentWeek.length > 0) {
+                                weeks.push(currentWeek);
+                            }
+
+                            return weeks.map((week, weekIndex) => (
+                                <div key={weekIndex} className='flex flex-col gap-1'>
+                                    {week.map((day, dayIndex) => (
+                                        <div
+                                            key={day.date || `empty-${weekIndex}-${dayIndex}`}
+                                            ref={(el) => {
+                                                if (el && day.date) cellRefs.current.set(day.date, el);
+                                            }}
+                                            className={`w-4 h-4 md:w-3 md:h-3 rounded-sm ${day.date
+                                                ? getColorClass(getIntensity(day.minutes))
+                                                : 'bg-transparent'
+                                                } transition-all hover:scale-125 cursor-pointer relative`}
+                                            onMouseEnter={() => {
+                                                if (day.date) {
+                                                    setHoveredDay(day);
+                                                    const el = cellRefs.current.get(day.date);
+                                                    if (el) {
+                                                        const rect = el.getBoundingClientRect();
+                                                        setTooltipPosition({
+                                                            top: rect.top - 8,
+                                                            left: rect.left + rect.width / 2,
+                                                        });
+                                                    }
+                                                }
+                                            }}
+                                            onMouseLeave={() => {
+                                                setHoveredDay(null);
+                                                setTooltipPosition(null);
+                                            }}
+                                        />
+                                    ))}
+                                </div>
+                            ));
+                        })()}
+                    </div>
+
+                    {/* Legend */}
+                    <div className='flex items-center justify-between mt-3 text-xs text-gray-500 dark:text-gray-400'>
+                        <div className='flex items-center gap-1'>
+                            <Calendar className='w-3 h-3' />
+                            <span>Less</span>
+                            {[0, 1, 2, 3, 4].map((intensity) => (
+                                <div
+                                    key={intensity}
+                                    className={`w-3 h-3 rounded-sm ${getColorClass(intensity)}`}
+                                />
+                            ))}
+                            <span>More</span>
+                        </div>
+
+                        <div className='hidden sm:flex items-center gap-1'>
+                            <TrendingUp className='w-3 h-3' />
+                            <span>{getMotivationalMessage(currentStreak)}</span>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+
+            {/* Portal-rendered tooltip - escapes all parent stacking contexts */}
+            {
+                hoveredDay && tooltipPosition && createPortal(
+                    <div
+                        className='fixed pointer-events-none'
+                        style={{
+                            top: tooltipPosition.top,
+                            left: tooltipPosition.left,
+                            transform: 'translate(-50%, -100%)',
+                            zIndex: 99999,
+                        }}
+                    >
+                        <div className='bg-gray-900 dark:bg-gray-700 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-xl border border-gray-700 dark:border-gray-600'>
+                            <div className='font-medium'>
+                                {formatDate(hoveredDay.date)}
+                            </div>
+                            <div className='text-gray-300'>
+                                {hoveredDay.minutes > 0
+                                    ? `${hoveredDay.minutes}m • ${hoveredDay.sessions} session${hoveredDay.sessions !== 1 ? 's' : ''}`
+                                    : 'No activity'}
+                            </div>
+                        </div>
+                        {/* Arrow pointer */}
+                        <div className='absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45 border-r border-b border-gray-700 dark:border-gray-600' />
+                    </div>,
+                    document.body
+                )}
+        </>
     );
 }
