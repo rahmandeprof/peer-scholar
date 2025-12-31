@@ -35,6 +35,24 @@ export function StreakCalendar({ compact = false }: StreakCalendarProps) {
         fetchActivity();
     }, []);
 
+    // Dismiss tooltip on scroll (fixes mobile issue where tooltip stays glued)
+    useEffect(() => {
+        if (!hoveredDay) return;
+
+        const dismissTooltip = () => {
+            setHoveredDay(null);
+            setTooltipPosition(null);
+        };
+
+        window.addEventListener('scroll', dismissTooltip, true);
+        window.addEventListener('touchmove', dismissTooltip, true);
+
+        return () => {
+            window.removeEventListener('scroll', dismissTooltip, true);
+            window.removeEventListener('touchmove', dismissTooltip, true);
+        };
+    }, [hoveredDay]);
+
     // Get intensity level (0-4) based on minutes studied
     const getIntensity = (minutes: number): number => {
         if (minutes === 0) return 0;
