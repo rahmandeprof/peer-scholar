@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -88,6 +88,27 @@ function AppContent() {
   const location = useLocation();
   const [isLogin, setIsLogin] = useState(true);
 
+  // Prevent back button from going to auth pages when authenticated (PWA fix)
+  useEffect(() => {
+    const handlePopState = () => {
+      // If user is authenticated and navigates to root, redirect to dashboard
+      if (isAuthenticated && window.location.pathname === '/') {
+        window.history.replaceState(null, '', '/dashboard');
+        window.location.reload();
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isAuthenticated]);
+
+  // Immediately redirect if authenticated and at root (for PWA launch)
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && location.pathname === '/') {
+      window.history.replaceState(null, '', '/dashboard');
+    }
+  }, [isAuthenticated, isLoading, location.pathname]);
+
   if (isLoading) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
@@ -95,6 +116,7 @@ function AppContent() {
       </div>
     );
   }
+
 
   return (
     <div className='min-h-screen text-gray-900 dark:text-gray-100'>

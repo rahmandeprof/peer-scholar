@@ -14,6 +14,10 @@ export default defineConfig({
         short_name: 'PeerToLearn',
         description: 'Your academic companion for peer learning.',
         theme_color: '#3F86F7',
+        background_color: '#ffffff',
+        display: 'standalone',
+        start_url: '/dashboard',
+        scope: '/',
         icons: [
           {
             src: '/logo.jpg',
