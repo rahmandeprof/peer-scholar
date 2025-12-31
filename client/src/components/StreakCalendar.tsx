@@ -52,14 +52,14 @@ export function StreakCalendar({ compact = false }: StreakCalendarProps) {
         return "Legendary streak! 🎖️";
     };
 
-    // Get color class based on intensity
+    // Get color class based on intensity - improved contrast for light mode
     const getColorClass = (intensity: number): string => {
         const colors = [
             'bg-gray-100 dark:bg-gray-800', // 0 - no activity
-            'bg-green-200 dark:bg-green-900/50', // 1 - light
-            'bg-green-300 dark:bg-green-700/60', // 2 - medium
-            'bg-green-400 dark:bg-green-600/70', // 3 - good
-            'bg-green-500 dark:bg-green-500', // 4 - great
+            'bg-green-300 dark:bg-green-900/50', // 1 - light (increased from 200)
+            'bg-green-400 dark:bg-green-700/60', // 2 - medium (increased from 300)
+            'bg-green-500 dark:bg-green-600/70', // 3 - good (increased from 400)
+            'bg-green-600 dark:bg-green-500', // 4 - great (increased from 500)
         ];
         return colors[intensity] || colors[0];
     };
@@ -121,7 +121,7 @@ export function StreakCalendar({ compact = false }: StreakCalendarProps) {
                 {last7Days.map((day) => (
                     <div
                         key={day.date}
-                        className={`w-3 h-3 rounded-sm ${getColorClass(getIntensity(day.minutes))} transition-all hover:scale-125`}
+                        className={`w-4 h-4 md:w-3 md:h-3 rounded-sm ${getColorClass(getIntensity(day.minutes))} transition-all hover:scale-125`}
                         title={`${formatDate(day.date)}: ${day.minutes}m`}
                     />
                 ))}
@@ -185,8 +185,8 @@ export function StreakCalendar({ compact = false }: StreakCalendarProps) {
                     <span className='h-3'>S</span>
                 </div>
 
-                {/* Activity Grid - organized by weeks */}
-                <div className='flex gap-1 overflow-x-auto pb-2 scrollbar-thin'>
+                {/* Activity Grid - overflow-visible for tooltips */}
+                <div className='flex gap-1 overflow-x-auto overflow-y-visible pb-4 scrollbar-thin'>
                     {/* Group days into weeks */}
                     {(() => {
                         const weeks: ActivityDay[][] = [];
@@ -217,7 +217,7 @@ export function StreakCalendar({ compact = false }: StreakCalendarProps) {
                                 {week.map((day, dayIndex) => (
                                     <div
                                         key={day.date || `empty-${weekIndex}-${dayIndex}`}
-                                        className={`w-3 h-3 rounded-sm ${day.date
+                                        className={`w-4 h-4 md:w-3 md:h-3 rounded-sm ${day.date
                                             ? getColorClass(getIntensity(day.minutes))
                                             : 'bg-transparent'
                                             } transition-all hover:scale-125 cursor-pointer relative ${hoveredDay?.date === day.date ? 'isolate z-[100]' : ''}`}
