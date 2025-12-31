@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+import { getApiErrorMessage } from '../lib/errorUtils';
 
 interface School {
   id: string;
@@ -31,6 +33,7 @@ const Onboarding: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const { refreshUser, user } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
 
   useEffect(() => {
     fetchSchools();
@@ -120,7 +123,7 @@ const Onboarding: React.FC = () => {
       const res = await axios.get('/academic/schools');
       setSchools(res.data);
     } catch (error) {
-      console.error('Failed to fetch schools', error);
+      toast.error(getApiErrorMessage(error, 'Failed to fetch schools'));
     }
   };
 
@@ -129,7 +132,7 @@ const Onboarding: React.FC = () => {
       const res = await axios.get(`/academic/schools/${schoolId}/faculties`);
       setFaculties(res.data);
     } catch (error) {
-      console.error('Failed to fetch faculties', error);
+      toast.error(getApiErrorMessage(error, 'Failed to fetch faculties'));
     }
   };
 
@@ -140,7 +143,7 @@ const Onboarding: React.FC = () => {
       );
       setDepartments(res.data);
     } catch (error) {
-      console.error('Failed to fetch departments', error);
+      toast.error(getApiErrorMessage(error, 'Failed to fetch departments'));
     }
   };
 
@@ -157,7 +160,7 @@ const Onboarding: React.FC = () => {
       await refreshUser();
       navigate('/dashboard');
     } catch (error) {
-      console.error('Onboarding failed', error);
+      toast.error(getApiErrorMessage(error, 'Failed to save profile. Please try again.'));
     } finally {
       setLoading(false);
     }

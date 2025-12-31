@@ -18,6 +18,7 @@ import {
 import api from '../lib/api';
 import { useModalBack } from '../hooks/useModalBack';
 import { cacheQuiz, getCachedQuiz, savePendingResult } from '../lib/offlineQuizStore';
+import { useToast } from '../contexts/ToastContext';
 
 interface QuizModalProps {
   isOpen: boolean;
@@ -44,6 +45,7 @@ const getCorrectAnswer = (q: Question): string => q.answer || q.correctAnswer ||
 
 export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
   useModalBack(isOpen, onClose, 'quiz-modal');
+  const toast = useToast();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -225,8 +227,9 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
       if (!navigator.onLine) {
         await savePendingResult(materialId, finalScore, questions.length);
         console.log('Quiz result saved locally for offline sync');
+      } else {
+        toast.error('Failed to save quiz result. Your score may not be recorded.');
       }
-      // toast.error('Failed to save quiz result');
     }
   };
 

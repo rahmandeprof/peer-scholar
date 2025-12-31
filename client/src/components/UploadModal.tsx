@@ -145,8 +145,8 @@ export function UploadModal({
         }
       } catch (err) {
         console.error('Duplicate check failed', err);
-        // Continue with upload if check fails? Or block?
-        // Let's log and continue for now, assuming it's a non-blocking error
+        // Warn user but continue - duplicate check is non-blocking
+        toast.warning('Duplicate check unavailable. Proceeding with upload.');
       }
 
       await proceedWithUpload(hash);
