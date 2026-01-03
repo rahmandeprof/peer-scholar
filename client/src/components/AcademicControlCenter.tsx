@@ -15,6 +15,7 @@ import { getRecentlyOpened, validateAndCleanHistory } from '../lib/viewingHistor
 import { useAuth } from '../contexts/AuthContext';
 import { StudySessionModal } from './StudySessionModal';
 import { MaterialCard } from './MaterialCard';
+import { MaterialCardSkeleton } from './MaterialCardSkeleton';
 import { FolderCard } from './FolderCard';
 import { FolderView } from './FolderView';
 import { CollectionModal } from './CollectionModal';
@@ -567,7 +568,14 @@ export function AcademicControlCenter() {
         </div>
 
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6'>
-          {recentMaterials.slice(0, 3).map((material) => (
+          {loading && recentMaterials.length === 0 && (
+            <>
+              <MaterialCardSkeleton />
+              <MaterialCardSkeleton />
+              <MaterialCardSkeleton />
+            </>
+          )}
+          {!loading && recentMaterials.slice(0, 3).map((material) => (
             <MaterialCard
               key={material.id}
               material={{
