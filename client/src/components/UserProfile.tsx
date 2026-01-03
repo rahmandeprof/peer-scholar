@@ -36,9 +36,10 @@ import { useModalBack } from '../hooks/useModalBack';
 
 interface UserProfileProps {
   onClose: () => void;
+  onFeedbackOpen?: () => void;
 }
 
-export function UserProfile({ onClose }: UserProfileProps) {
+export function UserProfile({ onClose, onFeedbackOpen }: UserProfileProps) {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
 
@@ -717,17 +718,39 @@ export function UserProfile({ onClose }: UserProfileProps) {
                   type='button'
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (onFeedbackOpen) {
+                      onClose();
+                      onFeedbackOpen();
+                    }
+                  }}
+                  className='w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group'
+                >
+                  <div className='flex items-center'>
+                    <div className='w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 mr-3 group-hover:scale-110 transition-transform'>
+                      <HelpCircle className='w-4 h-4' />
+                    </div>
+                    <span className='font-medium text-gray-900 dark:text-gray-100'>
+                      Feedback
+                    </span>
+                  </div>
+                  <ChevronRight className='w-4 h-4 text-gray-400' />
+                </button>
+
+                <button
+                  type='button'
+                  onClick={(e) => {
+                    e.stopPropagation();
                     window.location.href =
-                      'mailto:abdulrahmanabdulsalam93@gmail.com';
+                      'mailto:abdulrahmanabdulsalam93@gmail.com?subject=Support Request';
                   }}
                   className='w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group'
                 >
                   <div className='flex items-center'>
                     <div className='w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 mr-3 group-hover:scale-110 transition-transform'>
-                      <HelpCircle className='w-4 h-4' />
+                      <Mail className='w-4 h-4' />
                     </div>
                     <span className='font-medium text-gray-900 dark:text-gray-100'>
-                      Feedback & Support
+                      Support
                     </span>
                   </div>
                   <ChevronRight className='w-4 h-4 text-gray-400' />

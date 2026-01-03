@@ -21,6 +21,7 @@ import {
     Server,
     Zap,
     Search,
+    MessageSquare,
 } from 'lucide-react';
 import api from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -136,6 +137,17 @@ export function AdminDashboard() {
     const [clearingFailed, setClearingFailed] = useState(false);
     const [retryingFailed, setRetryingFailed] = useState(false);
 
+    // Feedbacks state
+    const [feedbacks, setFeedbacks] = useState<{
+        id: string;
+        message: string;
+        userEmail: string;
+        userName: string | null;
+        createdAt: string;
+    }[]>([]);
+    const [showFeedbacks, setShowFeedbacks] = useState(false);
+    const [feedbacksLoading, setFeedbacksLoading] = useState(false);
+
     // Check admin access
     useEffect(() => {
         if (user && user.role !== 'admin') {
@@ -245,6 +257,18 @@ export function AdminDashboard() {
             toast.error(err.response?.data?.message || 'Failed to retry failed jobs');
         } finally {
             setRetryingFailed(false);
+        }
+    };
+
+    const fetchFeedbacks = async () => {
+        setFeedbacksLoading(true);
+        try {
+            const res = await api.get('/feedback');
+            setFeedbacks(res.data.feedbacks || []);
+        } catch (err) {
+            console.error('Failed to fetch feedbacks:', err);
+        } finally {
+            setFeedbacksLoading(false);
         }
     };
 
@@ -763,6 +787,55 @@ export function AdminDashboard() {
                     )}
                     {showReports && reports.length === 0 && (
                         <div className='p-4 text-center text-gray-500 text-sm'>No reports found</div>
+                    )}
+                </div>
+
+                {/* Feedbacks Section */}
+                <div className='bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden'>
+                    <button
+                        onClick={() => {
+                            setShowFeedbacks(!showFeedbacks);
+                            if (!showFeedbacks && feedbacks.length === 0) {
+                                fetchFeedbacks();
+                            }
+                        }}
+                        className='w-full p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                    >
+                        <div className='flex items-center gap-2'>
+                            <MessageSquare className='w-4 h-4 text-green-500' />
+                            <h3 className='font-semibold text-gray-900 dark:text-white text-sm'>User Feedbacks ({feedbacks.length})</h3>
+                        </div>
+                        <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${showFeedbacks ? 'rotate-90' : ''}`} />
+                    </button>
+                    {showFeedbacks && feedbacksLoading && (
+                        <div className='p-4 text-center'>
+                            <Loader2 className='w-5 h-5 animate-spin mx-auto text-gray-400' />
+                        </div>
+                    )}
+                    {showFeedbacks && !feedbacksLoading && feedbacks.length > 0 && (
+                        <div className='border-t border-gray-100 dark:border-gray-800 max-h-80 overflow-y-auto'>
+                            {feedbacks.map((feedback) => (
+                                <div key={feedback.id} className='p-3 border-b border-gray-100 dark:border-gray-800 last:border-b-0'>
+                                    <div className='flex items-center justify-between mb-1'>
+                                        <span className='text-sm font-medium text-gray-900 dark:text-white'>
+                                            {feedback.userName || 'Anonymous'}
+                                        </span>
+                                        <span className='text-xs text-gray-500'>
+                                            {new Date(feedback.createdAt).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                    <p className='text-sm text-gray-600 dark:text-gray-400 mb-2 whitespace-pre-wrap'>
+                                        {feedback.message}
+                                    </p>
+                                    <div className='text-xs text-gray-500'>
+                                        {feedback.userEmail}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    {showFeedbacks && !feedbacksLoading && feedbacks.length === 0 && (
+                        <div className='p-4 text-center text-gray-500 text-sm'>No feedbacks yet</div>
                     )}
                 </div>
 

@@ -24,6 +24,7 @@ import api from '../lib/api';
 
 import { FeatureSpotlightModal } from './FeatureSpotlightModal';
 import { ConfirmationModal } from './ConfirmationModal';
+import { FeedbackModal } from './FeedbackModal';
 
 // Lazy-loaded heavy modals for better code splitting
 const UploadModal = lazy(() => import('./UploadModal').then(m => ({ default: m.UploadModal })));
@@ -48,6 +49,7 @@ interface Conversation {
 export function DashboardLayout() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showGpSpotlight, setShowGpSpotlight] = useState(false);
   const [history, setHistory] = useState<Conversation[]>([]);
@@ -208,12 +210,7 @@ export function DashboardLayout() {
               </div>
               <div className='space-y-1'>
                 <button
-                  onClick={() =>
-                    window.open(
-                      'mailto:abdulrahmanabdulsalam93@gmail.com?subject=Feedback',
-                      '_blank',
-                    )
-                  }
+                  onClick={() => setFeedbackModalOpen(true)}
                   className='w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200 transition-all duration-200 text-left'
                 >
                   <HelpCircle className='w-5 h-5 flex-shrink-0' />
@@ -429,7 +426,7 @@ export function DashboardLayout() {
       )}
       {profileOpen && (
         <Suspense fallback={<ModalLoadingFallback />}>
-          <UserProfile onClose={() => setProfileOpen(false)} />
+          <UserProfile onClose={() => setProfileOpen(false)} onFeedbackOpen={() => setFeedbackModalOpen(true)} />
         </Suspense>
       )}
       <WelcomeModal />
@@ -453,6 +450,12 @@ export function DashboardLayout() {
         message='Are you sure you want to sign out? You will need to log in again to access your account.'
         confirmText='Sign Out'
         isDangerous={true}
+      />
+
+      {/* Feedback Modal */}
+      <FeedbackModal
+        isOpen={feedbackModalOpen}
+        onClose={() => setFeedbackModalOpen(false)}
       />
     </div >
   );
