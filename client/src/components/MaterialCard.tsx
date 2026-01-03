@@ -163,22 +163,22 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
 
               {/* Processing Status Badge */}
               {material.status === 'processing' || material.status === 'pending' ||
-                material.processingStatus === 'extracting' || material.processingStatus === 'cleaning' ||
-                material.processingStatus === 'segmenting' || material.processingStatus === 'pending' ||
-                material.processingStatus === 'ocr_extracting' ? (
+                material.processingStatus?.toLowerCase() === 'extracting' || material.processingStatus?.toLowerCase() === 'cleaning' ||
+                material.processingStatus?.toLowerCase() === 'segmenting' || material.processingStatus?.toLowerCase() === 'pending' ||
+                material.processingStatus?.toLowerCase() === 'ocr_extracting' ? (
                 <span className='inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-100 dark:border-amber-800'>
                   <Loader2 className='w-3 h-3 animate-spin' />
-                  {material.processingStatus === 'extracting' ? 'Extracting' :
-                    material.processingStatus === 'segmenting' ? 'Segmenting' :
-                      material.processingStatus === 'cleaning' ? 'Cleaning' :
-                        material.processingStatus === 'ocr_extracting' ? 'OCR Processing' : 'Processing'}
+                  {material.processingStatus?.toLowerCase() === 'extracting' ? 'Extracting' :
+                    material.processingStatus?.toLowerCase() === 'segmenting' ? 'Segmenting' :
+                      material.processingStatus?.toLowerCase() === 'cleaning' ? 'Cleaning' :
+                        material.processingStatus?.toLowerCase() === 'ocr_extracting' ? 'OCR Processing' : 'Processing'}
                 </span>
-              ) : material.status === 'failed' || material.processingStatus === 'failed' ? (
+              ) : material.status === 'failed' || material.processingStatus?.toLowerCase() === 'failed' ? (
                 <span className='inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 border border-red-100 dark:border-red-800'>
                   <AlertCircle className='w-3 h-3' />
                   Failed
                 </span>
-              ) : material.processingStatus === 'completed' ? (
+              ) : material.processingStatus?.toLowerCase() === 'completed' ? (
                 <span className='inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 border border-green-100 dark:border-green-800'>
                   <CheckCircle className='w-3 h-3' />
                   Ready

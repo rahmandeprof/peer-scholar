@@ -11,10 +11,12 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { Throttle } from '@nestjs/throttler';
 import { FeedbackService } from './feedback.service';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { RolesGuard } from '@/app/auth/guards/roles.guard';
 import { Role } from '@/app/auth/decorators';
+import { RateLimitGuard } from '@/app/auth/guards/rate-limit.guard';
 
 @Controller('feedback')
 export class FeedbackController {
@@ -22,8 +24,10 @@ export class FeedbackController {
 
     /**
      * Submit feedback (authenticated users only)
+     * Rate limited to 5 submissions per hour to prevent spam
      */
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(AuthGuard('jwt'), RateLimitGuard)
+    @Throttle({ feedback: { limit: 5, ttl: 3600000 } }) // 5 per hour
     @Post()
     async create(@Body() dto: CreateFeedbackDto, @Request() req: any) {
         const feedback = await this.feedbackService.create(dto, req.user);

@@ -75,14 +75,30 @@ export function removeFromViewingHistory(materialId: string): void {
 /**
  * Validate that materials in viewing history still exist.
  * Removes stale entries (deleted materials) without blocking UI.
+ * Debounced to run at most once per 24 hours to avoid excessive API calls.
  * @param checkMaterialExists - async function that returns true if material exists
  */
+const VALIDATION_CACHE_KEY = 'peer-scholar-validation-timestamp';
+const VALIDATION_CACHE_HOURS = 24;
+
 export async function validateAndCleanHistory(
     checkMaterialExists: (id: string) => Promise<boolean>
 ): Promise<void> {
     try {
+        // Check if we've validated recently (within 24 hours)
+        const lastValidated = localStorage.getItem(VALIDATION_CACHE_KEY);
+        if (lastValidated) {
+            const hoursSinceValidation = (Date.now() - parseInt(lastValidated, 10)) / (1000 * 60 * 60);
+            if (hoursSinceValidation < VALIDATION_CACHE_HOURS) {
+                return; // Skip validation, done recently
+            }
+        }
+
         const history = getViewingHistory();
-        if (history.length === 0) return;
+        if (history.length === 0) {
+            localStorage.setItem(VALIDATION_CACHE_KEY, Date.now().toString());
+            return;
+        }
 
         // Check all materials in parallel
         const validationResults = await Promise.all(
@@ -103,6 +119,9 @@ export async function validateAndCleanHistory(
             localStorage.setItem(VIEWING_HISTORY_KEY, JSON.stringify(cleanedHistory));
             console.log(`Cleaned ${history.length - cleanedHistory.length} stale entries from viewing history`);
         }
+
+        // Mark validation as complete
+        localStorage.setItem(VALIDATION_CACHE_KEY, Date.now().toString());
     } catch (error) {
         // Fail silently - this is a background cleanup
         console.warn('Failed to validate viewing history:', error);

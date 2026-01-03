@@ -452,8 +452,31 @@ export function AdminDashboard() {
         fetchAnalytics();
         fetchLogs();
 
-        const interval = setInterval(fetchQueueStatus, 30000);
-        return () => clearInterval(interval);
+        // Queue status polling - pauses when tab is hidden
+        let interval: ReturnType<typeof setInterval> | null = setInterval(fetchQueueStatus, 30000);
+
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                // Tab hidden - stop polling
+                if (interval) {
+                    clearInterval(interval);
+                    interval = null;
+                }
+            } else {
+                // Tab visible - resume polling
+                if (!interval) {
+                    fetchQueueStatus(); // Immediate refresh on return
+                    interval = setInterval(fetchQueueStatus, 30000);
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            if (interval) clearInterval(interval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, []);
 
     // Refresh all dashboard data
@@ -870,8 +893,8 @@ export function AdminDashboard() {
                                                 <span className='w-2 h-2 bg-blue-500 rounded-full' />
                                             )}
                                             <span className={`text-sm font-medium ${!feedback.isRead
-                                                    ? 'text-gray-900 dark:text-white'
-                                                    : 'text-gray-500 dark:text-gray-400'
+                                                ? 'text-gray-900 dark:text-white'
+                                                : 'text-gray-500 dark:text-gray-400'
                                                 }`}>
                                                 {feedback.userName || 'Anonymous'}
                                             </span>
@@ -881,8 +904,8 @@ export function AdminDashboard() {
                                         </span>
                                     </div>
                                     <p className={`text-sm mb-2 whitespace-pre-wrap ${!feedback.isRead
-                                            ? 'text-gray-700 dark:text-gray-300'
-                                            : 'text-gray-500 dark:text-gray-500'
+                                        ? 'text-gray-700 dark:text-gray-300'
+                                        : 'text-gray-500 dark:text-gray-500'
                                         }`}>
                                         {feedback.message}
                                     </p>
