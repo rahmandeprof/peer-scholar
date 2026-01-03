@@ -11,7 +11,7 @@ import {
   Activity,
 } from 'lucide-react';
 import api from '../lib/api';
-import { getRecentlyOpened } from '../lib/viewingHistory';
+import { getRecentlyOpened, validateAndCleanHistory } from '../lib/viewingHistory';
 import { useAuth } from '../contexts/AuthContext';
 import { StudySessionModal } from './StudySessionModal';
 import { MaterialCard } from './MaterialCard';
@@ -176,6 +176,33 @@ export function AcademicControlCenter() {
     if (user) {
       fetchData();
     }
+  }, [user]);
+
+  // Background cleanup: validate that materials in history still exist
+  useEffect(() => {
+    if (!user) return;
+
+    // Run validation after a short delay to not block initial load
+    const timer = setTimeout(() => {
+      validateAndCleanHistory(async (id) => {
+        try {
+          // Use HEAD request or lightweight check
+          await api.get(`/chat/materials/${id}/exists`);
+          return true;
+        } catch {
+          return false;
+        }
+      }).then(() => {
+        // Refresh recentMaterials if any were cleaned
+        const updated = getRecentlyOpened(3);
+        setRecentMaterials(updated.map(m => ({
+          ...m,
+          viewedAt: m.viewedAt,
+        })));
+      });
+    }, 2000); // 2 second delay
+
+    return () => clearTimeout(timer);
   }, [user]);
 
   if (loading) {

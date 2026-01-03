@@ -116,6 +116,19 @@ export class ChatController {
     return this.chatService.getMaterials(req.user);
   }
 
+  /**
+   * Lightweight endpoint to check if a material exists
+   * Used for validating viewing history entries
+   */
+  @Get('materials/:id/exists')
+  async checkMaterialExists(@Param('id', new ParseUUIDPipe()) id: string) {
+    const exists = await this.chatService.materialExists(id);
+    if (!exists) {
+      return { exists: false };
+    }
+    return { exists: true };
+  }
+
   @Delete('materials/:id')
   deleteMaterial(
     @Param('id', new ParseUUIDPipe()) id: string,

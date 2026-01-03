@@ -1125,6 +1125,14 @@ export class ChatService {
     return queryBuilder.getMany();
   }
 
+  /**
+   * Lightweight check if a material exists (for viewing history validation)
+   */
+  async materialExists(id: string): Promise<boolean> {
+    const count = await this.materialRepo.count({ where: { id } });
+    return count > 0;
+  }
+
   async addComment(user: User, materialId: string, content: string) {
     const material = await this.materialRepo.findOne({
       where: { id: materialId },

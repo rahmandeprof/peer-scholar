@@ -72,6 +72,43 @@ export function removeFromViewingHistory(materialId: string): void {
     }
 }
 
+/**
+ * Validate that materials in viewing history still exist.
+ * Removes stale entries (deleted materials) without blocking UI.
+ * @param checkMaterialExists - async function that returns true if material exists
+ */
+export async function validateAndCleanHistory(
+    checkMaterialExists: (id: string) => Promise<boolean>
+): Promise<void> {
+    try {
+        const history = getViewingHistory();
+        if (history.length === 0) return;
+
+        // Check all materials in parallel
+        const validationResults = await Promise.all(
+            history.map(async (material) => ({
+                id: material.id,
+                exists: await checkMaterialExists(material.id),
+            }))
+        );
+
+        // Filter to only valid materials
+        const validIds = new Set(
+            validationResults.filter(r => r.exists).map(r => r.id)
+        );
+        const cleanedHistory = history.filter(m => validIds.has(m.id));
+
+        // Only update if we removed something
+        if (cleanedHistory.length < history.length) {
+            localStorage.setItem(VIEWING_HISTORY_KEY, JSON.stringify(cleanedHistory));
+            console.log(`Cleaned ${history.length - cleanedHistory.length} stale entries from viewing history`);
+        }
+    } catch (error) {
+        // Fail silently - this is a background cleanup
+        console.warn('Failed to validate viewing history:', error);
+    }
+}
+
 export function clearViewingHistory(): void {
     localStorage.removeItem(VIEWING_HISTORY_KEY);
 }
