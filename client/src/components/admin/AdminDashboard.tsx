@@ -136,6 +136,7 @@ export function AdminDashboard() {
     const [clearingCompleted, setClearingCompleted] = useState(false);
     const [clearingFailed, setClearingFailed] = useState(false);
     const [retryingFailed, setRetryingFailed] = useState(false);
+    const [queueLastUpdated, setQueueLastUpdated] = useState<Date | null>(null);
 
     // Feedbacks state
     const [feedbacks, setFeedbacks] = useState<{
@@ -215,6 +216,7 @@ export function AdminDashboard() {
             const res = await api.get('/admin/queue-status');
             if (res.data.success) {
                 setQueueStatus(res.data);
+                setQueueLastUpdated(new Date());
             }
         } catch (err) {
             console.error('Failed to fetch queue status:', err);
@@ -610,9 +612,25 @@ export function AdminDashboard() {
                     {/* Queue Status */}
                     {queueStatus && (
                         <div className='bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4'>
-                            <div className='flex items-center gap-2 mb-3'>
-                                <Server className='w-4 h-4 text-gray-500' />
-                                <h3 className='font-semibold text-gray-900 dark:text-white text-sm'>Queue Status</h3>
+                            <div className='flex items-center justify-between mb-3'>
+                                <div className='flex items-center gap-2'>
+                                    <Server className='w-4 h-4 text-gray-500' />
+                                    <h3 className='font-semibold text-gray-900 dark:text-white text-sm'>Queue Status</h3>
+                                </div>
+                                <div className='flex items-center gap-2'>
+                                    {queueLastUpdated && (
+                                        <span className='text-xs text-gray-400'>
+                                            {queueLastUpdated.toLocaleTimeString()}
+                                        </span>
+                                    )}
+                                    <button
+                                        onClick={fetchQueueStatus}
+                                        className='p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors'
+                                        title='Refresh queue status'
+                                    >
+                                        <RefreshCw className='w-3 h-3 text-gray-400' />
+                                    </button>
+                                </div>
                             </div>
                             <div className='grid grid-cols-4 gap-2 text-center mb-3'>
                                 <div className='p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg'>
