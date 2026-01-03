@@ -35,7 +35,7 @@ export function StreakCalendar({ compact = false }: StreakCalendarProps) {
         fetchActivity();
     }, []);
 
-    // Dismiss tooltip on scroll (fixes mobile issue where tooltip stays glued)
+    // Dismiss tooltip on scroll, touchmove, or tap outside (fixes mobile issue where tooltip stays glued)
     useEffect(() => {
         if (!hoveredDay) return;
 
@@ -44,12 +44,28 @@ export function StreakCalendar({ compact = false }: StreakCalendarProps) {
             setTooltipPosition(null);
         };
 
+        // Handler that checks if tap is outside the calendar cells
+        const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+            const target = e.target as HTMLElement;
+            // Check if click is inside any calendar cell
+            const isInsideCell = Array.from(cellRefs.current.values()).some(
+                cell => cell.contains(target)
+            );
+            if (!isInsideCell) {
+                dismissTooltip();
+            }
+        };
+
         window.addEventListener('scroll', dismissTooltip, true);
         window.addEventListener('touchmove', dismissTooltip, true);
+        document.addEventListener('click', handleClickOutside, true);
+        document.addEventListener('touchstart', handleClickOutside, true);
 
         return () => {
             window.removeEventListener('scroll', dismissTooltip, true);
             window.removeEventListener('touchmove', dismissTooltip, true);
+            document.removeEventListener('click', handleClickOutside, true);
+            document.removeEventListener('touchstart', handleClickOutside, true);
         };
     }, [hoveredDay]);
 
