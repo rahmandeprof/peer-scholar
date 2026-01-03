@@ -29,6 +29,9 @@ export class Feedback {
   @Column({ nullable: true })
   userId: string;
 
+  @Column({ default: false })
+  isRead: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 }

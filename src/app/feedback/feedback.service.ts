@@ -36,4 +36,16 @@ export class FeedbackService {
     async count(): Promise<number> {
         return this.feedbackRepo.count();
     }
+
+    async countUnread(): Promise<number> {
+        return this.feedbackRepo.count({ where: { isRead: false } });
+    }
+
+    async toggleRead(id: string): Promise<Feedback | null> {
+        const feedback = await this.feedbackRepo.findOne({ where: { id } });
+        if (!feedback) return null;
+
+        feedback.isRead = !feedback.isRead;
+        return this.feedbackRepo.save(feedback);
+    }
 }

@@ -145,9 +145,11 @@ export function AdminDashboard() {
         userEmail: string;
         userName: string | null;
         createdAt: string;
+        isRead: boolean;
     }[]>([]);
     const [showFeedbacks, setShowFeedbacks] = useState(false);
     const [feedbacksLoading, setFeedbacksLoading] = useState(false);
+    const [unreadFeedbackCount, setUnreadFeedbackCount] = useState(0);
 
     // Check admin access
     useEffect(() => {
@@ -267,10 +269,25 @@ export function AdminDashboard() {
         try {
             const res = await api.get('/feedback');
             setFeedbacks(res.data.feedbacks || []);
+            setUnreadFeedbackCount(res.data.unreadCount || 0);
         } catch (err) {
             console.error('Failed to fetch feedbacks:', err);
         } finally {
             setFeedbacksLoading(false);
+        }
+    };
+
+    const handleToggleFeedbackRead = async (id: string) => {
+        try {
+            const res = await api.patch(`/feedback/${id}/read`);
+            // Update local state
+            setFeedbacks(prev => prev.map(f =>
+                f.id === id ? { ...f, isRead: res.data.isRead } : f
+            ));
+            // Update unread count
+            setUnreadFeedbackCount(prev => res.data.isRead ? prev - 1 : prev + 1);
+        } catch (err) {
+            toast.error('Failed to update feedback status');
         }
     };
 
@@ -821,7 +838,14 @@ export function AdminDashboard() {
                     >
                         <div className='flex items-center gap-2'>
                             <MessageSquare className='w-4 h-4 text-green-500' />
-                            <h3 className='font-semibold text-gray-900 dark:text-white text-sm'>User Feedbacks ({feedbacks.length})</h3>
+                            <h3 className='font-semibold text-gray-900 dark:text-white text-sm'>
+                                User Feedbacks ({feedbacks.length})
+                            </h3>
+                            {unreadFeedbackCount > 0 && (
+                                <span className='px-1.5 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full'>
+                                    {unreadFeedbackCount}
+                                </span>
+                            )}
                         </div>
                         <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${showFeedbacks ? 'rotate-90' : ''}`} />
                     </button>
@@ -833,19 +857,36 @@ export function AdminDashboard() {
                     {showFeedbacks && !feedbacksLoading && feedbacks.length > 0 && (
                         <div className='border-t border-gray-100 dark:border-gray-800 max-h-80 overflow-y-auto'>
                             {feedbacks.map((feedback) => (
-                                <div key={feedback.id} className='p-3 border-b border-gray-100 dark:border-gray-800 last:border-b-0'>
+                                <div
+                                    key={feedback.id}
+                                    className={`p-3 border-b border-gray-100 dark:border-gray-800 last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${!feedback.isRead ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
+                                        }`}
+                                    onClick={() => handleToggleFeedbackRead(feedback.id)}
+                                    title={feedback.isRead ? 'Click to mark as unread' : 'Click to mark as read'}
+                                >
                                     <div className='flex items-center justify-between mb-1'>
-                                        <span className='text-sm font-medium text-gray-900 dark:text-white'>
-                                            {feedback.userName || 'Anonymous'}
-                                        </span>
+                                        <div className='flex items-center gap-2'>
+                                            {!feedback.isRead && (
+                                                <span className='w-2 h-2 bg-blue-500 rounded-full' />
+                                            )}
+                                            <span className={`text-sm font-medium ${!feedback.isRead
+                                                    ? 'text-gray-900 dark:text-white'
+                                                    : 'text-gray-500 dark:text-gray-400'
+                                                }`}>
+                                                {feedback.userName || 'Anonymous'}
+                                            </span>
+                                        </div>
                                         <span className='text-xs text-gray-500'>
                                             {new Date(feedback.createdAt).toLocaleDateString()}
                                         </span>
                                     </div>
-                                    <p className='text-sm text-gray-600 dark:text-gray-400 mb-2 whitespace-pre-wrap'>
+                                    <p className={`text-sm mb-2 whitespace-pre-wrap ${!feedback.isRead
+                                            ? 'text-gray-700 dark:text-gray-300'
+                                            : 'text-gray-500 dark:text-gray-500'
+                                        }`}>
                                         {feedback.message}
                                     </p>
-                                    <div className='text-xs text-gray-500'>
+                                    <div className='text-xs text-gray-400'>
                                         {feedback.userEmail}
                                     </div>
                                 </div>
