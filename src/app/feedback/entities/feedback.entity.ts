@@ -23,11 +23,8 @@ export class Feedback {
   userName: string;
 
   @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'userId' })
+  @JoinColumn({ name: 'user_id' })
   user: User;
-
-  @Column({ nullable: true })
-  userId: string;
 
   @Column({ default: false })
   isRead: boolean;

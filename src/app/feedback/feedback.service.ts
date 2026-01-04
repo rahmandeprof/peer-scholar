@@ -19,7 +19,7 @@ export class FeedbackService {
             message: dto.message,
             userEmail: user.email,
             userName: `${user.firstName} ${user.lastName}`,
-            userId: user.id,
+            user: user,
         });
 
         this.logger.log(`New feedback from ${user.email}`);
