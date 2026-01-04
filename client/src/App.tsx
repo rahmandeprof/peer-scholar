@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -6,31 +6,32 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NetworkProvider } from './contexts/NetworkContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Loader2 } from 'lucide-react';
+import { lazyWithRetry, lazyWithRetryNamed } from './lib/lazyWithRetry';
 
-// Lazy-loaded components for code splitting
+// Lazy-loaded components with retry support for chunk load failures after deploys
 // Auth components - loaded on initial page or specific auth routes
-const Login = lazy(() => import('./components/Login').then(m => ({ default: m.Login })));
-const Signup = lazy(() => import('./components/Signup').then(m => ({ default: m.Signup })));
-const GoogleCallback = lazy(() => import('./components/GoogleCallback').then(m => ({ default: m.GoogleCallback })));
-const VerifyEmail = lazy(() => import('./components/VerifyEmail').then(m => ({ default: m.VerifyEmail })));
-const ForgotPassword = lazy(() => import('./components/ForgotPassword').then(m => ({ default: m.ForgotPassword })));
-const ResetPassword = lazy(() => import('./components/ResetPassword').then(m => ({ default: m.ResetPassword })));
-const CompleteProfile = lazy(() => import('./components/CompleteProfile'));
-const VerifyPending = lazy(() => import('./components/VerifyPending'));
+const Login = lazyWithRetryNamed(() => import('./components/Login'), 'Login');
+const Signup = lazyWithRetryNamed(() => import('./components/Signup'), 'Signup');
+const GoogleCallback = lazyWithRetryNamed(() => import('./components/GoogleCallback'), 'GoogleCallback');
+const VerifyEmail = lazyWithRetryNamed(() => import('./components/VerifyEmail'), 'VerifyEmail');
+const ForgotPassword = lazyWithRetryNamed(() => import('./components/ForgotPassword'), 'ForgotPassword');
+const ResetPassword = lazyWithRetryNamed(() => import('./components/ResetPassword'), 'ResetPassword');
+const CompleteProfile = lazyWithRetry(() => import('./components/CompleteProfile'));
+const VerifyPending = lazyWithRetry(() => import('./components/VerifyPending'));
 
 // Dashboard layout and main components
-const DashboardLayout = lazy(() => import('./components/DashboardLayout').then(m => ({ default: m.DashboardLayout })));
-const AcademicControlCenter = lazy(() => import('./components/AcademicControlCenter').then(m => ({ default: m.AcademicControlCenter })));
-const DepartmentView = lazy(() => import('./components/DepartmentView'));
-const Chatbot = lazy(() => import('./components/Chatbot').then(m => ({ default: m.Chatbot })));
-const CourseView = lazy(() => import('./components/CourseView').then(m => ({ default: m.CourseView })));
-const MaterialView = lazy(() => import('./components/MaterialView').then(m => ({ default: m.MaterialView })));
-const StudyPartner = lazy(() => import('./components/StudyPartner').then(m => ({ default: m.StudyPartner })));
-const TargetGPCalculator = lazy(() => import('./components/TargetGPCalculator').then(m => ({ default: m.TargetGPCalculator })));
-const QuizArena = lazy(() => import('./components/QuizArena').then(m => ({ default: m.QuizArena })));
-const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard'));
-const AdminRoute = lazy(() => import('./components/AdminRoute'));
-const NotFound = lazy(() => import('./components/NotFound'));
+const DashboardLayout = lazyWithRetryNamed(() => import('./components/DashboardLayout'), 'DashboardLayout');
+const AcademicControlCenter = lazyWithRetryNamed(() => import('./components/AcademicControlCenter'), 'AcademicControlCenter');
+const DepartmentView = lazyWithRetry(() => import('./components/DepartmentView'));
+const Chatbot = lazyWithRetryNamed(() => import('./components/Chatbot'), 'Chatbot');
+const CourseView = lazyWithRetryNamed(() => import('./components/CourseView'), 'CourseView');
+const MaterialView = lazyWithRetryNamed(() => import('./components/MaterialView'), 'MaterialView');
+const StudyPartner = lazyWithRetryNamed(() => import('./components/StudyPartner'), 'StudyPartner');
+const TargetGPCalculator = lazyWithRetryNamed(() => import('./components/TargetGPCalculator'), 'TargetGPCalculator');
+const QuizArena = lazyWithRetryNamed(() => import('./components/QuizArena'), 'QuizArena');
+const AdminDashboard = lazyWithRetry(() => import('./components/admin/AdminDashboard'));
+const AdminRoute = lazyWithRetry(() => import('./components/AdminRoute'));
+const NotFound = lazyWithRetry(() => import('./components/NotFound'));
 
 // Suspense fallback for route loading
 const RouteLoadingFallback = () => (
@@ -232,10 +233,10 @@ function AppContent() {
 
 function App() {
   // Lazy load InstallPrompt, OfflineIndicator, SyncIndicator, and UpdatePrompt
-  const InstallPrompt = lazy(() => import('./components/InstallPrompt'));
-  const OfflineIndicator = lazy(() => import('./components/OfflineIndicator'));
-  const SyncIndicator = lazy(() => import('./components/SyncIndicator'));
-  const UpdatePrompt = lazy(() => import('./components/UpdatePrompt').then(m => ({ default: m.UpdatePrompt })));
+  const InstallPrompt = lazyWithRetry(() => import('./components/InstallPrompt'));
+  const OfflineIndicator = lazyWithRetry(() => import('./components/OfflineIndicator'));
+  const SyncIndicator = lazyWithRetry(() => import('./components/SyncIndicator'));
+  const UpdatePrompt = lazyWithRetryNamed(() => import('./components/UpdatePrompt'), 'UpdatePrompt');
 
   return (
     <ErrorBoundary>
