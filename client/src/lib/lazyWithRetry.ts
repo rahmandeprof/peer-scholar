@@ -1,4 +1,4 @@
-import { lazy, ComponentType } from 'react';
+import { lazy, type ComponentType } from 'react';
 
 /**
  * Wrapper around React.lazy that handles chunk load failures gracefully.
