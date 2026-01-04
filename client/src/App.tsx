@@ -231,10 +231,11 @@ function AppContent() {
 }
 
 function App() {
-  // Lazy load InstallPrompt, OfflineIndicator, and SyncIndicator
+  // Lazy load InstallPrompt, OfflineIndicator, SyncIndicator, and UpdatePrompt
   const InstallPrompt = lazy(() => import('./components/InstallPrompt'));
   const OfflineIndicator = lazy(() => import('./components/OfflineIndicator'));
   const SyncIndicator = lazy(() => import('./components/SyncIndicator'));
+  const UpdatePrompt = lazy(() => import('./components/UpdatePrompt').then(m => ({ default: m.UpdatePrompt })));
 
   return (
     <ErrorBoundary>
@@ -250,6 +251,10 @@ function App() {
               {/* PWA Install Prompt */}
               <Suspense fallback={null}>
                 <InstallPrompt />
+              </Suspense>
+              {/* PWA Update Prompt - shows when new version available */}
+              <Suspense fallback={null}>
+                <UpdatePrompt />
               </Suspense>
               {/* Sync Status Indicator */}
               <Suspense fallback={null}>
