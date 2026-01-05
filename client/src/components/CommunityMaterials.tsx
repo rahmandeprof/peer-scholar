@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   FileText,
   Search,
@@ -13,10 +13,12 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { ConfirmationModal } from './ConfirmationModal';
 import { FileViewerModal } from './FileViewerModal';
 import { LoadingState } from './LoadingState';
 import { useMaterials, invalidateMaterialsCache } from '../hooks/useApi';
+import { useProcessingPolling } from '../hooks/useProcessingPolling';
 
 interface Material {
   id: string;
@@ -52,6 +54,7 @@ interface CommunityMaterialsProps {
 export function CommunityMaterials({ onChat }: CommunityMaterialsProps) {
   // Use SWR-cached materials hook for instant loading on revisit
   const { materials, isLoading, isValidating, refresh } = useMaterials();
+  const toast = useToast();
 
   const [filter, setFilter] = useState('');
   const [sortField, setSortField] = useState<SortField>('createdAt');
@@ -73,6 +76,26 @@ export function CommunityMaterials({ onChat }: CommunityMaterialsProps) {
       setLocalMaterials(materials as Material[]);
     }
   }, [materials]);
+
+  // Auto-refresh when processing materials complete
+  const handleStatusChange = useCallback(({ processingStatus }: { id: string; processingStatus: string }) => {
+    refresh();
+    if (processingStatus === 'completed') {
+      toast.success('Material ready for study!');
+    } else if (processingStatus === 'failed') {
+      toast.error('Material processing failed');
+    }
+  }, [refresh, toast]);
+
+  useProcessingPolling(
+    localMaterials.map(m => ({
+      id: m.id,
+      processingStatus: (m as any).processingStatus,
+      status: (m as any).status,
+    })),
+    handleStatusChange,
+    5000 // Poll every 5 seconds
+  );
 
   const handleDeleteClick = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();

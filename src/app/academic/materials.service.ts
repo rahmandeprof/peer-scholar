@@ -80,6 +80,26 @@ export class MaterialsService {
 
   // ... (existing getPresignedUrl)
 
+  /**
+   * Get processing status for multiple materials at once
+   * Used for polling to detect when processing completes
+   */
+  async getBatchStatus(materialIds: string[]) {
+    if (materialIds.length === 0) return [];
+
+    const materials = await this.materialRepo
+      .createQueryBuilder('material')
+      .select(['material.id', 'material.processingStatus', 'material.status'])
+      .whereInIds(materialIds)
+      .getMany();
+
+    return materials.map(m => ({
+      id: m.id,
+      processingStatus: m.processingStatus,
+      status: m.status,
+    }));
+  }
+
   async create(dto: CreateMaterialDto, user: User) {
     const material = this.materialRepo.create({
       title: dto.title,

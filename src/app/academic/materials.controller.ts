@@ -28,6 +28,16 @@ import { MaterialsService } from './materials.service';
 export class MaterialsController {
   constructor(private readonly materialsService: MaterialsService) { }
 
+  /**
+   * Get processing status for multiple materials at once
+   * Used for polling to detect when processing completes
+   */
+  @Get('batch-status')
+  getBatchStatus(@Query('ids') ids: string) {
+    const materialIds = ids ? ids.split(',').filter(id => id.trim()) : [];
+    return this.materialsService.getBatchStatus(materialIds);
+  }
+
   @Get('presign')
   getPresignedUrl(
     @Query('fileType') fileType?: string,
