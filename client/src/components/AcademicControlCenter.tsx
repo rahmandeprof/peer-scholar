@@ -24,6 +24,7 @@ import { StudyTip } from './StudyTip';
 import { BadgesDisplay } from './BadgesDisplay';
 import { WeeklyLeaderboard } from './WeeklyLeaderboard';
 import { Plus } from 'lucide-react';
+import { useExitOnBack } from '../hooks/useExitOnBack';
 
 interface Course {
   id: string;
@@ -80,6 +81,9 @@ export function AcademicControlCenter() {
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
   const [selectedMaterialForCollection, setSelectedMaterialForCollection] = useState<string | undefined>(undefined);
   const [lastReadPage, setLastReadPage] = useState(1);
+
+  // Handle back button to exit app when on home screen
+  useExitOnBack(true);
 
   useEffect(() => {
     const fetchData = async () => {

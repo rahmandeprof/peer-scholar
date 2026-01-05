@@ -61,6 +61,8 @@ export class ChatController {
   }
 
   @Post('message')
+  @UseGuards(RateLimitGuard)
+  @Throttle({ chat: { limit: 100, ttl: 86400000 } }) // 100 messages per day
   sendMessage(
     @Body()
     body: { conversationId?: string; content: string; materialId?: string },
@@ -152,6 +154,8 @@ export class ChatController {
   }
 
   @Post('flashcards/:id')
+  @UseGuards(RateLimitGuard)
+  @Throttle({ flashcards: { limit: 10, ttl: 86400000 } }) // 10 per day
   generateFlashcards(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body('cardCount') cardCount?: number,
@@ -162,11 +166,15 @@ export class ChatController {
   }
 
   @Get('summary/:id')
+  @UseGuards(RateLimitGuard)
+  @Throttle({ summary: { limit: 20, ttl: 86400000 } }) // 20 per day
   getSummary(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.chatService.getSummary(id);
   }
 
   @Get('key-points/:id')
+  @UseGuards(RateLimitGuard)
+  @Throttle({ keypoints: { limit: 20, ttl: 86400000 } }) // 20 per day
   getKeyPoints(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.chatService.extractKeyPoints(id);
   }

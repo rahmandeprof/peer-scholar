@@ -4,6 +4,7 @@ import {
   useState,
   useCallback,
   useMemo,
+  useEffect,
   type ReactNode,
 } from 'react';
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
@@ -133,6 +134,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const closeErrorModal = useCallback(() => {
     setErrorModal(initialModalState);
   }, []);
+
+  // Listen for back-to-exit events from useExitOnBack hook
+  useEffect(() => {
+    const handleBackToExit = (event: CustomEvent<{ message: string }>) => {
+      info(event.detail.message, 2000);
+    };
+
+    window.addEventListener('back-to-exit', handleBackToExit as EventListener);
+    return () => window.removeEventListener('back-to-exit', handleBackToExit as EventListener);
+  }, [info]);
 
   const getIcon = (type: ToastType) => {
     switch (type) {
