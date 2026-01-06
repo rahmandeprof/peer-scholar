@@ -145,16 +145,54 @@ export class DocumentProcessor {
                 `Document processing completed for ${materialId}: ${segments.length} segments created`,
             );
         } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
             this.logger.error(
-                `Document processing failed for ${materialId}: ${error instanceof Error ? error.message : error}`,
+                `Document processing failed for ${materialId}: ${errorMessage}`,
             );
 
-            // Mark as failed
-            await this.updateProcessingStatus(materialId, ProcessingStatus.FAILED);
-            await this.materialRepo.update(materialId, { status: MaterialStatus.FAILED });
+            // Generate user-friendly failure reason
+            const failureReason = this.getFailureReason(errorMessage);
+
+            // Mark as failed with descriptive reason
+            await this.materialRepo.update(materialId, {
+                status: MaterialStatus.FAILED,
+                processingStatus: ProcessingStatus.FAILED,
+                failureReason,
+            });
 
             throw error;
         }
+    }
+
+    /**
+     * Convert technical error to user-friendly message
+     */
+    private getFailureReason(error: string): string {
+        const lowerError = error.toLowerCase();
+
+        if (lowerError.includes('password') || lowerError.includes('encrypted')) {
+            return 'This PDF is password-protected. Please remove the password and upload again.';
+        }
+        if (lowerError.includes('scanned') && lowerError.includes('ocr failed')) {
+            return 'This appears to be a scanned document and OCR could not extract readable text.';
+        }
+        if (lowerError.includes('too short') || lowerError.includes('empty')) {
+            return 'Not enough text content found. The document may be primarily images or very short.';
+        }
+        if (lowerError.includes('unsupported file type')) {
+            return 'This file format is not supported. Please upload a PDF, DOCX, or TXT file.';
+        }
+        if (lowerError.includes('timeout') || lowerError.includes('timed out')) {
+            return 'Processing took too long. The document may be too large or complex.';
+        }
+        if (lowerError.includes('corrupt') || lowerError.includes('invalid')) {
+            return 'The file appears to be corrupted or invalid. Please try uploading again.';
+        }
+        if (lowerError.includes('download')) {
+            return 'Failed to download the file. Please try uploading again.';
+        }
+
+        return 'An unexpected error occurred while processing this document. Please try again or contact support.';
     }
 
     /**

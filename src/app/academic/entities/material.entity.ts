@@ -227,6 +227,10 @@ export class Material extends IDAndTimestamp {
   @Column({ name: 'ocr_confidence', type: 'float', nullable: true })
   ocrConfidence?: number;
 
+  // Human-readable reason when processing fails
+  @Column({ name: 'failure_reason', type: 'text', nullable: true })
+  failureReason?: string;
+
   @Column({ name: 'average_rating', type: 'float', default: 0 })
   averageRating: number;
 

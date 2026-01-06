@@ -101,11 +101,14 @@ export function StudyPartner() {
     }
   }, [socket, toast]);
 
+  const [notFoundEmail, setNotFoundEmail] = useState<string | null>(null);
+
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteEmail.trim()) return;
 
     setLoading(true);
+    setNotFoundEmail(null);
     try {
       const res = await api.post('/users/partner/invite', { email: inviteEmail });
       toast.success('Invite sent successfully!');
@@ -127,10 +130,25 @@ export function StudyPartner() {
           message = err.message || message;
         }
       }
-      toast.error(message);
+
+      // Check if user was not found
+      const lowerMessage = message.toLowerCase();
+      if (lowerMessage.includes('not found') || lowerMessage.includes('no user') || lowerMessage.includes('does not exist')) {
+        setNotFoundEmail(inviteEmail);
+      } else {
+        toast.error(message);
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCopyInviteLink = () => {
+    const inviteLink = `${window.location.origin}/signup?ref=${user?.id}`;
+    navigator.clipboard.writeText(inviteLink);
+    toast.success('Invite link copied! Share it with your friend.');
+    setNotFoundEmail(null);
+    setInviteEmail('');
   };
 
   const handleCancelInvite = async (id: string) => {
@@ -424,7 +442,7 @@ export function StudyPartner() {
             <input
               type='email'
               value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
+              onChange={(e) => { setInviteEmail(e.target.value); setNotFoundEmail(null); }}
               placeholder="Enter friend's email"
               className='w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-900/50 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none transition-all'
             />
@@ -437,6 +455,21 @@ export function StudyPartner() {
             {loading ? 'Sending...' : 'Invite'}
           </button>
         </form>
+
+        {/* User not found - offer invite link */}
+        {notFoundEmail && (
+          <div className='mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl'>
+            <p className='text-amber-800 dark:text-amber-200 mb-3'>
+              <strong>{notFoundEmail}</strong> isn't on PeerToLearn yet. Share an invite link!
+            </p>
+            <button
+              onClick={handleCopyInviteLink}
+              className='px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium transition-colors'
+            >
+              📋 Copy Invite Link
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Challenge Request Modal */}

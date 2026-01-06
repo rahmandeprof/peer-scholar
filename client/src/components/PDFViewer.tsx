@@ -90,6 +90,41 @@ export function PDFViewer({ url, materialId, initialPage = 1 }: PDFViewerProps) 
     }
   };
 
+  // Swipe gesture handling for mobile
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const SWIPE_THRESHOLD = 50; // Minimum swipe distance
+  const SWIPE_ANGLE_THRESHOLD = 45; // Maximum angle from horizontal
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = touch.clientY - touchStartRef.current.y;
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+
+    // Check if it's a horizontal swipe (not vertical scroll)
+    const angle = Math.atan2(absY, absX) * (180 / Math.PI);
+
+    if (absX > SWIPE_THRESHOLD && angle < SWIPE_ANGLE_THRESHOLD) {
+      if (deltaX > 0) {
+        // Swipe right = previous page
+        setPageNumber((prev) => Math.max(prev - 1, 1));
+      } else {
+        // Swipe left = next page
+        setPageNumber((prev) => Math.min(prev + 1, numPages));
+      }
+    }
+
+    touchStartRef.current = null;
+  };
+
   return (
     <div className='flex flex-col h-full bg-gray-100 dark:bg-gray-900'>
       {/* Toolbar */}
@@ -174,8 +209,13 @@ export function PDFViewer({ url, materialId, initialPage = 1 }: PDFViewerProps) 
         </div>
       </div>
 
-      {/* Document */}
-      <div className='flex-1 overflow-auto flex justify-center p-4' ref={containerRef}>
+      {/* Document - with swipe gesture support */}
+      <div
+        className='flex-1 overflow-auto flex justify-center p-4'
+        ref={containerRef}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         <Document
           file={url}
           onLoadSuccess={onDocumentLoadSuccess}

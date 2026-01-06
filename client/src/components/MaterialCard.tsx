@@ -37,6 +37,7 @@ interface Material {
   processingVersion?: 'v1' | 'v2';
   isOcrProcessed?: boolean;
   ocrConfidence?: number;
+  failureReason?: string;
   uploader: {
     id: string;
     firstName: string;
@@ -174,7 +175,10 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
                         material.processingStatus?.toLowerCase() === 'ocr_extracting' ? 'OCR Processing' : 'Processing'}
                 </span>
               ) : material.status === 'failed' || material.processingStatus?.toLowerCase() === 'failed' ? (
-                <span className='inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 border border-red-100 dark:border-red-800'>
+                <span
+                  className='inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 border border-red-100 dark:border-red-800 cursor-help'
+                  title={material.failureReason || 'Processing failed. Try uploading again.'}
+                >
                   <AlertCircle className='w-3 h-3' />
                   Failed
                 </span>
