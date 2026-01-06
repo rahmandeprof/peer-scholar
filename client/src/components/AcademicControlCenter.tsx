@@ -10,8 +10,12 @@ import {
   TrendingUp,
   Activity,
 } from 'lucide-react';
+import { BorderSpinner } from './Skeleton';
 import api from '../lib/api';
-import { getRecentlyOpened, validateAndCleanHistory } from '../lib/viewingHistory';
+import {
+  getRecentlyOpened,
+  validateAndCleanHistory,
+} from '../lib/viewingHistory';
 import { useAuth } from '../contexts/AuthContext';
 import { StudySessionModal } from './StudySessionModal';
 import { MaterialCard } from './MaterialCard';
@@ -79,7 +83,8 @@ export function AcademicControlCenter() {
   const [collections, setCollections] = useState<any[]>([]);
   const [favoritesCount, setFavoritesCount] = useState(0);
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
-  const [selectedMaterialForCollection, setSelectedMaterialForCollection] = useState<string | undefined>(undefined);
+  const [selectedMaterialForCollection, setSelectedMaterialForCollection] =
+    useState<string | undefined>(undefined);
   const [lastReadPage, setLastReadPage] = useState(1);
 
   // Handle back button to exit app when on home screen
@@ -112,10 +117,12 @@ export function AcademicControlCenter() {
 
           if (localHistory.length > 0) {
             // Use localStorage history for "Recently Opened"
-            setRecentMaterials(localHistory.map(m => ({
-              ...m,
-              viewedAt: m.viewedAt,
-            })));
+            setRecentMaterials(
+              localHistory.map((m) => ({
+                ...m,
+                viewedAt: m.viewedAt,
+              })),
+            );
           } else {
             // Fallback to backend's last read material if no local history
             setRecentMaterials([
@@ -130,10 +137,12 @@ export function AcademicControlCenter() {
           // No backend activity, check localStorage
           const localHistory = getRecentlyOpened(3);
           if (localHistory.length > 0) {
-            setRecentMaterials(localHistory.map(m => ({
-              ...m,
-              viewedAt: m.viewedAt,
-            })));
+            setRecentMaterials(
+              localHistory.map((m) => ({
+                ...m,
+                viewedAt: m.viewedAt,
+              })),
+            );
           }
         }
 
@@ -156,10 +165,12 @@ export function AcademicControlCenter() {
         try {
           const collectionsRes = await api.get('/academic/collections');
           // Map materials array length to count for display
-          setCollections(collectionsRes.data.map((col: any) => ({
-            ...col,
-            count: col.materials?.length || 0,
-          })));
+          setCollections(
+            collectionsRes.data.map((col: any) => ({
+              ...col,
+              count: col.materials?.length || 0,
+            })),
+          );
         } catch {
           console.warn('Failed to fetch collections');
         }
@@ -184,36 +195,29 @@ export function AcademicControlCenter() {
   }, [user]);
 
   // Background cleanup: validate that materials in history still exist
+  // Run this silently without triggering re-renders to avoid flash
   useEffect(() => {
-    if (!user) return;
+    if (!user || loading) return;
 
-    // Run validation after a short delay to not block initial load
+    // Run validation after initial load completes
     const timer = setTimeout(() => {
       validateAndCleanHistory(async (id) => {
         try {
-          // Use HEAD request or lightweight check
           await api.get(`/chat/materials/${id}/exists`);
           return true;
         } catch {
           return false;
         }
-      }).then(() => {
-        // Refresh recentMaterials if any were cleaned
-        const updated = getRecentlyOpened(3);
-        setRecentMaterials(updated.map(m => ({
-          ...m,
-          viewedAt: m.viewedAt,
-        })));
-      });
-    }, 2000); // 2 second delay
+      }).catch(console.error); // Don't update state, just clean localStorage
+    }, 5000); // 5 second delay to avoid interfering with initial render
 
     return () => clearTimeout(timer);
-  }, [user]);
+  }, [user, loading]);
 
   if (loading) {
     return (
       <div className='flex items-center justify-center h-full'>
-        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600'></div>
+        <BorderSpinner size='2xl' className='text-primary-600' />
       </div>
     );
   }
@@ -281,7 +285,8 @@ export function AcademicControlCenter() {
                         {lastOpened.type}
                         {(lastOpened as any).uploader?.firstName && (
                           <span className='ml-1'>
-                            • by {(lastOpened as any).uploader.firstName} {(lastOpened as any).uploader.lastName}
+                            • by {(lastOpened as any).uploader.firstName}{' '}
+                            {(lastOpened as any).uploader.lastName}
                           </span>
                         )}
                         {lastReadPage > 1 && (
@@ -342,16 +347,40 @@ export function AcademicControlCenter() {
                 className='w-full p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-all flex items-center group'
               >
                 <div className='p-1.5 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg text-indigo-600 dark:text-indigo-400 mr-2.5'>
-                  <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                    <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z' />
+                  <svg
+                    className='w-4 h-4'
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z'
+                    />
                   </svg>
                 </div>
                 <div className='flex-1 text-left'>
-                  <span className='text-sm font-medium text-gray-900 dark:text-white'>Collections</span>
-                  <span className='text-xs text-gray-500 ml-1'>({collections.length})</span>
+                  <span className='text-sm font-medium text-gray-900 dark:text-white'>
+                    Collections
+                  </span>
+                  <span className='text-xs text-gray-500 ml-1'>
+                    ({collections.length})
+                  </span>
                 </div>
-                <svg className='w-4 h-4 text-gray-400 group-hover:text-indigo-500 transition-colors' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 5l7 7-7 7' />
+                <svg
+                  className='w-4 h-4 text-gray-400 group-hover:text-indigo-500 transition-colors'
+                  fill='none'
+                  stroke='currentColor'
+                  viewBox='0 0 24 24'
+                >
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M9 5l7 7-7 7'
+                  />
                 </svg>
               </button>
               {/* Add New Collection Button (Mini) */}
@@ -493,9 +522,12 @@ export function AcademicControlCenter() {
                         strokeWidth='10'
                         fill='transparent'
                         strokeDasharray={2 * Math.PI * 40}
-                        strokeDashoffset={2 * Math.PI * 40 * (1 - percent / 100)}
-                        className={`transition-all duration-1000 ease-out ${percent >= 100 ? 'text-green-500' : 'text-primary-600'
-                          }`}
+                        strokeDashoffset={
+                          2 * Math.PI * 40 * (1 - percent / 100)
+                        }
+                        className={`transition-all duration-1000 ease-out ${
+                          percent >= 100 ? 'text-green-500' : 'text-primary-600'
+                        }`}
                         strokeLinecap='round'
                       />
                     </svg>
@@ -513,14 +545,20 @@ export function AcademicControlCenter() {
 
                   <div className='flex-1'>
                     <div className='text-2xl font-bold text-gray-900 dark:text-gray-100'>
-                      {Math.floor(currentSeconds / 3600)}h {Math.floor((currentSeconds % 3600) / 60)}m
+                      {Math.floor(currentSeconds / 3600)}h{' '}
+                      {Math.floor((currentSeconds % 3600) / 60)}m
                       <span className='text-base text-gray-500 font-medium ml-1'>
                         / {(dynamicGoal / 3600).toFixed(0)}h
                       </span>
                     </div>
                     <p className='text-sm text-gray-500 dark:text-gray-400'>
                       Studied this week
-                      {goalLevel > 1 && <span className='text-orange-500 font-medium'> • Milestone {goalLevel}!</span>}
+                      {goalLevel > 1 && (
+                        <span className='text-orange-500 font-medium'>
+                          {' '}
+                          • Milestone {goalLevel}!
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -579,29 +617,30 @@ export function AcademicControlCenter() {
               <MaterialCardSkeleton />
             </>
           )}
-          {!loading && recentMaterials.slice(0, 3).map((material) => (
-            <MaterialCard
-              key={material.id}
-              material={{
-                ...material,
-                description: '',
-                fileUrl: '',
-                fileType: 'pdf',
-                size: 0,
-                createdAt: material.viewedAt,
-                uploader: {
-                  id: (material as any).uploader?.id || '',
-                  firstName: (material as any).uploader?.firstName || '',
-                  lastName: (material as any).uploader?.lastName || '',
-                },
-                course: { code: material.courseCode || '' },
-              }}
-              onAddToCollection={(id) => {
-                setSelectedMaterialForCollection(id);
-                setCollectionModalOpen(true);
-              }}
-            />
-          ))}
+          {!loading &&
+            recentMaterials.slice(0, 3).map((material) => (
+              <MaterialCard
+                key={material.id}
+                material={{
+                  ...material,
+                  description: '',
+                  fileUrl: '',
+                  fileType: 'pdf',
+                  size: 0,
+                  createdAt: material.viewedAt,
+                  uploader: {
+                    id: (material as any).uploader?.id || '',
+                    firstName: (material as any).uploader?.firstName || '',
+                    lastName: (material as any).uploader?.lastName || '',
+                  },
+                  course: { code: material.courseCode || '' },
+                }}
+                onAddToCollection={(id) => {
+                  setSelectedMaterialForCollection(id);
+                  setCollectionModalOpen(true);
+                }}
+              />
+            ))}
 
           {recentMaterials.length === 0 && (
             <div className='col-span-full text-center py-12 bg-gray-50/50 dark:bg-gray-800/30 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700'>
