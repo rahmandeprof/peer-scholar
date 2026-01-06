@@ -3,7 +3,8 @@ import { useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import api from '../lib/api';
-import { Loader2, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import { BorderSpinner } from './Skeleton';
 
 import { UNILORIN_FACULTIES } from '../data/unilorin-faculties';
 
@@ -237,7 +238,7 @@ export function Signup({ onSwitch }: SignupProps) {
           className='w-full py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed'
         >
           {loading ? (
-            <Loader2 className='w-5 h-5 animate-spin' />
+            <BorderSpinner size='md' />
           ) : (
             <>
               Create Account <ArrowRight className='w-4 h-4 ml-2' />
