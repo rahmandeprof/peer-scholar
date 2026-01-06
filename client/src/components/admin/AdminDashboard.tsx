@@ -22,6 +22,10 @@ import {
     Zap,
     Search,
     MessageSquare,
+    Trophy,
+    Upload,
+    UserPlus,
+    Flame,
 } from 'lucide-react';
 import api from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -150,6 +154,16 @@ export function AdminDashboard() {
     const [showFeedbacks, setShowFeedbacks] = useState(false);
     const [feedbacksLoading, setFeedbacksLoading] = useState(false);
     const [unreadFeedbackCount, setUnreadFeedbackCount] = useState(0);
+
+    // Leaderboards state
+    const [leaderboards, setLeaderboards] = useState<{
+        reputation: { id: string; name: string; email: string; value: number }[];
+        uploaders: { id: string; name: string; email: string; value: number }[];
+        referrers: { id: string; name: string; email: string; value: number }[];
+        streaks: { id: string; name: string; email: string; value: number; longest: number }[];
+    } | null>(null);
+    const [showLeaderboards, setShowLeaderboards] = useState(false);
+    const [leaderboardsLoading, setLeaderboardsLoading] = useState(false);
 
     // Check admin access
     useEffect(() => {
@@ -303,6 +317,18 @@ export function AdminDashboard() {
             toast.error(err.response?.data?.message || 'Failed to backfill summaries');
         } finally {
             setBackfilling(false);
+        }
+    };
+
+    const fetchLeaderboards = async () => {
+        setLeaderboardsLoading(true);
+        try {
+            const res = await api.get('/users/admin/leaderboards');
+            setLeaderboards(res.data);
+        } catch (err) {
+            toast.error('Failed to fetch leaderboards');
+        } finally {
+            setLeaderboardsLoading(false);
         }
     };
 
@@ -1313,6 +1339,98 @@ export function AdminDashboard() {
                         )}
                     </div>
                 </div>
+            </div>
+
+            {/* Leaderboards Section */}
+            <div className='bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden'>
+                <button
+                    onClick={() => {
+                        setShowLeaderboards(!showLeaderboards);
+                        if (!leaderboards && !leaderboardsLoading) {
+                            fetchLeaderboards();
+                        }
+                    }}
+                    className='w-full p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                >
+                    <div className='flex items-center gap-2'>
+                        <Trophy className='w-4 h-4 text-yellow-500' />
+                        <h3 className='font-semibold text-gray-900 dark:text-white text-sm'>Leaderboards</h3>
+                    </div>
+                    <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${showLeaderboards ? 'rotate-90' : ''}`} />
+                </button>
+                {showLeaderboards && (
+                    <div className='border-t border-gray-100 dark:border-gray-800 p-4'>
+                        {leaderboardsLoading ? (
+                            <div className='flex justify-center py-4'>
+                                <Loader2 className='w-5 h-5 animate-spin text-gray-400' />
+                            </div>
+                        ) : leaderboards ? (
+                            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                                {/* Top Reputation */}
+                                <div className='bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10 rounded-lg p-3'>
+                                    <h4 className='text-xs font-bold text-purple-700 dark:text-purple-400 mb-2 flex items-center gap-1'>
+                                        <Trophy className='w-3 h-3' /> Top Reputation
+                                    </h4>
+                                    <div className='space-y-1'>
+                                        {leaderboards.reputation.slice(0, 5).map((u, i) => (
+                                            <div key={u.id} className='flex justify-between text-xs'>
+                                                <span className='text-gray-700 dark:text-gray-300 truncate'>{i + 1}. {u.name}</span>
+                                                <span className='font-bold text-purple-600 dark:text-purple-400'>{u.value}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Top Uploaders */}
+                                <div className='bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10 rounded-lg p-3'>
+                                    <h4 className='text-xs font-bold text-blue-700 dark:text-blue-400 mb-2 flex items-center gap-1'>
+                                        <Upload className='w-3 h-3' /> Top Uploaders
+                                    </h4>
+                                    <div className='space-y-1'>
+                                        {leaderboards.uploaders.slice(0, 5).map((u, i) => (
+                                            <div key={u.id || i} className='flex justify-between text-xs'>
+                                                <span className='text-gray-700 dark:text-gray-300 truncate'>{i + 1}. {u.name}</span>
+                                                <span className='font-bold text-blue-600 dark:text-blue-400'>{u.value}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Top Referrers */}
+                                <div className='bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10 rounded-lg p-3'>
+                                    <h4 className='text-xs font-bold text-green-700 dark:text-green-400 mb-2 flex items-center gap-1'>
+                                        <UserPlus className='w-3 h-3' /> Top Referrers
+                                    </h4>
+                                    <div className='space-y-1'>
+                                        {leaderboards.referrers.slice(0, 5).map((u, i) => (
+                                            <div key={u.id || i} className='flex justify-between text-xs'>
+                                                <span className='text-gray-700 dark:text-gray-300 truncate'>{i + 1}. {u.name}</span>
+                                                <span className='font-bold text-green-600 dark:text-green-400'>{u.value}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Top Streaks */}
+                                <div className='bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10 rounded-lg p-3'>
+                                    <h4 className='text-xs font-bold text-orange-700 dark:text-orange-400 mb-2 flex items-center gap-1'>
+                                        <Flame className='w-3 h-3' /> Top Streaks
+                                    </h4>
+                                    <div className='space-y-1'>
+                                        {leaderboards.streaks.slice(0, 5).map((u, i) => (
+                                            <div key={u.id || i} className='flex justify-between text-xs'>
+                                                <span className='text-gray-700 dark:text-gray-300 truncate'>{i + 1}. {u.name}</span>
+                                                <span className='font-bold text-orange-600 dark:text-orange-400'>{u.value} 🔥</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <p className='text-sm text-gray-500 text-center'>No data available</p>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Bulk Delete Confirmation Modal */}

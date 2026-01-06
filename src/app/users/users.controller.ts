@@ -165,4 +165,15 @@ export class UsersController {
       body.page,
     );
   }
+
+  // ===== ADMIN ENDPOINTS =====
+
+  @Get('admin/leaderboards')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async getLeaderboards(@Req() req: any) {
+    if (req.user.role !== 'admin') {
+      throw new ForbiddenException('Admin access required');
+    }
+    return this.usersService.getLeaderboards();
+  }
 }

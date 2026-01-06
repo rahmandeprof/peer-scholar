@@ -631,4 +631,78 @@ export class UsersService {
       restDuration: user.restDuration,
     };
   }
+
+  /**
+   * Get leaderboard data for admin dashboard
+   * Returns top 10 users in various categories
+   */
+  async getLeaderboards() {
+    // Top by reputation
+    const topReputation = await this.userRepository
+      .createQueryBuilder('user')
+      .select(['user.id', 'user.firstName', 'user.lastName', 'user.email', 'user.reputation'])
+      .orderBy('user.reputation', 'DESC')
+      .limit(10)
+      .getMany();
+
+    // Top by uploads (need to count materials)
+    const topUploaders = await this.userRepository
+      .createQueryBuilder('user')
+      .leftJoin('user.materials', 'material')
+      .select(['user.id', 'user.firstName', 'user.lastName', 'user.email'])
+      .addSelect('COUNT(material.id)', 'uploadCount')
+      .groupBy('user.id')
+      .orderBy('uploadCount', 'DESC')
+      .limit(10)
+      .getRawMany();
+
+    // Top by referrals (count completed referrals)
+    const topReferrers = await this.userRepository
+      .createQueryBuilder('user')
+      .leftJoin('referral', 'referral', 'referral.referrer_id = user.id AND referral.status = :status', { status: 'completed' })
+      .select(['user.id', 'user.firstName', 'user.lastName', 'user.email'])
+      .addSelect('COUNT(referral.id)', 'referralCount')
+      .groupBy('user.id')
+      .orderBy('referralCount', 'DESC')
+      .limit(10)
+      .getRawMany();
+
+    // Top by current streak
+    const topStreaks = await this.streakRepository
+      .createQueryBuilder('streak')
+      .leftJoinAndSelect('streak.user', 'user')
+      .select(['user.id', 'user.firstName', 'user.lastName', 'user.email', 'streak.currentStreak', 'streak.longestStreak'])
+      .orderBy('streak.currentStreak', 'DESC')
+      .limit(10)
+      .getMany();
+
+    return {
+      reputation: topReputation.map(u => ({
+        id: u.id,
+        name: `${u.firstName} ${u.lastName}`,
+        email: u.email,
+        value: u.reputation,
+      })),
+      uploaders: topUploaders.map(u => ({
+        id: u.user_id,
+        name: `${u.user_firstName} ${u.user_lastName}`,
+        email: u.user_email,
+        value: parseInt(u.uploadCount) || 0,
+      })),
+      referrers: topReferrers.map(u => ({
+        id: u.user_id,
+        name: `${u.user_firstName} ${u.user_lastName}`,
+        email: u.user_email,
+        value: parseInt(u.referralCount) || 0,
+      })),
+      streaks: topStreaks.map(s => ({
+        id: s.user?.id,
+        name: s.user ? `${s.user.firstName} ${s.user.lastName}` : 'Unknown',
+        email: s.user?.email,
+        value: s.currentStreak,
+        longest: s.longestStreak,
+      })),
+    };
+  }
 }
+
