@@ -10,7 +10,6 @@ import {
   Trash2,
   Folder as FolderIcon,
   HeartOff,
-  Loader2,
   AlertCircle,
   CheckCircle,
   Scan,
@@ -21,6 +20,7 @@ import { ConfirmationModal } from './ConfirmationModal';
 import { getDisplayName } from '../lib/displayName';
 import { getApiErrorMessage } from '../lib/errorUtils';
 import { removeFromViewingHistory } from '../lib/viewingHistory';
+import { BorderSpinner } from './Skeleton';
 import api from '../lib/api';
 
 interface Material {
@@ -33,7 +33,14 @@ interface Material {
   size: number;
   createdAt: string;
   status?: 'pending' | 'processing' | 'ready' | 'failed';
-  processingStatus?: 'pending' | 'extracting' | 'cleaning' | 'segmenting' | 'completed' | 'failed' | 'ocr_extracting';
+  processingStatus?:
+    | 'pending'
+    | 'extracting'
+    | 'cleaning'
+    | 'segmenting'
+    | 'completed'
+    | 'failed'
+    | 'ocr_extracting';
   processingVersion?: 'v1' | 'v2';
   isOcrProcessed?: boolean;
   ocrConfidence?: number;
@@ -69,7 +76,12 @@ interface MaterialCardProps {
   onRemoveFromFavorites?: (id: string) => void;
 }
 
-export const MaterialCard = memo(function MaterialCard({ material, onDelete, onAddToCollection, onRemoveFromFavorites }: MaterialCardProps) {
+export const MaterialCard = memo(function MaterialCard({
+  material,
+  onDelete,
+  onAddToCollection,
+  onRemoveFromFavorites,
+}: MaterialCardProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
@@ -149,7 +161,9 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
 
   return (
     <>
-      <div className={`bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl overflow-visible shadow-sm rounded-2xl hover:shadow-md transition-all border border-gray-200/50 dark:border-gray-700/50 group relative hover-lift active-press flex flex-col h-full ${menuOpen ? 'z-[100]' : ''}`}>
+      <div
+        className={`bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl overflow-visible shadow-sm rounded-2xl hover:shadow-md transition-all border border-gray-200/50 dark:border-gray-700/50 group relative hover-lift active-press flex flex-col h-full ${menuOpen ? 'z-[100]' : ''}`}
+      >
         <div className='p-6 flex-grow'>
           <div className='flex items-start justify-between mb-4'>
             <div className='flex-1 min-w-0 mr-4'>
@@ -174,10 +188,13 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
               </span>
 
               {/* Processing Status Badge */}
-              {(material.status === 'processing' || material.status === 'pending' ||
-                material.processingStatus?.toLowerCase() === 'extracting' || material.processingStatus?.toLowerCase() === 'cleaning' ||
-                material.processingStatus?.toLowerCase() === 'segmenting' || material.processingStatus?.toLowerCase() === 'pending' ||
-                material.processingStatus?.toLowerCase() === 'ocr_extracting') ? (
+              {material.status === 'processing' ||
+              material.status === 'pending' ||
+              material.processingStatus?.toLowerCase() === 'extracting' ||
+              material.processingStatus?.toLowerCase() === 'cleaning' ||
+              material.processingStatus?.toLowerCase() === 'segmenting' ||
+              material.processingStatus?.toLowerCase() === 'pending' ||
+              material.processingStatus?.toLowerCase() === 'ocr_extracting' ? (
                 isStaleProcessing(material) ? (
                   // Stale/stuck processing badge
                   <span
@@ -190,17 +207,29 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
                 ) : (
                   // Normal processing badge
                   <span className='inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-100 dark:border-amber-800'>
-                    <Loader2 className='w-3 h-3 animate-spin' />
-                    {material.processingStatus?.toLowerCase() === 'extracting' ? 'Extracting' :
-                      material.processingStatus?.toLowerCase() === 'segmenting' ? 'Segmenting' :
-                        material.processingStatus?.toLowerCase() === 'cleaning' ? 'Cleaning' :
-                          material.processingStatus?.toLowerCase() === 'ocr_extracting' ? 'OCR Processing' : 'Processing'}
+                    <BorderSpinner size='xs' />
+                    {material.processingStatus?.toLowerCase() === 'extracting'
+                      ? 'Extracting'
+                      : material.processingStatus?.toLowerCase() ===
+                          'segmenting'
+                        ? 'Segmenting'
+                        : material.processingStatus?.toLowerCase() ===
+                            'cleaning'
+                          ? 'Cleaning'
+                          : material.processingStatus?.toLowerCase() ===
+                              'ocr_extracting'
+                            ? 'OCR Processing'
+                            : 'Processing'}
                   </span>
                 )
-              ) : material.status === 'failed' || material.processingStatus?.toLowerCase() === 'failed' ? (
+              ) : material.status === 'failed' ||
+                material.processingStatus?.toLowerCase() === 'failed' ? (
                 <span
                   className='inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 border border-red-100 dark:border-red-800 cursor-help'
-                  title={material.failureReason || 'Processing failed. Try uploading again.'}
+                  title={
+                    material.failureReason ||
+                    'Processing failed. Try uploading again.'
+                  }
                 >
                   <AlertCircle className='w-3 h-3' />
                   Failed
@@ -215,12 +244,13 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
               {/* OCR Quality Badge */}
               {material.isOcrProcessed && (
                 <span
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${(material.ocrConfidence ?? 0) >= 80
-                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-100 dark:border-blue-800'
-                    : (material.ocrConfidence ?? 0) >= 50
-                      ? 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-100 dark:border-yellow-800'
-                      : 'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border-orange-100 dark:border-orange-800'
-                    }`}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${
+                    (material.ocrConfidence ?? 0) >= 80
+                      ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-100 dark:border-blue-800'
+                      : (material.ocrConfidence ?? 0) >= 50
+                        ? 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-100 dark:border-yellow-800'
+                        : 'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border-orange-100 dark:border-orange-800'
+                  }`}
                   title={`Scanned document - OCR confidence: ${(material.ocrConfidence ?? 0).toFixed(0)}%`}
                 >
                   <Scan className='w-3 h-3' />
@@ -277,126 +307,134 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
                 </button>
 
                 {/* Dropdown Menu - Rendered via Portal to escape stacking context */}
-                {menuOpen && createPortal(
-                  (() => {
-                    // Calculate position with viewport boundary check
-                    const rect = menuRef.current?.getBoundingClientRect();
-                    const dropdownHeight = 200; // max-h-[200px]
-                    const spaceBelow = rect ? window.innerHeight - rect.bottom : 0;
-                    const shouldFlipUp = spaceBelow < dropdownHeight + 16;
+                {menuOpen &&
+                  createPortal(
+                    (() => {
+                      // Calculate position with viewport boundary check
+                      const rect = menuRef.current?.getBoundingClientRect();
+                      const dropdownHeight = 200; // max-h-[200px]
+                      const spaceBelow = rect
+                        ? window.innerHeight - rect.bottom
+                        : 0;
+                      const shouldFlipUp = spaceBelow < dropdownHeight + 16;
 
-                    const top = rect
-                      ? (shouldFlipUp
-                        ? Math.max(8, rect.top - dropdownHeight - 8)
-                        : rect.bottom + 8)
-                      : 0;
-                    const left = rect
-                      ? Math.min(rect.right - 192, window.innerWidth - 200)
-                      : 0;
+                      const top = rect
+                        ? shouldFlipUp
+                          ? Math.max(8, rect.top - dropdownHeight - 8)
+                          : rect.bottom + 8
+                        : 0;
+                      const left = rect
+                        ? Math.min(rect.right - 192, window.innerWidth - 200)
+                        : 0;
 
-                    return (
-                      <div
-                        ref={dropdownRef}
-                        className='fixed w-48 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 py-1 animate-pop-in max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent'
-                        style={{
-                          overscrollBehavior: 'contain',
-                          zIndex: 9999,
-                          top,
-                          left,
-                        }}
-                        onWheel={(e) => {
-                          e.stopPropagation();
-                          const el = e.currentTarget;
-                          const isAtTop = el.scrollTop === 0;
-                          const isAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
-
-                          // Prevent scroll from leaking to parent when at boundaries
-                          if ((isAtTop && e.deltaY < 0) || (isAtBottom && e.deltaY > 0)) {
-                            e.preventDefault();
-                          }
-                        }}
-                        onTouchMove={(e) => e.stopPropagation()}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDownload();
+                      return (
+                        <div
+                          ref={dropdownRef}
+                          className='fixed w-48 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 py-1 animate-pop-in max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent'
+                          style={{
+                            overscrollBehavior: 'contain',
+                            zIndex: 9999,
+                            top,
+                            left,
                           }}
-                          className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
-                        >
-                          <Download className='w-4 h-4 mr-2' />
-                          Download
-                        </button>
-
-                        {/* New: Add to Collection */}
-                        <button
-                          onClick={(e) => {
+                          onWheel={(e) => {
                             e.stopPropagation();
-                            setMenuOpen(false);
-                            if (onAddToCollection) onAddToCollection(material.id);
-                          }}
-                          className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
-                        >
-                          <FolderIcon className='w-4 h-4 mr-2' />
-                          Add to Collection
-                        </button>
+                            const el = e.currentTarget;
+                            const isAtTop = el.scrollTop === 0;
+                            const isAtBottom =
+                              el.scrollTop + el.clientHeight >=
+                              el.scrollHeight - 1;
 
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleShare();
+                            // Prevent scroll from leaking to parent when at boundaries
+                            if (
+                              (isAtTop && e.deltaY < 0) ||
+                              (isAtBottom && e.deltaY > 0)
+                            ) {
+                              e.preventDefault();
+                            }
                           }}
-                          className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
+                          onTouchMove={(e) => e.stopPropagation()}
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <Share2 className='w-4 h-4 mr-2' />
-                          Share
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSummarize();
-                          }}
-                          className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
-                        >
-                          <SummarizeIcon className='w-4 h-4 mr-2' />
-                          Summarize
-                        </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownload();
+                            }}
+                            className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
+                          >
+                            <Download className='w-4 h-4 mr-2' />
+                            Download
+                          </button>
 
-                        {/* Remove from Favorites - only shown when handler is provided */}
-                        {onRemoveFromFavorites && (
+                          {/* New: Add to Collection */}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               setMenuOpen(false);
-                              onRemoveFromFavorites(material.id);
+                              if (onAddToCollection)
+                                onAddToCollection(material.id);
                             }}
-                            className='w-full px-4 py-2 text-left text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 flex items-center'
+                            className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
                           >
-                            <HeartOff className='w-4 h-4 mr-2' />
-                            Remove from Favorites
+                            <FolderIcon className='w-4 h-4 mr-2' />
+                            Add to Collection
                           </button>
-                        )}
 
-                        {(isOwner || isAdmin) && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              setMenuOpen(false);
-                              setDeleteModalOpen(true);
+                              handleShare();
                             }}
-                            className='w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center border-t border-gray-100 dark:border-gray-700'
+                            className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
                           >
-                            <Trash2 className='w-4 h-4 mr-2' />
-                            Delete
+                            <Share2 className='w-4 h-4 mr-2' />
+                            Share
                           </button>
-                        )}
-                      </div>
-                    );
-                  })(),
-                  document.body
-                )
-                }
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSummarize();
+                            }}
+                            className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
+                          >
+                            <SummarizeIcon className='w-4 h-4 mr-2' />
+                            Summarize
+                          </button>
+
+                          {/* Remove from Favorites - only shown when handler is provided */}
+                          {onRemoveFromFavorites && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setMenuOpen(false);
+                                onRemoveFromFavorites(material.id);
+                              }}
+                              className='w-full px-4 py-2 text-left text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 flex items-center'
+                            >
+                              <HeartOff className='w-4 h-4 mr-2' />
+                              Remove from Favorites
+                            </button>
+                          )}
+
+                          {(isOwner || isAdmin) && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setMenuOpen(false);
+                                setDeleteModalOpen(true);
+                              }}
+                              className='w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center border-t border-gray-100 dark:border-gray-700'
+                            >
+                              <Trash2 className='w-4 h-4 mr-2' />
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })(),
+                    document.body,
+                  )}
               </div>
             </div>
           </div>
