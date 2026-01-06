@@ -657,11 +657,15 @@ export function UploadModal({
                 )}
               </div>
 
-              {/* OCR limitation note */}
-              <div className='p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg'>
+              {/* Upload tips note */}
+              <div className='p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg space-y-1'>
                 <p className='text-xs text-amber-700 dark:text-amber-400'>
-                  <strong>Note:</strong> Scanned PDFs (image-based) are limited to 50 pages for text recognition.
-                  Regular PDFs with selectable text have no page limit.
+                  <strong>📄 Scanned PDFs:</strong> Limited to 50 pages for text recognition.
+                  Regular PDFs with selectable text have no limit.
+                </p>
+                <p className='text-xs text-amber-700 dark:text-amber-400'>
+                  <strong>🤖 AI Features:</strong> Best results for documents under 200 pages.
+                  For textbooks, consider uploading individual chapters.
                 </p>
               </div>
 
