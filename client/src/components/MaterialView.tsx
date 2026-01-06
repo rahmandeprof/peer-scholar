@@ -12,8 +12,8 @@ import {
   AlertTriangle,
   Moon,
   Sun,
-  Loader2,
 } from 'lucide-react';
+import { BorderSpinner, MaterialViewSkeleton } from './Skeleton';
 import api from '../lib/api';
 import { accumulateReadingTime } from '../lib/offlineReadingTracker';
 import { getDisplayName } from '../lib/displayName';
@@ -39,17 +39,20 @@ import { CollectionModal } from './CollectionModal';
 import { PublicNotesPanel } from './PublicNotesPanel';
 import HelpfulLinksPanel from './HelpfulLinksPanel';
 import { PenTool, Folder, MessageSquare, Link2 } from 'lucide-react';
-import { MaterialViewSkeleton } from './Skeleton';
 
 // Lazy-loaded heavy modals for better code splitting
-const QuizModal = lazy(() => import('./QuizModal').then(m => ({ default: m.QuizModal })));
-const FlashcardModal = lazy(() => import('./FlashcardModal').then(m => ({ default: m.FlashcardModal })));
+const QuizModal = lazy(() =>
+  import('./QuizModal').then((m) => ({ default: m.QuizModal })),
+);
+const FlashcardModal = lazy(() =>
+  import('./FlashcardModal').then((m) => ({ default: m.FlashcardModal })),
+);
 
 // Loading spinner for lazy modals
 const ModalLoadingFallback = () => (
   <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm'>
     <div className='bg-white dark:bg-gray-800 rounded-xl p-6 flex flex-col items-center gap-3'>
-      <Loader2 className='w-8 h-8 animate-spin text-primary-600' />
+      <BorderSpinner size='2xl' className='text-primary-600' />
       <p className='text-sm text-gray-500 dark:text-gray-400'>Loading...</p>
     </div>
   </div>
@@ -104,7 +107,9 @@ export const MaterialView = () => {
   // Reading time tracking for weekly goals
   const [readingSessionId, setReadingSessionId] = useState<string | null>(null);
   const readingSecondsRef = useRef(0);
-  const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
   const sessionStartTimeRef = useRef<number>(0); // Track when session started for accurate cleanup
 
   // Continue reading from last position
@@ -159,7 +164,7 @@ export const MaterialView = () => {
   useEffect(() => {
     const fetchMaterial = async () => {
       try {
-        const res = await api.get(`/materials/${id}`)
+        const res = await api.get(`/materials/${id}`);
         setMaterial(res.data);
         setIsFavorited(res.data.isFavorited || false);
 
@@ -169,11 +174,13 @@ export const MaterialView = () => {
           title: res.data.title,
           type: res.data.type,
           courseCode: res.data.courseCode,
-          uploader: res.data.uploader ? {
-            id: res.data.uploader.id,
-            firstName: res.data.uploader.firstName,
-            lastName: res.data.uploader.lastName,
-          } : undefined,
+          uploader: res.data.uploader
+            ? {
+                id: res.data.uploader.id,
+                firstName: res.data.uploader.firstName,
+                lastName: res.data.uploader.lastName,
+              }
+            : undefined,
         });
 
         // Track activity
@@ -186,7 +193,9 @@ export const MaterialView = () => {
 
         // Fetch last read page for this specific material (to resume)
         try {
-          const activityRes = await api.get(`/users/activity/recent?materialId=${id}`);
+          const activityRes = await api.get(
+            `/users/activity/recent?materialId=${id}`,
+          );
           if (activityRes.data.lastReadPage > 1) {
             setLastReadPage(activityRes.data.lastReadPage);
           }
@@ -200,7 +209,8 @@ export const MaterialView = () => {
           setReadingSessionId(sessionRes.data.id);
           readingSecondsRef.current = sessionRes.data.durationSeconds || 0;
           // Set start time accounting for any existing duration (resumed session)
-          sessionStartTimeRef.current = Date.now() - (readingSecondsRef.current * 1000);
+          sessionStartTimeRef.current =
+            Date.now() - readingSecondsRef.current * 1000;
         } catch (err) {
           console.error('Failed to start reading session', err);
         }
@@ -228,7 +238,8 @@ export const MaterialView = () => {
     if (!readingSessionId || !sessionStartTimeRef.current) return;
 
     // Use the ref for consistent timing across the session
-    const getElapsedSeconds = () => Math.floor((Date.now() - sessionStartTimeRef.current) / 1000);
+    const getElapsedSeconds = () =>
+      Math.floor((Date.now() - sessionStartTimeRef.current) / 1000);
 
     heartbeatIntervalRef.current = setInterval(() => {
       const elapsedSeconds = getElapsedSeconds();
@@ -236,10 +247,12 @@ export const MaterialView = () => {
 
       // Send heartbeat to backend (or accumulate locally if offline)
       if (navigator.onLine) {
-        api.post('/study/reading/heartbeat', {
-          sessionId: readingSessionId,
-          seconds: elapsedSeconds,
-        }).catch(console.error);
+        api
+          .post('/study/reading/heartbeat', {
+            sessionId: readingSessionId,
+            seconds: elapsedSeconds,
+          })
+          .catch(console.error);
       }
       // Always accumulate locally as fallback (will sync when online)
       accumulateReadingTime(id || '', 30);
@@ -256,21 +269,31 @@ export const MaterialView = () => {
         if (navigator.onLine) {
           // Get auth token and API base URL for sendBeacon
           const token = localStorage.getItem('token');
-          const apiBaseUrl = (import.meta.env.VITE_API_URL as string | undefined) ?? 'https://peerscholar.onrender.com/v1';
+          const apiBaseUrl =
+            (import.meta.env.VITE_API_URL as string | undefined) ??
+            'https://peerscholar.onrender.com/v1';
           const endpointUrl = `${apiBaseUrl.replace(/\/+$/, '').replace(/\/v1$/, '')}/v1/study/reading/end`;
 
           // Include token in body since sendBeacon can't set headers
           const data = JSON.stringify({
             sessionId: readingSessionId,
             seconds: elapsedSeconds,
-            _token: token // Backend will extract this
+            _token: token, // Backend will extract this
           });
 
           // Use sendBeacon for reliability - it survives page navigation
-          const sent = navigator.sendBeacon(endpointUrl, new Blob([data], { type: 'application/json' }));
+          const sent = navigator.sendBeacon(
+            endpointUrl,
+            new Blob([data], { type: 'application/json' }),
+          );
           if (!sent) {
             // Fallback to regular fetch (may not complete on navigation)
-            api.post('/study/reading/end', { sessionId: readingSessionId, seconds: elapsedSeconds }).catch(console.error);
+            api
+              .post('/study/reading/end', {
+                sessionId: readingSessionId,
+                seconds: elapsedSeconds,
+              })
+              .catch(console.error);
           }
         }
         // If offline, the local accumulation will be synced when back online
@@ -445,10 +468,11 @@ export const MaterialView = () => {
 
             <button
               onClick={() => setJotterOpen(!jotterOpen)}
-              className={`hidden md:flex px-3 py-1.5 rounded-full transition-colors items-center font-medium text-sm ${jotterOpen
-                ? 'bg-yellow-200 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-400'
-                : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-200 dark:hover:bg-yellow-900/50'
-                }`}
+              className={`hidden md:flex px-3 py-1.5 rounded-full transition-colors items-center font-medium text-sm ${
+                jotterOpen
+                  ? 'bg-yellow-200 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-400'
+                  : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-200 dark:hover:bg-yellow-900/50'
+              }`}
             >
               <PenTool className='w-4 h-4 mr-1.5' />
               Jotter
@@ -464,10 +488,11 @@ export const MaterialView = () => {
 
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className={`hidden md:flex p-2 rounded-full transition-colors ${sidebarOpen
-                ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
-                : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
+              className={`hidden md:flex p-2 rounded-full transition-colors ${
+                sidebarOpen
+                  ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
+                  : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
               title='Open AI Companion'
             >
               <Sparkles className='w-5 h-5' />
@@ -854,7 +879,9 @@ export const MaterialView = () => {
             />
             <div className='absolute right-0 top-0 h-full w-full max-w-md bg-white dark:bg-gray-800 shadow-2xl overflow-y-auto animate-slide-in-right'>
               <div className='sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between z-10'>
-                <h2 className='text-lg font-bold text-gray-900 dark:text-gray-100'>Helpful Resources</h2>
+                <h2 className='text-lg font-bold text-gray-900 dark:text-gray-100'>
+                  Helpful Resources
+                </h2>
                 <button
                   onClick={() => setHelpfulLinksOpen(false)}
                   className='p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors'

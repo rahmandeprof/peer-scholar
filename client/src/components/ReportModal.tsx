@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { X, AlertTriangle, Loader2 } from 'lucide-react';
+import { X, AlertTriangle } from 'lucide-react';
+import { BorderSpinner } from './Skeleton';
 import api from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
 import { useModalBack } from '../hooks/useModalBack';
@@ -13,14 +14,39 @@ interface ReportModalProps {
 
 // These must match the FlagReason enum in the backend
 const FLAG_REASONS = [
-  { value: 'wrong_content', label: 'Wrong Content', description: 'Document is incorrect or misleading' },
-  { value: 'low_quality', label: 'Low Quality', description: 'Poor image quality, unreadable, or incomplete' },
-  { value: 'duplicate', label: 'Duplicate', description: 'Same content as another document' },
-  { value: 'inappropriate', label: 'Inappropriate', description: 'Contains offensive or inappropriate content' },
-  { value: 'other', label: 'Other', description: 'Other issue not listed above' },
+  {
+    value: 'wrong_content',
+    label: 'Wrong Content',
+    description: 'Document is incorrect or misleading',
+  },
+  {
+    value: 'low_quality',
+    label: 'Low Quality',
+    description: 'Poor image quality, unreadable, or incomplete',
+  },
+  {
+    value: 'duplicate',
+    label: 'Duplicate',
+    description: 'Same content as another document',
+  },
+  {
+    value: 'inappropriate',
+    label: 'Inappropriate',
+    description: 'Contains offensive or inappropriate content',
+  },
+  {
+    value: 'other',
+    label: 'Other',
+    description: 'Other issue not listed above',
+  },
 ];
 
-export function ReportModal({ isOpen, onClose, materialId, materialTitle }: ReportModalProps) {
+export function ReportModal({
+  isOpen,
+  onClose,
+  materialId,
+  materialTitle,
+}: ReportModalProps) {
   useModalBack(isOpen, onClose, 'report-modal');
 
   const [reason, setReason] = useState('');
@@ -42,7 +68,9 @@ export function ReportModal({ isOpen, onClose, materialId, materialTitle }: Repo
         reason,
         description: description.trim() || undefined,
       });
-      success('Report submitted. Thank you for helping keep the platform clean!');
+      success(
+        'Report submitted. Thank you for helping keep the platform clean!',
+      );
       onClose();
       setReason('');
       setDescription('');
@@ -90,10 +118,11 @@ export function ReportModal({ isOpen, onClose, materialId, materialTitle }: Repo
               {FLAG_REASONS.map((r) => (
                 <label
                   key={r.value}
-                  className={`flex items-start p-3 rounded-xl border-2 cursor-pointer transition-all ${reason === r.value
-                    ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                    }`}
+                  className={`flex items-start p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                    reason === r.value
+                      ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                  }`}
                 >
                   <input
                     type='radio'
@@ -142,11 +171,7 @@ export function ReportModal({ isOpen, onClose, materialId, materialTitle }: Repo
               disabled={submitting || !reason}
               className='flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium shadow-lg shadow-red-600/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center'
             >
-              {submitting ? (
-                <Loader2 className='w-5 h-5 animate-spin' />
-              ) : (
-                'Submit Report'
-              )}
+              {submitting ? <BorderSpinner size='md' /> : 'Submit Report'}
             </button>
           </div>
         </div>
@@ -154,4 +179,3 @@ export function ReportModal({ isOpen, onClose, materialId, materialTitle }: Repo
     </div>
   );
 }
-

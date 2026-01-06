@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Loader2 } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import api from '../lib/api';
 import { AnnotationManager } from './AnnotationManager';
+import { BorderSpinner, SkeletonText } from './Skeleton';
 
 export function TextFileViewer({
   url,
@@ -59,8 +60,8 @@ export function TextFileViewer({
 
   if (loading) {
     return (
-      <div className='flex items-center justify-center h-full'>
-        <Loader2 className='w-8 h-8 animate-spin text-primary-600' />
+      <div className='flex flex-col items-center justify-center p-8 h-full'>
+        <SkeletonText lines={10} className='w-full max-w-2xl' />
       </div>
     );
   }
@@ -69,7 +70,7 @@ export function TextFileViewer({
     return (
       <div className='flex flex-col items-center justify-center h-full text-gray-500 p-8'>
         <div className='bg-gray-100 dark:bg-gray-800 p-4 rounded-full mb-4'>
-          <Loader2 className='w-8 h-8 text-gray-400' />
+          <AlertCircle className='w-8 h-8 text-gray-400' />
         </div>
         <h3 className='text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2'>
           No Text Available
@@ -85,7 +86,7 @@ export function TextFileViewer({
         >
           {generating ? (
             <>
-              <Loader2 className='w-4 h-4 mr-2 animate-spin' />
+              <BorderSpinner size='sm' className='mr-2' />
               Generating...
             </>
           ) : (

@@ -4,13 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import api from '../lib/api';
 import { UNILORIN_FACULTIES } from '../data/unilorin-faculties';
-import {
-  Loader2,
-  GraduationCap,
-  Building,
-  School,
-  AlertTriangle,
-} from 'lucide-react';
+import { GraduationCap, Building, School, AlertTriangle } from 'lucide-react';
+import { BorderSpinner } from './Skeleton';
 
 export default function CompleteProfile() {
   const { user, refreshUser, isLoading } = useAuth();
@@ -63,15 +58,12 @@ export default function CompleteProfile() {
   };
 
   const isProfileComplete =
-    user?.school &&
-    user?.faculty &&
-    user?.department &&
-    user?.yearOfStudy;
+    user?.school && user?.faculty && user?.department && user?.yearOfStudy;
 
   if (isLoading || !user || isProfileComplete) {
     return (
       <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950'>
-        <Loader2 className='w-8 h-8 animate-spin text-primary-600' />
+        <BorderSpinner size='lg' className='text-primary-600' />
       </div>
     );
   }
@@ -233,11 +225,7 @@ export default function CompleteProfile() {
             disabled={loading || !confirmed}
             className='w-full py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary-600/20'
           >
-            {loading ? (
-              <Loader2 className='w-5 h-5 animate-spin' />
-            ) : (
-              'Finish Setup'
-            )}
+            {loading ? <BorderSpinner size='md' /> : 'Finish Setup'}
           </button>
         </form>
       </div>

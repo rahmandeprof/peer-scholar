@@ -5,8 +5,8 @@ import {
   Sparkles,
   MessageSquare,
   List,
-  Loader2,
 } from 'lucide-react';
+import { BorderSpinner } from './Skeleton';
 import { Chatbot } from './Chatbot';
 import { useState } from 'react';
 import api from '../lib/api';
@@ -52,7 +52,12 @@ export function AISidebar({ isOpen, onClose, materialId }: AISidebarProps) {
       let points = res.data;
 
       // Handle object wrapper
-      if (points && typeof points === 'object' && !Array.isArray(points) && points.keyPoints) {
+      if (
+        points &&
+        typeof points === 'object' &&
+        !Array.isArray(points) &&
+        points.keyPoints
+      ) {
         points = points.keyPoints;
       }
 
@@ -212,7 +217,7 @@ export function AISidebar({ isOpen, onClose, materialId }: AISidebarProps) {
 
             {loading && (
               <div className='flex justify-center py-8'>
-                <Loader2 className='w-8 h-8 animate-spin text-primary-600' />
+                <BorderSpinner size='lg' className='text-primary-600' />
               </div>
             )}
 

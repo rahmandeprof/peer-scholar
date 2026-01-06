@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { X, RotateCw, Repeat, Brain, Loader2, Settings, Sparkles, Info, BookOpen, Timer, CheckCircle } from 'lucide-react';
+import {
+  X,
+  RotateCw,
+  Repeat,
+  Brain,
+  Settings,
+  Sparkles,
+  Info,
+  BookOpen,
+  Timer,
+  CheckCircle,
+} from 'lucide-react';
+import { BorderSpinner } from './Skeleton';
 import api from '../lib/api';
 import { useModalBack } from '../hooks/useModalBack';
 
@@ -13,8 +25,10 @@ interface Flashcard {
 }
 
 // Helper to normalize flashcard data
-const getFlashcardFront = (card: Flashcard): string => card.front || card.term || '';
-const getFlashcardBack = (card: Flashcard): string => card.back || card.definition || '';
+const getFlashcardFront = (card: Flashcard): string =>
+  card.front || card.term || '';
+const getFlashcardBack = (card: Flashcard): string =>
+  card.back || card.definition || '';
 
 interface FlashcardModalProps {
   isOpen: boolean;
@@ -49,11 +63,14 @@ export function FlashcardModal({
   // Upgrading status tracking
   const [isUpgrading, setIsUpgrading] = useState(false);
   const pollingRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastOptionsRef = React.useRef<{
-    count?: number;
-    startPage?: number;
-    endPage?: number;
-  } | undefined>(undefined);
+  const lastOptionsRef = React.useRef<
+    | {
+        count?: number;
+        startPage?: number;
+        endPage?: number;
+      }
+    | undefined
+  >(undefined);
 
   // Touch swipe handling for mobile
   const touchStartX = React.useRef<number | null>(null);
@@ -172,12 +189,16 @@ export function FlashcardModal({
 
       // Check for valid flashcard data (should be an array)
       if (!res.data || !Array.isArray(res.data) || res.data.length === 0) {
-        setError('No flashcards could be generated for this material. The content may be too short or not suitable for flashcard generation.');
+        setError(
+          'No flashcards could be generated for this material. The content may be too short or not suitable for flashcard generation.',
+        );
       } else {
         setFlashcards(res.data);
       }
     } catch (err: any) {
-      const message = err.response?.data?.message || 'Failed to generate flashcards. Please try again.';
+      const message =
+        err.response?.data?.message ||
+        'Failed to generate flashcards. Please try again.';
       setError(message);
       console.error('Failed to fetch flashcards:', message);
     } finally {
@@ -203,7 +224,9 @@ export function FlashcardModal({
   const handlePrev = () => {
     setIsFlipped(false);
     setTimeout(() => {
-      setCurrentIndex((prev) => (prev - 1 + flashcards.length) % flashcards.length);
+      setCurrentIndex(
+        (prev) => (prev - 1 + flashcards.length) % flashcards.length,
+      );
     }, 150);
   };
 
@@ -230,13 +253,13 @@ export function FlashcardModal({
         cardIndex: currentIndex,
         quality,
       });
-      setCardsReviewed(prev => prev + 1);
+      setCardsReviewed((prev) => prev + 1);
 
       // Move to next card or finish
       if (currentIndex < flashcards.length - 1) {
         setIsFlipped(false);
         setTimeout(() => {
-          setCurrentIndex(prev => prev + 1);
+          setCurrentIndex((prev) => prev + 1);
         }, 150);
       } else {
         // Session complete - could show summary here
@@ -302,7 +325,10 @@ export function FlashcardModal({
                 {/* Card Count - Touch-friendly stepper */}
                 <div>
                   <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'>
-                    Number of Cards: <span className='text-indigo-600 dark:text-indigo-400 font-bold'>{cardCount}</span>
+                    Number of Cards:{' '}
+                    <span className='text-indigo-600 dark:text-indigo-400 font-bold'>
+                      {cardCount}
+                    </span>
                   </label>
                   <div className='flex items-center gap-3'>
                     <button
@@ -332,7 +358,9 @@ export function FlashcardModal({
                 <details className='group'>
                   <summary className='flex items-center justify-between cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
                     <span>Page Range (Optional)</span>
-                    <span className='text-xs text-gray-400 group-open:hidden'>Expand</span>
+                    <span className='text-xs text-gray-400 group-open:hidden'>
+                      Expand
+                    </span>
                   </summary>
                   <div className='flex items-center gap-3 mt-3'>
                     <input
@@ -362,7 +390,9 @@ export function FlashcardModal({
                   <div className='flex items-start gap-2'>
                     <Info className='w-4 h-4 text-indigo-500 flex-shrink-0 mt-0.5' />
                     <p className='text-xs text-indigo-700 dark:text-indigo-300'>
-                      <strong>Tip:</strong> Flashcards are generated from document segments. Specify a page range to focus on specific sections!
+                      <strong>Tip:</strong> Flashcards are generated from
+                      document segments. Specify a page range to focus on
+                      specific sections!
                     </p>
                   </div>
                 </div>
@@ -390,7 +420,8 @@ export function FlashcardModal({
                   Preparing Material
                 </h3>
                 <p className='text-gray-600 dark:text-gray-400 max-w-sm mx-auto'>
-                  Getting this material ready for smart study. This only happens once.
+                  Getting this material ready for smart study. This only happens
+                  once.
                 </p>
                 <p className='text-sm text-gray-500 animate-pulse'>
                   Please wait a moment...
@@ -400,7 +431,7 @@ export function FlashcardModal({
           ) : loading ? (
             <div className='min-h-[400px] flex flex-col items-center justify-center p-8'>
               <div className='text-center space-y-4'>
-                <Loader2 className='w-12 h-12 animate-spin text-indigo-600 mx-auto' />
+                <BorderSpinner size='xl' className='text-indigo-600 mx-auto' />
                 <p className='text-gray-600 dark:text-gray-400 font-medium'>
                   Analyzing material and creating flashcards...
                 </p>
@@ -412,7 +443,9 @@ export function FlashcardModal({
                 <div className='w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto'>
                   <BookOpen className='w-8 h-8 text-gray-500' />
                 </div>
-                <h3 className='text-lg font-bold text-gray-900 dark:text-gray-100'>Unsupported Document</h3>
+                <h3 className='text-lg font-bold text-gray-900 dark:text-gray-100'>
+                  Unsupported Document
+                </h3>
                 <p className='text-gray-600 dark:text-gray-400 max-w-sm mx-auto'>
                   This document could not be processed for flashcard generation.
                 </p>
@@ -428,11 +461,14 @@ export function FlashcardModal({
             <div className='min-h-[400px] flex flex-col items-center justify-center p-8'>
               <div className='text-center space-y-4'>
                 <div className='w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto animate-pulse'>
-                  <Loader2 className='w-8 h-8 text-amber-600 animate-spin' />
+                  <BorderSpinner size='lg' className='text-amber-600' />
                 </div>
-                <h3 className='text-lg font-bold text-gray-900 dark:text-gray-100'>Still Processing</h3>
+                <h3 className='text-lg font-bold text-gray-900 dark:text-gray-100'>
+                  Still Processing
+                </h3>
                 <p className='text-gray-600 dark:text-gray-400 max-w-sm mx-auto'>
-                  This material is still being analyzed. Please wait a moment and try again.
+                  This material is still being analyzed. Please wait a moment
+                  and try again.
                 </p>
                 <button
                   onClick={() => fetchFlashcards({ count: cardCount })}
@@ -448,7 +484,9 @@ export function FlashcardModal({
                 <div className='w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto text-red-600'>
                   <X className='w-8 h-8' />
                 </div>
-                <h3 className='text-lg font-bold text-gray-900 dark:text-gray-100'>Generation Failed</h3>
+                <h3 className='text-lg font-bold text-gray-900 dark:text-gray-100'>
+                  Generation Failed
+                </h3>
                 <p className='text-gray-600 dark:text-gray-400 max-w-sm mx-auto'>
                   {error}
                 </p>
@@ -469,11 +507,15 @@ export function FlashcardModal({
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
                 className='w-full max-w-lg aspect-[3/2] perspective-1000 cursor-pointer touch-pan-y select-none'
-                style={{ transform: `translateX(${swipeOffset}px)`, transition: swipeOffset === 0 ? 'transform 0.2s' : 'none' }}
+                style={{
+                  transform: `translateX(${swipeOffset}px)`,
+                  transition: swipeOffset === 0 ? 'transform 0.2s' : 'none',
+                }}
               >
                 <div
-                  className={`relative w-full h-full transition-transform duration-500 transform-style-preserve-3d ${isFlipped ? 'rotate-y-180' : ''
-                    }`}
+                  className={`relative w-full h-full transition-transform duration-500 transform-style-preserve-3d ${
+                    isFlipped ? 'rotate-y-180' : ''
+                  }`}
                   style={{
                     transformStyle: 'preserve-3d',
                     transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0)',
@@ -484,11 +526,15 @@ export function FlashcardModal({
                     className='absolute inset-0 bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 flex flex-col items-center justify-center backface-hidden border-2 border-indigo-100 dark:border-indigo-900/50'
                     style={{ backfaceVisibility: 'hidden' }}
                   >
-                    <p className='text-xs text-indigo-500 uppercase tracking-wide mb-4'>Term</p>
+                    <p className='text-xs text-indigo-500 uppercase tracking-wide mb-4'>
+                      Term
+                    </p>
                     <p className='text-xl font-bold text-center text-gray-900 dark:text-white'>
                       {getFlashcardFront(flashcards[currentIndex])}
                     </p>
-                    <p className='text-sm text-gray-400 mt-6'>Tap to flip · Swipe for next</p>
+                    <p className='text-sm text-gray-400 mt-6'>
+                      Tap to flip · Swipe for next
+                    </p>
                   </div>
                   {/* Back */}
                   <div
@@ -498,7 +544,9 @@ export function FlashcardModal({
                       transform: 'rotateY(180deg)',
                     }}
                   >
-                    <p className='text-xs text-indigo-200 uppercase tracking-wide mb-4'>Definition</p>
+                    <p className='text-xs text-indigo-200 uppercase tracking-wide mb-4'>
+                      Definition
+                    </p>
                     <p className='text-lg font-medium text-center text-white'>
                       {getFlashcardBack(flashcards[currentIndex])}
                     </p>
@@ -511,10 +559,11 @@ export function FlashcardModal({
                 {/* Review Mode Toggle */}
                 <button
                   onClick={() => setReviewMode(!reviewMode)}
-                  className={`text-xs px-3 py-1 rounded-full transition-colors ${reviewMode
-                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                    : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
-                    }`}
+                  className={`text-xs px-3 py-1 rounded-full transition-colors ${
+                    reviewMode
+                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                      : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                  }`}
                 >
                   <Timer className='w-3 h-3 inline mr-1' />
                   {reviewMode ? 'Review Mode ON' : 'Study Mode'}

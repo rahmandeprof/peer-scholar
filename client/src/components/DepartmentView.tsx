@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
-import { BookOpen, FileText, Upload, Loader2 } from 'lucide-react';
+import { BookOpen, FileText, Upload } from 'lucide-react';
 import { Link, useOutletContext } from 'react-router-dom';
-import { MaterialCardSkeleton } from './Skeleton';
+import { MaterialCardSkeleton, BorderSpinner } from './Skeleton';
 import { EmptyState } from './EmptyState';
 import { MaterialCard } from './MaterialCard';
 import { CollectionModal } from './CollectionModal';
@@ -56,7 +56,9 @@ const DepartmentView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
-  const [selectedMaterialId, setSelectedMaterialId] = useState<string | undefined>(undefined);
+  const [selectedMaterialId, setSelectedMaterialId] = useState<
+    string | undefined
+  >(undefined);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -108,24 +110,29 @@ const DepartmentView: React.FC = () => {
     }
   };
 
-  const fetchRecent = useCallback(async (page: number = 1, reset: boolean = false) => {
-    try {
-      const res = await axios.get<PaginatedResponse>(`/materials?page=${page}&limit=12`);
-      const data = res.data;
+  const fetchRecent = useCallback(
+    async (page: number = 1, reset: boolean = false) => {
+      try {
+        const res = await axios.get<PaginatedResponse>(
+          `/materials?page=${page}&limit=12`,
+        );
+        const data = res.data;
 
-      if (reset) {
-        setRecentMaterials(data.materials);
-      } else {
-        setRecentMaterials(prev => [...prev, ...data.materials]);
+        if (reset) {
+          setRecentMaterials(data.materials);
+        } else {
+          setRecentMaterials((prev) => [...prev, ...data.materials]);
+        }
+
+        setCurrentPage(data.page);
+        setTotalPages(data.totalPages);
+        setTotalMaterials(data.total);
+      } catch {
+        // console.error('Failed to fetch recent materials', error);
       }
-
-      setCurrentPage(data.page);
-      setTotalPages(data.totalPages);
-      setTotalMaterials(data.total);
-    } catch {
-      // console.error('Failed to fetch recent materials', error);
-    }
-  }, []);
+    },
+    [],
+  );
 
   const loadMore = async () => {
     if (currentPage >= totalPages || loadingMore) return;
@@ -138,7 +145,7 @@ const DepartmentView: React.FC = () => {
   const handleDeleteMaterial = (id: string) => {
     setTrendingMaterials((prev) => prev.filter((m) => m.id !== id));
     setRecentMaterials((prev) => prev.filter((m) => m.id !== id));
-    setTotalMaterials(prev => prev - 1);
+    setTotalMaterials((prev) => prev - 1);
   };
 
   if (loading) {
@@ -172,7 +179,7 @@ const DepartmentView: React.FC = () => {
   const departmentName =
     typeof user.department === 'string'
       ? user.department
-      : user.department.name ?? '';
+      : (user.department.name ?? '');
 
   return (
     <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
@@ -391,7 +398,7 @@ const DepartmentView: React.FC = () => {
           >
             {loadingMore ? (
               <>
-                <Loader2 className='h-4 w-4 mr-2 animate-spin' />
+                <BorderSpinner size='sm' className='mr-2' />
                 Loading...
               </>
             ) : (

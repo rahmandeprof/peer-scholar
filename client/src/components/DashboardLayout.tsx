@@ -13,8 +13,8 @@ import {
   Shield,
   Moon,
   Sun,
-  Loader2,
 } from 'lucide-react';
+import { BorderSpinner } from './Skeleton';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { StudySessionGoals } from './StudySessionGoals';
@@ -27,14 +27,18 @@ import { ConfirmationModal } from './ConfirmationModal';
 import { FeedbackModal } from './FeedbackModal';
 
 // Lazy-loaded heavy modals for better code splitting
-const UploadModal = lazy(() => import('./UploadModal').then(m => ({ default: m.UploadModal })));
-const UserProfile = lazy(() => import('./UserProfile').then(m => ({ default: m.UserProfile })));
+const UploadModal = lazy(() =>
+  import('./UploadModal').then((m) => ({ default: m.UploadModal })),
+);
+const UserProfile = lazy(() =>
+  import('./UserProfile').then((m) => ({ default: m.UserProfile })),
+);
 
 // Loading spinner for lazy modals
 const ModalLoadingFallback = () => (
   <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm'>
     <div className='bg-white dark:bg-gray-800 rounded-xl p-6 flex flex-col items-center gap-3'>
-      <Loader2 className='w-8 h-8 animate-spin text-primary-600' />
+      <BorderSpinner size='lg' className='text-primary-600' />
       <p className='text-sm text-gray-500 dark:text-gray-400'>Loading...</p>
     </div>
   </div>
@@ -59,11 +63,11 @@ export function DashboardLayout() {
   const { toggleTheme } = useTheme();
   const navigate = useNavigate();
 
-
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center space-x-3 px-3 py-2 rounded-xl transition-all duration-200 ${isActive
-      ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/30'
-      : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
+    `flex items-center space-x-3 px-3 py-2 rounded-xl transition-all duration-200 ${
+      isActive
+        ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/30'
+        : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
     }`;
 
   const confirmLogout = () => {
@@ -162,7 +166,9 @@ export function DashboardLayout() {
                   to='/tools/gp-calculator'
                   className={navLinkClass}
                   onClick={() => {
-                    const hasSeen = localStorage.getItem('has_seen_gp_calculator');
+                    const hasSeen = localStorage.getItem(
+                      'has_seen_gp_calculator',
+                    );
                     if (!hasSeen) {
                       localStorage.setItem('has_seen_gp_calculator', 'true');
                       setShowGpSpotlight(true);
@@ -190,9 +196,10 @@ export function DashboardLayout() {
                       key={chat.id}
                       to={`/chat/${chat.id}`}
                       className={({ isActive }) =>
-                        `block px-3 py-2 rounded-xl text-sm truncate transition-all duration-200 ${isActive
-                          ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-                          : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300'
+                        `block px-3 py-2 rounded-xl text-sm truncate transition-all duration-200 ${
+                          isActive
+                            ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
+                            : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300'
                         }`
                       }
                     >
@@ -410,8 +417,8 @@ export function DashboardLayout() {
               refreshTrigger,
             }}
           />
-        </div >
-      </main >
+        </div>
+      </main>
 
       <BottomNav />
 
@@ -426,7 +433,10 @@ export function DashboardLayout() {
       )}
       {profileOpen && (
         <Suspense fallback={<ModalLoadingFallback />}>
-          <UserProfile onClose={() => setProfileOpen(false)} onFeedbackOpen={() => setFeedbackModalOpen(true)} />
+          <UserProfile
+            onClose={() => setProfileOpen(false)}
+            onFeedbackOpen={() => setFeedbackModalOpen(true)}
+          />
         </Suspense>
       )}
       <WelcomeModal />
@@ -457,6 +467,6 @@ export function DashboardLayout() {
         isOpen={feedbackModalOpen}
         onClose={() => setFeedbackModalOpen(false)}
       />
-    </div >
+    </div>
   );
 }

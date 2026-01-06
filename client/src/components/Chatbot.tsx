@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Send, Loader2, Paperclip, X, Brain } from 'lucide-react';
+import { Send, Paperclip, X, Brain } from 'lucide-react';
+import { BorderSpinner } from './Skeleton';
 import api from '../lib/api';
 import { CompactTimer } from './CompactTimer';
 import { useToast } from '../contexts/ToastContext';
@@ -249,10 +250,11 @@ export function Chatbot({
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[85%] md:max-w-[70%] px-4 py-3 rounded-2xl ${msg.role === 'user'
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 shadow-sm'
-                  }`}
+                className={`max-w-[85%] md:max-w-[70%] px-4 py-3 rounded-2xl ${
+                  msg.role === 'user'
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 shadow-sm'
+                }`}
               >
                 {msg.content}
               </div>
@@ -262,7 +264,7 @@ export function Chatbot({
         {loading && (
           <div className='flex justify-start'>
             <div className='bg-white dark:bg-gray-800 px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm'>
-              <Loader2 className='w-5 h-5 animate-spin text-gray-500' />
+              <BorderSpinner size='md' className='text-gray-500' />
             </div>
           </div>
         )}
@@ -288,10 +290,11 @@ export function Chatbot({
         <div className='flex space-x-2 max-w-5xl mx-auto w-full items-end'>
           <button
             onClick={() => document.getElementById('chat-upload')?.click()}
-            className={`p-3 rounded-xl transition-colors shrink-0 ${attachedFile
-              ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
-              : 'text-gray-500 hover:text-primary-600 hover:bg-gray-100 dark:hover:bg-gray-800'
-              }`}
+            className={`p-3 rounded-xl transition-colors shrink-0 ${
+              attachedFile
+                ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
+                : 'text-gray-500 hover:text-primary-600 hover:bg-gray-100 dark:hover:bg-gray-800'
+            }`}
             title='Attach file'
           >
             <Paperclip className='w-5 h-5' />

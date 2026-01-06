@@ -5,31 +5,76 @@ import { ToastProvider } from './contexts/ToastContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NetworkProvider } from './contexts/NetworkContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { Loader2 } from 'lucide-react';
+import { BorderSpinner } from './components/Skeleton';
 import { lazyWithRetry, lazyWithRetryNamed } from './lib/lazyWithRetry';
 
 // Lazy-loaded components with retry support for chunk load failures after deploys
 // Auth components - loaded on initial page or specific auth routes
 const Login = lazyWithRetryNamed(() => import('./components/Login'), 'Login');
-const Signup = lazyWithRetryNamed(() => import('./components/Signup'), 'Signup');
-const GoogleCallback = lazyWithRetryNamed(() => import('./components/GoogleCallback'), 'GoogleCallback');
-const VerifyEmail = lazyWithRetryNamed(() => import('./components/VerifyEmail'), 'VerifyEmail');
-const ForgotPassword = lazyWithRetryNamed(() => import('./components/ForgotPassword'), 'ForgotPassword');
-const ResetPassword = lazyWithRetryNamed(() => import('./components/ResetPassword'), 'ResetPassword');
-const CompleteProfile = lazyWithRetry(() => import('./components/CompleteProfile'));
+const Signup = lazyWithRetryNamed(
+  () => import('./components/Signup'),
+  'Signup',
+);
+const GoogleCallback = lazyWithRetryNamed(
+  () => import('./components/GoogleCallback'),
+  'GoogleCallback',
+);
+const VerifyEmail = lazyWithRetryNamed(
+  () => import('./components/VerifyEmail'),
+  'VerifyEmail',
+);
+const ForgotPassword = lazyWithRetryNamed(
+  () => import('./components/ForgotPassword'),
+  'ForgotPassword',
+);
+const ResetPassword = lazyWithRetryNamed(
+  () => import('./components/ResetPassword'),
+  'ResetPassword',
+);
+const CompleteProfile = lazyWithRetry(
+  () => import('./components/CompleteProfile'),
+);
 const VerifyPending = lazyWithRetry(() => import('./components/VerifyPending'));
 
 // Dashboard layout and main components
-const DashboardLayout = lazyWithRetryNamed(() => import('./components/DashboardLayout'), 'DashboardLayout');
-const AcademicControlCenter = lazyWithRetryNamed(() => import('./components/AcademicControlCenter'), 'AcademicControlCenter');
-const DepartmentView = lazyWithRetry(() => import('./components/DepartmentView'));
-const Chatbot = lazyWithRetryNamed(() => import('./components/Chatbot'), 'Chatbot');
-const CourseView = lazyWithRetryNamed(() => import('./components/CourseView'), 'CourseView');
-const MaterialView = lazyWithRetryNamed(() => import('./components/MaterialView'), 'MaterialView');
-const StudyPartner = lazyWithRetryNamed(() => import('./components/StudyPartner'), 'StudyPartner');
-const TargetGPCalculator = lazyWithRetryNamed(() => import('./components/TargetGPCalculator'), 'TargetGPCalculator');
-const QuizArena = lazyWithRetryNamed(() => import('./components/QuizArena'), 'QuizArena');
-const AdminDashboard = lazyWithRetry(() => import('./components/admin/AdminDashboard'));
+const DashboardLayout = lazyWithRetryNamed(
+  () => import('./components/DashboardLayout'),
+  'DashboardLayout',
+);
+const AcademicControlCenter = lazyWithRetryNamed(
+  () => import('./components/AcademicControlCenter'),
+  'AcademicControlCenter',
+);
+const DepartmentView = lazyWithRetry(
+  () => import('./components/DepartmentView'),
+);
+const Chatbot = lazyWithRetryNamed(
+  () => import('./components/Chatbot'),
+  'Chatbot',
+);
+const CourseView = lazyWithRetryNamed(
+  () => import('./components/CourseView'),
+  'CourseView',
+);
+const MaterialView = lazyWithRetryNamed(
+  () => import('./components/MaterialView'),
+  'MaterialView',
+);
+const StudyPartner = lazyWithRetryNamed(
+  () => import('./components/StudyPartner'),
+  'StudyPartner',
+);
+const TargetGPCalculator = lazyWithRetryNamed(
+  () => import('./components/TargetGPCalculator'),
+  'TargetGPCalculator',
+);
+const QuizArena = lazyWithRetryNamed(
+  () => import('./components/QuizArena'),
+  'QuizArena',
+);
+const AdminDashboard = lazyWithRetry(
+  () => import('./components/admin/AdminDashboard'),
+);
 const AdminRoute = lazyWithRetry(() => import('./components/AdminRoute'));
 const NotFound = lazyWithRetry(() => import('./components/NotFound'));
 
@@ -37,8 +82,10 @@ const NotFound = lazyWithRetry(() => import('./components/NotFound'));
 const RouteLoadingFallback = () => (
   <div className='min-h-screen flex items-center justify-center'>
     <div className='flex flex-col items-center gap-3'>
-      <Loader2 className='w-8 h-8 animate-spin text-primary-600' />
-      <p className='text-sm text-gray-500 dark:text-gray-400 animate-pulse'>Loading...</p>
+      <BorderSpinner size='2xl' className='text-primary-600' />
+      <p className='text-sm text-gray-500 dark:text-gray-400 animate-pulse'>
+        Loading...
+      </p>
     </div>
   </div>
 );
@@ -49,7 +96,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (isLoading) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
-        <Loader2 className='w-8 h-8 animate-spin text-primary-600' />
+        <BorderSpinner size='2xl' className='text-primary-600' />
       </div>
     );
   }
@@ -65,7 +112,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // 1. Users who are already verified
   // 2. Google sign-in users (they're auto-verified)
   // 3. Allow access to verify-pending page even if not verified
-  const needsVerification = !user?.isVerified && !user?.googleId && user?.verificationToken;
+  const needsVerification =
+    !user?.isVerified && !user?.googleId && user?.verificationToken;
 
   if (needsVerification && location.pathname !== '/verify-pending') {
     return <Navigate to='/verify-pending' replace />;
@@ -77,7 +125,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isProfileComplete =
     user?.department && user?.faculty && user?.yearOfStudy;
 
-  if (!isProfileComplete && location.pathname !== '/complete-profile' && location.pathname !== '/verify-pending') {
+  if (
+    !isProfileComplete &&
+    location.pathname !== '/complete-profile' &&
+    location.pathname !== '/verify-pending'
+  ) {
     return <Navigate to='/complete-profile' replace />;
   }
 
@@ -113,11 +165,10 @@ function AppContent() {
   if (isLoading) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
-        <Loader2 className='w-8 h-8 animate-spin text-primary-600' />
+        <BorderSpinner size='2xl' className='text-primary-600' />
       </div>
     );
   }
-
 
   return (
     <div className='min-h-screen text-gray-900 dark:text-gray-100'>
@@ -179,15 +230,21 @@ function AppContent() {
             <Route path='/chat/:id' element={<Chatbot />} />
             <Route path='/courses/:courseId' element={<CourseView />} />
             <Route path='/materials/:id' element={<MaterialView />} />
-            <Route path='/tools/gp-calculator' element={<TargetGPCalculator />} />
+            <Route
+              path='/tools/gp-calculator'
+              element={<TargetGPCalculator />}
+            />
             <Route path='/arena/:challengeId' element={<QuizArena />} />
-            <Route path='/admin' element={
-              <Suspense fallback={<RouteLoadingFallback />}>
-                <AdminRoute>
-                  <AdminDashboard />
-                </AdminRoute>
-              </Suspense>
-            } />
+            <Route
+              path='/admin'
+              element={
+                <Suspense fallback={<RouteLoadingFallback />}>
+                  <AdminRoute>
+                    <AdminDashboard />
+                  </AdminRoute>
+                </Suspense>
+              }
+            />
           </Route>
 
           <Route
@@ -233,10 +290,19 @@ function AppContent() {
 
 function App() {
   // Lazy load InstallPrompt, OfflineIndicator, SyncIndicator, and UpdatePrompt
-  const InstallPrompt = lazyWithRetry(() => import('./components/InstallPrompt'));
-  const OfflineIndicator = lazyWithRetry(() => import('./components/OfflineIndicator'));
-  const SyncIndicator = lazyWithRetry(() => import('./components/SyncIndicator'));
-  const UpdatePrompt = lazyWithRetryNamed(() => import('./components/UpdatePrompt'), 'UpdatePrompt');
+  const InstallPrompt = lazyWithRetry(
+    () => import('./components/InstallPrompt'),
+  );
+  const OfflineIndicator = lazyWithRetry(
+    () => import('./components/OfflineIndicator'),
+  );
+  const SyncIndicator = lazyWithRetry(
+    () => import('./components/SyncIndicator'),
+  );
+  const UpdatePrompt = lazyWithRetryNamed(
+    () => import('./components/UpdatePrompt'),
+    'UpdatePrompt',
+  );
 
   return (
     <ErrorBoundary>

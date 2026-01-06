@@ -4,11 +4,11 @@ import {
   Brain,
   Key,
   X,
-  Loader2,
   Clipboard,
   Check,
   AlertCircle,
 } from 'lucide-react';
+import { BorderSpinner } from './Skeleton';
 import api from '../lib/api';
 
 interface ContextMenuProps {
@@ -331,7 +331,7 @@ export function ContextMenu({ onClose }: ContextMenuProps) {
             className='flex items-center justify-center md:justify-start px-3 py-3 md:py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors w-full md:w-auto'
           >
             {loading ? (
-              <Loader2 className='w-4 h-4 animate-spin' />
+              <BorderSpinner size='sm' />
             ) : (
               <Sparkles className='w-4 h-4 mr-2 text-yellow-500' />
             )}
@@ -344,7 +344,7 @@ export function ContextMenu({ onClose }: ContextMenuProps) {
             className='flex items-center justify-center md:justify-start px-3 py-3 md:py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors w-full md:w-auto'
           >
             {loading ? (
-              <Loader2 className='w-4 h-4 animate-spin' />
+              <BorderSpinner size='sm' />
             ) : (
               <Brain className='w-4 h-4 mr-2 text-purple-500' />
             )}
@@ -357,7 +357,7 @@ export function ContextMenu({ onClose }: ContextMenuProps) {
             className='flex items-center justify-center md:justify-start px-3 py-3 md:py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors w-full md:w-auto'
           >
             {loading ? (
-              <Loader2 className='w-4 h-4 animate-spin' />
+              <BorderSpinner size='sm' />
             ) : (
               <Key className='w-4 h-4 mr-2 text-blue-500' />
             )}
@@ -370,7 +370,7 @@ export function ContextMenu({ onClose }: ContextMenuProps) {
             className='flex items-center justify-center md:justify-start px-3 py-3 md:py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors w-full md:w-auto'
           >
             {loading ? (
-              <Loader2 className='w-4 h-4 animate-spin' />
+              <BorderSpinner size='sm' />
             ) : (
               <Clipboard className='w-4 h-4 mr-2 text-green-500' />
             )}

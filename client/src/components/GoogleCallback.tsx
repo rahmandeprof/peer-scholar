@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import axios from '../lib/api';
-import { Loader2 } from 'lucide-react';
+import { BorderSpinner } from './Skeleton';
 
 export function GoogleCallback() {
   const [searchParams] = useSearchParams();
@@ -16,7 +16,6 @@ export function GoogleCallback() {
     processed.current = true;
 
     const token = searchParams.get('token');
-
 
     if (token) {
       // Fetch full profile to ensure we have department/faculty info
@@ -60,7 +59,7 @@ export function GoogleCallback() {
   return (
     <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950'>
       <div className='text-center'>
-        <Loader2 className='w-8 h-8 animate-spin text-primary-600 mx-auto mb-4' />
+        <BorderSpinner size='lg' className='text-primary-600 mx-auto mb-4' />
         <p className='text-gray-600 dark:text-gray-400'>
           Completing sign in...
         </p>

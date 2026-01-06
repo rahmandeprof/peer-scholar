@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNetwork } from '../contexts/NetworkContext';
-import { ImageOff, Loader2 } from 'lucide-react';
+import { ImageOff } from 'lucide-react';
+import { BorderSpinner } from './Skeleton';
 
 interface OptimizedImageProps
   extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -69,7 +70,7 @@ export const OptimizedImage = ({
     <div className={`relative overflow-hidden ${className}`}>
       {loading && (
         <div className='absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800 z-10'>
-          <Loader2 className='w-6 h-6 text-gray-400 animate-spin' />
+          <BorderSpinner size='lg' className='text-gray-400' />
         </div>
       )}
       <img

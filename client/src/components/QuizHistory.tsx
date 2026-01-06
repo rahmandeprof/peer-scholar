@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Trophy, Calendar, BookOpen, Loader2, AlertCircle } from 'lucide-react';
+import { Trophy, Calendar, BookOpen, AlertCircle } from 'lucide-react';
+import { Skeleton } from './Skeleton';
 import api from '../lib/api';
 
 interface QuizResult {
@@ -35,8 +36,21 @@ export function QuizHistory() {
 
   if (loading) {
     return (
-      <div className='flex justify-center py-8'>
-        <Loader2 className='w-6 h-6 animate-spin text-primary-600' />
+      <div className='space-y-4'>
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className='bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 flex items-center justify-between border border-gray-100 dark:border-gray-800'
+          >
+            <div className='flex items-center space-x-4 w-full'>
+              <Skeleton className='w-12 h-12 rounded-full flex-shrink-0' />
+              <div className='flex-1 space-y-2'>
+                <Skeleton className='h-4 w-3/4' />
+                <Skeleton className='h-3 w-1/2' />
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     );
   }

@@ -5,7 +5,6 @@ import {
   AlertCircle,
   Trophy,
   ArrowRight,
-  Loader2,
   Sparkles,
   Lightbulb,
   Settings,
@@ -17,8 +16,13 @@ import {
 } from 'lucide-react';
 import api from '../lib/api';
 import { useModalBack } from '../hooks/useModalBack';
-import { cacheQuiz, getCachedQuiz, savePendingResult } from '../lib/offlineQuizStore';
+import {
+  cacheQuiz,
+  getCachedQuiz,
+  savePendingResult,
+} from '../lib/offlineQuizStore';
 import { useToast } from '../contexts/ToastContext';
+import { BorderSpinner } from './Skeleton';
 
 interface QuizModalProps {
   isOpen: boolean;
@@ -32,8 +36,8 @@ interface Question {
   type?: string;
   question: string;
   options: string[];
-  correctAnswer?: string;  // Old format
-  answer?: string;         // New format
+  correctAnswer?: string; // Old format
+  answer?: string; // New format
   explanation?: string;
   hint?: string;
 }
@@ -41,7 +45,8 @@ interface Question {
 type Difficulty = 'beginner' | 'intermediate' | 'advanced';
 
 // Helper to get correct answer from either format
-const getCorrectAnswer = (q: Question): string => q.answer || q.correctAnswer || '';
+const getCorrectAnswer = (q: Question): string =>
+  q.answer || q.correctAnswer || '';
 
 export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
   useModalBack(isOpen, onClose, 'quiz-modal');
@@ -71,12 +76,15 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
   // Upgrading status tracking
   const [isUpgrading, setIsUpgrading] = useState(false);
   const pollingRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastOptionsRef = React.useRef<{
-    startPage?: number;
-    endPage?: number;
-    diff?: Difficulty;
-    count?: number;
-  } | undefined>(undefined);
+  const lastOptionsRef = React.useRef<
+    | {
+        startPage?: number;
+        endPage?: number;
+        diff?: Difficulty;
+        count?: number;
+      }
+    | undefined
+  >(undefined);
 
   // Cleanup polling on unmount or close
   useEffect(() => {
@@ -166,7 +174,9 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
 
       // Check for valid quiz data (should be an array)
       if (!res.data || !Array.isArray(res.data) || res.data.length === 0) {
-        setError('No questions could be generated for this material. The content may be too short or not suitable for quiz generation.');
+        setError(
+          'No questions could be generated for this material. The content may be too short or not suitable for quiz generation.',
+        );
       } else {
         setQuestions(res.data);
         // Cache for offline use (auto-cache strategy)
@@ -174,18 +184,26 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
       }
     } catch (err: any) {
       // If offline or network error, try loading from cache
-      if (!navigator.onLine || err.message?.includes('Network') || err.code === 'ERR_NETWORK') {
+      if (
+        !navigator.onLine ||
+        err.message?.includes('Network') ||
+        err.code === 'ERR_NETWORK'
+      ) {
         console.log('Offline or network error, trying cache...');
         const cached = await getCachedQuiz(materialId);
         if (cached) {
           setQuestions(cached.questions);
           setIsOfflineMode(true);
-          console.log(`Loaded ${cached.questions.length} cached questions for offline use`);
+          console.log(
+            `Loaded ${cached.questions.length} cached questions for offline use`,
+          );
           return;
         }
       }
 
-      const message = err.response?.data?.message || 'Failed to generate quiz. Please try again.';
+      const message =
+        err.response?.data?.message ||
+        'Failed to generate quiz. Please try again.';
       setError(message);
       console.error('Failed to fetch quiz:', message);
     } finally {
@@ -198,14 +216,20 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
   const handleStartQuiz = () => {
     const start = pageStart ? parseInt(pageStart) : undefined;
     const end = pageEnd ? parseInt(pageEnd) : undefined;
-    fetchQuiz({ startPage: start, endPage: end, diff: difficulty, count: questionCount });
+    fetchQuiz({
+      startPage: start,
+      endPage: end,
+      diff: difficulty,
+      count: questionCount,
+    });
   };
 
   const handleOptionSelect = (option: string) => {
     if (selectedOption) return; // Prevent changing answer
     setSelectedOption(option);
 
-    const correct = option === getCorrectAnswer(questions[currentQuestionIndex]);
+    const correct =
+      option === getCorrectAnswer(questions[currentQuestionIndex]);
     setIsCorrect(correct);
 
     if (correct) {
@@ -228,7 +252,9 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
         await savePendingResult(materialId, finalScore, questions.length);
         console.log('Quiz result saved locally for offline sync');
       } else {
-        toast.error('Failed to save quiz result. Your score may not be recorded.');
+        toast.error(
+          'Failed to save quiz result. Your score may not be recorded.',
+        );
       }
     }
   };
@@ -325,9 +351,24 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
                   </label>
                   <div className='grid grid-cols-3 gap-2 md:gap-3'>
                     {[
-                      { value: 'beginner', label: 'Easy', icon: BookOpen, color: 'green' },
-                      { value: 'intermediate', label: 'Medium', icon: Target, color: 'yellow' },
-                      { value: 'advanced', label: 'Hard', icon: Zap, color: 'red' },
+                      {
+                        value: 'beginner',
+                        label: 'Easy',
+                        icon: BookOpen,
+                        color: 'green',
+                      },
+                      {
+                        value: 'intermediate',
+                        label: 'Medium',
+                        icon: Target,
+                        color: 'yellow',
+                      },
+                      {
+                        value: 'advanced',
+                        label: 'Hard',
+                        icon: Zap,
+                        color: 'red',
+                      },
                     ].map((option) => {
                       const Icon = option.icon;
                       const isSelected = difficulty === option.value;
@@ -346,11 +387,17 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
                       return (
                         <button
                           key={option.value}
-                          onClick={() => setDifficulty(option.value as Difficulty)}
+                          onClick={() =>
+                            setDifficulty(option.value as Difficulty)
+                          }
                           className={`flex flex-col items-center p-3 md:p-4 rounded-xl border-2 transition-all active:scale-95 ${colorClasses}`}
                         >
-                          <Icon className={`w-5 h-5 md:w-6 md:h-6 mb-1 ${isSelected ? '' : 'text-gray-400'}`} />
-                          <span className={`text-xs md:text-sm font-medium ${isSelected ? '' : 'text-gray-600 dark:text-gray-400'}`}>
+                          <Icon
+                            className={`w-5 h-5 md:w-6 md:h-6 mb-1 ${isSelected ? '' : 'text-gray-400'}`}
+                          />
+                          <span
+                            className={`text-xs md:text-sm font-medium ${isSelected ? '' : 'text-gray-600 dark:text-gray-400'}`}
+                          >
                             {option.label}
                           </span>
                         </button>
@@ -362,11 +409,16 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
                 {/* Question Count - Touch-friendly stepper */}
                 <div>
                   <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'>
-                    Number of Questions: <span className='text-purple-600 dark:text-purple-400 font-bold'>{questionCount}</span>
+                    Number of Questions:{' '}
+                    <span className='text-purple-600 dark:text-purple-400 font-bold'>
+                      {questionCount}
+                    </span>
                   </label>
                   <div className='flex items-center gap-3'>
                     <button
-                      onClick={() => setQuestionCount(Math.max(3, questionCount - 1))}
+                      onClick={() =>
+                        setQuestionCount(Math.max(3, questionCount - 1))
+                      }
                       className='w-12 h-12 rounded-xl border-2 border-gray-200 dark:border-gray-700 flex items-center justify-center text-xl font-bold text-gray-600 dark:text-gray-400 hover:border-purple-400 active:scale-95 transition-all'
                     >
                       −
@@ -376,11 +428,15 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
                       min='3'
                       max='15'
                       value={questionCount}
-                      onChange={(e) => setQuestionCount(parseInt(e.target.value))}
+                      onChange={(e) =>
+                        setQuestionCount(parseInt(e.target.value))
+                      }
                       className='flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-600'
                     />
                     <button
-                      onClick={() => setQuestionCount(Math.min(15, questionCount + 1))}
+                      onClick={() =>
+                        setQuestionCount(Math.min(15, questionCount + 1))
+                      }
                       className='w-12 h-12 rounded-xl border-2 border-gray-200 dark:border-gray-700 flex items-center justify-center text-xl font-bold text-gray-600 dark:text-gray-400 hover:border-purple-400 active:scale-95 transition-all'
                     >
                       +
@@ -392,7 +448,9 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
                 <details className='group'>
                   <summary className='flex items-center justify-between cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
                     <span>Page Range (Optional)</span>
-                    <span className='text-xs text-gray-400 group-open:hidden'>Expand</span>
+                    <span className='text-xs text-gray-400 group-open:hidden'>
+                      Expand
+                    </span>
                   </summary>
                   <div className='flex items-center gap-3 mt-3'>
                     <input
@@ -422,7 +480,9 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
                   <div className='flex items-start gap-2'>
                     <Info className='w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5' />
                     <p className='text-xs text-blue-700 dark:text-blue-300'>
-                      <strong>Tip:</strong> Questions are generated from document segments. Try different difficulty levels for variety!
+                      <strong>Tip:</strong> Questions are generated from
+                      document segments. Try different difficulty levels for
+                      variety!
                     </p>
                   </div>
                 </div>
@@ -456,7 +516,10 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
             <div className='flex flex-col items-center justify-center py-20'>
               <div className='relative'>
                 <div className='absolute inset-0 bg-purple-500 blur-xl opacity-20 rounded-full animate-pulse'></div>
-                <Loader2 className='w-12 h-12 text-purple-600 animate-spin relative z-10' />
+                <BorderSpinner
+                  size='xl'
+                  className='text-purple-600 relative z-10'
+                />
               </div>
               <p className='mt-6 text-gray-600 dark:text-gray-400 font-medium animate-pulse'>
                 Generating your quiz...
@@ -567,12 +630,13 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
                   {questions.map((_, idx) => (
                     <div
                       key={idx}
-                      className={`h-2 w-8 rounded-full transition-all duration-300 ${idx < currentQuestionIndex
-                        ? 'bg-purple-600'
-                        : idx === currentQuestionIndex
-                          ? 'bg-purple-400 w-12'
-                          : 'bg-gray-200 dark:bg-gray-700'
-                        }`}
+                      className={`h-2 w-8 rounded-full transition-all duration-300 ${
+                        idx < currentQuestionIndex
+                          ? 'bg-purple-600'
+                          : idx === currentQuestionIndex
+                            ? 'bg-purple-400 w-12'
+                            : 'bg-gray-200 dark:bg-gray-700'
+                      }`}
                     />
                   ))}
                 </div>
@@ -639,35 +703,48 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
               </div>
 
               {/* Explanation Display */}
-              {selectedOption && questions[currentQuestionIndex].explanation && (
-                <div className={`p-4 rounded-xl mb-6 animate-slide-in ${isCorrect
-                  ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
-                  : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800'
-                  }`}>
-                  <div className='flex items-start gap-3'>
-                    <div className={`p-2 rounded-lg ${isCorrect
-                      ? 'bg-green-100 dark:bg-green-800/30'
-                      : 'bg-amber-100 dark:bg-amber-800/30'
-                      }`}>
-                      <Lightbulb className={`w-5 h-5 ${isCorrect
-                        ? 'text-green-600 dark:text-green-400'
-                        : 'text-amber-600 dark:text-amber-400'
-                        }`} />
-                    </div>
-                    <div>
-                      <p className={`font-medium mb-1 ${isCorrect
-                        ? 'text-green-700 dark:text-green-300'
-                        : 'text-amber-700 dark:text-amber-300'
-                        }`}>
-                        {isCorrect ? '🎉 Great job!' : '💡 Learn from this:'}
-                      </p>
-                      <p className='text-gray-700 dark:text-gray-300 text-sm leading-relaxed'>
-                        {questions[currentQuestionIndex].explanation}
-                      </p>
+              {selectedOption &&
+                questions[currentQuestionIndex].explanation && (
+                  <div
+                    className={`p-4 rounded-xl mb-6 animate-slide-in ${
+                      isCorrect
+                        ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                        : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800'
+                    }`}
+                  >
+                    <div className='flex items-start gap-3'>
+                      <div
+                        className={`p-2 rounded-lg ${
+                          isCorrect
+                            ? 'bg-green-100 dark:bg-green-800/30'
+                            : 'bg-amber-100 dark:bg-amber-800/30'
+                        }`}
+                      >
+                        <Lightbulb
+                          className={`w-5 h-5 ${
+                            isCorrect
+                              ? 'text-green-600 dark:text-green-400'
+                              : 'text-amber-600 dark:text-amber-400'
+                          }`}
+                        />
+                      </div>
+                      <div>
+                        <p
+                          className={`font-medium mb-1 ${
+                            isCorrect
+                              ? 'text-green-700 dark:text-green-300'
+                              : 'text-amber-700 dark:text-amber-300'
+                          }`}
+                        >
+                          {isCorrect ? '🎉 Great job!' : '💡 Learn from this:'}
+                        </p>
+                        <p className='text-gray-700 dark:text-gray-300 text-sm leading-relaxed'>
+                          {questions[currentQuestionIndex].explanation}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {selectedOption && (
                 <div className='flex justify-end animate-slide-in'>
@@ -686,9 +763,24 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
           ) : error?.includes('UNSUPPORTED') ? (
             <div className='text-center py-10'>
               <div className='inline-flex items-center justify-center w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full mb-6'>
-                <svg className='w-10 h-10 text-gray-500' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' />
-                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
+                <svg
+                  className='w-10 h-10 text-gray-500'
+                  fill='none'
+                  viewBox='0 0 24 24'
+                  stroke='currentColor'
+                >
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
+                  />
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M6 18L18 6M6 6l12 12'
+                  />
                 </svg>
               </div>
               <h3 className='text-xl font-bold text-gray-900 dark:text-gray-100 mb-2'>
@@ -698,7 +790,8 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
                 This document could not be processed for quiz generation.
               </p>
               <p className='text-sm text-gray-500 dark:text-gray-500 mb-8 max-w-sm mx-auto'>
-                It may be a scanned image, password-protected, or in an unsupported format.
+                It may be a scanned image, password-protected, or in an
+                unsupported format.
               </p>
               <button
                 onClick={onClose}
@@ -710,15 +803,26 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
           ) : error?.includes('PROCESSING') ? (
             <div className='text-center py-10'>
               <div className='inline-flex items-center justify-center w-20 h-20 bg-amber-100 dark:bg-amber-900/30 rounded-full mb-6 animate-pulse'>
-                <svg className='w-10 h-10 text-amber-500' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' />
+                <svg
+                  className='w-10 h-10 text-amber-500'
+                  fill='none'
+                  viewBox='0 0 24 24'
+                  stroke='currentColor'
+                >
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'
+                  />
                 </svg>
               </div>
               <h3 className='text-xl font-bold text-gray-900 dark:text-gray-100 mb-2'>
                 Still Processing
               </h3>
               <p className='text-gray-600 dark:text-gray-400 mb-8 max-w-sm mx-auto'>
-                This material is still being analyzed. Please wait a moment and try again.
+                This material is still being analyzed. Please wait a moment and
+                try again.
               </p>
               <div className='flex justify-center gap-3'>
                 <button
