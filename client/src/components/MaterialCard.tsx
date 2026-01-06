@@ -49,6 +49,17 @@ interface Material {
     code: string;
   };
   versions?: Material[];
+  updatedAt?: string; // For stuck detection
+}
+
+// Check if a processing material is stale (stuck for >30 minutes)
+const STALE_THRESHOLD_MINUTES = 30;
+function isStaleProcessing(material: Material): boolean {
+  if (!material.updatedAt) return false;
+  const updatedAt = new Date(material.updatedAt).getTime();
+  const now = Date.now();
+  const minutesElapsed = (now - updatedAt) / (1000 * 60);
+  return minutesElapsed > STALE_THRESHOLD_MINUTES;
 }
 
 interface MaterialCardProps {
@@ -163,17 +174,29 @@ export const MaterialCard = memo(function MaterialCard({ material, onDelete, onA
               </span>
 
               {/* Processing Status Badge */}
-              {material.status === 'processing' || material.status === 'pending' ||
+              {(material.status === 'processing' || material.status === 'pending' ||
                 material.processingStatus?.toLowerCase() === 'extracting' || material.processingStatus?.toLowerCase() === 'cleaning' ||
                 material.processingStatus?.toLowerCase() === 'segmenting' || material.processingStatus?.toLowerCase() === 'pending' ||
-                material.processingStatus?.toLowerCase() === 'ocr_extracting' ? (
-                <span className='inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-100 dark:border-amber-800'>
-                  <Loader2 className='w-3 h-3 animate-spin' />
-                  {material.processingStatus?.toLowerCase() === 'extracting' ? 'Extracting' :
-                    material.processingStatus?.toLowerCase() === 'segmenting' ? 'Segmenting' :
-                      material.processingStatus?.toLowerCase() === 'cleaning' ? 'Cleaning' :
-                        material.processingStatus?.toLowerCase() === 'ocr_extracting' ? 'OCR Processing' : 'Processing'}
-                </span>
+                material.processingStatus?.toLowerCase() === 'ocr_extracting') ? (
+                isStaleProcessing(material) ? (
+                  // Stale/stuck processing badge
+                  <span
+                    className='inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border border-orange-100 dark:border-orange-800 cursor-help'
+                    title='This upload may be stuck. Try uploading again or contact support.'
+                  >
+                    <AlertCircle className='w-3 h-3' />
+                    Stale
+                  </span>
+                ) : (
+                  // Normal processing badge
+                  <span className='inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-100 dark:border-amber-800'>
+                    <Loader2 className='w-3 h-3 animate-spin' />
+                    {material.processingStatus?.toLowerCase() === 'extracting' ? 'Extracting' :
+                      material.processingStatus?.toLowerCase() === 'segmenting' ? 'Segmenting' :
+                        material.processingStatus?.toLowerCase() === 'cleaning' ? 'Cleaning' :
+                          material.processingStatus?.toLowerCase() === 'ocr_extracting' ? 'OCR Processing' : 'Processing'}
+                  </span>
+                )
               ) : material.status === 'failed' || material.processingStatus?.toLowerCase() === 'failed' ? (
                 <span
                   className='inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 border border-red-100 dark:border-red-800 cursor-help'
