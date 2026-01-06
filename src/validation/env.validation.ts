@@ -5,6 +5,7 @@ import {
   IsEnum,
   IsInt,
   IsNumber,
+  IsOptional,
   IsString,
   IsUrl,
   Max,
@@ -124,10 +125,12 @@ export class EnvironmentVariables {
   @IsString()
   CLOUDINARY_URL!: string;
 
+  // Optional - not currently enforced in the application
   @IsInt()
   @Type(() => Number)
   @Min(1)
-  MAX_FILE_UPLOAD_SIZE_IN_BYTES!: number;
+  @IsOptional()
+  MAX_FILE_UPLOAD_SIZE_IN_BYTES?: number;
 
   @IsEmail()
   SUPER_ADMIN_EMAIL!: string;
