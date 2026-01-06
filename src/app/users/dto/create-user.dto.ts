@@ -54,4 +54,9 @@ export class CreateUserDto {
 
   @IsOptional()
   yearOfStudy?: number;
+
+  // Referral code (referrer's user ID)
+  @IsString()
+  @IsOptional()
+  referralCode?: string;
 }

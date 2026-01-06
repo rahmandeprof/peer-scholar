@@ -121,5 +121,13 @@ export class User extends IDAndTimestamp {
   // Display name preference - what to show publicly
   @Column({ name: 'display_name_preference', type: 'varchar', length: 20, default: 'fullname' })
   displayNamePreference: 'username' | 'fullname';
+
+  // Referral tracking - who referred this user
+  @Column({ name: 'referred_by_id', type: 'uuid', nullable: true })
+  referredById: string | null;
+
+  @ManyToOne('User', { nullable: true })
+  @JoinColumn({ name: 'referred_by_id' })
+  referredBy: User | null;
 }
 

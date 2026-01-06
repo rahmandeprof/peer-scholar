@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import api from '../lib/api';
@@ -11,6 +12,10 @@ interface SignupProps {
 }
 
 export function Signup({ onSwitch }: SignupProps) {
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const referralCode = searchParams.get('ref');
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -29,7 +34,10 @@ export function Signup({ onSwitch }: SignupProps) {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await api.post('/auth/register', formData);
+      const res = await api.post('/auth/register', {
+        ...formData,
+        referralCode: referralCode || undefined,
+      });
       login(res.data.access_token, res.data.user);
     } catch (err: any) {
       // Extract meaningful error message from API response

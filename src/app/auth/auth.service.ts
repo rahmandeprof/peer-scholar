@@ -1,7 +1,10 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 import { User } from '@/app/users/entities/user.entity';
+import { Referral, ReferralStatus } from '@/app/users/entities/referral.entity';
 
 import { CreateUserDto } from '@/app/users/dto/create-user.dto';
 
@@ -13,10 +16,14 @@ import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
     private emailService: EmailService,
+    @InjectRepository(Referral)
+    private referralRepo: Repository<Referral>,
   ) { }
 
   async validateUser(
@@ -98,6 +105,17 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(userData.password, 10);
     const verificationToken = uuidv4();
 
+    // Validate referral code if provided
+    let referrerId: string | null = null;
+    if (userData.referralCode) {
+      try {
+        const referrer = await this.usersService.getOne(userData.referralCode);
+        referrerId = referrer.id;
+      } catch {
+        this.logger.warn(`Invalid referral code: ${userData.referralCode}`);
+      }
+    }
+
     const userDataPlain = {
       firstName: userData.firstName,
       lastName: userData.lastName,
@@ -108,8 +126,20 @@ export class AuthService {
       password: hashedPassword,
       verificationToken,
       isVerified: false,
+      referredById: referrerId,
     };
     const newUser = await this.usersService.create(userDataPlain);
+
+    // Create referral record if valid referrer exists
+    if (referrerId) {
+      await this.referralRepo.save({
+        referrerId,
+        refereeId: newUser.id,
+        status: ReferralStatus.PENDING,
+        pointsAwarded: 0,
+      });
+      this.logger.log(`Referral created: ${referrerId} referred ${newUser.id}`);
+    }
 
     await this.emailService.sendEmailVerificationDirect(
       newUser,
@@ -131,6 +161,26 @@ export class AuthService {
     user.verificationToken = null;
 
     await this.usersService.save(user);
+
+    // Complete referral and award points if this user was referred
+    if (user.referredById) {
+      const referral = await this.referralRepo.findOne({
+        where: { refereeId: user.id, status: ReferralStatus.PENDING },
+      });
+
+      if (referral) {
+        const REFERRAL_REWARD = 50; // Points for successful referral
+
+        referral.status = ReferralStatus.COMPLETED;
+        referral.pointsAwarded = REFERRAL_REWARD;
+        referral.completedAt = new Date();
+        await this.referralRepo.save(referral);
+
+        // Award points to referrer
+        await this.usersService.increaseReputation(user.referredById, REFERRAL_REWARD);
+        this.logger.log(`Awarded ${REFERRAL_REWARD} points to referrer ${user.referredById} for referring ${user.id}`);
+      }
+    }
 
     return { success: true, message: 'Email verified successfully' };
   }
