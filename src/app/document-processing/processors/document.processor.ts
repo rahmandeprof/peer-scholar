@@ -19,8 +19,8 @@ import { PdfImageService } from '../services/pdf-image.service';
 
 export const DOCUMENT_PROCESSING_QUEUE = 'document-processing';
 
-// Maximum pages allowed for text extraction (protects server resources)
-const MAX_PAGES = 100;
+// Note: OCR has its own page limit (OCR_MAX_PAGES env var, default 50)
+// Regular text extraction has no page limit - it's lightweight
 
 export interface DocumentProcessingJobData {
     materialId: string;
@@ -68,13 +68,6 @@ export class DocumentProcessor {
                 filename,
             );
             await job.progress(40);
-
-            // Check page limit - reject documents that are too large
-            const pageCount = extractionResult.pageCount || 1;
-            if (pageCount > MAX_PAGES) {
-                this.logger.warn(`Document ${materialId} has ${pageCount} pages, exceeds limit of ${MAX_PAGES}`);
-                throw new Error(`Document has ${pageCount} pages. Maximum allowed is ${MAX_PAGES} pages. Try uploading individual chapters.`);
-            }
 
             let isOcr = false;
             let ocrConfidence: number | undefined;
