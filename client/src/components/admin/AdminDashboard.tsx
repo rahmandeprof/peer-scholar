@@ -279,6 +279,8 @@ export function AdminDashboard() {
       const res = await api.get('/admin/stats');
       setStats(res.data);
       setFailedCount(res.data.materials?.failed || 0);
+      // Also fetch quiz stats
+      fetchQuizStats();
     } catch (err) {
       console.error('Failed to fetch stats:', err);
     }
@@ -293,6 +295,24 @@ export function AdminDashboard() {
       }
     } catch (err) {
       console.error('Failed to fetch queue status:', err);
+    }
+  };
+
+  const fetchQuizStats = async () => {
+    try {
+      const res = await api.get('/admin/quiz-stats');
+      // Update stats with quiz count
+      setStats(prev => ({
+        ...prev!,
+        quizzes: { taken: res.data.total },
+      }));
+      // Update logs with recent quizzes
+      setLogs(prev => ({
+        ...prev!,
+        recentQuizzes: res.data.recentQuizzes,
+      }));
+    } catch (err) {
+      console.error('Failed to fetch quiz stats:', err);
     }
   };
 
@@ -1073,9 +1093,8 @@ export function AdminDashboard() {
               {feedbacks.map((feedback) => (
                 <div
                   key={feedback.id}
-                  className={`p-3 border-b border-gray-100 dark:border-gray-800 last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${
-                    !feedback.isRead ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
-                  }`}
+                  className={`p-3 border-b border-gray-100 dark:border-gray-800 last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${!feedback.isRead ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
+                    }`}
                   onClick={() => handleToggleFeedbackRead(feedback.id)}
                   title={
                     feedback.isRead
@@ -1089,11 +1108,10 @@ export function AdminDashboard() {
                         <span className='w-2 h-2 bg-blue-500 rounded-full' />
                       )}
                       <span
-                        className={`text-sm font-medium ${
-                          !feedback.isRead
-                            ? 'text-gray-900 dark:text-white'
-                            : 'text-gray-500 dark:text-gray-400'
-                        }`}
+                        className={`text-sm font-medium ${!feedback.isRead
+                          ? 'text-gray-900 dark:text-white'
+                          : 'text-gray-500 dark:text-gray-400'
+                          }`}
                       >
                         {feedback.userName || 'Anonymous'}
                       </span>
@@ -1103,11 +1121,10 @@ export function AdminDashboard() {
                     </span>
                   </div>
                   <p
-                    className={`text-sm mb-2 whitespace-pre-wrap ${
-                      !feedback.isRead
-                        ? 'text-gray-700 dark:text-gray-300'
-                        : 'text-gray-500 dark:text-gray-500'
-                    }`}
+                    className={`text-sm mb-2 whitespace-pre-wrap ${!feedback.isRead
+                      ? 'text-gray-700 dark:text-gray-300'
+                      : 'text-gray-500 dark:text-gray-500'
+                      }`}
                   >
                     {feedback.message}
                   </p>
@@ -1255,13 +1272,12 @@ export function AdminDashboard() {
                           {m.title}
                         </span>
                         <span
-                          className={`ml-2 px-2 py-0.5 rounded text-xs font-medium ${
-                            m.processingStatus === 'COMPLETED'
-                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                              : m.processingStatus === 'FAILED'
-                                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                          }`}
+                          className={`ml-2 px-2 py-0.5 rounded text-xs font-medium ${m.processingStatus === 'COMPLETED'
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                            : m.processingStatus === 'FAILED'
+                              ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                              : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                            }`}
                         >
                           {m.processingStatus}
                         </span>
@@ -1438,11 +1454,10 @@ export function AdminDashboard() {
                   <div
                     key={material.id}
                     onClick={() => handleSelectMaterial(material)}
-                    className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${
-                      selectedMaterial?.id === material.id
-                        ? 'bg-primary-50 dark:bg-primary-900/20'
-                        : ''
-                    }`}
+                    className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${selectedMaterial?.id === material.id
+                      ? 'bg-primary-50 dark:bg-primary-900/20'
+                      : ''
+                      }`}
                   >
                     <div className='flex items-start justify-between'>
                       <div className='flex-1 min-w-0'>

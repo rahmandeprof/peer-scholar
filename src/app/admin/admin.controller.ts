@@ -706,6 +706,55 @@ export class AdminController {
   }
 
   /**
+   * Get quiz statistics for admin dashboard
+   */
+  @Get('quiz-stats')
+  async getQuizStats() {
+    this.logger.log('Admin requested quiz statistics');
+
+    try {
+      // Total quiz count
+      const totalQuizzes = await this.quizResultRepo.count();
+
+      // Recent quizzes (last 20)
+      const recentQuizzes = await this.quizResultRepo.find({
+        relations: ['user', 'material'],
+        order: { createdAt: 'DESC' },
+        take: 20,
+      });
+
+      // Calculate average score
+      const avgScoreResult = await this.quizResultRepo
+        .createQueryBuilder('quiz')
+        .select('AVG(CAST(quiz.score AS FLOAT) / CAST(quiz.totalQuestions AS FLOAT))', 'avgScore')
+        .getRawOne();
+
+      const averageScore = avgScoreResult?.avgScore
+        ? parseFloat(avgScoreResult.avgScore)
+        : 0;
+
+      return {
+        total: totalQuizzes,
+        averageScore: Math.round(averageScore * 100) / 100, // Round to 2 decimal places
+        recentQuizzes: recentQuizzes.map(q => ({
+          id: q.id,
+          userName: `${q.user.firstName} ${q.user.lastName}`,
+          userEmail: q.user.email,
+          materialTitle: q.material.title,
+          materialId: q.material.id,
+          score: q.score,
+          totalQuestions: q.totalQuestions,
+          percentage: Math.round((q.score / q.totalQuestions) * 100),
+          createdAt: q.createdAt,
+        })),
+      };
+    } catch (error) {
+      this.logger.error('Failed to fetch quiz stats:', error);
+      throw new BadRequestException('Failed to fetch quiz statistics');
+    }
+  }
+
+  /**
    * Change user role
    */
   @Post('users/:id/role')
