@@ -253,6 +253,36 @@ export function AdminDashboard() {
     }
   };
 
+  /**
+   * Fetch all admin overview data in one batched call
+   * Combines stats, queue status, and stuck count for faster dashboard load
+   */
+  const fetchOverview = async () => {
+    try {
+      const res = await api.get('/admin/overview');
+      const { stats: statsData, stuckCount: stuckData, queueStatus: queueData } = res.data;
+
+      // Set stats
+      setStats(statsData);
+      setFailedCount(statsData.materials?.failed || 0);
+
+      // Set stuck count
+      setStuckCount(stuckData || 0);
+
+      // Set queue status
+      if (queueData) {
+        setQueueStatus({ success: true, ...queueData });
+        setQueueLastUpdated(new Date());
+      }
+    } catch (err) {
+      console.error('Failed to fetch overview:', err);
+      // Fallback to individual fetches if overview fails
+      fetchStats();
+      fetchStuckCount();
+      fetchQueueStatus();
+    }
+  };
+
   const handleReprocessStuck = async () => {
     setReprocessing(true);
     setLastReprocessResult(null);
@@ -569,9 +599,7 @@ export function AdminDashboard() {
 
   useEffect(() => {
     fetchFlaggedMaterials();
-    fetchStuckCount();
-    fetchStats();
-    fetchQueueStatus();
+    fetchOverview(); // Batched endpoint for stats, stuck count, queue status
     fetchReports();
     fetchAnalytics();
     fetchLogs();
@@ -612,9 +640,7 @@ export function AdminDashboard() {
     try {
       await Promise.all([
         fetchFlaggedMaterials(),
-        fetchStuckCount(),
-        fetchStats(),
-        fetchQueueStatus(),
+        fetchOverview(), // Batched endpoint for stats, stuck count, queue status
         fetchReports(),
         fetchAnalytics(),
         fetchLogs(),

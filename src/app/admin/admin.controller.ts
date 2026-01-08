@@ -267,6 +267,97 @@ export class AdminController {
     };
   }
 
+  // ========== BATCHED ENDPOINT FOR DASHBOARD ==========
+
+  /**
+   * Get all admin dashboard overview data in one call
+   * Combines stats, queue status, stuck count, and quiz stats for faster load
+   */
+  @Get('overview')
+  async getOverview() {
+    this.logger.log('Admin requested overview (batched)');
+
+    // Fetch all data in parallel
+    const [
+      // Stats
+      totalUsers,
+      totalMaterials,
+      materialsReady,
+      materialsProcessing,
+      materialsFailed,
+      totalQuizzesTaken,
+      materialsMissingSummary,
+      // Stuck count
+      stuckCount,
+      // Queue status (wrapped in try-catch)
+      queueStatusResult,
+    ] = await Promise.all([
+      // Stats queries
+      this.userRepo.count(),
+      this.materialRepo.count(),
+      this.materialRepo.count({ where: { status: MaterialStatus.READY } }),
+      this.materialRepo.count({
+        where: [
+          { processingStatus: ProcessingStatus.PENDING },
+          { processingStatus: ProcessingStatus.EXTRACTING },
+          { processingStatus: ProcessingStatus.OCR_EXTRACTING },
+          { processingStatus: ProcessingStatus.CLEANING },
+          { processingStatus: ProcessingStatus.SEGMENTING },
+        ],
+      }),
+      this.materialRepo.count({ where: { processingStatus: ProcessingStatus.FAILED } }),
+      this.quizResultRepo.count(),
+      this.materialRepo.count({
+        where: { summary: IsNull(), processingStatus: ProcessingStatus.COMPLETED },
+      }),
+      // Stuck count
+      this.materialRepo.count({
+        where: [
+          { processingStatus: ProcessingStatus.PENDING },
+          { processingStatus: ProcessingStatus.EXTRACTING },
+          { processingStatus: ProcessingStatus.OCR_EXTRACTING },
+          { processingStatus: ProcessingStatus.CLEANING },
+          { processingStatus: ProcessingStatus.SEGMENTING },
+        ],
+      }),
+      // Queue status wrapped to prevent rejection from failing entire batch
+      Promise.all([
+        this.materialsQueue.getWaitingCount(),
+        this.materialsQueue.getActiveCount(),
+        this.materialsQueue.getCompletedCount(),
+        this.materialsQueue.getFailedCount(),
+        this.materialsQueue.getDelayedCount(),
+      ]).catch(() => null),
+    ]);
+
+    // Build queue status response
+    let queueStatus = null;
+    if (queueStatusResult) {
+      const [waiting, active, completed, failed, delayed] = queueStatusResult;
+      queueStatus = {
+        queue: 'materials',
+        counts: { waiting, active, completed, failed, delayed },
+        total: waiting + active + completed + failed + delayed,
+      };
+    }
+
+    return {
+      stats: {
+        users: { total: totalUsers },
+        materials: {
+          total: totalMaterials,
+          ready: materialsReady,
+          processing: materialsProcessing,
+          failed: materialsFailed,
+          missingSummary: materialsMissingSummary,
+        },
+        quizzes: { taken: totalQuizzesTaken },
+      },
+      stuckCount,
+      queueStatus,
+    };
+  }
+
   // ========== HIGH-PRIORITY ENDPOINTS ==========
 
   /**
