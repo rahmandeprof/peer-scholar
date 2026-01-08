@@ -102,6 +102,16 @@ export class StudyController {
   }
 
   @UseGuards(AuthGuard('jwt'))
+  @Get('dashboard/init')
+  getDashboardInit(@Req() req: RequestWithUser) {
+    if (!req.user) {
+      throw new Error('User not found');
+    }
+
+    return this.studyService.getDashboardInit(req.user.id);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @Post('reading/start')
   startReading(@Req() req: RequestWithUser) {
     if (!req.user) {

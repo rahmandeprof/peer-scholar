@@ -179,6 +179,24 @@ export class StudyService {
     return this.usersService.getInsights(userId);
   }
 
+  /**
+   * Get all dashboard initialization data in one call
+   * Combines streak, weekly stats, and recent activity for faster dashboard load
+   */
+  async getDashboardInit(userId: string) {
+    const [streakData, weeklyStats, activityData] = await Promise.all([
+      this.usersService.getInsights(userId),
+      this.getWeeklyStats(userId),
+      this.usersService.getActivity(userId),
+    ]);
+
+    return {
+      streak: streakData,
+      weeklyStats,
+      recentActivity: activityData,
+    };
+  }
+
   async getWeeklyStats(userId: string) {
     const now = new Date();
     // Get start of week (Monday)

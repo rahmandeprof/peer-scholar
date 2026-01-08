@@ -93,25 +93,23 @@ export function AcademicControlCenter() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [streakRes, activityRes, weeklyRes] = await Promise.all([
-          api.get('/study/streak'),
-          api.get('/users/activity/recent'),
-          api.get('/study/stats/weekly'),
-        ]);
+        // Use batched endpoint for dashboard initialization (streak + weekly + activity)
+        const dashboardRes = await api.get('/study/dashboard/init');
+        const { streak: streakData, weeklyStats: weeklyRes, recentActivity: activityRes } = dashboardRes.data;
 
-        setStreak(streakRes.data.currentStreak || 0);
-        setStage(streakRes.data.stage || 'Novice');
+        setStreak(streakData.currentStreak || 0);
+        setStage(streakData.stage || 'Novice');
 
         setWeeklyStats({
-          current: weeklyRes.data.totalSeconds,
-          goal: weeklyRes.data.goalSeconds,
+          current: weeklyRes.totalSeconds,
+          goal: weeklyRes.goalSeconds,
           percent:
-            weeklyRes.data.goalSeconds > 0
-              ? (weeklyRes.data.totalSeconds / weeklyRes.data.goalSeconds) * 100
+            weeklyRes.goalSeconds > 0
+              ? (weeklyRes.totalSeconds / weeklyRes.goalSeconds) * 100
               : 0,
         });
 
-        if (activityRes.data.lastReadMaterial) {
+        if (activityRes.lastReadMaterial) {
           // Get viewing history from localStorage (shows last 3 opened)
           const localHistory = getRecentlyOpened(3);
 
@@ -127,12 +125,12 @@ export function AcademicControlCenter() {
             // Fallback to backend's last read material if no local history
             setRecentMaterials([
               {
-                ...activityRes.data.lastReadMaterial,
+                ...activityRes.lastReadMaterial,
                 viewedAt: new Date().toISOString(),
               },
             ]);
           }
-          setLastReadPage(activityRes.data.lastReadPage || 1);
+          setLastReadPage(activityRes.lastReadPage || 1);
         } else {
           // No backend activity, check localStorage
           const localHistory = getRecentlyOpened(3);
@@ -518,9 +516,8 @@ export function AcademicControlCenter() {
                         strokeDashoffset={
                           2 * Math.PI * 40 * (1 - percent / 100)
                         }
-                        className={`transition-all duration-1000 ease-out ${
-                          percent >= 100 ? 'text-green-500' : 'text-primary-600'
-                        }`}
+                        className={`transition-all duration-1000 ease-out ${percent >= 100 ? 'text-green-500' : 'text-primary-600'
+                          }`}
                         strokeLinecap='round'
                       />
                     </svg>
