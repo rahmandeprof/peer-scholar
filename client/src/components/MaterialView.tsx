@@ -513,7 +513,7 @@ export const MaterialView = () => {
                     className='fixed inset-0 z-10'
                     onClick={() => setMenuOpen(false)}
                   />
-                  <div className='absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-20 animate-in fade-in zoom-in-95 duration-100'>
+                  <div className='absolute right-0 mt-2 w-56 max-h-[85vh] overflow-y-auto overscroll-contain bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-20 animate-in fade-in zoom-in-95 duration-100'>
                     {/* Mobile Only Actions */}
                     <div className='md:hidden px-4 py-2 border-b border-gray-100 dark:border-gray-700 flex justify-center'>
                       <StudyTimer
