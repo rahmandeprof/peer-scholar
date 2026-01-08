@@ -116,6 +116,12 @@ export class MaterialsController {
     return this.materialsService.getCourseTopics(courseId);
   }
 
+  @Get(':id/full')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  findOneFull(@Param('id') id: string, @Req() req: any) {
+    return this.materialsService.findOneFull(id, req.user.id);
+  }
+
   @Get(':id')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   findOne(@Param('id') id: string, @Req() req: any) {

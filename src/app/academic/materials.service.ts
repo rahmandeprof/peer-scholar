@@ -483,6 +483,44 @@ export class MaterialsService {
     return Object.assign({}, material, { isFavorited });
   }
 
+  /**
+   * Get material with full interaction data (for batched endpoint)
+   * Combines material data + isFavorited + userRating in one call
+   */
+  async findOneFull(id: string, userId: string) {
+    const material = await this.materialRepo.findOne({
+      where: { id },
+      relations: [
+        'uploader',
+        'course',
+        'versions',
+        'versions.uploader',
+        'parent',
+        'contributors',
+      ],
+    });
+
+    if (!material) {
+      throw new NotFoundException('Material not found');
+    }
+
+    // Fetch favorite and rating in parallel
+    const [fav, rating] = await Promise.all([
+      this.favoriteRepo.findOne({
+        where: { material: { id }, user: { id: userId } },
+      }),
+      this.ratingRepo.findOne({
+        where: { material: { id }, user: { id: userId } },
+      }),
+    ]);
+
+    return {
+      ...material,
+      isFavorited: !!fav,
+      userRating: rating?.value || 0,
+    };
+  }
+
   async getFavoritesCount(userId: string) {
     const count = await this.favoriteRepo.count({
       where: { user: { id: userId } },

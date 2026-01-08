@@ -164,9 +164,12 @@ export const MaterialView = () => {
   useEffect(() => {
     const fetchMaterial = async () => {
       try {
-        const res = await api.get(`/materials/${id}`);
+        // Use batched endpoint that returns material + interactions in one call
+        const res = await api.get(`/materials/${id}/full`);
         setMaterial(res.data);
         setIsFavorited(res.data.isFavorited || false);
+        setUserRating(res.data.userRating || 0);
+        setAverageRating(res.data.averageRating || 0);
 
         // Add to viewing history for "Recently Opened" feature
         addToViewingHistory({
@@ -176,10 +179,10 @@ export const MaterialView = () => {
           courseCode: res.data.courseCode,
           uploader: res.data.uploader
             ? {
-                id: res.data.uploader.id,
-                firstName: res.data.uploader.firstName,
-                lastName: res.data.uploader.lastName,
-              }
+              id: res.data.uploader.id,
+              firstName: res.data.uploader.firstName,
+              lastName: res.data.uploader.lastName,
+            }
             : undefined,
         });
 
@@ -191,13 +194,12 @@ export const MaterialView = () => {
           })
           .catch(console.error);
 
-        // Fetch activity, start session, and get interactions in parallel
-        const [activityRes, sessionRes, interactionRes] = await Promise.all([
+        // Fetch activity and start session in parallel (interactions already included above)
+        const [activityRes, sessionRes] = await Promise.all([
           api
             .get(`/users/activity/recent?materialId=${id}`)
             .catch(() => ({ data: {} })),
           api.post('/study/reading/start').catch(() => ({ data: {} })),
-          api.get(`/materials/${id}/interactions`).catch(() => ({ data: {} })),
         ]);
 
         // Process activity
@@ -211,16 +213,6 @@ export const MaterialView = () => {
           readingSecondsRef.current = sessionRes.data.durationSeconds || 0;
           sessionStartTimeRef.current =
             Date.now() - readingSecondsRef.current * 1000;
-        }
-
-        setAverageRating(res.data.averageRating || 0);
-
-        // Process interactions
-        if (interactionRes.data.isFavorited !== undefined) {
-          setIsFavorited(interactionRes.data.isFavorited);
-        }
-        if (interactionRes.data.userRating !== undefined) {
-          setUserRating(interactionRes.data.userRating);
         }
       } catch {
         // ...
@@ -469,11 +461,10 @@ export const MaterialView = () => {
 
             <button
               onClick={() => setJotterOpen(!jotterOpen)}
-              className={`hidden md:flex px-3 py-1.5 rounded-full transition-colors items-center font-medium text-sm ${
-                jotterOpen
+              className={`hidden md:flex px-3 py-1.5 rounded-full transition-colors items-center font-medium text-sm ${jotterOpen
                   ? 'bg-yellow-200 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-400'
                   : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-200 dark:hover:bg-yellow-900/50'
-              }`}
+                }`}
             >
               <PenTool className='w-4 h-4 mr-1.5' />
               Jotter
@@ -489,11 +480,10 @@ export const MaterialView = () => {
 
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className={`hidden md:flex p-2 rounded-full transition-colors ${
-                sidebarOpen
+              className={`hidden md:flex p-2 rounded-full transition-colors ${sidebarOpen
                   ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
                   : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
+                }`}
               title='Open AI Companion'
             >
               <Sparkles className='w-5 h-5' />
