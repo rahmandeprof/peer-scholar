@@ -89,6 +89,7 @@ export const UNILORIN_FACULTIES = [
       'Mechanical Engineering',
       'Electrical/Electronics',
       'Civil Engineering',
+      'Food Engineering',
     ],
   },
   {
@@ -110,7 +111,7 @@ export const UNILORIN_FACULTIES = [
     ],
   },
   {
-    name: 'Faculty Of Physcal/Life Sciences',
+    name: 'Faculty Of Physical/Life Sciences',
     departments: [
       'Biochemistry',
       'Zoology',
@@ -123,6 +124,7 @@ export const UNILORIN_FACULTIES = [
       'Geology',
       'Chemistry',
       'Biology',
+      'Optometry and Vision Sciences',
     ],
   },
   {

@@ -183,7 +183,7 @@ export const MaterialView = () => {
             : undefined,
         });
 
-        // Track activity
+        // Track activity (fire and forget)
         api
           .post('/users/activity/update', {
             materialId: id,
@@ -191,36 +191,37 @@ export const MaterialView = () => {
           })
           .catch(console.error);
 
-        // Fetch last read page for this specific material (to resume)
-        try {
-          const activityRes = await api.get(
-            `/users/activity/recent?materialId=${id}`,
-          );
-          if (activityRes.data.lastReadPage > 1) {
-            setLastReadPage(activityRes.data.lastReadPage);
-          }
-        } catch {
-          // Ignore if failed
+        // Fetch activity, start session, and get interactions in parallel
+        const [activityRes, sessionRes, interactionRes] = await Promise.all([
+          api
+            .get(`/users/activity/recent?materialId=${id}`)
+            .catch(() => ({ data: {} })),
+          api.post('/study/reading/start').catch(() => ({ data: {} })),
+          api.get(`/materials/${id}/interactions`).catch(() => ({ data: {} })),
+        ]);
+
+        // Process activity
+        if (activityRes.data.lastReadPage > 1) {
+          setLastReadPage(activityRes.data.lastReadPage);
         }
 
-        // Start reading session for time tracking
-        try {
-          const sessionRes = await api.post('/study/reading/start');
+        // Process session
+        if (sessionRes.data.id) {
           setReadingSessionId(sessionRes.data.id);
           readingSecondsRef.current = sessionRes.data.durationSeconds || 0;
-          // Set start time accounting for any existing duration (resumed session)
           sessionStartTimeRef.current =
             Date.now() - readingSecondsRef.current * 1000;
-        } catch (err) {
-          console.error('Failed to start reading session', err);
         }
 
         setAverageRating(res.data.averageRating || 0);
 
-        // Fetch interaction status
-        const interactionRes = await api.get(`/materials/${id}/interactions`);
-        setIsFavorited(interactionRes.data.isFavorited);
-        setUserRating(interactionRes.data.userRating);
+        // Process interactions
+        if (interactionRes.data.isFavorited !== undefined) {
+          setIsFavorited(interactionRes.data.isFavorited);
+        }
+        if (interactionRes.data.userRating !== undefined) {
+          setUserRating(interactionRes.data.userRating);
+        }
       } catch {
         // ...
       } finally {

@@ -146,42 +146,35 @@ export function AcademicControlCenter() {
           }
         }
 
-        if (user?.department?.id) {
-          const coursesRes = await api.get(
-            `/academic/departments/${user.department.id}/courses`,
-          );
-          setCourses(coursesRes.data.slice(0, 4)); // Show top 4 courses
-        }
+        // Fetch remaining data in parallel for faster load
+        const [coursesRes, partnerRes, collectionsRes, favoritesRes] =
+          await Promise.all([
+            user?.department?.id
+              ? api.get(`/academic/departments/${user.department.id}/courses`)
+              : Promise.resolve({ data: [] }),
+            api.get('/users/partner').catch(() => ({ data: [] })),
+            api.get('/academic/collections').catch(() => ({ data: [] })),
+            api
+              .get('/materials/favorites/count')
+              .catch(() => ({ data: { count: 0 } })),
+          ]);
 
-        try {
-          const partnerRes = await api.get('/users/partner');
-          // Ensure we handle array response
-          setPartners(Array.isArray(partnerRes.data) ? partnerRes.data : []);
-        } catch {
-          // Ignore if no partner
-        }
+        // Process courses
+        setCourses(coursesRes.data.slice(0, 4));
 
-        // Fetch collections
-        try {
-          const collectionsRes = await api.get('/academic/collections');
-          // Map materials array length to count for display
-          setCollections(
-            collectionsRes.data.map((col: any) => ({
-              ...col,
-              count: col.materials?.length || 0,
-            })),
-          );
-        } catch {
-          console.warn('Failed to fetch collections');
-        }
+        // Process partners
+        setPartners(Array.isArray(partnerRes.data) ? partnerRes.data : []);
 
-        // Fetch favorites count (lightweight endpoint)
-        try {
-          const favoritesRes = await api.get('/materials/favorites/count');
-          setFavoritesCount(favoritesRes.data?.count ?? 0);
-        } catch {
-          console.warn('Failed to fetch favorites count');
-        }
+        // Process collections
+        setCollections(
+          collectionsRes.data.map((col: any) => ({
+            ...col,
+            count: col.materials?.length || 0,
+          })),
+        );
+
+        // Process favorites count
+        setFavoritesCount(favoritesRes.data?.count ?? 0);
       } catch (error) {
         console.error('Failed to fetch dashboard data', error);
       } finally {
