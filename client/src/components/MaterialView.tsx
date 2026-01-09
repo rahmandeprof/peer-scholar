@@ -19,7 +19,6 @@ import { accumulateReadingTime } from '../lib/offlineReadingTracker';
 import { getDisplayName } from '../lib/displayName';
 import { addToViewingHistory } from '../lib/viewingHistory';
 import { useTheme } from '../contexts/ThemeContext';
-import { AISidebar } from './AISidebar';
 import { TextFileViewer } from './TextFileViewer';
 import { PDFViewer } from './PDFViewer';
 import { ContextMenu } from './ContextMenu';
@@ -29,23 +28,35 @@ import { SessionEndModal } from './SessionEndModal';
 import { ReaderSettingsProvider } from '../contexts/ReaderSettingsContext';
 import { StarRating } from './StarRating';
 import { useSocket } from '../contexts/SocketContext';
-import { TTSPlayer } from './TTSPlayer';
 import { Headphones, Layers } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { FeatureSpotlightModal } from './FeatureSpotlightModal';
 import { ReportModal } from './ReportModal';
-import { Jotter } from './Jotter';
 import { CollectionModal } from './CollectionModal';
-import { PublicNotesPanel } from './PublicNotesPanel';
-import HelpfulLinksPanel from './HelpfulLinksPanel';
 import { PenTool, Folder, MessageSquare, Link2 } from 'lucide-react';
 
-// Lazy-loaded heavy modals for better code splitting
+// Lazy-loaded heavy modals and sidebars for better code splitting
 const QuizModal = lazy(() =>
   import('./QuizModal').then((m) => ({ default: m.QuizModal })),
 );
 const FlashcardModal = lazy(() =>
   import('./FlashcardModal').then((m) => ({ default: m.FlashcardModal })),
+);
+// Lazy-load sidebar components (not visible until user opens them)
+const AISidebar = lazy(() =>
+  import('./AISidebar').then((m) => ({ default: m.AISidebar })),
+);
+const TTSPlayer = lazy(() =>
+  import('./TTSPlayer').then((m) => ({ default: m.TTSPlayer })),
+);
+const Jotter = lazy(() =>
+  import('./Jotter').then((m) => ({ default: m.Jotter })),
+);
+const PublicNotesPanel = lazy(() =>
+  import('./PublicNotesPanel').then((m) => ({ default: m.PublicNotesPanel })),
+);
+const HelpfulLinksPanel = lazy(() =>
+  import('./HelpfulLinksPanel').then((m) => ({ default: m.default })),
 );
 
 // Loading spinner for lazy modals
