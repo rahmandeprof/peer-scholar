@@ -534,53 +534,49 @@ export const MaterialView = () => {
                   />
                   <div
                     onClick={(e) => e.stopPropagation()}
-                    className='fixed bottom-0 left-0 right-0 w-full md:absolute md:right-0 md:top-full md:bottom-auto md:left-auto md:w-56 max-h-[70vh] md:max-h-[85vh] overflow-y-auto overscroll-contain bg-white dark:bg-gray-800 md:rounded-xl rounded-t-2xl shadow-xl border-t md:border border-gray-200 dark:border-gray-700 pt-2 pb-8 md:pb-2 z-[100] animate-in slide-in-from-bottom-full md:slide-in-from-top-2 md:fade-in md:zoom-in-95 duration-200 md:mt-2'
+                    className='fixed bottom-0 left-0 right-0 w-full md:absolute md:right-0 md:top-full md:bottom-auto md:left-auto md:w-56 max-h-[60vh] md:max-h-[85vh] overflow-y-auto overscroll-contain bg-white dark:bg-gray-800 md:rounded-xl rounded-t-2xl shadow-xl border-t md:border border-gray-200 dark:border-gray-700 z-[100] animate-in slide-in-from-bottom-full md:slide-in-from-top-2 md:fade-in md:zoom-in-95 duration-200 md:mt-2'
                   >
-                    {/* Mobile Close Button & Handle */}
-                    <div className='md:hidden flex flex-col items-center sticky top-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur z-10 -mx-4 px-4 pb-2 border-b border-gray-100 dark:border-gray-700 mb-2'>
-                      <div className='w-12 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full mb-3 mt-1' />
-                      <button
-                        onClick={() => setMenuOpen(false)}
-                        className='absolute right-4 top-3 p-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-                      >
-                        <X className='w-4 h-4' />
-                      </button>
+                    {/* Mobile Header with Close Button */}
+                    <div className='md:hidden sticky top-0 bg-white dark:bg-gray-800 z-10 px-4 py-3 border-b border-gray-100 dark:border-gray-700'>
+                      <div className='flex items-center justify-between'>
+                        <span className='text-sm font-semibold text-gray-900 dark:text-white'>Actions</span>
+                        <button
+                          onClick={() => setMenuOpen(false)}
+                          className='p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors'
+                        >
+                          <X className='w-5 h-5 text-gray-500' />
+                        </button>
+                      </div>
+                      {/* Drag Handle */}
+                      <div className='absolute top-1.5 left-1/2 -translate-x-1/2 w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full' />
                     </div>
-                    {/* Mobile Only Actions */}
-                    <div className='md:hidden px-4 py-2 border-b border-gray-100 dark:border-gray-700 flex justify-center'>
-                      <StudyTimer
-                        key={`mobile-${timerKey}`}
-                        onComplete={handleSessionEnd}
-                      />
-                    </div>
-                    <div className='md:hidden px-2 pb-2 mb-2 border-b border-gray-100 dark:border-gray-700 grid grid-cols-3 gap-2'>
+
+                    {/* Mobile Quick Actions - 2x3 Grid */}
+                    <div className='md:hidden p-3 grid grid-cols-3 gap-2'>
                       <button
                         onClick={() => {
                           setQuizOpen(true);
                           setMenuOpen(false);
                         }}
-                        className='flex flex-col items-center justify-center p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-purple-600 dark:text-purple-400 text-xs font-medium'
+                        className='flex flex-col items-center justify-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl text-purple-600 dark:text-purple-400 text-xs font-medium min-h-[64px] active:scale-95 transition-transform'
                       >
-                        <Brain className='w-4 h-4 mb-1' />
+                        <Brain className='w-5 h-5 mb-1.5' />
                         Quiz
                       </button>
                       <button
                         onClick={() => {
-                          const hasSeen = localStorage.getItem(
-                            'has_seen_flashcards',
-                          );
+                          const hasSeen = localStorage.getItem('has_seen_flashcards');
                           if (!hasSeen) {
                             setShowFlashcardSpotlight(true);
                             localStorage.setItem('has_seen_flashcards', 'true');
-                            setMenuOpen(false);
                           } else {
                             setFlashcardModalOpen(true);
-                            setMenuOpen(false);
                           }
+                          setMenuOpen(false);
                         }}
-                        className='flex flex-col items-center justify-center p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg text-indigo-600 dark:text-indigo-400 text-xs font-medium'
+                        className='flex flex-col items-center justify-center p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-indigo-600 dark:text-indigo-400 text-xs font-medium min-h-[64px] active:scale-95 transition-transform'
                       >
-                        <Layers className='w-4 h-4 mb-1' />
+                        <Layers className='w-5 h-5 mb-1.5' />
                         Cards
                       </button>
                       <button
@@ -588,9 +584,9 @@ export const MaterialView = () => {
                           setJotterOpen(true);
                           setMenuOpen(false);
                         }}
-                        className='flex flex-col items-center justify-center p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg text-yellow-600 dark:text-yellow-400 text-xs font-medium'
+                        className='flex flex-col items-center justify-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl text-yellow-600 dark:text-yellow-400 text-xs font-medium min-h-[64px] active:scale-95 transition-transform'
                       >
-                        <PenTool className='w-4 h-4 mb-1' />
+                        <PenTool className='w-5 h-5 mb-1.5' />
                         Jotter
                       </button>
                       <button
@@ -598,10 +594,30 @@ export const MaterialView = () => {
                           setPublicNotesOpen(true);
                           setMenuOpen(false);
                         }}
-                        className='flex flex-col items-center justify-center p-2 bg-teal-50 dark:bg-teal-900/20 rounded-lg text-teal-600 dark:text-teal-400 text-xs font-medium'
+                        className='flex flex-col items-center justify-center p-3 bg-teal-50 dark:bg-teal-900/20 rounded-xl text-teal-600 dark:text-teal-400 text-xs font-medium min-h-[64px] active:scale-95 transition-transform'
                       >
-                        <MessageSquare className='w-4 h-4 mb-1' />
+                        <MessageSquare className='w-5 h-5 mb-1.5' />
                         Notes
+                      </button>
+                      <button
+                        onClick={() => {
+                          setRecommendationsOpen(true);
+                          setMenuOpen(false);
+                        }}
+                        className='flex flex-col items-center justify-center p-3 bg-rose-50 dark:bg-rose-900/20 rounded-xl text-rose-600 dark:text-rose-400 text-xs font-medium min-h-[64px] active:scale-95 transition-transform'
+                      >
+                        <TrendingUp className='w-5 h-5 mb-1.5' />
+                        For You
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSidebarOpen(true);
+                          setMenuOpen(false);
+                        }}
+                        className='flex flex-col items-center justify-center p-3 bg-primary-50 dark:bg-primary-900/20 rounded-xl text-primary-600 dark:text-primary-400 text-xs font-medium min-h-[64px] active:scale-95 transition-transform'
+                      >
+                        <Sparkles className='w-5 h-5 mb-1.5' />
+                        AI
                       </button>
                     </div>
 
