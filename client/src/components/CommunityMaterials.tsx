@@ -52,13 +52,27 @@ interface CommunityMaterialsProps {
 }
 
 export function CommunityMaterials({ onChat }: CommunityMaterialsProps) {
-  // Use SWR-cached materials hook for instant loading on revisit
-  const { materials, isLoading, isValidating, refresh } = useMaterials();
   const toast = useToast();
 
   const [filter, setFilter] = useState('');
+  const [debouncedFilter, setDebouncedFilter] = useState('');
   const [sortField, setSortField] = useState<SortField>('createdAt');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+
+  // Use SWR-cached materials hook for instant loading on revisit
+  const { materials, isLoading, isValidating, refresh } = useMaterials(
+    sortField,
+    sortOrder,
+    debouncedFilter,
+  );
+
+  // Debounce filter changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedFilter(filter);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [filter]);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     isOpen: boolean;
     id: string | null;
@@ -122,24 +136,8 @@ export function CommunityMaterials({ onChat }: CommunityMaterialsProps) {
     }
   };
 
-  const filteredMaterials = localMaterials
-    .filter(
-      (m) =>
-        m.title.toLowerCase().includes(filter.toLowerCase()) ||
-        m.department?.toLowerCase().includes(filter.toLowerCase()),
-    )
-    .sort((a, b) => {
-      let comparison = 0;
-      if (sortField === 'title') {
-        comparison = a.title.localeCompare(b.title);
-      } else if (sortField === 'yearLevel') {
-        comparison = (a.yearLevel || 0) - (b.yearLevel || 0);
-      } else {
-        comparison =
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      }
-      return sortOrder === 'asc' ? comparison : -comparison;
-    });
+  // Server-side filtering/sorting is now handled by useMaterials hook
+  const filteredMaterials = localMaterials;
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {

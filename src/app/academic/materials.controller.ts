@@ -81,6 +81,8 @@ export class MaterialsController {
     @Query('search') search?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('order') order?: string,
   ) {
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 12;
@@ -91,6 +93,8 @@ export class MaterialsController {
       search,
       pageNum,
       limitNum,
+      sortBy,
+      order as 'ASC' | 'DESC',
     );
   }
 

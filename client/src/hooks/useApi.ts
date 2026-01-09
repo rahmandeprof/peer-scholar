@@ -60,9 +60,14 @@ const mediumCacheConfig: SWRConfiguration = {
  * Fetch community materials with caching
  * TTL: 5 minutes (materials don't change frequently)
  */
-export function useMaterials() {
+export function useMaterials(
+    sortBy: string = 'createdAt',
+    sortOrder: 'asc' | 'desc' = 'desc',
+    search: string = ''
+) {
+    const query = `?sortBy=${sortBy}&order=${sortOrder.toUpperCase()}&search=${encodeURIComponent(search)}`;
     const { data, error, isLoading, isValidating, mutate } = useSWR<Material[]>(
-        CacheKeys.MATERIALS,
+        `${CacheKeys.MATERIALS}${query}`,
         fetcher,
         mediumCacheConfig
     );

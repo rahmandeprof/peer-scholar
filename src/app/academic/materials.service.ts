@@ -319,6 +319,8 @@ export class MaterialsService {
     search?: string,
     page: number = 1,
     limit: number = 12,
+    sortBy: string = 'createdAt',
+    order: 'ASC' | 'DESC' = 'DESC',
   ) {
     const query = this.materialRepo
       .createQueryBuilder('material')
@@ -405,7 +407,16 @@ export class MaterialsService {
     }
 
     // Add ordering for consistent pagination
-    query.orderBy('material.createdAt', 'DESC');
+    const allowedSortFields = [
+      'createdAt',
+      'favoritesCount',
+      'views',
+      'averageRating',
+    ];
+    const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+    const sortOrder = order === 'ASC' ? 'ASC' : 'DESC';
+
+    query.orderBy(`material.${sortField}`, sortOrder);
 
     // Get total count before pagination
     const total = await query.getCount();
