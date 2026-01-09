@@ -261,6 +261,18 @@ export function PDFViewer({ url, materialId, initialPage = 1 }: PDFViewerProps) 
               }
             />
           )}
+
+          {/* Prefetch next page - hidden but loaded for instant navigation */}
+          {pageNumber < numPages && (
+            <div className='absolute -left-[9999px] opacity-0 pointer-events-none' aria-hidden='true'>
+              <Page
+                pageNumber={pageNumber + 1}
+                width={containerWidth ? containerWidth * scale : undefined}
+                renderTextLayer={false}
+                renderAnnotationLayer={false}
+              />
+            </div>
+          )}
         </Document>
       </div>
     </div>

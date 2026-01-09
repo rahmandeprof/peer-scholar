@@ -26,6 +26,15 @@ export class AdminController {
   private readonly logger = new Logger(AdminController.name);
   private openai?: OpenAI;
 
+  // Shared filter for materials that are actively processing (not stuck, just in progress)
+  private readonly ACTIVELY_PROCESSING_WHERE = [
+    { processingStatus: ProcessingStatus.PENDING },
+    { processingStatus: ProcessingStatus.EXTRACTING },
+    { processingStatus: ProcessingStatus.OCR_EXTRACTING },
+    { processingStatus: ProcessingStatus.CLEANING },
+    { processingStatus: ProcessingStatus.SEGMENTING },
+  ];
+
   constructor(
     private readonly usersService: UsersService,
     @InjectRepository(Material)
@@ -297,13 +306,7 @@ export class AdminController {
       this.materialRepo.count(),
       this.materialRepo.count({ where: { status: MaterialStatus.READY } }),
       this.materialRepo.count({
-        where: [
-          { processingStatus: ProcessingStatus.PENDING },
-          { processingStatus: ProcessingStatus.EXTRACTING },
-          { processingStatus: ProcessingStatus.OCR_EXTRACTING },
-          { processingStatus: ProcessingStatus.CLEANING },
-          { processingStatus: ProcessingStatus.SEGMENTING },
-        ],
+        where: this.ACTIVELY_PROCESSING_WHERE,
       }),
       this.materialRepo.count({ where: { processingStatus: ProcessingStatus.FAILED } }),
       this.quizResultRepo.count(),
@@ -312,13 +315,7 @@ export class AdminController {
       }),
       // Stuck count
       this.materialRepo.count({
-        where: [
-          { processingStatus: ProcessingStatus.PENDING },
-          { processingStatus: ProcessingStatus.EXTRACTING },
-          { processingStatus: ProcessingStatus.OCR_EXTRACTING },
-          { processingStatus: ProcessingStatus.CLEANING },
-          { processingStatus: ProcessingStatus.SEGMENTING },
-        ],
+        where: this.ACTIVELY_PROCESSING_WHERE,
       }),
       // Queue status wrapped to prevent rejection from failing entire batch
       Promise.all([
@@ -380,13 +377,7 @@ export class AdminController {
       this.materialRepo.count(),
       this.materialRepo.count({ where: { status: MaterialStatus.READY } }),
       this.materialRepo.count({
-        where: [
-          { processingStatus: ProcessingStatus.PENDING },
-          { processingStatus: ProcessingStatus.EXTRACTING },
-          { processingStatus: ProcessingStatus.OCR_EXTRACTING },
-          { processingStatus: ProcessingStatus.CLEANING },
-          { processingStatus: ProcessingStatus.SEGMENTING },
-        ],
+        where: this.ACTIVELY_PROCESSING_WHERE,
       }),
       this.materialRepo.count({ where: { processingStatus: ProcessingStatus.FAILED } }),
       this.quizResultRepo.count(),

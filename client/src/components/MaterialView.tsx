@@ -335,23 +335,43 @@ export const MaterialView = () => {
 
   const handleToggleFavorite = async () => {
     if (!material) return;
+
+    // Optimistic update - immediately toggle the UI
+    const previousValue = isFavorited;
+    setIsFavorited(!isFavorited);
+
     try {
       const res = await api.post(`/materials/${material.id}/favorite`);
+      // Sync with server response (in case of race conditions)
       setIsFavorited(res.data.isFavorited);
     } catch (error) {
+      // Revert on error
+      setIsFavorited(previousValue);
       console.error('Failed to toggle favorite', error);
     }
   };
 
   const handleRate = async (rating: number) => {
     if (!material) return;
+
+    // Optimistic update - immediately show the new rating
+    const previousUserRating = userRating;
+    const previousAverageRating = averageRating;
+    setUserRating(rating);
+    // Estimate new average (rough approximation for optimistic UI)
+    setAverageRating(rating);
+
     try {
       const res = await api.post(`/materials/${material.id}/rate`, {
         value: rating,
       });
+      // Sync with actual server-calculated values
       setUserRating(res.data.userRating);
       setAverageRating(res.data.averageRating);
     } catch (error) {
+      // Revert on error
+      setUserRating(previousUserRating);
+      setAverageRating(previousAverageRating);
       console.error('Failed to rate material', error);
     }
   };
@@ -462,8 +482,8 @@ export const MaterialView = () => {
             <button
               onClick={() => setJotterOpen(!jotterOpen)}
               className={`hidden md:flex px-3 py-1.5 rounded-full transition-colors items-center font-medium text-sm ${jotterOpen
-                  ? 'bg-yellow-200 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-400'
-                  : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-200 dark:hover:bg-yellow-900/50'
+                ? 'bg-yellow-200 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-400'
+                : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-200 dark:hover:bg-yellow-900/50'
                 }`}
             >
               <PenTool className='w-4 h-4 mr-1.5' />
@@ -481,8 +501,8 @@ export const MaterialView = () => {
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className={`hidden md:flex p-2 rounded-full transition-colors ${sidebarOpen
-                  ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
-                  : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+                ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
+                : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
               title='Open AI Companion'
             >
