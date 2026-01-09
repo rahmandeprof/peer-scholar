@@ -534,7 +534,30 @@ export const MaterialView = () => {
                   />
                   <div
                     onClick={(e) => e.stopPropagation()}
-                    className='fixed bottom-0 left-0 right-0 w-full md:absolute md:right-0 md:top-full md:bottom-auto md:left-auto md:w-56 max-h-[60vh] md:max-h-[85vh] overflow-y-auto overscroll-contain bg-white dark:bg-gray-800 md:rounded-xl rounded-t-2xl shadow-xl border-t md:border border-gray-200 dark:border-gray-700 z-[100] animate-in slide-in-from-bottom-full md:slide-in-from-top-2 md:fade-in md:zoom-in-95 duration-200 md:mt-2'
+                    onTouchStart={(e) => {
+                      const touch = e.touches[0];
+                      e.currentTarget.dataset.startY = touch.clientY.toString();
+                      e.currentTarget.dataset.currentY = touch.clientY.toString();
+                    }}
+                    onTouchMove={(e) => {
+                      const touch = e.touches[0];
+                      const startY = parseFloat(e.currentTarget.dataset.startY || '0');
+                      const deltaY = touch.clientY - startY;
+                      if (deltaY > 0) {
+                        e.currentTarget.style.transform = `translateY(${deltaY}px)`;
+                        e.currentTarget.dataset.currentY = touch.clientY.toString();
+                      }
+                    }}
+                    onTouchEnd={(e) => {
+                      const startY = parseFloat(e.currentTarget.dataset.startY || '0');
+                      const currentY = parseFloat(e.currentTarget.dataset.currentY || '0');
+                      const deltaY = currentY - startY;
+                      if (deltaY > 100) {
+                        setMenuOpen(false);
+                      }
+                      e.currentTarget.style.transform = '';
+                    }}
+                    className='fixed bottom-0 left-0 right-0 w-full md:absolute md:right-0 md:top-full md:bottom-auto md:left-auto md:w-56 max-h-[60vh] md:max-h-[85vh] overflow-y-auto overscroll-contain bg-white dark:bg-gray-800 md:rounded-xl rounded-t-2xl shadow-xl border-t md:border border-gray-200 dark:border-gray-700 pb-20 md:pb-2 z-[100] animate-in slide-in-from-bottom-full md:slide-in-from-top-2 md:fade-in md:zoom-in-95 duration-200 md:mt-2 transition-transform'
                   >
                     {/* Mobile Header with Close Button */}
                     <div className='md:hidden sticky top-0 bg-white dark:bg-gray-800 z-10 px-4 py-3 border-b border-gray-100 dark:border-gray-700'>
@@ -619,8 +642,8 @@ export const MaterialView = () => {
                         <Sparkles className='w-5 h-5 mb-1.5' />
                         AI
                       </button>
-                      {/* Timer spans 2 columns for prominence */}
-                      <div className='col-span-2 flex items-center justify-center p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl min-h-[64px]'>
+                      {/* Timer spans full width for prominence */}
+                      <div className='col-span-3 flex items-center justify-center p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl min-h-[64px]'>
                         <StudyTimer
                           key={`mobile-${timerKey}`}
                           onComplete={handleSessionEnd}
