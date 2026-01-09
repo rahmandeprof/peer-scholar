@@ -93,7 +93,7 @@ export class TTSService {
         }
 
         const validatedVoice = this.validateVoice(voice);
-        const MAX_CHUNK_LENGTH = 1900; // Leave some buffer below 2000
+        const MAX_CHUNK_LENGTH = 800; // Reduced from 1900 to prevent timeouts
 
         // If text is within limit, send directly
         if (text.length <= MAX_CHUNK_LENGTH) {
@@ -102,7 +102,7 @@ export class TTSService {
         }
 
         // Chunking logic
-        this.logger.log(`Text length (${text.length}) exceeds API limit. Chunking...`);
+        this.logger.log(`Text length (${text.length}) exceeds chunk limit. Chunking...`);
         const chunks = this.chunkText(text, MAX_CHUNK_LENGTH);
         this.logger.log(`Split into ${chunks.length} chunks.`);
 
@@ -143,7 +143,7 @@ export class TTSService {
                         'Content-Type': 'application/json',
                     },
                     responseType: 'arraybuffer',
-                    timeout: 60000,
+                    timeout: 120000, // Increased to 120s to handle slow responses
                 },
             );
             this.logger.log(`TTS generated successfully for chunk: ${response.data.length} bytes`);
