@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import type { Material } from '../types/academic';
 import {
   ArrowLeft,
   FileText,
@@ -12,6 +13,7 @@ import {
   AlertTriangle,
   Moon,
   Sun,
+  TrendingUp,
 } from 'lucide-react';
 import { BorderSpinner, MaterialViewSkeleton } from './Skeleton';
 import api from '../lib/api';
@@ -58,6 +60,9 @@ const PublicNotesPanel = lazy(() =>
 const HelpfulLinksPanel = lazy(() =>
   import('./HelpfulLinksPanel').then((m) => ({ default: m.default })),
 );
+const RecommendedMaterials = lazy(() =>
+  import('./RecommendedMaterials').then((m) => ({ default: m.RecommendedMaterials })),
+);
 
 // Loading spinner for lazy modals
 const ModalLoadingFallback = () => (
@@ -69,25 +74,7 @@ const ModalLoadingFallback = () => (
   </div>
 );
 
-interface Material {
-  id: string;
-  title: string;
-  description: string;
-  fileUrl: string;
-  pdfUrl?: string;
-  fileType: string;
-  content?: string;
-  type: string;
-  uploader: {
-    id: string;
-    firstName: string;
-    lastName: string;
-  };
-  createdAt: string;
-  status: 'pending' | 'processing' | 'ready' | 'failed';
-  favoritesCount: number;
-  averageRating: number;
-}
+
 
 export const MaterialView = () => {
   const { id } = useParams<{ id: string }>();
@@ -114,6 +101,7 @@ export const MaterialView = () => {
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
   const [publicNotesOpen, setPublicNotesOpen] = useState(false);
   const [helpfulLinksOpen, setHelpfulLinksOpen] = useState(false);
+  const [recommendationsOpen, setRecommendationsOpen] = useState(false);
 
   // Reading time tracking for weekly goals
   const [readingSessionId, setReadingSessionId] = useState<string | null>(null);
@@ -454,7 +442,7 @@ export const MaterialView = () => {
                 </div>
               </h1>
               <p className='text-sm text-gray-500 dark:text-gray-400 truncate'>
-                Uploaded by {getDisplayName(material.uploader)}
+                Uploaded by {material.uploader ? getDisplayName(material.uploader) : 'Unknown'}
               </p>
             </div>
           </div>
@@ -507,6 +495,14 @@ export const MaterialView = () => {
             >
               <MessageSquare className='w-4 h-4 mr-1.5' />
               Notes
+            </button>
+
+            <button
+              onClick={() => setRecommendationsOpen(true)}
+              className='hidden md:flex px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors items-center font-medium text-sm'
+            >
+              <TrendingUp className='w-4 h-4 mr-1.5' />
+              For You
             </button>
 
             <button
@@ -916,6 +912,32 @@ export const MaterialView = () => {
                   materialId={material?.id || ''}
                   currentUserId={material?.uploader?.id}
                 />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Recommendations Sidebar */}
+        {recommendationsOpen && (
+          <div className='fixed inset-0 z-[60]'>
+            <div
+              className='absolute inset-0 bg-black/30 backdrop-blur-sm'
+              onClick={() => setRecommendationsOpen(false)}
+            />
+            <div className='absolute right-0 top-0 h-full w-full max-w-md bg-white dark:bg-gray-800 shadow-2xl overflow-y-auto animate-slide-in-right'>
+              <div className='sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between z-10'>
+                <h2 className='text-lg font-bold text-gray-900 dark:text-gray-100'>
+                  Recommended For You
+                </h2>
+                <button
+                  onClick={() => setRecommendationsOpen(false)}
+                  className='p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors'
+                >
+                  ✕
+                </button>
+              </div>
+              <div className='p-4'>
+                <RecommendedMaterials />
               </div>
             </div>
           </div>

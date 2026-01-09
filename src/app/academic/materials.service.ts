@@ -22,6 +22,7 @@ import { Note } from './entities/note.entity';
 import { PublicNote, PublicNoteVote } from './entities/public-note.entity';
 import { MaterialFlag, FlagReason } from './entities/material-flag.entity';
 import { PageBookmark } from './entities/page-bookmark.entity';
+import { ViewingHistory } from '@/app/users/entities/viewing-history.entity';
 import { Course } from '@/app/academic/entities/course.entity';
 import { User } from '@/app/users/entities/user.entity';
 
@@ -67,6 +68,8 @@ export class MaterialsService {
     private flagRepo: Repository<MaterialFlag>,
     @InjectRepository(PageBookmark)
     private bookmarkRepo: Repository<PageBookmark>,
+    @InjectRepository(ViewingHistory)
+    private viewingHistoryRepo: Repository<ViewingHistory>,
   ) {
     cloudinary.config({
       cloud_name: this.configService.get('CLOUD_NAME'),
@@ -1097,5 +1100,74 @@ export class MaterialsService {
 
     await this.bookmarkRepo.remove(bookmark);
     return { success: true };
+  }
+
+  // ==================== Recommendations ====================
+
+  /**
+   * Get recommended materials based on what others in the same department are reading
+   */
+  async getRecommendations(user: User, limit: number = 5) {
+    if (!user.department) {
+      // Fallback to trending if no department
+      return this.materialRepo.find({
+        order: {
+          favoritesCount: 'DESC',
+          createdAt: 'DESC',
+        },
+        take: limit,
+        relations: ['uploader'],
+      });
+    }
+
+    const deptName =
+      typeof user.department === 'string'
+        ? user.department
+        : (user.department as any).name;
+
+    // specific materials the user has already seen
+    const userViewed = await this.viewingHistoryRepo
+      .createQueryBuilder('history')
+      .select('history.materialId')
+      .where('history.user.id = :userId', { userId: user.id })
+      .getRawMany();
+
+    const excludedIds = userViewed.map((v) => v.history_materialId);
+    if (excludedIds.length === 0) excludedIds.push('00000000-0000-0000-0000-000000000000'); // Dummy UUID
+
+    // Find popular materials in same department, excluding what user has seen
+    const popularInDept = await this.viewingHistoryRepo
+      .createQueryBuilder('history')
+      .leftJoin('history.user', 'user')
+      .select('history.material.id', 'materialId')
+      .addSelect('COUNT(history.id)', 'count')
+      .where('user.department = :deptName', { deptName })
+      .andWhere('history.material.id NOT IN (:...excludedIds)', { excludedIds })
+      .groupBy('history.material.id')
+      .orderBy('count', 'DESC')
+      .limit(limit)
+      .getRawMany();
+
+    const materialIds = popularInDept.map((r) => r.materialId);
+
+    if (materialIds.length === 0) {
+      // Fallback: Just return trending materials user hasn't seen
+      return this.materialRepo
+        .createQueryBuilder('material')
+        .leftJoinAndSelect('material.uploader', 'uploader')
+        .where('material.id NOT IN (:...excludedIds)', { excludedIds })
+        .orderBy('material.favoritesCount', 'DESC')
+        .take(limit)
+        .getMany();
+    }
+
+    // Fetch full material objects for the recommended IDs
+    // We use createQueryBuilder to maintain the order of IDs if possible, 
+    // or just fetch and let client sort (or just return popular ones)
+    return this.materialRepo
+      .createQueryBuilder('material')
+      .leftJoinAndSelect('material.uploader', 'uploader')
+      .whereInIds(materialIds)
+      .getMany();
   }
 }

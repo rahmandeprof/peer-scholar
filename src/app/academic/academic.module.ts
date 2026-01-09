@@ -23,6 +23,7 @@ import { School } from './entities/school.entity';
 import { HelpfulLink } from './entities/helpful-link.entity';
 import { MaterialFlag } from './entities/material-flag.entity';
 import { PageBookmark } from './entities/page-bookmark.entity';
+import { ViewingHistory } from '../users/entities/viewing-history.entity';
 
 import { AcademicController } from './academic.controller';
 import { MaterialsController } from './materials.controller';
@@ -58,6 +59,7 @@ import { MaterialProcessor } from './processors/material.processor';
       MaterialFlag,
       DocumentSegment,
       PageBookmark,
+      ViewingHistory, // For recommendations
     ]),
     BullModule.registerQueue({
       name: 'materials',

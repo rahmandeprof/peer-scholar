@@ -111,6 +111,12 @@ export class MaterialsController {
     return this.materialsService.getTrending(req.user);
   }
 
+  @Get('recommendations')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getRecommendations(@Req() req: any) {
+    return this.materialsService.getRecommendations(req.user);
+  }
+
   @Get('course/:courseId/topics')
   getCourseTopics(@Param('courseId') courseId: string) {
     return this.materialsService.getCourseTopics(courseId);
