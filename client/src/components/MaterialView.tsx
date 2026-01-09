@@ -14,6 +14,7 @@ import {
   Moon,
   Sun,
   TrendingUp,
+  X,
 } from 'lucide-react';
 import { BorderSpinner, MaterialViewSkeleton } from './Skeleton';
 import api from '../lib/api';
@@ -533,8 +534,18 @@ export const MaterialView = () => {
                   />
                   <div
                     onClick={(e) => e.stopPropagation()}
-                    className='fixed bottom-0 left-0 right-0 w-full md:absolute md:right-0 md:top-full md:bottom-auto md:left-auto md:w-56 max-h-[85vh] overflow-y-auto overscroll-contain bg-white dark:bg-gray-800 md:rounded-xl rounded-t-2xl shadow-xl border-t md:border border-gray-200 dark:border-gray-700 pt-2 pb-8 md:pb-2 z-50 animate-in slide-in-from-bottom-full md:slide-in-from-top-2 md:fade-in md:zoom-in-95 duration-200 md:mt-2'
+                    className='fixed bottom-0 left-0 right-0 w-full md:absolute md:right-0 md:top-full md:bottom-auto md:left-auto md:w-56 max-h-[70vh] md:max-h-[85vh] overflow-y-auto overscroll-contain bg-white dark:bg-gray-800 md:rounded-xl rounded-t-2xl shadow-xl border-t md:border border-gray-200 dark:border-gray-700 pt-2 pb-8 md:pb-2 z-[100] animate-in slide-in-from-bottom-full md:slide-in-from-top-2 md:fade-in md:zoom-in-95 duration-200 md:mt-2'
                   >
+                    {/* Mobile Close Button & Handle */}
+                    <div className='md:hidden flex flex-col items-center sticky top-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur z-10 -mx-4 px-4 pb-2 border-b border-gray-100 dark:border-gray-700 mb-2'>
+                      <div className='w-12 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full mb-3 mt-1' />
+                      <button
+                        onClick={() => setMenuOpen(false)}
+                        className='absolute right-4 top-3 p-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                      >
+                        <X className='w-4 h-4' />
+                      </button>
+                    </div>
                     {/* Mobile Only Actions */}
                     <div className='md:hidden px-4 py-2 border-b border-gray-100 dark:border-gray-700 flex justify-center'>
                       <StudyTimer
