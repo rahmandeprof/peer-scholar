@@ -92,20 +92,49 @@ export class TTSService {
             throw new BadRequestException('Text is required for TTS generation');
         }
 
-        // Limit text length to prevent abuse (YarnGPT handles long text but let's be reasonable)
-        const maxLength = 5000;
-        const trimmedText = text.length > maxLength ? text.substring(0, maxLength) : text;
-
         const validatedVoice = this.validateVoice(voice);
+        const MAX_CHUNK_LENGTH = 1900; // Leave some buffer below 2000
 
-        this.logger.log(`Generating TTS: voice=${validatedVoice}, format=${responseFormat}, length=${trimmedText.length}`);
+        // If text is within limit, send directly
+        if (text.length <= MAX_CHUNK_LENGTH) {
+            this.logger.log(`Generating TTS: voice=${validatedVoice}, format=${responseFormat}, length=${text.length}`);
+            return this.callTtsApi(text, validatedVoice, responseFormat);
+        }
 
+        // Chunking logic
+        this.logger.log(`Text length (${text.length}) exceeds API limit. Chunking...`);
+        const chunks = this.chunkText(text, MAX_CHUNK_LENGTH);
+        this.logger.log(`Split into ${chunks.length} chunks.`);
+
+        try {
+            // Process chunks sequentially to maintain order and avoid rate limits
+            const buffers: Buffer[] = [];
+            for (const [index, chunk] of chunks.entries()) {
+                this.logger.log(`Processing chunk ${index + 1}/${chunks.length} (${chunk.length} chars)`);
+                const buffer = await this.callTtsApi(chunk, validatedVoice, responseFormat);
+                buffers.push(buffer);
+            }
+
+            const combinedBuffer = Buffer.concat(buffers);
+            this.logger.log(`Successfully combined ${buffers.length} chunks into ${combinedBuffer.length} bytes`);
+            return combinedBuffer;
+
+        } catch (error: any) {
+            this.logger.error('Error processing TTS chunks', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Call API for a single chunk
+     */
+    private async callTtsApi(text: string, voice: string, responseFormat: string): Promise<Buffer> {
         try {
             const response = await axios.post(
                 this.apiUrl,
                 {
-                    text: trimmedText,
-                    voice: validatedVoice,
+                    text,
+                    voice,
                     response_format: responseFormat,
                 },
                 {
@@ -114,22 +143,65 @@ export class TTSService {
                         'Content-Type': 'application/json',
                     },
                     responseType: 'arraybuffer',
-                    timeout: 60000, // 60 second timeout for long text
+                    timeout: 60000,
                 },
             );
-
-            this.logger.log(`TTS generated successfully: ${response.data.length} bytes`);
+            this.logger.log(`TTS generated successfully for chunk: ${response.data.length} bytes`);
             return Buffer.from(response.data);
         } catch (error: any) {
-            this.logger.error('YarnGPT API error:', error.message);
-
             if (error.response) {
                 const errorBody = error.response.data?.toString?.() || 'Unknown error';
-                this.logger.error(`YarnGPT response: ${error.response.status} - ${errorBody}`);
-                throw new BadRequestException(`TTS generation failed: ${errorBody}`);
+                throw new BadRequestException(`TTS failed: ${errorBody}`);
             }
-
-            throw new BadRequestException('Failed to generate speech. Please try again.');
+            throw new BadRequestException(`Failed to generate speech: ${error.message}`);
         }
+    }
+
+    /**
+     * Configure smart chunking to respect usage limits
+     */
+    private chunkText(text: string, maxLength: number): string[] {
+        if (text.length <= maxLength) return [text];
+
+        const chunks: string[] = [];
+        let currentChunk = '';
+
+        // Split by sentence terminators first
+        // This regex tries to capture sentences ending with . ! ? or the last part if no terminator
+        const sentences = text.match(/[^.!?]+(?:[.!?]|$)/g) || [text];
+
+        for (const sentence of sentences) {
+            // If adding the next sentence makes the current chunk too long
+            if ((currentChunk + sentence).length > maxLength) {
+                // If currentChunk has content, push it
+                if (currentChunk.trim().length > 0) {
+                    chunks.push(currentChunk.trim());
+                    currentChunk = '';
+                }
+
+                // If the sentence itself is too long, hard split it
+                if (sentence.length > maxLength) {
+                    let remaining = sentence;
+                    while (remaining.length > 0) {
+                        const slice = remaining.slice(0, maxLength);
+                        chunks.push(slice.trim()); // Push the slice directly as a new chunk
+                        remaining = remaining.slice(maxLength);
+                    }
+                } else {
+                    // The sentence fits into an empty chunk, so start a new chunk with it
+                    currentChunk = sentence;
+                }
+            } else {
+                // Sentence fits, add it to the current chunk
+                currentChunk += sentence;
+            }
+        }
+
+        // Add any remaining content in currentChunk
+        if (currentChunk.trim().length > 0) {
+            chunks.push(currentChunk.trim());
+        }
+
+        return chunks;
     }
 }
