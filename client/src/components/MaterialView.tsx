@@ -528,10 +528,13 @@ export const MaterialView = () => {
               {menuOpen && (
                 <>
                   <div
-                    className='fixed inset-0 z-10'
+                    className='fixed inset-0 z-40 bg-black/20 backdrop-blur-sm dark:bg-black/40'
                     onClick={() => setMenuOpen(false)}
                   />
-                  <div className='absolute md:right-0 md:top-full bottom-0 left-0 right-0 w-full md:w-56 max-h-[75vh] md:max-h-[85vh] overflow-y-auto overscroll-contain bg-white dark:bg-gray-800 md:rounded-xl rounded-t-2xl shadow-xl border-t md:border border-gray-200 dark:border-gray-700 py-2 z-20 animate-in slide-in-from-bottom md:slide-in-from-top-2 md:fade-in md:zoom-in-95 duration-200 md:mt-2 fixed md:absolute'>
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className='fixed bottom-0 left-0 right-0 w-full md:absolute md:right-0 md:top-full md:bottom-auto md:left-auto md:w-56 max-h-[85vh] overflow-y-auto overscroll-contain bg-white dark:bg-gray-800 md:rounded-xl rounded-t-2xl shadow-xl border-t md:border border-gray-200 dark:border-gray-700 pt-2 pb-8 md:pb-2 z-50 animate-in slide-in-from-bottom-full md:slide-in-from-top-2 md:fade-in md:zoom-in-95 duration-200 md:mt-2'
+                  >
                     {/* Mobile Only Actions */}
                     <div className='md:hidden px-4 py-2 border-b border-gray-100 dark:border-gray-700 flex justify-center'>
                       <StudyTimer
@@ -598,7 +601,10 @@ export const MaterialView = () => {
                       </span>
                       <StarRating
                         rating={userRating}
-                        onRate={handleRate}
+                        onRate={(r) => {
+                          handleRate(r);
+                          setMenuOpen(false);
+                        }}
                         size={20}
                       />
                     </div>
@@ -606,7 +612,12 @@ export const MaterialView = () => {
                     {/* Actions List */}
                     <div className='py-1'>
                       <button
-                        onClick={handleToggleFavorite}
+                        onClick={() => {
+                          handleToggleFavorite();
+                          // Keep open or close? User usually wants feedback. 
+                          // But to be consistent with "mobile feel", let's close it.
+                          setMenuOpen(false);
+                        }}
                         className='w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200'
                       >
                         <Heart
@@ -660,6 +671,7 @@ export const MaterialView = () => {
                         download
                         target='_blank'
                         rel='noopener noreferrer'
+                        onClick={() => setMenuOpen(false)}
                         className='block px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200'
                       >
                         <Download className='w-4 h-4 mr-3' />
