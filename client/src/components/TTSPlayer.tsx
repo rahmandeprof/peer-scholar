@@ -162,7 +162,7 @@ export function TTSPlayer({ text, onClose, defaultVoice = 'Idera' }: TTSPlayerPr
   };
 
   return (
-    <div className="fixed bottom-24 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
+    <div className="fixed bottom-20 right-4 md:bottom-24 md:right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
       {/* Voice Selector Popup */}
       {showVoiceSelector && (
         <div className="absolute bottom-16 right-0 w-48 max-h-64 overflow-y-auto bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-1 mb-2">
