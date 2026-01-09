@@ -184,6 +184,20 @@ export function AdminDashboard() {
   const [retryingFailed, setRetryingFailed] = useState(false);
   const [queueLastUpdated, setQueueLastUpdated] = useState<Date | null>(null);
 
+  // Failed jobs debugging state
+  const [failedJobs, setFailedJobs] = useState<{
+    id: string;
+    name: string;
+    data: { materialId?: string };
+    failedReason: string;
+    stacktrace: string[];
+    attemptsMade: number;
+    timestamp: number;
+  }[]>([]);
+  const [failedJobsLoading, setFailedJobsLoading] = useState(false);
+  const [showFailedJobs, setShowFailedJobs] = useState(false);
+  const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
+
   // Feedbacks state
   const [feedbacks, setFeedbacks] = useState<
     {
@@ -384,6 +398,21 @@ export function AdminDashboard() {
       toast.error(err.response?.data?.message || 'Failed to retry failed jobs');
     } finally {
       setRetryingFailed(false);
+    }
+  };
+
+  const fetchFailedJobs = async () => {
+    setFailedJobsLoading(true);
+    try {
+      const res = await api.get('/admin/queue/failed-jobs');
+      if (res.data.success) {
+        setFailedJobs(res.data.jobs || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch failed jobs:', err);
+      toast.error('Failed to fetch failed jobs');
+    } finally {
+      setFailedJobsLoading(false);
     }
   };
 
@@ -913,9 +942,101 @@ export function AdminDashboard() {
                       )}
                       Clear Failed
                     </button>
+                    <button
+                      onClick={() => {
+                        setShowFailedJobs(!showFailedJobs);
+                        if (!showFailedJobs) fetchFailedJobs();
+                      }}
+                      className='text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center gap-1'
+                    >
+                      <Eye className='w-3 h-3' />
+                      {showFailedJobs ? 'Hide' : 'View'} Details
+                    </button>
                   </>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Failed Jobs Debug Panel */}
+          {showFailedJobs && queueStatus && queueStatus.counts.failed > 0 && (
+            <div className='md:col-span-3 bg-white dark:bg-gray-900 rounded-xl border border-red-200 dark:border-red-800 p-4'>
+              <div className='flex items-center justify-between mb-3'>
+                <div className='flex items-center gap-2'>
+                  <AlertTriangle className='w-4 h-4 text-red-500' />
+                  <h3 className='font-semibold text-gray-900 dark:text-white text-sm'>
+                    Failed Jobs ({failedJobs.length})
+                  </h3>
+                </div>
+                <button
+                  onClick={fetchFailedJobs}
+                  disabled={failedJobsLoading}
+                  className='p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors'
+                >
+                  <RefreshCw className={`w-3 h-3 text-gray-400 ${failedJobsLoading ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
+
+              {failedJobsLoading ? (
+                <div className='flex justify-center py-4'>
+                  <BorderSpinner size='sm' />
+                </div>
+              ) : failedJobs.length === 0 ? (
+                <p className='text-sm text-gray-500 text-center py-4'>No failed jobs found</p>
+              ) : (
+                <div className='space-y-2 max-h-[400px] overflow-y-auto'>
+                  {failedJobs.map((job) => (
+                    <div
+                      key={job.id}
+                      className='border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden'
+                    >
+                      <button
+                        onClick={() => setExpandedJobId(expandedJobId === job.id ? null : job.id)}
+                        className='w-full px-3 py-2 flex items-center justify-between bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors'
+                      >
+                        <div className='flex items-center gap-3 text-left'>
+                          <span className='text-xs font-mono text-gray-500'>#{job.id}</span>
+                          <span className='text-sm text-gray-700 dark:text-gray-300 truncate max-w-[200px]'>
+                            {job.failedReason || 'Unknown error'}
+                          </span>
+                        </div>
+                        <div className='flex items-center gap-2'>
+                          <span className='text-xs text-gray-400'>
+                            {job.attemptsMade} attempts
+                          </span>
+                          <ChevronRight
+                            className={`w-4 h-4 text-gray-400 transition-transform ${expandedJobId === job.id ? 'rotate-90' : ''}`}
+                          />
+                        </div>
+                      </button>
+                      {expandedJobId === job.id && (
+                        <div className='px-3 py-2 bg-white dark:bg-gray-900 text-xs space-y-2'>
+                          <div>
+                            <span className='text-gray-500'>Material ID:</span>{' '}
+                            <span className='font-mono text-gray-700 dark:text-gray-300'>
+                              {job.data?.materialId || 'N/A'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className='text-gray-500'>Error:</span>
+                            <pre className='mt-1 p-2 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded overflow-x-auto whitespace-pre-wrap'>
+                              {job.failedReason}
+                            </pre>
+                          </div>
+                          {job.stacktrace && job.stacktrace.length > 0 && (
+                            <div>
+                              <span className='text-gray-500'>Stack Trace:</span>
+                              <pre className='mt-1 p-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded overflow-x-auto text-[10px] max-h-[150px] overflow-y-auto'>
+                                {job.stacktrace.join('\n')}
+                              </pre>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
