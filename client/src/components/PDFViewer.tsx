@@ -5,6 +5,7 @@ import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, X } from 'lucide-react';
 import { AnnotationManager } from './AnnotationManager';
+import { BookmarksDropdown } from './BookmarksDropdown';
 
 // Configure worker
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -206,6 +207,15 @@ export function PDFViewer({ url, materialId, initialPage = 1 }: PDFViewerProps) 
           >
             <ZoomIn className='w-5 h-5' />
           </button>
+
+          {/* Bookmarks */}
+          {materialId && (
+            <BookmarksDropdown
+              materialId={materialId}
+              currentPage={pageNumber}
+              onJumpToPage={setPageNumber}
+            />
+          )}
         </div>
       </div>
 

@@ -314,4 +314,37 @@ export class MaterialsController {
   forceDeleteMaterial(@Param('id') id: string) {
     return this.materialsService.forceDeleteMaterial(id);
   }
+
+  // ==================== Page Bookmarks ====================
+
+  @Post(':id/bookmarks')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  createBookmark(
+    @Param('id') id: string,
+    @Req() req: any,
+    @Body() body: { pageNumber: number; note?: string },
+  ) {
+    return this.materialsService.createBookmark(
+      req.user.id,
+      id,
+      body.pageNumber,
+      body.note,
+    );
+  }
+
+  @Get(':id/bookmarks')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getBookmarks(@Param('id') id: string, @Req() req: any) {
+    return this.materialsService.getBookmarks(req.user.id, id);
+  }
+
+  @Delete(':id/bookmarks/:bookmarkId')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  deleteBookmark(
+    @Param('id') id: string,
+    @Param('bookmarkId') bookmarkId: string,
+    @Req() req: any,
+  ) {
+    return this.materialsService.deleteBookmark(req.user.id, bookmarkId);
+  }
 }

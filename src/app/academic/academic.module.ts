@@ -22,6 +22,7 @@ import { PublicNote, PublicNoteVote } from './entities/public-note.entity';
 import { School } from './entities/school.entity';
 import { HelpfulLink } from './entities/helpful-link.entity';
 import { MaterialFlag } from './entities/material-flag.entity';
+import { PageBookmark } from './entities/page-bookmark.entity';
 
 import { AcademicController } from './academic.controller';
 import { MaterialsController } from './materials.controller';
@@ -56,6 +57,7 @@ import { MaterialProcessor } from './processors/material.processor';
       HelpfulLink,
       MaterialFlag,
       DocumentSegment,
+      PageBookmark,
     ]),
     BullModule.registerQueue({
       name: 'materials',

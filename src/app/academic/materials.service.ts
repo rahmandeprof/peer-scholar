@@ -21,6 +21,7 @@ import { MaterialReport } from './entities/material-report.entity';
 import { Note } from './entities/note.entity';
 import { PublicNote, PublicNoteVote } from './entities/public-note.entity';
 import { MaterialFlag, FlagReason } from './entities/material-flag.entity';
+import { PageBookmark } from './entities/page-bookmark.entity';
 import { Course } from '@/app/academic/entities/course.entity';
 import { User } from '@/app/users/entities/user.entity';
 
@@ -64,6 +65,8 @@ export class MaterialsService {
     private publicNoteVoteRepo: Repository<PublicNoteVote>,
     @InjectRepository(MaterialFlag)
     private flagRepo: Repository<MaterialFlag>,
+    @InjectRepository(PageBookmark)
+    private bookmarkRepo: Repository<PageBookmark>,
   ) {
     cloudinary.config({
       cloud_name: this.configService.get('CLOUD_NAME'),
@@ -1014,6 +1017,85 @@ export class MaterialsService {
 
     await this.materialRepo.remove(material);
 
+    return { success: true };
+  }
+
+  // ==================== Page Bookmarks ====================
+
+  /**
+   * Create a bookmark for a specific page in a material
+   */
+  async createBookmark(
+    userId: string,
+    materialId: string,
+    pageNumber: number,
+    note?: string,
+  ) {
+    // Check if bookmark already exists for this page
+    const existing = await this.bookmarkRepo.findOne({
+      where: {
+        user: { id: userId },
+        material: { id: materialId },
+        pageNumber,
+      },
+    });
+
+    if (existing) {
+      // Update note if provided
+      if (note !== undefined) {
+        existing.note = note;
+        await this.bookmarkRepo.save(existing);
+      }
+      return existing;
+    }
+
+    // Create new bookmark
+    const bookmark = this.bookmarkRepo.create({
+      user: { id: userId },
+      material: { id: materialId },
+      pageNumber,
+      note,
+    });
+
+    return this.bookmarkRepo.save(bookmark);
+  }
+
+  /**
+   * Get all bookmarks for a material by a user
+   */
+  async getBookmarks(userId: string, materialId: string) {
+    const bookmarks = await this.bookmarkRepo.find({
+      where: {
+        user: { id: userId },
+        material: { id: materialId },
+      },
+      order: { pageNumber: 'ASC' },
+    });
+
+    return bookmarks.map(b => ({
+      id: b.id,
+      pageNumber: b.pageNumber,
+      note: b.note,
+      createdAt: b.createdAt,
+    }));
+  }
+
+  /**
+   * Delete a bookmark
+   */
+  async deleteBookmark(userId: string, bookmarkId: string) {
+    const bookmark = await this.bookmarkRepo.findOne({
+      where: {
+        id: bookmarkId,
+        user: { id: userId },
+      },
+    });
+
+    if (!bookmark) {
+      throw new NotFoundException('Bookmark not found');
+    }
+
+    await this.bookmarkRepo.remove(bookmark);
     return { success: true };
   }
 }
