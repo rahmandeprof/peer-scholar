@@ -17,6 +17,7 @@ import { QuizEngineModule } from '@/app/quiz-engine/quiz-engine.module';
 import { StudyModule } from '@/app/study/study.module';
 import { CacheModule } from '@/app/cache/cache.module';
 import { FeedbackModule } from '@/app/feedback/feedback.module';
+import { TTSModule } from '@/app/tts/tts.module';
 import { UsersModule } from '@/app/users/users.module';
 import { DatabaseModule } from '@/database/database.module';
 import { MailModule } from '@/mail/mail.module';
@@ -58,6 +59,7 @@ import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
     AcademicModule,
     QuizEngineModule,
     FeedbackModule,
+    TTSModule,
     DocumentProcessingModule,
     ScheduleModule.forRoot(),
     ThrottlerModule.forRoot({
