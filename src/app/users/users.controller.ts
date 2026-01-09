@@ -142,6 +142,20 @@ export class UsersController {
     return this.usersService.removeFromViewingHistory(req.user.id, materialId);
   }
 
+  // ===== User Preferences (cross-device sync) =====
+
+  @Get('preferences')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getPreferences(@Req() req: any) {
+    return this.usersService.getPreferences(req.user.id);
+  }
+
+  @Patch('preferences')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  updatePreferences(@Req() req: any, @Body() updates: Record<string, any>) {
+    return this.usersService.updatePreferences(req.user.id, updates);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);

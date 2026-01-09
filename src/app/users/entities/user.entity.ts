@@ -129,5 +129,9 @@ export class User extends IDAndTimestamp {
   @ManyToOne('User', { nullable: true })
   @JoinColumn({ name: 'referred_by_id' })
   referredBy: User | null;
+
+  // Feature flags and UI preferences (synced across devices)
+  @Column({ name: 'preferences', type: 'json', nullable: true, default: '{}' })
+  preferences: Record<string, any>;
 }
 

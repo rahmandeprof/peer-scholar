@@ -777,5 +777,40 @@ export class UsersService {
     });
     return { success: true };
   }
+
+  // ==================== User Preferences ====================
+
+  /**
+   * Get user preferences (feature flags, UI settings)
+   */
+  async getPreferences(userId: string): Promise<Record<string, any>> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['preferences'],
+    });
+    return user?.preferences || {};
+  }
+
+  /**
+   * Update user preferences (merge with existing)
+   */
+  async updatePreferences(userId: string, updates: Record<string, any>) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Merge new preferences with existing
+    user.preferences = {
+      ...(user.preferences || {}),
+      ...updates,
+    };
+
+    await this.userRepository.save(user);
+    return user.preferences;
+  }
 }
 
