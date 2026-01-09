@@ -11,9 +11,18 @@ import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
 import { TTSService, TTSOptions } from './tts.service';
 
+import { IsString, IsOptional, IsEnum } from 'class-validator';
+
 class GenerateTTSDto {
+    @IsString()
     text: string;
+
+    @IsOptional()
+    @IsString()
     voice?: string;
+
+    @IsOptional()
+    @IsEnum(['mp3', 'wav', 'opus', 'flac'])
     responseFormat?: 'mp3' | 'wav' | 'opus' | 'flac';
 }
 
