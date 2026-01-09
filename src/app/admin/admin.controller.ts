@@ -554,6 +554,164 @@ export class AdminController {
   }
 
   /**
+   * Get failed jobs with error details for debugging
+   */
+  @Get('queue/failed-jobs')
+  async getFailedJobs() {
+    this.logger.log('Admin requested failed jobs list');
+
+    try {
+      const failedJobs = await this.materialsQueue.getFailed(0, 50);
+
+      const jobs = failedJobs.map((job) => ({
+        id: job.id,
+        name: job.name,
+        data: job.data,
+        failedReason: job.failedReason,
+        stacktrace: job.stacktrace,
+        attemptsMade: job.attemptsMade,
+        timestamp: job.timestamp,
+        processedOn: job.processedOn,
+        finishedOn: job.finishedOn,
+      }));
+
+      return {
+        success: true,
+        count: jobs.length,
+        jobs,
+      };
+    } catch (error) {
+      this.logger.error('Failed to get failed jobs:', error);
+      return {
+        success: false,
+        message: 'Failed to retrieve failed jobs',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Get details of a specific job by ID
+   */
+  @Get('queue/job/:jobId')
+  async getJobDetails(@Param('jobId') jobId: string) {
+    this.logger.log(`Admin requested job details for: ${jobId}`);
+
+    try {
+      const job = await this.materialsQueue.getJob(jobId);
+
+      if (!job) {
+        throw new NotFoundException(`Job ${jobId} not found`);
+      }
+
+      const state = await job.getState();
+      const logs = await this.materialsQueue.getJobLogs(jobId);
+
+      return {
+        success: true,
+        job: {
+          id: job.id,
+          name: job.name,
+          data: job.data,
+          state,
+          progress: job.progress(),
+          attemptsMade: job.attemptsMade,
+          failedReason: job.failedReason,
+          stacktrace: job.stacktrace,
+          timestamp: job.timestamp,
+          processedOn: job.processedOn,
+          finishedOn: job.finishedOn,
+          returnvalue: job.returnvalue,
+          logs: logs.logs,
+        },
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+      this.logger.error(`Failed to get job ${jobId}:`, error);
+      return {
+        success: false,
+        message: `Failed to retrieve job ${jobId}`,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Retry all failed jobs
+   */
+  @Post('queue/retry-failed')
+  async retryFailedJobs() {
+    this.logger.log('Admin requested retry of all failed jobs');
+
+    try {
+      const failedJobs = await this.materialsQueue.getFailed(0, 100);
+
+      let retriedCount = 0;
+      const errors: string[] = [];
+
+      for (const job of failedJobs) {
+        try {
+          await job.retry();
+          retriedCount++;
+          this.logger.log(`Retried job: ${job.id}`);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Unknown error';
+          errors.push(`Job ${job.id}: ${message}`);
+          this.logger.error(`Failed to retry job ${job.id}:`, err);
+        }
+      }
+
+      return {
+        success: true,
+        message: `Retried ${retriedCount} of ${failedJobs.length} failed jobs`,
+        retriedCount,
+        totalFailed: failedJobs.length,
+        errors: errors.length > 0 ? errors : undefined,
+      };
+    } catch (error) {
+      this.logger.error('Failed to retry failed jobs:', error);
+      return {
+        success: false,
+        message: 'Failed to retry jobs',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Clear all failed jobs from the queue
+   */
+  @Post('queue/clear-failed')
+  async clearFailedJobs() {
+    this.logger.log('Admin requested clearing of failed jobs');
+
+    try {
+      const failedJobs = await this.materialsQueue.getFailed(0, 1000);
+
+      let clearedCount = 0;
+      for (const job of failedJobs) {
+        await job.remove();
+        clearedCount++;
+      }
+
+      this.logger.log(`Cleared ${clearedCount} failed jobs`);
+
+      return {
+        success: true,
+        message: `Cleared ${clearedCount} failed jobs from queue`,
+        clearedCount,
+      };
+    } catch (error) {
+      this.logger.error('Failed to clear failed jobs:', error);
+      return {
+        success: false,
+        message: 'Failed to clear failed jobs',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
    * Clear completed jobs from the queue
    */
   @Post('queue/clear-completed')
@@ -567,49 +725,6 @@ export class AdminController {
       return {
         success: false,
         message: 'Failed to clear completed jobs',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  }
-
-  /**
-   * Clear failed jobs from the queue
-   */
-  @Post('queue/clear-failed')
-  async clearFailedJobs() {
-    this.logger.log('Admin requested clearing failed jobs');
-    try {
-      await this.materialsQueue.clean(0, 'failed');
-      return { success: true, message: 'Failed jobs cleared' };
-    } catch (error) {
-      this.logger.error('Failed to clear failed jobs:', error);
-      return {
-        success: false,
-        message: 'Failed to clear failed jobs',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  }
-
-  /**
-   * Retry all failed jobs in the queue
-   */
-  @Post('queue/retry-failed')
-  async retryFailedJobs() {
-    this.logger.log('Admin requested retrying failed jobs');
-    try {
-      const failed = await this.materialsQueue.getFailed();
-      let retried = 0;
-      for (const job of failed) {
-        await job.retry();
-        retried++;
-      }
-      return { success: true, message: `Retried ${retried} failed jobs`, count: retried };
-    } catch (error) {
-      this.logger.error('Failed to retry failed jobs:', error);
-      return {
-        success: false,
-        message: 'Failed to retry failed jobs',
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
