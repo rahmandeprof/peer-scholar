@@ -619,6 +619,13 @@ export const MaterialView = () => {
                         <Sparkles className='w-5 h-5 mb-1.5' />
                         AI
                       </button>
+                      {/* Timer spans 2 columns for prominence */}
+                      <div className='col-span-2 flex items-center justify-center p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl min-h-[64px]'>
+                        <StudyTimer
+                          key={`mobile-${timerKey}`}
+                          onComplete={handleSessionEnd}
+                        />
+                      </div>
                     </div>
 
                     {/* Rating */}
