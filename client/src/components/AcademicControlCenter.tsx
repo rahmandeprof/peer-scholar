@@ -14,7 +14,7 @@ import { BorderSpinner } from './Skeleton';
 import api from '../lib/api';
 import {
   getRecentlyOpened,
-  validateAndCleanHistory,
+  syncViewingHistory,
 } from '../lib/viewingHistory';
 import { useAuth } from '../contexts/AuthContext';
 import { StudySessionModal } from './StudySessionModal';
@@ -190,17 +190,10 @@ export function AcademicControlCenter() {
   useEffect(() => {
     if (!user || loading) return;
 
-    // Run validation after initial load completes
+    // Sync viewing history from backend to local cache
     const timer = setTimeout(() => {
-      validateAndCleanHistory(async (id) => {
-        try {
-          await api.get(`/chat/materials/${id}/exists`);
-          return true;
-        } catch {
-          return false;
-        }
-      }).catch(console.error); // Don't update state, just clean localStorage
-    }, 5000); // 5 second delay to avoid interfering with initial render
+      syncViewingHistory().catch(console.error);
+    }, 2000); // 2 second delay to avoid interfering with initial render
 
     return () => clearTimeout(timer);
   }, [user, loading]);

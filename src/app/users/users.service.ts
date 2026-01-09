@@ -17,6 +17,7 @@ import {
 import { StudyStreak } from '@/app/users/entities/study-streak.entity';
 import { User } from '@/app/users/entities/user.entity';
 import { ReadingProgress } from '@/app/users/entities/reading-progress.entity';
+import { ViewingHistory } from '@/app/users/entities/viewing-history.entity';
 
 import { CreateUserDto } from '@/app/users/dto/create-user.dto';
 import { UpdateAcademicProfileDto } from '@/app/users/dto/update-academic-profile.dto';
@@ -47,6 +48,8 @@ export class UsersService {
     private readonly facultyRepo: Repository<Faculty>,
     @InjectRepository(ReadingProgress)
     private readonly readingProgressRepo: Repository<ReadingProgress>,
+    @InjectRepository(ViewingHistory)
+    private readonly viewingHistoryRepo: Repository<ViewingHistory>,
     private readonly logger: WinstonLoggerService,
     private readonly emailService: EmailService,
     private readonly configService: ConfigService,
@@ -703,6 +706,76 @@ export class UsersService {
         longest: s.longestStreak,
       })),
     };
+  }
+
+  // ==================== Viewing History ====================
+
+  /**
+   * Record a material view for the user's viewing history
+   * Creates new entry or updates existing one with new timestamp/page
+   */
+  async recordView(userId: string, materialId: string, lastPage = 1) {
+    // Check if entry already exists for this user+material
+    let entry = await this.viewingHistoryRepo.findOne({
+      where: {
+        user: { id: userId },
+        material: { id: materialId },
+      },
+    });
+
+    if (entry) {
+      // Update existing entry
+      entry.lastPage = lastPage;
+      entry.viewedAt = new Date();
+    } else {
+      // Create new entry
+      entry = this.viewingHistoryRepo.create({
+        user: { id: userId },
+        material: { id: materialId },
+        lastPage,
+      });
+    }
+
+    await this.viewingHistoryRepo.save(entry);
+    return { success: true };
+  }
+
+  /**
+   * Get user's viewing history (most recent first)
+   * Returns materials with their metadata for "Recently Opened" feature
+   */
+  async getViewingHistory(userId: string, limit = 10) {
+    const history = await this.viewingHistoryRepo.find({
+      where: { user: { id: userId } },
+      relations: ['material', 'material.uploader'],
+      order: { viewedAt: 'DESC' },
+      take: limit,
+    });
+
+    return history.map(h => ({
+      id: h.material.id,
+      title: h.material.title,
+      type: h.material.type,
+      courseCode: h.material.courseCode,
+      lastPage: h.lastPage,
+      viewedAt: h.viewedAt,
+      uploader: h.material.uploader ? {
+        id: h.material.uploader.id,
+        firstName: h.material.uploader.firstName,
+        lastName: h.material.uploader.lastName,
+      } : undefined,
+    }));
+  }
+
+  /**
+   * Remove a material from viewing history (e.g., when material is deleted)
+   */
+  async removeFromViewingHistory(userId: string, materialId: string) {
+    await this.viewingHistoryRepo.delete({
+      user: { id: userId },
+      material: { id: materialId },
+    });
+    return { success: true };
   }
 }
 

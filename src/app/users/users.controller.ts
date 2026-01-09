@@ -118,6 +118,30 @@ export class UsersController {
     return this.usersService.cancelInvite(id, req.user.id);
   }
 
+  // ===== Viewing History (cross-device sync) =====
+
+  @Get('viewing-history')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getViewingHistory(@Req() req: any, @Query('limit') limit?: string) {
+    const parsedLimit = limit ? parseInt(limit, 10) : 10;
+    return this.usersService.getViewingHistory(req.user.id, parsedLimit);
+  }
+
+  @Post('viewing-history')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  recordView(
+    @Req() req: any,
+    @Body() body: { materialId: string; lastPage?: number },
+  ) {
+    return this.usersService.recordView(req.user.id, body.materialId, body.lastPage || 1);
+  }
+
+  @Delete('viewing-history/:materialId')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  removeFromHistory(@Param('materialId') materialId: string, @Req() req: any) {
+    return this.usersService.removeFromViewingHistory(req.user.id, materialId);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);

@@ -1,4 +1,7 @@
-// Utility for tracking recently viewed materials in localStorage
+// Backend-synced viewing history with localStorage fallback
+// This syncs with GET/POST /users/viewing-history endpoints
+
+import api from './api';
 
 const VIEWING_HISTORY_KEY = 'peer-scholar-viewing-history';
 const MAX_HISTORY_ITEMS = 10;
@@ -17,7 +20,9 @@ export interface ViewedMaterial {
     };
 }
 
-export function getViewingHistory(): ViewedMaterial[] {
+// ==================== Local Storage (Fallback) ====================
+
+function getLocalHistory(): ViewedMaterial[] {
     try {
         const stored = localStorage.getItem(VIEWING_HISTORY_KEY);
         return stored ? JSON.parse(stored) : [];
@@ -26,108 +31,122 @@ export function getViewingHistory(): ViewedMaterial[] {
     }
 }
 
-export function addToViewingHistory(material: Omit<ViewedMaterial, 'viewedAt'> & { viewedAt?: string }): void {
+function saveLocalHistory(history: ViewedMaterial[]): void {
     try {
-        const history = getViewingHistory();
-
-        // Remove existing entry for this material (if any) to avoid duplicates
-        const filtered = history.filter(m => m.id !== material.id);
-
-        // Add the new entry at the start
-        const newEntry: ViewedMaterial = {
-            ...material,
-            viewedAt: material.viewedAt || new Date().toISOString(),
-        };
-
-        const updated = [newEntry, ...filtered].slice(0, MAX_HISTORY_ITEMS);
-        localStorage.setItem(VIEWING_HISTORY_KEY, JSON.stringify(updated));
+        localStorage.setItem(VIEWING_HISTORY_KEY, JSON.stringify(history));
     } catch (error) {
-        console.error('Failed to save viewing history:', error);
+        console.error('Failed to save local viewing history:', error);
     }
 }
 
-export function updateViewingHistoryPage(materialId: string, page: number): void {
-    try {
-        const history = getViewingHistory();
-        const updated = history.map(m =>
-            m.id === materialId ? { ...m, lastPage: page, viewedAt: new Date().toISOString() } : m
-        );
-        localStorage.setItem(VIEWING_HISTORY_KEY, JSON.stringify(updated));
-    } catch (error) {
-        console.error('Failed to update viewing history page:', error);
-    }
-}
+// ==================== Backend Sync ====================
 
-export function getRecentlyOpened(limit: number = 3): ViewedMaterial[] {
-    return getViewingHistory().slice(0, limit);
-}
-
-export function removeFromViewingHistory(materialId: string): void {
+/**
+ * Fetch viewing history from backend, with localStorage fallback
+ */
+export async function getViewingHistory(limit: number = 10): Promise<ViewedMaterial[]> {
     try {
-        const history = getViewingHistory();
-        const filtered = history.filter(m => m.id !== materialId);
-        localStorage.setItem(VIEWING_HISTORY_KEY, JSON.stringify(filtered));
-    } catch (error) {
-        console.error('Failed to remove from viewing history:', error);
+        const res = await api.get(`/users/viewing-history?limit=${limit}`);
+        const backendHistory = res.data.map((item: any) => ({
+            ...item,
+            viewedAt: item.viewedAt || new Date().toISOString(),
+        }));
+
+        // Update local cache with backend data
+        saveLocalHistory(backendHistory);
+        return backendHistory;
+    } catch {
+        // Fall back to localStorage if offline or error
+        return getLocalHistory().slice(0, limit);
     }
 }
 
 /**
- * Validate that materials in viewing history still exist.
- * Removes stale entries (deleted materials) without blocking UI.
- * Debounced to run at most once per 24 hours to avoid excessive API calls.
- * @param checkMaterialExists - async function that returns true if material exists
+ * Get recently opened materials (wrapper for consistency)
  */
-const VALIDATION_CACHE_KEY = 'peer-scholar-validation-timestamp';
-const VALIDATION_CACHE_HOURS = 24;
+export function getRecentlyOpened(limit: number = 3): ViewedMaterial[] {
+    // This is synchronous - returns cached localStorage data immediately
+    // For async backend sync, use getViewingHistory()
+    return getLocalHistory().slice(0, limit);
+}
 
-export async function validateAndCleanHistory(
-    checkMaterialExists: (id: string) => Promise<boolean>
+/**
+ * Record a material view - syncs to backend with localStorage fallback
+ */
+export async function addToViewingHistory(
+    material: Omit<ViewedMaterial, 'viewedAt'> & { viewedAt?: string }
 ): Promise<void> {
+    const entry: ViewedMaterial = {
+        ...material,
+        viewedAt: material.viewedAt || new Date().toISOString(),
+    };
+
+    // Always save to localStorage first (for instant UI update)
+    const history = getLocalHistory();
+    const filtered = history.filter(m => m.id !== material.id);
+    const updated = [entry, ...filtered].slice(0, MAX_HISTORY_ITEMS);
+    saveLocalHistory(updated);
+
+    // Sync to backend (fire and forget)
     try {
-        // Check if we've validated recently (within 24 hours)
-        const lastValidated = localStorage.getItem(VALIDATION_CACHE_KEY);
-        if (lastValidated) {
-            const hoursSinceValidation = (Date.now() - parseInt(lastValidated, 10)) / (1000 * 60 * 60);
-            if (hoursSinceValidation < VALIDATION_CACHE_HOURS) {
-                return; // Skip validation, done recently
-            }
-        }
-
-        const history = getViewingHistory();
-        if (history.length === 0) {
-            localStorage.setItem(VALIDATION_CACHE_KEY, Date.now().toString());
-            return;
-        }
-
-        // Check all materials in parallel
-        const validationResults = await Promise.all(
-            history.map(async (material) => ({
-                id: material.id,
-                exists: await checkMaterialExists(material.id),
-            }))
-        );
-
-        // Filter to only valid materials
-        const validIds = new Set(
-            validationResults.filter(r => r.exists).map(r => r.id)
-        );
-        const cleanedHistory = history.filter(m => validIds.has(m.id));
-
-        // Only update if we removed something
-        if (cleanedHistory.length < history.length) {
-            localStorage.setItem(VIEWING_HISTORY_KEY, JSON.stringify(cleanedHistory));
-            console.log(`Cleaned ${history.length - cleanedHistory.length} stale entries from viewing history`);
-        }
-
-        // Mark validation as complete
-        localStorage.setItem(VALIDATION_CACHE_KEY, Date.now().toString());
+        await api.post('/users/viewing-history', {
+            materialId: material.id,
+            lastPage: material.lastPage || 1,
+        });
     } catch (error) {
-        // Fail silently - this is a background cleanup
-        console.warn('Failed to validate viewing history:', error);
+        console.error('Failed to sync viewing history to backend:', error);
+        // Not critical - localStorage has the data
     }
 }
 
-export function clearViewingHistory(): void {
-    localStorage.removeItem(VIEWING_HISTORY_KEY);
+/**
+ * Update the last page for a material in viewing history
+ */
+export async function updateViewingHistoryPage(materialId: string, page: number): Promise<void> {
+    // Update localStorage
+    const history = getLocalHistory();
+    const updated = history.map(m =>
+        m.id === materialId ? { ...m, lastPage: page, viewedAt: new Date().toISOString() } : m
+    );
+    saveLocalHistory(updated);
+
+    // Sync to backend
+    try {
+        await api.post('/users/viewing-history', {
+            materialId,
+            lastPage: page,
+        });
+    } catch (error) {
+        console.error('Failed to sync page update to backend:', error);
+    }
+}
+
+/**
+ * Remove a material from viewing history
+ */
+export async function removeFromViewingHistory(materialId: string): Promise<void> {
+    // Update localStorage
+    const history = getLocalHistory();
+    const filtered = history.filter(m => m.id !== materialId);
+    saveLocalHistory(filtered);
+
+    // Sync to backend
+    try {
+        await api.delete(`/users/viewing-history/${materialId}`);
+    } catch (error) {
+        console.error('Failed to sync removal to backend:', error);
+    }
+}
+
+/**
+ * Sync localStorage history to backend (run on login/app start)
+ * Fetches backend data and merges with local cache
+ */
+export async function syncViewingHistory(): Promise<void> {
+    try {
+        const backendHistory = await getViewingHistory(MAX_HISTORY_ITEMS);
+        saveLocalHistory(backendHistory);
+    } catch (error) {
+        console.error('Failed to sync viewing history:', error);
+    }
 }
