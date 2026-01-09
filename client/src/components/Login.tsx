@@ -13,6 +13,7 @@ interface LoginProps {
 export function Login({ onSwitch }: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const location = useLocation();
@@ -27,7 +28,7 @@ export function Login({ onSwitch }: LoginProps) {
 
     setLoading(true);
     try {
-      const res = await api.post('/auth/login', { email, password });
+      const res = await api.post('/auth/login', { email, password, rememberMe });
       login(res.data.access_token, res.data.user);
     } catch (err: any) {
       // Extract meaningful error message from API response
@@ -88,7 +89,19 @@ export function Login({ onSwitch }: LoginProps) {
           />
         </div>
 
-        <div className='w-full flex justify-end'>
+        <div className='flex items-center justify-between'>
+          <label className='flex items-center space-x-2 cursor-pointer group'>
+            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${rememberMe ? 'bg-primary-600 border-primary-600' : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800'}`}>
+              {rememberMe && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>}
+            </div>
+            <input
+              type='checkbox'
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className='hidden'
+            />
+            <span className='text-sm text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200'>Remember me</span>
+          </label>
           <Link
             to='/forgot-password'
             className='text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 block py-1'
