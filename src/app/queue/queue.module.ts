@@ -1,8 +1,49 @@
 import { BullModule } from '@nestjs/bull';
 import { Logger, Module, OnModuleInit } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import Redis from 'ioredis';
 
-import Queue from 'bull';
+// Shared Redis client for connection pooling
+let sharedRedisClient: Redis | null = null;
+let sharedSubscriberClient: Redis | null = null;
+
+function createRedisClient(configService: ConfigService, type: 'client' | 'subscriber' | 'bclient'): Redis {
+  const host = configService.get<string>('REDIS_HOST') ?? 'localhost';
+  const port = configService.get<number>('REDIS_PORT') ?? 6379;
+  const password = configService.get<string>('REDIS_PASSWORD');
+  const username = configService.get<string>('REDIS_USERNAME');
+
+  // For subscriber connections, we need separate instances
+  // For client connections, we can reuse
+  if (type === 'subscriber') {
+    if (!sharedSubscriberClient) {
+      Logger.log(`[QueueModule] Creating shared subscriber Redis client`, 'QueueModule');
+      sharedSubscriberClient = new Redis({
+        host,
+        port,
+        username,
+        password,
+        maxRetriesPerRequest: null, // Required for Bull
+        enableReadyCheck: false,
+      });
+    }
+    return sharedSubscriberClient;
+  }
+
+  // Client and bclient can share a connection
+  if (!sharedRedisClient) {
+    Logger.log(`[QueueModule] Creating shared Redis client`, 'QueueModule');
+    sharedRedisClient = new Redis({
+      host,
+      port,
+      username,
+      password,
+      maxRetriesPerRequest: null, // Required for Bull
+      enableReadyCheck: false,
+    });
+  }
+  return sharedRedisClient;
+}
 
 @Module({
   imports: [
@@ -11,21 +52,15 @@ import Queue from 'bull';
       useFactory: (configService: ConfigService) => {
         const host = configService.get<string>('REDIS_HOST') ?? 'localhost';
         const port = configService.get<number>('REDIS_PORT') ?? 6379;
-        const password = configService.get<string>('REDIS_PASSWORD');
 
         Logger.log(
-          `[QueueModule] Connecting to Redis at ${host}:${String(port)}`,
+          `[QueueModule] Connecting to Redis at ${host}:${String(port)} with connection sharing`,
           'QueueModule',
         );
 
         return {
-          redis: {
-            host,
-            port,
-            username: configService.get<string>('REDIS_USERNAME'),
-            password,
-            // enableOfflineQueue: false, // Allow offline queue to prevent startup crash
-          },
+          // Use createClient for connection reuse
+          createClient: (type) => createRedisClient(configService, type),
         };
       },
       inject: [ConfigService],
@@ -35,26 +70,18 @@ import Queue from 'bull';
   exports: [BullModule],
 })
 export class QueueModule implements OnModuleInit {
-  constructor(private configService: ConfigService) {}
+  private readonly logger = new Logger(QueueModule.name);
 
   onModuleInit() {
-    const host = this.configService.get<string>('REDIS_HOST') ?? 'localhost';
-    const port = this.configService.get<number>('REDIS_PORT') ?? 6379;
-    const password = this.configService.get<string>('REDIS_PASSWORD');
-    const username = this.configService.get<string>('REDIS_USERNAME');
+    // Connection check is now handled by shared client
+    if (sharedRedisClient) {
+      sharedRedisClient.on('ready', () => {
+        this.logger.log('✅ Shared Redis connection established successfully');
+      });
 
-    const testQueue = new Queue('connection-check', {
-      redis: { host, port, password, username },
-    });
-
-    testQueue.client.on('ready', () => {
-      Logger.log('✅ Redis connection established successfully', 'QueueModule');
-      void testQueue.close();
-    });
-
-    testQueue.client.on('error', (error) => {
-      Logger.error('❌ Redis connection failed', error.stack, 'QueueModule');
-      void testQueue.close();
-    });
+      sharedRedisClient.on('error', (error) => {
+        this.logger.error(`❌ Redis connection error: ${error.message}`);
+      });
+    }
   }
 }
