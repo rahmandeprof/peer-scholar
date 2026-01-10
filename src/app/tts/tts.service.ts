@@ -1,10 +1,13 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
+import { InjectQueue } from '@nestjs/bull';
 import { Repository } from 'typeorm';
+import { Queue } from 'bull';
 import axios from 'axios';
 import * as crypto from 'crypto';
 import { TtsCache } from './entities/tts-cache.entity';
+import { TtsJob, TtsJobStatus } from './entities/tts-job.entity';
 import { R2Service } from '@/app/common/services/r2.service';
 
 export interface TTSOptions {
@@ -56,6 +59,10 @@ export class TTSService {
         private readonly configService: ConfigService,
         @InjectRepository(TtsCache)
         private readonly ttsCacheRepo: Repository<TtsCache>,
+        @InjectRepository(TtsJob)
+        private readonly ttsJobRepo: Repository<TtsJob>,
+        @InjectQueue('tts')
+        private readonly ttsQueue: Queue,
         private readonly r2Service: R2Service,
     ) {
         this.apiKey = this.configService.get<string>('YARNGPT_API_KEY');
@@ -302,4 +309,94 @@ export class TTSService {
 
         return chunks;
     }
+
+    // ========== Streaming TTS Methods ==========
+
+    /**
+     * Start a streaming TTS job
+     * Chunks text and queues each chunk for background processing
+     * Returns immediately with job ID for polling
+     */
+    async startStreamJob(options: TTSOptions, userId?: string): Promise<{ jobId: string; totalChunks: number; cached: boolean; cacheUrl?: string }> {
+        if (!this.apiKey) {
+            throw new BadRequestException('TTS service is not configured. Please set YARNGPT_API_KEY.');
+        }
+
+        const { text, voice = this.defaultVoice, responseFormat = 'mp3' } = options;
+
+        if (!text || text.trim().length === 0) {
+            throw new BadRequestException('Text is required for TTS generation');
+        }
+
+        const validatedVoice = this.validateVoice(voice);
+        const textHash = this.getTextHash(text);
+
+        // Check cache first
+        const cached = await this.getCachedAudio(textHash, validatedVoice);
+        if (cached) {
+            return { jobId: '', totalChunks: 0, cached: true, cacheUrl: cached.audioUrl };
+        }
+
+        // Split text into chunks
+        const MAX_CHUNK_LENGTH = 800;
+        const chunks = this.chunkText(text, MAX_CHUNK_LENGTH);
+
+        this.logger.log(`Starting stream job: ${chunks.length} chunks, voice=${validatedVoice}`);
+
+        // Create job record
+        const job = this.ttsJobRepo.create({
+            textHash,
+            voice: validatedVoice,
+            format: responseFormat,
+            status: TtsJobStatus.PENDING,
+            totalChunks: chunks.length,
+            completedChunks: 0,
+            chunkUrls: [],
+            userId,
+        });
+        await this.ttsJobRepo.save(job);
+
+        // Queue each chunk for processing
+        for (let i = 0; i < chunks.length; i++) {
+            await this.ttsQueue.add('generate-chunk', {
+                jobId: job.id,
+                chunkIndex: i,
+                text: chunks[i],
+                voice: validatedVoice,
+                format: responseFormat,
+            }, {
+                attempts: 2,
+                backoff: { type: 'exponential', delay: 5000 },
+            });
+        }
+
+        return { jobId: job.id, totalChunks: chunks.length, cached: false };
+    }
+
+    /**
+     * Get the status of a streaming TTS job
+     * Returns available chunk URLs for progressive playback
+     */
+    async getJobStatus(jobId: string): Promise<{
+        status: TtsJobStatus;
+        totalChunks: number;
+        completedChunks: number;
+        chunkUrls: string[];
+        errorMessage?: string;
+    }> {
+        const job = await this.ttsJobRepo.findOne({ where: { id: jobId } });
+
+        if (!job) {
+            throw new NotFoundException('TTS job not found');
+        }
+
+        return {
+            status: job.status,
+            totalChunks: job.totalChunks,
+            completedChunks: job.completedChunks,
+            chunkUrls: job.chunkUrls.filter(url => url && url.length > 0),
+            errorMessage: job.errorMessage,
+        };
+    }
 }
+

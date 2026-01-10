@@ -4,11 +4,13 @@ import {
     Get,
     Body,
     Res,
+    Param,
+    Req,
     UseGuards,
     Logger,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { Response } from 'express';
+import { Response, Request } from 'express';
 import { TTSService, TTSOptions } from './tts.service';
 
 import { IsString, IsOptional, IsEnum } from 'class-validator';
@@ -75,7 +77,6 @@ export class TTSController {
 
         const audioBuffer = await this.ttsService.generateSpeech(options);
 
-        // Set appropriate content type
         const contentTypes: Record<string, string> = {
             mp3: 'audio/mpeg',
             wav: 'audio/wav',
@@ -86,7 +87,7 @@ export class TTSController {
         res.set({
             'Content-Type': contentTypes[options.responseFormat || 'mp3'],
             'Content-Length': audioBuffer.length,
-            'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+            'Cache-Control': 'public, max-age=3600',
         });
 
         res.send(audioBuffer);
@@ -94,7 +95,7 @@ export class TTSController {
 
     /**
      * Generate speech with caching (recommended)
-     * Returns audio URL instead of buffer - much faster for cached content
+     * Returns audio URL instead of buffer
      */
     @Post('generate-cached')
     @UseGuards(AuthGuard('jwt'))
@@ -113,6 +114,45 @@ export class TTSController {
             success: true,
             audioUrl: result.audioUrl,
             cached: result.cached,
+        };
+    }
+
+    /**
+     * Start streaming TTS generation
+     * Returns immediately with job ID for polling
+     */
+    @Post('start-stream')
+    @UseGuards(AuthGuard('jwt'))
+    async startStream(@Body() dto: GenerateTTSDto, @Req() req: Request) {
+        this.logger.log(`TTS stream start: voice=${dto.voice}, length=${dto.text?.length}`);
+
+        const options: TTSOptions = {
+            text: dto.text,
+            voice: dto.voice,
+            responseFormat: dto.responseFormat || 'mp3',
+        };
+
+        const userId = (req as any).user?.id;
+        const result = await this.ttsService.startStreamJob(options, userId);
+
+        return {
+            success: true,
+            ...result,
+        };
+    }
+
+    /**
+     * Get streaming TTS job status
+     * Poll this endpoint to get available chunk URLs
+     */
+    @Get('job/:id')
+    @UseGuards(AuthGuard('jwt'))
+    async getJobStatus(@Param('id') jobId: string) {
+        const result = await this.ttsService.getJobStatus(jobId);
+
+        return {
+            success: true,
+            ...result,
         };
     }
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, Pause, X, Loader2, Volume2 } from 'lucide-react';
 import api from '../lib/api';
 
@@ -11,6 +11,14 @@ interface TTSPlayerProps {
 interface VoiceInfo {
   name: string;
   gender: 'male' | 'female';
+}
+
+interface JobStatus {
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  totalChunks: number;
+  completedChunks: number;
+  chunkUrls: string[];
+  errorMessage?: string;
 }
 
 const VOICES: VoiceInfo[] = [
@@ -41,101 +49,201 @@ export function TTSPlayer({ text, onClose, defaultVoice = 'Idera' }: TTSPlayerPr
   const [voice, setVoice] = useState(defaultVoice);
   const [showVoiceSelector, setShowVoiceSelector] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioUrlRef = useRef<string | null>(null);
+  const [progress, setProgress] = useState({ current: 0, total: 0 });
 
-  // Generate audio when text or voice changes
-  useEffect(() => {
-    let cancelled = false;
+  // Streaming state
+  const jobIdRef = useRef<string | null>(null);
+  const audioQueueRef = useRef<HTMLAudioElement[]>([]);
+  const currentAudioIndexRef = useRef(0);
+  const playedChunksRef = useRef<Set<number>>(new Set());
+  const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelledRef = useRef(false);
 
-    const generateAudio = async () => {
-      setIsLoading(true);
-      setError(null);
+  // Play next audio in queue
+  const playNextInQueue = useCallback(() => {
+    const queue = audioQueueRef.current;
+    const currentIndex = currentAudioIndexRef.current;
+
+    if (currentIndex < queue.length) {
+      const audio = queue[currentIndex];
+      audio.playbackRate = playbackRate;
+      audio.play().catch(console.error);
+      setIsPlaying(true);
+    } else {
+      // No more to play right now, but may get more chunks
       setIsPlaying(false);
+    }
+  }, [playbackRate]);
 
-      // Cleanup previous audio
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = '';
+  // Add chunk to queue
+  const addChunkToQueue = useCallback((url: string, index: number) => {
+    if (playedChunksRef.current.has(index)) return;
+    playedChunksRef.current.add(index);
+
+    const audio = new Audio(url);
+    audio.playbackRate = playbackRate;
+
+    audio.onended = () => {
+      currentAudioIndexRef.current++;
+      playNextInQueue();
+    };
+
+    audio.onerror = () => {
+      console.error(`Failed to load audio chunk ${index}`);
+      currentAudioIndexRef.current++;
+      playNextInQueue();
+    };
+
+    audio.oncanplaythrough = () => {
+      // If this is the first chunk and we're not playing yet, start
+      if (index === 0 && !isPlaying && currentAudioIndexRef.current === 0) {
+        setIsLoading(false);
+        audio.play().catch(console.error);
+        setIsPlaying(true);
       }
-      if (audioUrlRef.current) {
-        URL.revokeObjectURL(audioUrlRef.current);
-        audioUrlRef.current = null;
+    };
+
+    // Fill queue at the right position
+    while (audioQueueRef.current.length <= index) {
+      audioQueueRef.current.push(null as any);
+    }
+    audioQueueRef.current[index] = audio;
+  }, [playbackRate, isPlaying, playNextInQueue]);
+
+  // Poll job status
+  const pollJobStatus = useCallback(async (jobId: string) => {
+    if (cancelledRef.current) return;
+
+    try {
+      const response = await api.get(`/tts/job/${jobId}`);
+      const status: JobStatus = response.data;
+
+      setProgress({ current: status.completedChunks, total: status.totalChunks });
+
+      // Add new chunks to queue
+      status.chunkUrls.forEach((url, index) => {
+        if (url && !playedChunksRef.current.has(index)) {
+          addChunkToQueue(url, index);
+        }
+      });
+
+      if (status.status === 'failed') {
+        setError(status.errorMessage || 'TTS generation failed');
+        setIsLoading(false);
+        return;
       }
 
+      if (status.status !== 'completed') {
+        // Continue polling
+        pollingRef.current = setTimeout(() => pollJobStatus(jobId), 2000);
+      }
+    } catch (err: any) {
+      console.error('Failed to poll job status:', err);
+      if (!cancelledRef.current) {
+        setError('Failed to check generation status');
+        setIsLoading(false);
+      }
+    }
+  }, [addChunkToQueue]);
+
+  // Start streaming audio generation
+  useEffect(() => {
+    cancelledRef.current = false;
+    setIsLoading(true);
+    setError(null);
+    setIsPlaying(false);
+    setProgress({ current: 0, total: 0 });
+
+    // Cleanup previous
+    audioQueueRef.current.forEach(audio => {
+      if (audio) {
+        audio.pause();
+        audio.src = '';
+      }
+    });
+    audioQueueRef.current = [];
+    currentAudioIndexRef.current = 0;
+    playedChunksRef.current.clear();
+    if (pollingRef.current) {
+      clearTimeout(pollingRef.current);
+    }
+
+    const startStream = async () => {
       try {
-        // Use cached endpoint - returns audio URL instead of blob
-        const response = await api.post('/tts/generate-cached', {
+        const response = await api.post('/tts/start-stream', {
           text,
           voice,
           responseFormat: 'mp3',
         });
 
-        if (cancelled) return;
+        if (cancelledRef.current) return;
 
-        const { audioUrl, cached } = response.data;
-        console.log(`TTS audio ${cached ? 'from cache' : 'newly generated'}: ${audioUrl}`);
+        const { jobId, cached, cacheUrl, totalChunks } = response.data;
 
-        // Use the URL directly - no need to create blob
-        const audio = new Audio(audioUrl);
-        audio.playbackRate = playbackRate;
-
-        audio.oncanplaythrough = () => {
-          if (!cancelled) {
+        if (cached && cacheUrl) {
+          // Use cached audio directly
+          console.log('TTS from cache:', cacheUrl);
+          const audio = new Audio(cacheUrl);
+          audio.playbackRate = playbackRate;
+          audio.oncanplaythrough = () => {
             setIsLoading(false);
             audio.play();
             setIsPlaying(true);
-          }
-        };
-
-        audio.onended = () => {
-          if (!cancelled) setIsPlaying(false);
-        };
-
-        audio.onerror = () => {
-          if (!cancelled) {
-            setError('Failed to play audio');
+          };
+          audio.onended = () => setIsPlaying(false);
+          audio.onerror = () => {
+            setError('Failed to play cached audio');
             setIsLoading(false);
-          }
-        };
+          };
+          audioQueueRef.current = [audio];
+          return;
+        }
 
-        audioRef.current = audio;
+        // Start polling for chunks
+        console.log(`Starting TTS stream job: ${jobId}, ${totalChunks} chunks`);
+        jobIdRef.current = jobId;
+        setProgress({ current: 0, total: totalChunks });
+        pollJobStatus(jobId);
       } catch (err: any) {
-        if (!cancelled) {
-          setError(err.response?.data?.message || 'Failed to generate speech');
+        if (!cancelledRef.current) {
+          setError(err.response?.data?.message || 'Failed to start TTS generation');
           setIsLoading(false);
         }
       }
     };
 
-    generateAudio();
+    startStream();
 
     return () => {
-      cancelled = true;
-      if (audioRef.current) {
-        audioRef.current.pause();
+      cancelledRef.current = true;
+      if (pollingRef.current) {
+        clearTimeout(pollingRef.current);
       }
-      if (audioUrlRef.current) {
-        URL.revokeObjectURL(audioUrlRef.current);
-      }
+      audioQueueRef.current.forEach(audio => {
+        if (audio) {
+          audio.pause();
+        }
+      });
     };
-  }, [text, voice]);
+  }, [text, voice, playbackRate, pollJobStatus]);
 
-  // Update playback rate when it changes
+  // Update playback rate for current audio
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.playbackRate = playbackRate;
+    const currentAudio = audioQueueRef.current[currentAudioIndexRef.current];
+    if (currentAudio) {
+      currentAudio.playbackRate = playbackRate;
     }
   }, [playbackRate]);
 
   const togglePlay = () => {
-    if (!audioRef.current) return;
+    const currentAudio = audioQueueRef.current[currentAudioIndexRef.current];
+    if (!currentAudio) return;
 
     if (isPlaying) {
-      audioRef.current.pause();
+      currentAudio.pause();
       setIsPlaying(false);
     } else {
-      audioRef.current.play();
+      currentAudio.play();
       setIsPlaying(true);
     }
   };
@@ -153,12 +261,13 @@ export function TTSPlayer({ text, onClose, defaultVoice = 'Idera' }: TTSPlayerPr
   };
 
   const handleClose = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
+    cancelledRef.current = true;
+    if (pollingRef.current) {
+      clearTimeout(pollingRef.current);
     }
-    if (audioUrlRef.current) {
-      URL.revokeObjectURL(audioUrlRef.current);
-    }
+    audioQueueRef.current.forEach(audio => {
+      if (audio) audio.pause();
+    });
     onClose();
   };
 
@@ -204,7 +313,7 @@ export function TTSPlayer({ text, onClose, defaultVoice = 'Idera' }: TTSPlayerPr
           onClick={togglePlay}
           disabled={isLoading || !!error}
           className="w-10 h-10 rounded-full bg-primary-600 text-white flex items-center justify-center hover:bg-primary-700 transition-colors disabled:bg-gray-400"
-          title={isLoading ? 'Generating...' : isPlaying ? 'Pause' : 'Play'}
+          title={isLoading ? `Generating... (${progress.current}/${progress.total})` : isPlaying ? 'Pause' : 'Play'}
         >
           {isLoading ? (
             <Loader2 className="w-5 h-5 animate-spin" />
@@ -214,6 +323,13 @@ export function TTSPlayer({ text, onClose, defaultVoice = 'Idera' }: TTSPlayerPr
             <Play className="w-5 h-5 ml-0.5" />
           )}
         </button>
+
+        {/* Progress indicator during generation */}
+        {isLoading && progress.total > 0 && (
+          <div className="text-xs text-gray-500 dark:text-gray-400 min-w-[40px]">
+            {progress.current}/{progress.total}
+          </div>
+        )}
 
         {/* Playback Rate */}
         <button
