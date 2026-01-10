@@ -5,7 +5,7 @@ import { Repository } from 'typeorm';
 import axios from 'axios';
 import * as crypto from 'crypto';
 import { TtsCache } from './entities/tts-cache.entity';
-import { CloudinaryService } from '@/app/common/services/cloudinary.service';
+import { R2Service } from '@/app/common/services/r2.service';
 
 export interface TTSOptions {
     text: string;
@@ -56,7 +56,7 @@ export class TTSService {
         private readonly configService: ConfigService,
         @InjectRepository(TtsCache)
         private readonly ttsCacheRepo: Repository<TtsCache>,
-        private readonly cloudinaryService: CloudinaryService,
+        private readonly r2Service: R2Service,
     ) {
         this.apiKey = this.configService.get<string>('YARNGPT_API_KEY');
         if (!this.apiKey) {
@@ -172,7 +172,7 @@ export class TTSService {
 
         // Upload to Cloudinary
         const publicId = `tts_${textHash}_${validatedVoice}`;
-        const uploadResult = await this.cloudinaryService.uploadBuffer(audioBuffer, {
+        const uploadResult = await this.r2Service.uploadBuffer(audioBuffer, {
             folder: 'tts-cache',
             format: responseFormat,
             publicId,

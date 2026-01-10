@@ -220,5 +220,48 @@ export class R2Service {
     getPublicUrl(): string {
         return this.publicUrl;
     }
+
+    /**
+     * Upload a buffer directly to R2 (for TTS audio caching)
+     */
+    async uploadBuffer(
+        buffer: Buffer,
+        options: { folder?: string; format?: string; publicId?: string } = {},
+    ): Promise<{ url: string; publicId: string }> {
+        const { folder = 'tts-cache', format = 'mp3', publicId } = options;
+        const fileName = publicId ? `${publicId}.${format}` : `${uuidv4()}.${format}`;
+        const key = `${folder}/${fileName}`;
+
+        // Map format to content type
+        const contentTypes: Record<string, string> = {
+            mp3: 'audio/mpeg',
+            wav: 'audio/wav',
+            opus: 'audio/opus',
+            flac: 'audio/flac',
+        };
+
+        try {
+            const command = new PutObjectCommand({
+                Bucket: this.bucketName,
+                Key: key,
+                Body: buffer,
+                ContentType: contentTypes[format] || 'audio/mpeg',
+            });
+
+            await this.client.send(command);
+
+            const url = `${this.publicUrl}/${key}`;
+
+            this.logger.log(`TTS audio uploaded to R2: ${key}`);
+
+            return {
+                url,
+                publicId: key,
+            };
+        } catch (error) {
+            this.logger.error('R2 buffer upload failed', error);
+            throw error;
+        }
+    }
 }
 
