@@ -18,11 +18,11 @@ export class ViewingHistory {
     id: string;
 
     @ManyToOne(() => User, { onDelete: 'CASCADE' })
-    @JoinColumn({ name: 'userId' }) // Explicitly map to camelCase column to match DB
+    @JoinColumn({ name: 'user_id' })
     user: User;
 
     @ManyToOne(() => Material, { onDelete: 'CASCADE' })
-    @JoinColumn({ name: 'materialId' }) // Fixes: 42703 Missing Column hint "ViewingHistory.materialId"
+    @JoinColumn({ name: 'material_id' })
     material: Material;
 
     @Column({ default: 1 })
