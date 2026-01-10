@@ -26,7 +26,7 @@ export class EmailService {
 
     // Smart FROM address: use SMTP_FROM if set, otherwise fall back to SMTP_USER
     this.fromAddress = process.env.SMTP_FROM ||
-      (process.env.SMTP_USER ? `"PeerScholar" <${process.env.SMTP_USER}>` : '"PeerScholar" <noreply@peertolearn.com>');
+      (process.env.SMTP_USER ? `"PeerToLearn" <${process.env.SMTP_USER}>` : '"PeerToLearn" <noreply@peertolearn.com>');
 
     this.logger.log(`Email service initialized. FROM address: ${this.fromAddress}`);
   }
