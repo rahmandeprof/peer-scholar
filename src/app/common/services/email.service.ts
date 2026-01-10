@@ -11,6 +11,7 @@ import * as nodemailer from 'nodemailer';
 export class EmailService {
   private transporter: nodemailer.Transporter;
   private readonly logger = new Logger(EmailService.name);
+  private readonly fromAddress: string;
 
   constructor(@InjectQueue('email') private emailQueue: Queue) {
     this.transporter = nodemailer.createTransport({
@@ -22,6 +23,19 @@ export class EmailService {
         pass: process.env.SMTP_PASSWORD,
       },
     });
+
+    // Smart FROM address: use SMTP_FROM if set, otherwise fall back to SMTP_USER
+    this.fromAddress = process.env.SMTP_FROM ||
+      (process.env.SMTP_USER ? `"PeerScholar" <${process.env.SMTP_USER}>` : '"PeerScholar" <noreply@peertolearn.com>');
+
+    this.logger.log(`Email service initialized. FROM address: ${this.fromAddress}`);
+  }
+
+  /**
+   * Get the configured FROM address for all emails
+   */
+  private getFromAddress(): string {
+    return this.fromAddress;
   }
 
   async sendPartnerInvite(to: string, inviterName: string, acceptLink: string) {
@@ -39,8 +53,7 @@ export class EmailService {
   ) {
     try {
       await this.transporter.sendMail({
-        from:
-          process.env.SMTP_FROM ?? '"PeerToLearn" <noreply@peertolearn.com>',
+        from: this.getFromAddress(),
         to,
         subject: `${inviterName} wants to be your study partner!`,
         html: `
@@ -73,8 +86,7 @@ export class EmailService {
   async sendNudgeDirect(to: string, senderName: string, message: string) {
     try {
       await this.transporter.sendMail({
-        from:
-          process.env.SMTP_FROM ?? '"PeerToLearn" <noreply@peertolearn.com>',
+        from: this.getFromAddress(),
         to,
         subject: `⚡ Study Nudge from ${senderName}`,
         html: `
@@ -111,8 +123,7 @@ export class EmailService {
   ) {
     try {
       await this.transporter.sendMail({
-        from:
-          process.env.SMTP_FROM ?? '"PeerToLearn" <noreply@peertolearn.com>',
+        from: this.getFromAddress(),
         to,
         subject: `Update on your study partner request`,
         html: `
@@ -160,8 +171,7 @@ export class EmailService {
 
     try {
       await this.transporter.sendMail({
-        from:
-          process.env.SMTP_FROM ?? '"PeerToLearn" <noreply@peertolearn.com>',
+        from: this.getFromAddress(),
         to: user.email,
         subject: 'Verify your email address',
         html: `
@@ -188,8 +198,7 @@ export class EmailService {
   async sendForgotPasswordDirect(to: string, name: string, link: string) {
     try {
       await this.transporter.sendMail({
-        from:
-          process.env.SMTP_FROM ?? '"PeerToLearn" <noreply@peertolearn.com>',
+        from: this.getFromAddress(),
         to,
         subject: 'Reset your password',
         html: `
