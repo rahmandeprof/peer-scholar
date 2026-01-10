@@ -51,52 +51,79 @@ export function TTSPlayer({ text, onClose, defaultVoice = 'Idera' }: TTSPlayerPr
   const [playbackRate, setPlaybackRate] = useState(1);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
 
-  // Streaming state
+  // Refs for stable references (avoid stale closures)
   const jobIdRef = useRef<string | null>(null);
   const audioQueueRef = useRef<HTMLAudioElement[]>([]);
   const currentAudioIndexRef = useRef(0);
-  const playedChunksRef = useRef<Set<number>>(new Set());
+  const processedChunksRef = useRef<Set<number>>(new Set());
   const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cancelledRef = useRef(false);
+  const isPlayingRef = useRef(false);
+  const playbackRateRef = useRef(1);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
+  useEffect(() => {
+    playbackRateRef.current = playbackRate;
+    // Update playback rate on all queued audio
+    audioQueueRef.current.forEach(audio => {
+      if (audio) {
+        audio.playbackRate = playbackRate;
+      }
+    });
+  }, [playbackRate]);
 
   // Play next audio in queue
   const playNextInQueue = useCallback(() => {
     const queue = audioQueueRef.current;
     const currentIndex = currentAudioIndexRef.current;
 
-    if (currentIndex < queue.length) {
+    if (currentIndex < queue.length && queue[currentIndex]) {
       const audio = queue[currentIndex];
-      audio.playbackRate = playbackRate;
-      audio.play().catch(console.error);
+      audio.playbackRate = playbackRateRef.current;
+      audio.play().catch(err => {
+        console.error('Failed to play audio:', err);
+        // Try next chunk on failure
+        currentAudioIndexRef.current++;
+        playNextInQueue();
+      });
       setIsPlaying(true);
     } else {
-      // No more to play right now, but may get more chunks
+      // No more to play right now
       setIsPlaying(false);
     }
-  }, [playbackRate]);
+  }, []);
 
   // Add chunk to queue
   const addChunkToQueue = useCallback((url: string, index: number) => {
-    if (playedChunksRef.current.has(index)) return;
-    playedChunksRef.current.add(index);
+    if (processedChunksRef.current.has(index)) return;
+    processedChunksRef.current.add(index);
+
+    console.log(`Adding chunk ${index} to queue: ${url}`);
 
     const audio = new Audio(url);
-    audio.playbackRate = playbackRate;
+    audio.playbackRate = playbackRateRef.current;
 
     audio.onended = () => {
+      console.log(`Chunk ${index} ended, moving to next`);
       currentAudioIndexRef.current++;
       playNextInQueue();
     };
 
-    audio.onerror = () => {
-      console.error(`Failed to load audio chunk ${index}`);
+    audio.onerror = (e) => {
+      console.error(`Failed to load audio chunk ${index}:`, e);
       currentAudioIndexRef.current++;
       playNextInQueue();
     };
 
     audio.oncanplaythrough = () => {
-      // If this is the first chunk and we're not playing yet, start
-      if (index === 0 && !isPlaying && currentAudioIndexRef.current === 0) {
+      console.log(`Chunk ${index} ready to play, isPlaying=${isPlayingRef.current}, currentIndex=${currentAudioIndexRef.current}`);
+      // If this is the first chunk and nothing is playing yet, start playback
+      if (index === 0 && !isPlayingRef.current && currentAudioIndexRef.current === 0) {
+        console.log('Starting playback with first chunk');
         setIsLoading(false);
         audio.play().catch(console.error);
         setIsPlaying(true);
@@ -108,21 +135,26 @@ export function TTSPlayer({ text, onClose, defaultVoice = 'Idera' }: TTSPlayerPr
       audioQueueRef.current.push(null as any);
     }
     audioQueueRef.current[index] = audio;
-  }, [playbackRate, isPlaying, playNextInQueue]);
+  }, [playNextInQueue]);
 
   // Poll job status
   const pollJobStatus = useCallback(async (jobId: string) => {
-    if (cancelledRef.current) return;
+    if (cancelledRef.current) {
+      console.log('Polling cancelled');
+      return;
+    }
 
     try {
+      console.log(`Polling job ${jobId}...`);
       const response = await api.get(`/tts/job/${jobId}`);
       const status: JobStatus = response.data;
 
+      console.log(`Job status: ${status.status}, chunks: ${status.completedChunks}/${status.totalChunks}`);
       setProgress({ current: status.completedChunks, total: status.totalChunks });
 
       // Add new chunks to queue
       status.chunkUrls.forEach((url, index) => {
-        if (url && !playedChunksRef.current.has(index)) {
+        if (url && !processedChunksRef.current.has(index)) {
           addChunkToQueue(url, index);
         }
       });
@@ -136,6 +168,8 @@ export function TTSPlayer({ text, onClose, defaultVoice = 'Idera' }: TTSPlayerPr
       if (status.status !== 'completed') {
         // Continue polling
         pollingRef.current = setTimeout(() => pollJobStatus(jobId), 2000);
+      } else {
+        console.log('Job completed, all chunks ready');
       }
     } catch (err: any) {
       console.error('Failed to poll job status:', err);
@@ -146,7 +180,7 @@ export function TTSPlayer({ text, onClose, defaultVoice = 'Idera' }: TTSPlayerPr
     }
   }, [addChunkToQueue]);
 
-  // Start streaming audio generation
+  // Start streaming audio generation - only depends on text and voice
   useEffect(() => {
     cancelledRef.current = false;
     setIsLoading(true);
@@ -163,13 +197,14 @@ export function TTSPlayer({ text, onClose, defaultVoice = 'Idera' }: TTSPlayerPr
     });
     audioQueueRef.current = [];
     currentAudioIndexRef.current = 0;
-    playedChunksRef.current.clear();
+    processedChunksRef.current.clear();
     if (pollingRef.current) {
       clearTimeout(pollingRef.current);
     }
 
     const startStream = async () => {
       try {
+        console.log('Starting TTS stream...');
         const response = await api.post('/tts/start-stream', {
           text,
           voice,
@@ -184,7 +219,7 @@ export function TTSPlayer({ text, onClose, defaultVoice = 'Idera' }: TTSPlayerPr
           // Use cached audio directly
           console.log('TTS from cache:', cacheUrl);
           const audio = new Audio(cacheUrl);
-          audio.playbackRate = playbackRate;
+          audio.playbackRate = playbackRateRef.current;
           audio.oncanplaythrough = () => {
             setIsLoading(false);
             audio.play();
@@ -206,6 +241,7 @@ export function TTSPlayer({ text, onClose, defaultVoice = 'Idera' }: TTSPlayerPr
         pollJobStatus(jobId);
       } catch (err: any) {
         if (!cancelledRef.current) {
+          console.error('Failed to start stream:', err);
           setError(err.response?.data?.message || 'Failed to start TTS generation');
           setIsLoading(false);
         }
@@ -215,6 +251,7 @@ export function TTSPlayer({ text, onClose, defaultVoice = 'Idera' }: TTSPlayerPr
     startStream();
 
     return () => {
+      console.log('Cleanup: cancelling TTS');
       cancelledRef.current = true;
       if (pollingRef.current) {
         clearTimeout(pollingRef.current);
@@ -225,15 +262,7 @@ export function TTSPlayer({ text, onClose, defaultVoice = 'Idera' }: TTSPlayerPr
         }
       });
     };
-  }, [text, voice, playbackRate, pollJobStatus]);
-
-  // Update playback rate for current audio
-  useEffect(() => {
-    const currentAudio = audioQueueRef.current[currentAudioIndexRef.current];
-    if (currentAudio) {
-      currentAudio.playbackRate = playbackRate;
-    }
-  }, [playbackRate]);
+  }, [text, voice, pollJobStatus]); // Removed playbackRate - handled separately
 
   const togglePlay = () => {
     const currentAudio = audioQueueRef.current[currentAudioIndexRef.current];
