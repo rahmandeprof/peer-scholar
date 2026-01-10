@@ -176,6 +176,8 @@ function AppContent() {
         <Routes>
           <Route path='/auth/callback' element={<GoogleCallback />} />
           <Route path='/verify-email' element={<VerifyEmail />} />
+          {/* Redirect for emails sent with /auth/verify-email path */}
+          <Route path='/auth/verify-email' element={<Navigate to='/verify-email' replace />} />
           <Route
             path='/forgot-password'
             element={
