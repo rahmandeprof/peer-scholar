@@ -13,7 +13,7 @@ import {
  * Allows sharing audio across all users to minimize API calls.
  */
 @Entity('tts_cache')
-@Index(['text_hash', 'voice'], { unique: true })
+@Index(['textHash', 'voice'], { unique: true })
 export class TtsCache {
     @PrimaryGeneratedColumn('uuid')
     id: string;
