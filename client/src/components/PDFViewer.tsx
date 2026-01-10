@@ -7,11 +7,8 @@ import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, X } from 'lucide-react';
 import { AnnotationManager } from './AnnotationManager';
 import { BookmarksDropdown } from './BookmarksDropdown';
 
-// Configure worker
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url,
-).toString();
+// Configure worker - use CDN for reliable production loading
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface PDFViewerProps {
   url: string;
