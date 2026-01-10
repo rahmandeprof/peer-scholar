@@ -314,10 +314,18 @@ export class TTSService {
 
     /**
      * Start a streaming TTS job
-     * Chunks text and queues each chunk for background processing
-     * Returns immediately with job ID for polling
+     * - If a completed job exists for this text+voice, return all chunk URLs
+     * - If an in-progress job exists, return that job ID (join the stream)
+     * - Otherwise, create a new job and queue chunks
      */
-    async startStreamJob(options: TTSOptions, userId?: string): Promise<{ jobId: string; totalChunks: number; cached: boolean; cacheUrl?: string }> {
+    async startStreamJob(options: TTSOptions, userId?: string): Promise<{
+        jobId: string;
+        totalChunks: number;
+        completedChunks: number;
+        chunkUrls: string[];
+        cached: boolean;
+        status: string;
+    }> {
         if (!this.apiKey) {
             throw new BadRequestException('TTS service is not configured. Please set YARNGPT_API_KEY.');
         }
@@ -331,17 +339,48 @@ export class TTSService {
         const validatedVoice = this.validateVoice(voice);
         const textHash = this.getTextHash(text);
 
-        // Check cache first
-        const cached = await this.getCachedAudio(textHash, validatedVoice);
-        if (cached) {
-            return { jobId: '', totalChunks: 0, cached: true, cacheUrl: cached.audioUrl };
+        // Check for existing job with same text+voice
+        const existingJob = await this.ttsJobRepo.findOne({
+            where: { textHash, voice: validatedVoice },
+            order: { createdAt: 'DESC' }, // Get most recent
+        });
+
+        if (existingJob) {
+            // If completed, return all chunks immediately (cache hit)
+            if (existingJob.status === TtsJobStatus.COMPLETED) {
+                this.logger.log(`Cache HIT: Returning completed job ${existingJob.id} with ${existingJob.totalChunks} chunks`);
+                return {
+                    jobId: existingJob.id,
+                    totalChunks: existingJob.totalChunks,
+                    completedChunks: existingJob.completedChunks,
+                    chunkUrls: existingJob.chunkUrls.filter(url => url && url.length > 0),
+                    cached: true,
+                    status: existingJob.status,
+                };
+            }
+
+            // If still processing, let user join the existing stream
+            if (existingJob.status === TtsJobStatus.PROCESSING || existingJob.status === TtsJobStatus.PENDING) {
+                this.logger.log(`Joining in-progress job ${existingJob.id} (${existingJob.completedChunks}/${existingJob.totalChunks})`);
+                return {
+                    jobId: existingJob.id,
+                    totalChunks: existingJob.totalChunks,
+                    completedChunks: existingJob.completedChunks,
+                    chunkUrls: existingJob.chunkUrls.filter(url => url && url.length > 0),
+                    cached: false,
+                    status: existingJob.status,
+                };
+            }
+
+            // If failed, we'll create a new job below
+            this.logger.log(`Previous job ${existingJob.id} failed, creating new job`);
         }
 
-        // Split text into chunks
+        // No usable job found, create new one
         const MAX_CHUNK_LENGTH = 800;
         const chunks = this.chunkText(text, MAX_CHUNK_LENGTH);
 
-        this.logger.log(`Starting stream job: ${chunks.length} chunks, voice=${validatedVoice}`);
+        this.logger.log(`Starting new stream job: ${chunks.length} chunks, voice=${validatedVoice}`);
 
         // Create job record
         const job = this.ttsJobRepo.create({
@@ -370,7 +409,14 @@ export class TTSService {
             });
         }
 
-        return { jobId: job.id, totalChunks: chunks.length, cached: false };
+        return {
+            jobId: job.id,
+            totalChunks: chunks.length,
+            completedChunks: 0,
+            chunkUrls: [],
+            cached: false,
+            status: TtsJobStatus.PENDING,
+        };
     }
 
     /**

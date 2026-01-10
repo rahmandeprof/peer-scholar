@@ -213,31 +213,39 @@ export function TTSPlayer({ text, onClose, defaultVoice = 'Idera' }: TTSPlayerPr
 
         if (cancelledRef.current) return;
 
-        const { jobId, cached, cacheUrl, totalChunks } = response.data;
 
-        if (cached && cacheUrl) {
-          // Use cached audio directly
-          console.log('TTS from cache:', cacheUrl);
-          const audio = new Audio(cacheUrl);
-          audio.playbackRate = playbackRateRef.current;
-          audio.oncanplaythrough = () => {
+        const { jobId, cached, chunkUrls, totalChunks, completedChunks, status } = response.data;
+
+        // If cached (completed job), add all chunks to queue immediately
+        if (cached && chunkUrls && chunkUrls.length > 0) {
+          console.log(`TTS from cache: ${chunkUrls.length} chunks ready`);
+          setProgress({ current: completedChunks, total: totalChunks });
+
+          // Add all cached chunks to queue
+          chunkUrls.forEach((url: string, index: number) => {
+            if (url) addChunkToQueue(url, index);
+          });
+
+          // If all chunks are ready, we can stop loading
+          if (completedChunks >= totalChunks) {
             setIsLoading(false);
-            audio.play();
-            setIsPlaying(true);
-          };
-          audio.onended = () => setIsPlaying(false);
-          audio.onerror = () => {
-            setError('Failed to play cached audio');
-            setIsLoading(false);
-          };
-          audioQueueRef.current = [audio];
+          }
           return;
         }
 
-        // Start polling for chunks
-        console.log(`Starting TTS stream job: ${jobId}, ${totalChunks} chunks`);
+        // Start/join a job - poll for chunks
+        console.log(`TTS stream job: ${jobId}, status=${status}, ${completedChunks}/${totalChunks} chunks ready`);
         jobIdRef.current = jobId;
-        setProgress({ current: 0, total: totalChunks });
+        setProgress({ current: completedChunks || 0, total: totalChunks });
+
+        // Add any already-available chunks
+        if (chunkUrls && chunkUrls.length > 0) {
+          chunkUrls.forEach((url: string, index: number) => {
+            if (url) addChunkToQueue(url, index);
+          });
+        }
+
+        // Start polling for more chunks
         pollJobStatus(jobId);
       } catch (err: any) {
         if (!cancelledRef.current) {
