@@ -64,18 +64,19 @@ export function TTSPlayer({ text, onClose, defaultVoice = 'Idera' }: TTSPlayerPr
       }
 
       try {
-        const response = await api.post(
-          '/tts/generate',
-          { text, voice, responseFormat: 'mp3' },
-          { responseType: 'blob' }
-        );
+        // Use cached endpoint - returns audio URL instead of blob
+        const response = await api.post('/tts/generate-cached', {
+          text,
+          voice,
+          responseFormat: 'mp3',
+        });
 
         if (cancelled) return;
 
-        const audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        audioUrlRef.current = audioUrl;
+        const { audioUrl, cached } = response.data;
+        console.log(`TTS audio ${cached ? 'from cache' : 'newly generated'}: ${audioUrl}`);
 
+        // Use the URL directly - no need to create blob
         const audio = new Audio(audioUrl);
         audio.playbackRate = playbackRate;
 

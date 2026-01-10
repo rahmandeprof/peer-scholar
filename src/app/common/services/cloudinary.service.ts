@@ -86,4 +86,46 @@ export class CloudinaryService {
       );
     });
   }
+
+  /**
+   * Upload a buffer directly to Cloudinary (for TTS audio caching)
+   */
+  uploadBuffer(
+    buffer: Buffer,
+    options: { folder?: string; format?: string; publicId?: string } = {},
+  ): Promise<{ url: string; publicId: string }> {
+    return new Promise((resolve, reject) => {
+      const { folder = 'tts-cache', format = 'mp3', publicId } = options;
+
+      // Convert buffer to base64 data URI
+      const base64 = buffer.toString('base64');
+      const dataUri = `data:audio/${format};base64,${base64}`;
+
+      void cloudinary.uploader.upload(
+        dataUri,
+        {
+          folder,
+          resource_type: 'video', // 'video' supports audio files
+          format,
+          public_id: publicId,
+        },
+        (error, result) => {
+          if (error) {
+            this.logger.error('Cloudinary buffer upload failed', error);
+            reject(new Error(JSON.stringify(error)));
+            return;
+          }
+          if (!result) {
+            reject(new Error('Cloudinary upload returned no result'));
+            return;
+          }
+          this.logger.log(`Uploaded TTS audio to Cloudinary: ${result.public_id}`);
+          resolve({
+            url: result.secure_url,
+            publicId: result.public_id,
+          });
+        },
+      );
+    });
+  }
 }

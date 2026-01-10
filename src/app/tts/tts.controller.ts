@@ -91,4 +91,28 @@ export class TTSController {
 
         res.send(audioBuffer);
     }
+
+    /**
+     * Generate speech with caching (recommended)
+     * Returns audio URL instead of buffer - much faster for cached content
+     */
+    @Post('generate-cached')
+    @UseGuards(AuthGuard('jwt'))
+    async generateSpeechCached(@Body() dto: GenerateTTSDto) {
+        this.logger.log(`TTS cached request: voice=${dto.voice}, length=${dto.text?.length}`);
+
+        const options: TTSOptions = {
+            text: dto.text,
+            voice: dto.voice,
+            responseFormat: dto.responseFormat || 'mp3',
+        };
+
+        const result = await this.ttsService.generateSpeechWithCache(options);
+
+        return {
+            success: true,
+            audioUrl: result.audioUrl,
+            cached: result.cached,
+        };
+    }
 }
