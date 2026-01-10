@@ -6,6 +6,7 @@ import {
     PrimaryGeneratedColumn,
     UpdateDateColumn,
     Index,
+    JoinColumn,
 } from 'typeorm';
 import { User } from './user.entity';
 import { Material } from '@/app/academic/entities/material.entity';
@@ -17,9 +18,11 @@ export class ViewingHistory {
     id: string;
 
     @ManyToOne(() => User, { onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'userId' }) // Explicitly map to camelCase column to match DB
     user: User;
 
     @ManyToOne(() => Material, { onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'materialId' }) // Fixes: 42703 Missing Column hint "ViewingHistory.materialId"
     material: Material;
 
     @Column({ default: 1 })
