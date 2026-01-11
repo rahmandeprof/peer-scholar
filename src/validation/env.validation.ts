@@ -29,9 +29,6 @@ export class EnvironmentVariables {
   @Max(65535)
   PORT!: number;
 
-  @IsString()
-  APP_URL!: string;
-
   @IsUrl({ require_tld: false, require_protocol: true })
   CLIENT_URL!: string;
 
