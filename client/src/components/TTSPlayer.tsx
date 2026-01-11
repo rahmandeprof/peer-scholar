@@ -91,6 +91,35 @@ export function TTSPlayer({
     });
   }, [playbackRate]);
 
+  // Keep track of which page is being read (estimated from chunk progress)
+  const onNavigateRef = useRef(_onNavigateToPage);
+  const totalPagesRef = useRef(totalPages);
+  const currentPageRef = useRef(currentPage);
+
+  useEffect(() => {
+    onNavigateRef.current = _onNavigateToPage;
+    totalPagesRef.current = totalPages;
+    currentPageRef.current = currentPage;
+  }, [_onNavigateToPage, totalPages, currentPage]);
+
+  // Estimate current page based on chunk progress
+  const updatePageFromProgress = useCallback((completedChunks: number, totalChunks: number) => {
+    if (!totalPagesRef.current || totalChunks <= 0) return;
+
+    // Calculate remaining pages from current position  
+    const remainingPages = totalPagesRef.current - currentPageRef.current + 1;
+    const chunksPerPage = totalChunks / remainingPages;
+
+    // Estimate which page we're on based on completed chunks
+    const estimatedPage = currentPageRef.current + Math.floor(completedChunks / chunksPerPage);
+
+    if (estimatedPage !== currentPageRef.current && estimatedPage <= totalPagesRef.current) {
+      console.log(`Auto-advancing to page ${estimatedPage}`);
+      _setReadingPage(estimatedPage);
+      onNavigateRef.current?.(estimatedPage);
+    }
+  }, []);
+
   // Play next audio in queue
   const playNextInQueue = useCallback(() => {
     const queue = audioQueueRef.current;
@@ -106,11 +135,14 @@ export function TTSPlayer({
         playNextInQueue();
       });
       setIsPlaying(true);
+
+      // Update page estimate based on chunk progress
+      updatePageFromProgress(currentIndex + 1, queue.length || progress.total);
     } else {
       // No more to play right now
       setIsPlaying(false);
     }
-  }, []);
+  }, [updatePageFromProgress, progress.total]);
 
   // Add chunk to queue
   const addChunkToQueue = useCallback((url: string, index: number) => {

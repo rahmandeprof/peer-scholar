@@ -127,7 +127,36 @@ export const MaterialView = () => {
 
   // Callback for TTS to navigate PDF
   const handleTtsNavigateToPage = (page: number) => {
-    setCurrentPage(page);
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  // Estimate text content for page range (uses linear estimation)
+  // Returns text from startPage to end of document
+  const getTextFromPage = (content: string, startPage: number, total: number): string => {
+    if (!content || total <= 0 || startPage <= 1) return content;
+
+    const charsPerPage = Math.ceil(content.length / total);
+    const startIndex = (startPage - 1) * charsPerPage;
+
+    // Find a good break point (sentence boundary) near the estimated start
+    let adjustedStart = startIndex;
+    if (startIndex > 0 && startIndex < content.length) {
+      // Look back up to 200 chars to find a sentence ending
+      const searchStart = Math.max(0, startIndex - 200);
+      const searchText = content.substring(searchStart, startIndex + 50);
+      const lastSentenceEnd = Math.max(
+        searchText.lastIndexOf('. '),
+        searchText.lastIndexOf('? '),
+        searchText.lastIndexOf('! ')
+      );
+      if (lastSentenceEnd > 0) {
+        adjustedStart = searchStart + lastSentenceEnd + 2; // +2 to skip ". "
+      }
+    }
+
+    return content.substring(adjustedStart).trim();
   };
 
   const handleSessionEnd = () => {
@@ -939,7 +968,7 @@ export const MaterialView = () => {
         />
         {ttsOpen && material?.content && (
           <TTSPlayer
-            text={material.content}
+            text={getTextFromPage(material.content, currentPage, totalPages)}
             onClose={() => setTtsOpen(false)}
             currentPage={currentPage}
             totalPages={totalPages}
