@@ -36,12 +36,6 @@ export class EnvironmentVariables {
   CLIENT_URL!: string;
 
   @IsString()
-  BETTER_AUTH_SECRET!: string;
-
-  @IsUrl({ require_tld: false, require_protocol: true })
-  BETTER_AUTH_URL!: string;
-
-  @IsString()
   TRUSTED_ORIGINS!: string;
 
   @IsString()
