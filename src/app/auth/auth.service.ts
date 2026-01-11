@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Request } from 'express';
 
 import { User } from '@/app/users/entities/user.entity';
 import { Referral, ReferralStatus } from '@/app/users/entities/referral.entity';
@@ -10,9 +11,15 @@ import { CreateUserDto } from '@/app/users/dto/create-user.dto';
 
 import { EmailService } from '@/app/common/services/email.service';
 import { UsersService } from '@/app/users/users.service';
+import { GoogleOAuthUser } from './strategies/google.strategy';
 
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
+
+// Typed request with Google OAuth user
+interface GoogleAuthRequest extends Request {
+  user: GoogleOAuthUser;
+}
 
 @Injectable()
 export class AuthService {
@@ -260,35 +267,32 @@ export class AuthService {
     return { success: true, message: 'Password reset successfully' };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async googleLogin(req: any) {
+  async googleLogin(req: GoogleAuthRequest) {
     if (!req.user) {
       return 'No user from google';
     }
 
     const { email, firstName, lastName, picture, googleId } = req.user;
 
-    let user = await this.usersService.findByEmail(email);
+    let user = await this.usersService.findByEmail(email || '');
 
     if (!user) {
       // Create new user
-      const userData = {
+      const userData: Partial<CreateUserDto> = {
         email: email ?? '',
         firstName: firstName ?? 'User',
         lastName: lastName ?? '',
-        image: picture ?? null,
+        image: picture ?? undefined,
         googleId,
-        password: null, // No password for google users
+        password: undefined, // No password for google users
         department: 'General', // Default
         yearOfStudy: 1, // Default
-        isVerified: true, // Google users are verified by default
       };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      user = await this.usersService.create(userData as any);
+      user = await this.usersService.create(userData as CreateUserDto);
     } else if (!user.googleId) {
       // Link existing user and mark as verified
-      await this.usersService.update(user.id, { googleId, image: picture, isVerified: true });
+      await this.usersService.update(user.id, { googleId, image: picture ?? undefined, isVerified: true });
       user.googleId = googleId;
       user.isVerified = true;
     }

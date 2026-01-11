@@ -2,6 +2,7 @@ import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
 
 import { CapitalizeTransformer } from '@/utils/transformers/capitalize';
 
+import { Exclude } from 'class-transformer';
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 
 @Entity('user')
@@ -39,6 +40,7 @@ export class User extends IDAndTimestamp {
   @Column({ name: 'ban_expires', type: Date, nullable: true })
   banExpires!: Date | null;
 
+  @Exclude()
   @Column({ name: 'password', nullable: true })
   password!: string;
 

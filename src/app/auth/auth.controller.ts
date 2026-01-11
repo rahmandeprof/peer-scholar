@@ -16,10 +16,22 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { CreateUserDto } from '@/app/users/dto/create-user.dto';
+import { User } from '@/app/users/entities/user.entity';
+import { GoogleOAuthUser } from './strategies/google.strategy';
 
 import { AuthService } from './auth.service';
 
 import { Request, Response } from 'express';
+
+// Typed request with authenticated user
+interface AuthenticatedRequest extends Request {
+  user: User | { id: string };
+}
+
+// Google OAuth callback request
+interface GoogleAuthRequest extends Request {
+  user: GoogleOAuthUser;
+}
 
 @Controller('auth')
 export class AuthController {
@@ -64,8 +76,7 @@ export class AuthController {
 
   @Post('resend-verification')
   @UseGuards(AuthGuard('jwt'))
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  resendVerification(@Req() req: any) {
+  resendVerification(@Req() req: AuthenticatedRequest) {
     return this.authService.resendVerification(req.user.id);
   }
 
@@ -82,8 +93,7 @@ export class AuthController {
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async googleAuthRedirect(@Req() req: any, @Res() res: Response) {
+  async googleAuthRedirect(@Req() req: GoogleAuthRequest, @Res() res: Response) {
     const data = await this.authService.googleLogin(req);
     const clientUrl = process.env.CLIENT_URL ?? 'http://localhost:5173';
 
