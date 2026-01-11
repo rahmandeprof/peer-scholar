@@ -17,6 +17,7 @@ import { Throttle } from '@nestjs/throttler';
 import { RateLimitGuard } from '@/app/auth/guards/rate-limit.guard';
 import { RolesGuard } from '@/app/common/guards/roles.guard';
 import { Roles } from '@/app/common/decorators/roles.decorator';
+import { AuthenticatedRequest } from '@/app/common/types/request.types';
 
 import { CreateMaterialDto } from './dto/create-material.dto';
 import { FlagMaterialDto } from './dto/flag-material.dto';
@@ -49,8 +50,8 @@ export class MaterialsController {
   @Post()
   @UseGuards(RateLimitGuard)
   @Throttle({ upload: { limit: 5, ttl: 3600000 } })
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  create(@Body() dto: CreateMaterialDto, @Req() req: any) {
+
+  create(@Body() dto: CreateMaterialDto, @Req() req: AuthenticatedRequest) {
     if (!req.user.isVerified) {
       throw new ForbiddenException(
         'You must verify your email to upload materials.',
@@ -61,21 +62,21 @@ export class MaterialsController {
   }
 
   @Get('favorites/count')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getFavoritesCount(@Req() req: any) {
+
+  getFavoritesCount(@Req() req: AuthenticatedRequest) {
     return this.materialsService.getFavoritesCount(req.user.id);
   }
 
   @Get('favorites')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getFavorites(@Req() req: any) {
+
+  getFavorites(@Req() req: AuthenticatedRequest) {
     return this.materialsService.getFavorites(req.user.id);
   }
 
   @Get()
   findAll(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    @Req() req: any,
+
+    @Req() req: AuthenticatedRequest,
     @Query('courseId') courseId?: string,
     @Query('type') type?: string,
     @Query('search') search?: string,
@@ -101,23 +102,23 @@ export class MaterialsController {
   @Patch(':id/scope')
   updateScope(
     @Param('id') id: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     @Body('scope') scope: any,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    @Req() req: any,
+
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.materialsService.updateScope(id, scope, req.user.id);
   }
 
   @Get('trending')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getTrending(@Req() req: any) {
+
+  getTrending(@Req() req: AuthenticatedRequest) {
     return this.materialsService.getTrending(req.user);
   }
 
   @Get('recommendations')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getRecommendations(@Req() req: any) {
+
+  getRecommendations(@Req() req: AuthenticatedRequest) {
     return this.materialsService.getRecommendations(req.user);
   }
 
@@ -127,14 +128,14 @@ export class MaterialsController {
   }
 
   @Get(':id/full')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  findOneFull(@Param('id') id: string, @Req() req: any) {
+
+  findOneFull(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.materialsService.findOneFull(id, req.user.id);
   }
 
   @Get(':id')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  findOne(@Param('id') id: string, @Req() req: any) {
+
+  findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.materialsService.findOne(id, req.user?.id);
   }
 
@@ -152,8 +153,8 @@ export class MaterialsController {
   }
 
   @Post(':id/favorite')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  toggleFavorite(@Param('id') id: string, @Req() req: any) {
+
+  toggleFavorite(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.materialsService.toggleFavorite(id, req.user.id);
   }
 
@@ -161,21 +162,21 @@ export class MaterialsController {
   rateMaterial(
     @Param('id') id: string,
     @Body('value') value: number,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    @Req() req: any,
+
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.materialsService.rateMaterial(id, req.user.id, value);
   }
 
   @Get(':id/interactions')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getInteractionStatus(@Param('id') id: string, @Req() req: any) {
+
+  getInteractionStatus(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.materialsService.getInteractionStatus(id, req.user.id);
   }
 
   @Post(':id/contributor')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  addContributor(@Param('id') id: string, @Req() req: any) {
+
+  addContributor(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.materialsService.addContributor(id, req.user.id);
   }
 
@@ -191,8 +192,8 @@ export class MaterialsController {
       contextBefore?: string;
       contextAfter?: string;
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    @Req() req: any,
+
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.materialsService.addAnnotation(id, req.user.id, body);
   }
@@ -204,8 +205,8 @@ export class MaterialsController {
   @Post(':id/report')
   async reportMaterial(
     @Param('id') id: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    @Req() req: any,
+
+    @Req() req: AuthenticatedRequest,
     @Body() body: { reason: string; description?: string },
   ) {
     return this.materialsService.reportMaterial(
@@ -219,8 +220,8 @@ export class MaterialsController {
   @Post(':id/note')
   saveNote(
     @Param('id') id: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    @Req() req: any,
+
+    @Req() req: AuthenticatedRequest,
     @Body('content') content: string,
   ) {
     return this.materialsService.saveNote(req.user.id, id, content);
@@ -229,16 +230,16 @@ export class MaterialsController {
   @Get(':id/note')
   getNote(
     @Param('id') id: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    @Req() req: any,
+
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.materialsService.getNote(req.user.id, id);
   }
 
   // Public Notes Endpoints
   @Get(':id/public-notes')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getPublicNotes(@Param('id') id: string, @Req() req: any) {
+
+  getPublicNotes(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.materialsService.getPublicNotes(id, req.user?.id);
   }
 
@@ -253,8 +254,8 @@ export class MaterialsController {
       contextBefore?: string;
       contextAfter?: string;
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    @Req() req: any,
+
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.materialsService.createPublicNote(id, req.user.id, body);
   }
@@ -262,8 +263,8 @@ export class MaterialsController {
   @Post(':id/public-notes/:noteId/delete')
   deletePublicNote(
     @Param('noteId') noteId: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    @Req() req: any,
+
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.materialsService.deletePublicNote(noteId, req.user.id);
   }
@@ -272,8 +273,8 @@ export class MaterialsController {
   votePublicNote(
     @Param('noteId') noteId: string,
     @Body('value') value: number,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    @Req() req: any,
+
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.materialsService.votePublicNote(noteId, req.user.id, value);
   }
@@ -284,8 +285,8 @@ export class MaterialsController {
   flagMaterial(
     @Param('id') id: string,
     @Body() dto: FlagMaterialDto,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    @Req() req: any,
+
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.materialsService.flagMaterial(
       id,
@@ -328,10 +329,10 @@ export class MaterialsController {
   // ==================== Page Bookmarks ====================
 
   @Post(':id/bookmarks')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   createBookmark(
     @Param('id') id: string,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Body() body: { pageNumber: number; note?: string },
   ) {
     return this.materialsService.createBookmark(
@@ -343,17 +344,17 @@ export class MaterialsController {
   }
 
   @Get(':id/bookmarks')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getBookmarks(@Param('id') id: string, @Req() req: any) {
+
+  getBookmarks(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.materialsService.getBookmarks(req.user.id, id);
   }
 
   @Delete(':id/bookmarks/:bookmarkId')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   deleteBookmark(
     @Param('id') id: string,
     @Param('bookmarkId') bookmarkId: string,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.materialsService.deleteBookmark(req.user.id, bookmarkId);
   }
