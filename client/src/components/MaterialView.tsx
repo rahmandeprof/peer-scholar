@@ -115,6 +115,21 @@ export const MaterialView = () => {
   // Continue reading from last position
   const [lastReadPage, setLastReadPage] = useState(1);
 
+  // Page tracking for TTS
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+
+  // Callback for PDFViewer page changes
+  const handlePdfPageChange = (page: number, total: number) => {
+    setCurrentPage(page);
+    setTotalPages(total);
+  };
+
+  // Callback for TTS to navigate PDF
+  const handleTtsNavigateToPage = (page: number) => {
+    setCurrentPage(page);
+  };
+
   const handleSessionEnd = () => {
     setSessionEndModalOpen(true);
   };
@@ -839,6 +854,8 @@ export const MaterialView = () => {
                 url={material.pdfUrl || material.fileUrl}
                 materialId={material.id}
                 initialPage={lastReadPage}
+                controlledPage={currentPage}
+                onPageChange={handlePdfPageChange}
               />
             ) : material.fileType.includes('text') ||
               material.fileType.includes('json') ||
@@ -924,6 +941,9 @@ export const MaterialView = () => {
           <TTSPlayer
             text={material.content}
             onClose={() => setTtsOpen(false)}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onNavigateToPage={handleTtsNavigateToPage}
           />
         )}
         <FeatureSpotlightModal

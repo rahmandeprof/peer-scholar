@@ -6,6 +6,10 @@ interface TTSPlayerProps {
   text: string;
   onClose: () => void;
   defaultVoice?: string;
+  // Page-aware TTS props
+  currentPage?: number;
+  totalPages?: number;
+  onNavigateToPage?: (page: number) => void;
 }
 
 interface VoiceInfo {
@@ -42,7 +46,14 @@ const VOICES: VoiceInfo[] = [
   { name: 'Adam', gender: 'male' },
 ];
 
-export function TTSPlayer({ text, onClose, defaultVoice = 'Idera' }: TTSPlayerProps) {
+export function TTSPlayer({
+  text,
+  onClose,
+  defaultVoice = 'Idera',
+  currentPage = 1,
+  totalPages = 0,
+  onNavigateToPage: _onNavigateToPage,
+}: TTSPlayerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +61,10 @@ export function TTSPlayer({ text, onClose, defaultVoice = 'Idera' }: TTSPlayerPr
   const [showVoiceSelector, setShowVoiceSelector] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
+
+  // Page-aware mode: show page progress when totalPages > 0
+  const isPageAware = totalPages > 0;
+  const [readingPage, _setReadingPage] = useState(currentPage);
 
   // Refs for stable references (avoid stale closures)
   const jobIdRef = useRef<string | null>(null);
@@ -361,10 +376,17 @@ export function TTSPlayer({ text, onClose, defaultVoice = 'Idera' }: TTSPlayerPr
           )}
         </button>
 
-        {/* Progress indicator during generation */}
+        {/* Progress indicator */}
         {isLoading && progress.total > 0 && (
           <div className="text-xs text-gray-500 dark:text-gray-400 min-w-[40px]">
             {progress.current}/{progress.total}
+          </div>
+        )}
+
+        {/* Page indicator when playing (not loading) */}
+        {!isLoading && isPageAware && (
+          <div className="text-xs text-gray-600 dark:text-gray-300 min-w-[60px] font-medium">
+            📖 Page {readingPage}/{totalPages}
           </div>
         )}
 

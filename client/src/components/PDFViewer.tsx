@@ -14,34 +14,68 @@ interface PDFViewerProps {
   url: string;
   materialId?: string;
   initialPage?: number;
+  // New props for page-aware TTS
+  controlledPage?: number; // If provided, use this instead of internal state
+  onPageChange?: (page: number, totalPages: number) => void;
+  onDocumentLoad?: (numPages: number) => void;
 }
 
-export function PDFViewer({ url, materialId, initialPage = 1 }: PDFViewerProps) {
+export function PDFViewer({
+  url,
+  materialId,
+  initialPage = 1,
+  controlledPage,
+  onPageChange,
+  onDocumentLoad,
+}: PDFViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
-  const [pageNumber, setPageNumber] = useState<number>(initialPage);
+  const [internalPage, setInternalPage] = useState<number>(initialPage);
   const [scale, setScale] = useState<number>(1.0);
   const [hasSetInitialPage, setHasSetInitialPage] = useState(false);
 
+  // Use controlled page if provided, otherwise internal state
+  const pageNumber = controlledPage !== undefined ? controlledPage : internalPage;
+
+  // Wrapper to update page via callback or internal state
+  const setPageNumber = (pageOrFn: number | ((prev: number) => number)) => {
+    const newPage = typeof pageOrFn === 'function' ? pageOrFn(pageNumber) : pageOrFn;
+    const clampedPage = Math.max(1, Math.min(newPage, numPages || 1));
+
+    if (controlledPage !== undefined && onPageChange) {
+      // Controlled mode - notify parent
+      onPageChange(clampedPage, numPages);
+    } else {
+      // Internal mode
+      setInternalPage(clampedPage);
+      if (onPageChange) onPageChange(clampedPage, numPages);
+    }
+  };
+
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
     setNumPages(numPages);
+    onDocumentLoad?.(numPages);
+
     // Only set initial page on first load
     if (!hasSetInitialPage && initialPage > 1 && initialPage <= numPages) {
-      setPageNumber(initialPage);
+      setInternalPage(initialPage);
       setHasSetInitialPage(true);
+      onPageChange?.(initialPage, numPages);
     } else if (!hasSetInitialPage) {
-      setPageNumber(1);
+      setInternalPage(1);
       setHasSetInitialPage(true);
+      onPageChange?.(1, numPages);
     }
   }
 
   // Respond to initialPage prop changes (e.g., when lastReadPage is fetched after mount)
   useEffect(() => {
     if (initialPage > 1 && numPages > 0 && initialPage <= numPages) {
-      setPageNumber(initialPage);
+      setInternalPage(initialPage);
+      onPageChange?.(initialPage, numPages);
     }
   }, [initialPage, numPages]);
 
-  // Track page changes
+  // Track page changes for activity
   useEffect(() => {
     if (materialId) {
       const timer = setTimeout(() => {
