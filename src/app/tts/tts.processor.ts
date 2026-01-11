@@ -4,10 +4,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Job } from 'bull';
 import { TtsJob, TtsJobStatus } from './entities/tts-job.entity';
-import { TtsCache } from './entities/tts-cache.entity';
 import { R2Service } from '@/app/common/services/r2.service';
 import axios from 'axios';
-import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
 
 interface TtsChunkJobData {
@@ -27,8 +25,6 @@ export class TtsProcessor {
     constructor(
         @InjectRepository(TtsJob)
         private readonly ttsJobRepo: Repository<TtsJob>,
-        @InjectRepository(TtsCache)
-        private readonly ttsCacheRepo: Repository<TtsCache>,
         private readonly r2Service: R2Service,
         private readonly configService: ConfigService,
     ) {
@@ -65,26 +61,40 @@ export class TtsProcessor {
                 publicId: chunkId,
             });
 
-            // Update job with chunk URL
-            const updatedJob = await this.ttsJobRepo.findOne({ where: { id: jobId } });
-            if (updatedJob) {
-                // Ensure chunkUrls array is long enough
-                while (updatedJob.chunkUrls.length <= chunkIndex) {
-                    updatedJob.chunkUrls.push('');
-                }
-                updatedJob.chunkUrls[chunkIndex] = uploadResult.url;
-                updatedJob.completedChunks += 1;
+            // Update job with chunk URL using atomic increment to prevent race conditions
+            // Use query builder for atomic update of completedChunks
+            await this.ttsJobRepo.manager.transaction(async transactionalEntityManager => {
+                // Atomically update the chunk URL and increment counter
+                const result = await transactionalEntityManager
+                    .createQueryBuilder()
+                    .update(TtsJob)
+                    .set({
+                        completedChunks: () => 'completed_chunks + 1',
+                    })
+                    .where('id = :id', { id: jobId })
+                    .returning(['completed_chunks', 'total_chunks'])
+                    .execute();
 
-                // Check if all chunks are done
-                if (updatedJob.completedChunks >= updatedJob.totalChunks) {
-                    updatedJob.status = TtsJobStatus.COMPLETED;
-                    // Also save to cache for future use
-                    await this.saveToCache(updatedJob);
-                }
+                // Get current job state to update chunkUrls array
+                const updatedJob = await transactionalEntityManager.findOne(TtsJob, { where: { id: jobId } });
+                if (updatedJob) {
+                    // Ensure chunkUrls array is long enough
+                    while (updatedJob.chunkUrls.length <= chunkIndex) {
+                        updatedJob.chunkUrls.push('');
+                    }
+                    updatedJob.chunkUrls[chunkIndex] = uploadResult.url;
 
-                await this.ttsJobRepo.save(updatedJob);
-                this.logger.log(`Chunk ${chunkIndex} completed for job ${jobId} (${updatedJob.completedChunks}/${updatedJob.totalChunks})`);
-            }
+                    // Check if all chunks are done (use returned value for accuracy)
+                    const newCompletedCount = result.raw?.[0]?.completed_chunks ?? updatedJob.completedChunks;
+                    if (newCompletedCount >= updatedJob.totalChunks) {
+                        updatedJob.status = TtsJobStatus.COMPLETED;
+                        this.logger.log(`Job ${jobId} completed with all ${updatedJob.totalChunks} chunks`);
+                    }
+
+                    await transactionalEntityManager.save(updatedJob);
+                    this.logger.log(`Chunk ${chunkIndex} completed for job ${jobId} (${newCompletedCount}/${updatedJob.totalChunks})`);
+                }
+            });
         } catch (error: any) {
             this.logger.error(`Failed to process chunk ${chunkIndex} for job ${jobId}:`, error.message);
 
@@ -116,31 +126,5 @@ export class TtsProcessor {
             },
         );
         return Buffer.from(response.data);
-    }
-
-    private async saveToCache(job: TtsJob) {
-        try {
-            // Check if cache entry exists
-            const existing = await this.ttsCacheRepo.findOne({
-                where: { textHash: job.textHash, voice: job.voice },
-            });
-
-            if (!existing) {
-                // For now, store the first chunk URL as the main URL
-                // Later we could concatenate the audio files
-                const cacheEntry = this.ttsCacheRepo.create({
-                    textHash: job.textHash,
-                    voice: job.voice,
-                    audioUrl: job.chunkUrls[0], // First chunk for now
-                    format: job.format,
-                    accessCount: 1,
-                    lastAccessedAt: new Date(),
-                });
-                await this.ttsCacheRepo.save(cacheEntry);
-                this.logger.log(`Saved job ${job.id} to cache`);
-            }
-        } catch (error: any) {
-            this.logger.error(`Failed to save to cache:`, error.message);
-        }
     }
 }
