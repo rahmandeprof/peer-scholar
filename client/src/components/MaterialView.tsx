@@ -967,13 +967,15 @@ export const MaterialView = () => {
           onContinueReading={handleContinueReading}
         />
         {ttsOpen && material?.content && (
-          <TTSPlayer
-            text={getTextFromPage(material.content, currentPage, totalPages)}
-            onClose={() => setTtsOpen(false)}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onNavigateToPage={handleTtsNavigateToPage}
-          />
+          <Suspense fallback={<ModalLoadingFallback />}>
+            <TTSPlayer
+              text={getTextFromPage(material.content, currentPage, totalPages)}
+              onClose={() => setTtsOpen(false)}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onNavigateToPage={handleTtsNavigateToPage}
+            />
+          </Suspense>
         )}
         <FeatureSpotlightModal
           isOpen={showFlashcardSpotlight}

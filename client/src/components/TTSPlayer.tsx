@@ -75,6 +75,7 @@ export function TTSPlayer({
   const cancelledRef = useRef(false);
   const isPlayingRef = useRef(false);
   const playbackRateRef = useRef(1);
+  const pollJobStatusRef = useRef<((jobId: string) => Promise<void>) | null>(null);
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -184,7 +185,7 @@ export function TTSPlayer({
     audioQueueRef.current[index] = audio;
   }, [playNextInQueue]);
 
-  // Poll job status
+  // Poll job status - use ref to prevent useEffect dependency loop
   const pollJobStatus = useCallback(async (jobId: string) => {
     if (cancelledRef.current) {
       console.log('Polling cancelled');
@@ -213,19 +214,29 @@ export function TTSPlayer({
       }
 
       if (status.status !== 'completed') {
-        // Continue polling
-        pollingRef.current = setTimeout(() => pollJobStatus(jobId), 2000);
+        // Continue polling using ref to avoid stale closure
+        pollingRef.current = setTimeout(() => {
+          if (pollJobStatusRef.current) {
+            pollJobStatusRef.current(jobId);
+          }
+        }, 2000);
       } else {
         console.log('Job completed, all chunks ready');
       }
     } catch (err: any) {
-      console.error('Failed to poll job status:', err);
+      console.error('Failed to poll job status:', err?.response?.status, err?.message);
       if (!cancelledRef.current) {
-        setError('Failed to check generation status');
+        const errorMsg = err?.response?.data?.message || err?.message || 'Failed to check generation status';
+        setError(errorMsg);
         setIsLoading(false);
       }
     }
   }, [addChunkToQueue]);
+
+  // Keep pollJobStatus ref in sync
+  useEffect(() => {
+    pollJobStatusRef.current = pollJobStatus;
+  }, [pollJobStatus]);
 
   // Start streaming audio generation - only depends on text and voice
   useEffect(() => {
@@ -292,8 +303,10 @@ export function TTSPlayer({
           });
         }
 
-        // Start polling for more chunks
-        pollJobStatus(jobId);
+        // Start polling for more chunks - use ref to get latest function
+        if (pollJobStatusRef.current) {
+          pollJobStatusRef.current(jobId);
+        }
       } catch (err: any) {
         if (!cancelledRef.current) {
           console.error('Failed to start stream:', err);
@@ -317,7 +330,8 @@ export function TTSPlayer({
         }
       });
     };
-  }, [text, voice, pollJobStatus]); // Removed playbackRate - handled separately
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text, voice]); // Only restart on text/voice change, not pollJobStatus (uses ref)
 
   const togglePlay = () => {
     const currentAudio = audioQueueRef.current[currentAudioIndexRef.current];
