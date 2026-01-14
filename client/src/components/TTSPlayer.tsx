@@ -198,11 +198,18 @@ export function TTSPlayer({
 
     audio.oncanplaythrough = () => {
       console.log(`Chunk ${index} ready to play, isPlaying=${isPlayingRef.current}, currentIndex=${currentAudioIndexRef.current}`);
-      // If this is the starting chunk and nothing is playing yet, start playback
-      // Use startChunkRef.current to handle mid-file playback
+
       const effectiveStartChunk = startChunkRef.current || 0;
-      if (index === effectiveStartChunk && !isPlayingRef.current && currentAudioIndexRef.current === effectiveStartChunk) {
-        console.log(`Starting playback with chunk ${index} (startChunk=${effectiveStartChunk})`);
+
+      // Auto-start in two scenarios:
+      // 1. This is the startChunk and nothing is playing (initial start)
+      // 2. This is the chunk we're waiting for (currentAudioIndex) and nothing is playing (resume after gap)
+      if (!isPlayingRef.current && currentAudioIndexRef.current === index) {
+        if (index === effectiveStartChunk) {
+          console.log(`Starting playback with chunk ${index} (startChunk=${effectiveStartChunk})`);
+        } else {
+          console.log(`Resuming playback with chunk ${index} (was waiting for this chunk)`);
+        }
         setIsLoading(false);
         audio.play().catch(console.error);
         setIsPlaying(true);
