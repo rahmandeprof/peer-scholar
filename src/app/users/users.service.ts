@@ -14,6 +14,7 @@ import {
   PartnerRequest,
   PartnerRequestStatus,
 } from '@/app/users/entities/partner-request.entity';
+import { ReferralStatus } from '@/app/users/entities/referral.entity';
 import { StudyStreak } from '@/app/users/entities/study-streak.entity';
 import { User } from '@/app/users/entities/user.entity';
 import { ReadingProgress } from '@/app/users/entities/reading-progress.entity';
@@ -660,12 +661,14 @@ export class UsersService {
       .getRawMany();
 
     // Top by referrals (count completed referrals)
+    // Using ReferralStatus enum for type safety, HAVING to exclude users with 0 referrals
     const topReferrers = await this.userRepository
       .createQueryBuilder('user')
-      .leftJoin('referral', 'referral', 'referral.referrer_id = user.id AND referral.status = :status', { status: 'completed' })
+      .leftJoin('referral', 'referral', 'referral.referrer_id = user.id AND referral.status = :status', { status: ReferralStatus.COMPLETED })
       .select(['user.id', 'user.firstName', 'user.lastName', 'user.email'])
       .addSelect('COUNT(referral.id)', 'referralCount')
       .groupBy('user.id')
+      .having('COUNT(referral.id) > 0')
       .orderBy('referralCount', 'DESC')
       .limit(10)
       .getRawMany();
