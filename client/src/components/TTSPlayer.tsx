@@ -337,11 +337,11 @@ export function TTSPlayer({
                 });
 
                 // Check if any failed
+                // Check if any failed - Don't stop everything, just log warning
+                // Failed chunks might be retrying or far ahead
                 const hasFailed = updatedChunks.some((c: MaterialChunkStatus) => c.status === 'failed');
                 if (hasFailed) {
-                  setError('Some audio chunks failed to generate');
-                  setIsLoading(false);
-                  return;
+                  console.warn('Some chunks reported failure - continuing polling in case of retries');
                 }
 
                 // Check if all done
