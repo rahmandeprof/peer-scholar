@@ -44,7 +44,7 @@ export class TtsMaterialChunk {
     /**
      * URL to the generated audio (null = not generated yet)
      */
-    @Column({ name: 'audio_url', nullable: true })
+    @Column({ name: 'audio_url', type: 'text', nullable: true })
     audioUrl: string | null;
 
     /**
