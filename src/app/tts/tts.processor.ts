@@ -157,6 +157,13 @@ export class TtsProcessor implements OnModuleInit {
             if (isRateLimited) {
                 throw new Error('RATE_LIMITED: YarnGPT API rate limit exceeded');
             }
+
+            // Also re-throw server errors (5xx) and network errors for retry
+            const status = error.response?.status;
+            if (!status || status >= 500) {
+                this.logger.warn(`⚠️ Transient error (${status || 'Network'}) for job ${jobId} - re-throwing for retry`);
+                throw error;
+            }
         }
     }
 
@@ -279,6 +286,13 @@ export class TtsProcessor implements OnModuleInit {
                 if (isRateLimited) {
                     throw new Error('RATE_LIMITED');
                 }
+            }
+
+            // Also re-throw server errors (5xx) and network errors for retry
+            const status = error.response?.status;
+            if (!status || status >= 500) {
+                this.logger.warn(`⚠️ Transient error (${status || 'Network'}) for job ${job.id} - re-throwing for retry`);
+                throw error;
             }
         }
     }
