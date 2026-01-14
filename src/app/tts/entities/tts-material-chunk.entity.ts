@@ -72,7 +72,7 @@ export class TtsMaterialChunk {
     /**
      * Error message if generation failed
      */
-    @Column({ name: 'error_message', nullable: true })
+    @Column({ name: 'error_message', type: 'text', nullable: true })
     errorMessage: string | null;
 
     @CreateDateColumn({ name: 'created_at' })
