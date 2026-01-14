@@ -62,6 +62,10 @@ export function TTSPlayer({
   const [playbackRate, setPlaybackRate] = useState(1);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
 
+  // Browser TTS fallback
+  const [useBrowserTTS, setUseBrowserTTS] = useState(false);
+  const browserTTSRef = useRef<SpeechSynthesisUtterance | null>(null);
+
   // Page-aware mode: show page progress when totalPages > 0
   const isPageAware = totalPages > 0;
   const [readingPage, _setReadingPage] = useState(currentPage);
@@ -366,7 +370,64 @@ export function TTSPlayer({
     audioQueueRef.current.forEach(audio => {
       if (audio) audio.pause();
     });
+    // Stop browser TTS if active
+    if (useBrowserTTS) {
+      window.speechSynthesis.cancel();
+    }
     onClose();
+  };
+
+  // Browser TTS fallback functions
+  const startBrowserTTS = () => {
+    if (!('speechSynthesis' in window)) {
+      setError('Browser does not support text-to-speech');
+      return;
+    }
+
+    // Cancel any existing speech
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = playbackRate;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+
+    // Try to find a good voice
+    const voices = window.speechSynthesis.getVoices();
+    const englishVoice = voices.find(v => v.lang.startsWith('en'));
+    if (englishVoice) {
+      utterance.voice = englishVoice;
+    }
+
+    utterance.onstart = () => {
+      setIsPlaying(true);
+      setIsLoading(false);
+      setError(null);
+    };
+
+    utterance.onend = () => {
+      setIsPlaying(false);
+    };
+
+    utterance.onerror = (e) => {
+      console.error('Browser TTS error:', e);
+      setError('Browser speech failed');
+      setIsPlaying(false);
+    };
+
+    browserTTSRef.current = utterance;
+    setUseBrowserTTS(true);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const toggleBrowserTTS = () => {
+    if (isPlaying) {
+      window.speechSynthesis.pause();
+      setIsPlaying(false);
+    } else {
+      window.speechSynthesis.resume();
+      setIsPlaying(true);
+    }
   };
 
   return (
@@ -408,8 +469,8 @@ export function TTSPlayer({
       <div className="bg-white dark:bg-gray-800 rounded-full shadow-xl border border-gray-200 dark:border-gray-700 p-2 flex items-center space-x-2">
         {/* Play/Pause or Loading */}
         <button
-          onClick={togglePlay}
-          disabled={isLoading || !!error}
+          onClick={useBrowserTTS ? toggleBrowserTTS : togglePlay}
+          disabled={isLoading || (!!error && !useBrowserTTS)}
           className="w-10 h-10 rounded-full bg-primary-600 text-white flex items-center justify-center hover:bg-primary-700 transition-colors disabled:bg-gray-400"
           title={isLoading ? `Generating... (${progress.current}/${progress.total})` : isPlaying ? 'Pause' : 'Play'}
         >
@@ -470,7 +531,17 @@ export function TTSPlayer({
       {/* Error Message */}
       {error && (
         <div className="mt-2 px-3 py-2 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs rounded-lg">
-          {error}
+          <div className="flex items-center justify-between gap-2">
+            <span>{error}</span>
+            {'speechSynthesis' in window && !useBrowserTTS && (
+              <button
+                onClick={startBrowserTTS}
+                className="px-2 py-1 bg-primary-500 text-white text-xs rounded hover:bg-primary-600 transition-colors whitespace-nowrap"
+              >
+                Use Browser Voice
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
