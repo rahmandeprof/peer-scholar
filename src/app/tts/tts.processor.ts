@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Job } from 'bull';
 import { TtsJob, TtsJobStatus } from './entities/tts-job.entity';
+import { TtsMaterialChunk, TtsMaterialChunkStatus } from './entities/tts-material-chunk.entity';
 import { R2Service } from '@/app/common/services/r2.service';
 import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
@@ -16,6 +17,13 @@ interface TtsChunkJobData {
     format: string;
 }
 
+interface MaterialChunkJobData {
+    materialId: string;
+    chunkIndex: number;
+    text: string;
+    voice: string;
+}
+
 @Processor('tts')
 export class TtsProcessor implements OnModuleInit {
     private readonly logger = new Logger(TtsProcessor.name);
@@ -25,6 +33,8 @@ export class TtsProcessor implements OnModuleInit {
     constructor(
         @InjectRepository(TtsJob)
         private readonly ttsJobRepo: Repository<TtsJob>,
+        @InjectRepository(TtsMaterialChunk)
+        private readonly materialChunkRepo: Repository<TtsMaterialChunk>,
         private readonly r2Service: R2Service,
         private readonly configService: ConfigService,
     ) {
@@ -195,6 +205,71 @@ export class TtsProcessor implements OnModuleInit {
                 this.logger.error(`❌ YarnGPT API request setup error: ${error.message}`);
             }
             throw error;
+        }
+    }
+
+    // ========== Material Chunk Processing ==========
+
+    @Process('generate-material-chunk')
+    async handleMaterialChunk(job: Job<MaterialChunkJobData>) {
+        const { materialId, chunkIndex, text, voice } = job.data;
+        this.logger.log(`🎵 Processing material chunk ${chunkIndex} for ${materialId}`);
+
+        try {
+            // Check if already completed (another job beat us)
+            const existing = await this.materialChunkRepo.findOne({
+                where: { materialId, chunkIndex, voice },
+            });
+            if (existing?.status === TtsMaterialChunkStatus.COMPLETED && existing.audioUrl) {
+                this.logger.log(`Chunk ${chunkIndex} already completed, skipping`);
+                return;
+            }
+
+            // Mark as processing
+            if (existing) {
+                existing.status = TtsMaterialChunkStatus.PROCESSING;
+                await this.materialChunkRepo.save(existing);
+            }
+
+            // Generate audio
+            const audioBuffer = await this.callTtsApi(text, voice, 'mp3');
+
+            // Upload to R2
+            const chunkId = `material_${materialId}_chunk_${chunkIndex}_${voice}`;
+            const uploadResult = await this.r2Service.uploadBuffer(audioBuffer, {
+                folder: 'tts-chunks',
+                format: 'mp3',
+                publicId: chunkId,
+            });
+
+            // Update chunk record
+            if (existing) {
+                existing.status = TtsMaterialChunkStatus.COMPLETED;
+                existing.audioUrl = uploadResult.url;
+                existing.errorMessage = null;
+                await this.materialChunkRepo.save(existing);
+            }
+
+            this.logger.log(`✅ Material chunk ${chunkIndex} completed for ${materialId}`);
+        } catch (error: any) {
+            this.logger.error(`❌ Material chunk ${chunkIndex} failed for ${materialId}: ${error.message}`);
+
+            // Mark as failed
+            const chunk = await this.materialChunkRepo.findOne({
+                where: { materialId, chunkIndex, voice },
+            });
+            if (chunk) {
+                const isRateLimited = error.response?.status === 429;
+                chunk.status = TtsMaterialChunkStatus.FAILED;
+                chunk.errorMessage = isRateLimited
+                    ? 'Rate limit reached. Please try again later.'
+                    : error.message || 'Generation failed';
+                await this.materialChunkRepo.save(chunk);
+
+                if (isRateLimited) {
+                    throw new Error('RATE_LIMITED');
+                }
+            }
         }
     }
 }

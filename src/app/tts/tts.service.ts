@@ -8,6 +8,8 @@ import axios from 'axios';
 import * as crypto from 'crypto';
 import { TtsCache } from './entities/tts-cache.entity';
 import { TtsJob, TtsJobStatus } from './entities/tts-job.entity';
+import { TtsMaterialChunk, TtsMaterialChunkStatus } from './entities/tts-material-chunk.entity';
+import { TtsMaterialMeta } from './entities/tts-material-meta.entity';
 import { R2Service } from '@/app/common/services/r2.service';
 
 export interface TTSOptions {
@@ -26,12 +28,19 @@ export interface VoiceInfo {
     gender: 'male' | 'female';
 }
 
+export interface MaterialChunkStatus {
+    chunkIndex: number;
+    status: TtsMaterialChunkStatus;
+    audioUrl: string | null;
+}
+
 @Injectable()
 export class TTSService {
     private readonly logger = new Logger(TTSService.name);
     private readonly apiUrl = 'https://yarngpt.ai/api/v1/tts';
     private readonly apiKey: string | undefined;
     private readonly defaultVoice = 'Idera';
+    private readonly CHUNK_SIZE = 800; // Characters per chunk
 
     // All available YarnGPT voices
     static readonly AVAILABLE_VOICES: VoiceInfo[] = [
@@ -61,6 +70,10 @@ export class TTSService {
         private readonly ttsCacheRepo: Repository<TtsCache>,
         @InjectRepository(TtsJob)
         private readonly ttsJobRepo: Repository<TtsJob>,
+        @InjectRepository(TtsMaterialChunk)
+        private readonly materialChunkRepo: Repository<TtsMaterialChunk>,
+        @InjectRepository(TtsMaterialMeta)
+        private readonly materialMetaRepo: Repository<TtsMaterialMeta>,
         @InjectQueue('tts')
         private readonly ttsQueue: Queue,
         private readonly r2Service: R2Service,
@@ -444,5 +457,176 @@ export class TTSService {
             errorMessage: job.errorMessage,
         };
     }
-}
 
+    // ========== Material-Level TTS Methods ==========
+
+    /**
+     * Get or create chunk metadata for a material.
+     * Pre-computes chunk boundaries for consistent splitting.
+     */
+    async getOrCreateMaterialMeta(materialId: string, content: string): Promise<TtsMaterialMeta> {
+        const contentHash = this.getTextHash(content);
+
+        // Check if meta exists and is still valid
+        let meta = await this.materialMetaRepo.findOne({ where: { materialId } });
+
+        if (meta && meta.contentHash === contentHash) {
+            return meta;
+        }
+
+        // Content changed or meta doesn't exist - recompute chunks
+        this.logger.log(`Computing chunk boundaries for material ${materialId}`);
+        const boundaries = this.computeChunkBoundaries(content);
+
+        if (meta) {
+            // Content changed - update meta and invalidate old chunks
+            meta.contentHash = contentHash;
+            meta.totalChunks = boundaries.length;
+            meta.chunkBoundaries = boundaries;
+            await this.materialMetaRepo.save(meta);
+            // Invalidate old chunks (content changed)
+            await this.materialChunkRepo.delete({ materialId });
+        } else {
+            // Create new meta
+            meta = this.materialMetaRepo.create({
+                materialId,
+                contentHash,
+                totalChunks: boundaries.length,
+                chunkBoundaries: boundaries,
+            });
+            await this.materialMetaRepo.save(meta);
+        }
+
+        return meta;
+    }
+
+    /**
+     * Compute chunk boundaries with sentence-aware splitting.
+     */
+    private computeChunkBoundaries(content: string): { start: number; end: number }[] {
+        const boundaries: { start: number; end: number }[] = [];
+        let currentStart = 0;
+
+        while (currentStart < content.length) {
+            let endPos = Math.min(currentStart + this.CHUNK_SIZE, content.length);
+
+            // Try to find sentence boundary if not at end
+            if (endPos < content.length) {
+                const searchText = content.substring(currentStart, endPos + 50);
+                const lastSentenceEnd = Math.max(
+                    searchText.lastIndexOf('. '),
+                    searchText.lastIndexOf('! '),
+                    searchText.lastIndexOf('? '),
+                    searchText.lastIndexOf('.\n'),
+                );
+
+                if (lastSentenceEnd > this.CHUNK_SIZE * 0.5) {
+                    endPos = currentStart + lastSentenceEnd + 1;
+                }
+            }
+
+            boundaries.push({ start: currentStart, end: endPos });
+            currentStart = endPos;
+        }
+
+        return boundaries;
+    }
+
+    /**
+     * Start material TTS generation from a specific chunk.
+     */
+    async startMaterialGeneration(
+        materialId: string,
+        content: string,
+        voice: string,
+        startChunk = 0,
+    ): Promise<{ totalChunks: number; chunks: MaterialChunkStatus[] }> {
+        if (!this.apiKey) {
+            throw new BadRequestException('TTS service is not configured.');
+        }
+
+        const validatedVoice = this.validateVoice(voice);
+        const meta = await this.getOrCreateMaterialMeta(materialId, content);
+
+        const existingChunks = await this.materialChunkRepo.find({
+            where: { materialId, voice: validatedVoice },
+        });
+        const existingChunkMap = new Map(existingChunks.map(c => [c.chunkIndex, c]));
+
+        const chunksToGenerate: number[] = [];
+        for (let i = startChunk; i < meta.totalChunks; i++) {
+            const existing = existingChunkMap.get(i);
+            if (!existing || existing.status === TtsMaterialChunkStatus.FAILED) {
+                chunksToGenerate.push(i);
+            }
+        }
+
+        for (const chunkIndex of chunksToGenerate) {
+            const boundary = meta.chunkBoundaries[chunkIndex];
+            const chunkText = content.substring(boundary.start, boundary.end);
+
+            let chunk = existingChunkMap.get(chunkIndex);
+            if (!chunk) {
+                chunk = this.materialChunkRepo.create({
+                    materialId,
+                    chunkIndex,
+                    voice: validatedVoice,
+                    charStart: boundary.start,
+                    charEnd: boundary.end,
+                    status: TtsMaterialChunkStatus.PENDING,
+                });
+                await this.materialChunkRepo.save(chunk);
+            } else if (chunk.status === TtsMaterialChunkStatus.FAILED) {
+                chunk.status = TtsMaterialChunkStatus.PENDING;
+                chunk.errorMessage = null;
+                await this.materialChunkRepo.save(chunk);
+            }
+
+            await this.ttsQueue.add('generate-material-chunk', {
+                materialId,
+                chunkIndex,
+                text: chunkText,
+                voice: validatedVoice,
+            }, {
+                attempts: 2,
+                backoff: { type: 'exponential', delay: 5000 },
+                priority: chunkIndex - startChunk,
+            });
+        }
+
+        this.logger.log(`Queued ${chunksToGenerate.length} chunks for material ${materialId}`);
+        return this.getMaterialChunkStatus(materialId, validatedVoice);
+    }
+
+    /**
+     * Get status of all chunks for a material+voice.
+     */
+    async getMaterialChunkStatus(
+        materialId: string,
+        voice: string,
+    ): Promise<{ totalChunks: number; chunks: MaterialChunkStatus[] }> {
+        const validatedVoice = this.validateVoice(voice);
+
+        const meta = await this.materialMetaRepo.findOne({ where: { materialId } });
+        if (!meta) {
+            throw new NotFoundException(`No TTS meta found for material ${materialId}`);
+        }
+
+        const chunks = await this.materialChunkRepo.find({
+            where: { materialId, voice: validatedVoice },
+            order: { chunkIndex: 'ASC' },
+        });
+
+        const chunkStatuses: MaterialChunkStatus[] = [];
+        for (let i = 0; i < meta.totalChunks; i++) {
+            const chunk = chunks.find(c => c.chunkIndex === i);
+            chunkStatuses.push({
+                chunkIndex: i,
+                status: chunk?.status || TtsMaterialChunkStatus.PENDING,
+                audioUrl: chunk?.audioUrl || null,
+            });
+        }
+
+        return { totalChunks: meta.totalChunks, chunks: chunkStatuses };
+    }
+}

@@ -10,6 +10,9 @@ interface TTSPlayerProps {
   currentPage?: number;
   totalPages?: number;
   onNavigateToPage?: (page: number) => void;
+  // Material-level TTS (optional) - enables cache reuse across users
+  materialId?: string;
+  startChunk?: number;
 }
 
 interface VoiceInfo {
@@ -23,6 +26,12 @@ interface JobStatus {
   completedChunks: number;
   chunkUrls: string[];
   errorMessage?: string;
+}
+
+interface MaterialChunkStatus {
+  chunkIndex: number;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  audioUrl: string | null;
 }
 
 const VOICES: VoiceInfo[] = [
@@ -53,6 +62,8 @@ export function TTSPlayer({
   currentPage = 1,
   totalPages = 0,
   onNavigateToPage: _onNavigateToPage,
+  materialId,
+  startChunk = 0,
 }: TTSPlayerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -267,6 +278,81 @@ export function TTSPlayer({
     const startStream = async () => {
       try {
         console.log('Starting TTS stream...');
+
+        // Use material-level endpoints when materialId is provided
+        if (materialId) {
+          console.log(`Using material-level TTS for ${materialId}, starting from chunk ${startChunk}`);
+          const response = await api.post(`/tts/material/${materialId}/start`, {
+            content: text,
+            voice,
+            startChunk,
+          });
+
+          if (cancelledRef.current) return;
+
+          const { totalChunks, chunks } = response.data;
+          setProgress({ current: chunks.filter((c: MaterialChunkStatus) => c.status === 'completed').length, total: totalChunks });
+
+          // Add any already-completed chunks to queue
+          chunks.forEach((chunk: MaterialChunkStatus) => {
+            if (chunk.status === 'completed' && chunk.audioUrl && !processedChunksRef.current.has(chunk.chunkIndex)) {
+              addChunkToQueue(chunk.audioUrl, chunk.chunkIndex);
+            }
+          });
+
+          // Check if all chunks are done
+          const allDone = chunks.every((c: MaterialChunkStatus) => c.status === 'completed');
+          if (allDone && totalChunks > 0) {
+            setIsLoading(false);
+          } else {
+            // Start polling for material chunks
+            const pollMaterialChunks = async () => {
+              if (cancelledRef.current) return;
+
+              try {
+                const statusRes = await api.get(`/tts/material/${materialId}/chunks?voice=${voice}`);
+                const { totalChunks: total, chunks: updatedChunks } = statusRes.data;
+
+                setProgress({
+                  current: updatedChunks.filter((c: MaterialChunkStatus) => c.status === 'completed').length,
+                  total
+                });
+
+                // Add newly completed chunks
+                updatedChunks.forEach((chunk: MaterialChunkStatus) => {
+                  if (chunk.status === 'completed' && chunk.audioUrl && !processedChunksRef.current.has(chunk.chunkIndex)) {
+                    addChunkToQueue(chunk.audioUrl, chunk.chunkIndex);
+                  }
+                });
+
+                // Check if any failed
+                const hasFailed = updatedChunks.some((c: MaterialChunkStatus) => c.status === 'failed');
+                if (hasFailed) {
+                  setError('Some audio chunks failed to generate');
+                  setIsLoading(false);
+                  return;
+                }
+
+                // Check if all done
+                const allComplete = updatedChunks.every((c: MaterialChunkStatus) => c.status === 'completed');
+                if (allComplete) {
+                  setIsLoading(false);
+                  return;
+                }
+
+                // Continue polling
+                pollingRef.current = setTimeout(pollMaterialChunks, 1000);
+              } catch (err) {
+                console.error('Material chunk polling error:', err);
+                pollingRef.current = setTimeout(pollMaterialChunks, 2000);
+              }
+            };
+            pollMaterialChunks();
+          }
+          return;
+        }
+
+        // Legacy: text-based streaming
         const response = await api.post('/tts/start-stream', {
           text,
           voice,

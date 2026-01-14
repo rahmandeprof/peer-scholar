@@ -6,13 +6,15 @@ import { TTSService } from './tts.service';
 import { TTSController } from './tts.controller';
 import { TtsCache } from './entities/tts-cache.entity';
 import { TtsJob } from './entities/tts-job.entity';
+import { TtsMaterialChunk } from './entities/tts-material-chunk.entity';
+import { TtsMaterialMeta } from './entities/tts-material-meta.entity';
 import { TtsProcessor } from './tts.processor';
 import { CommonModule } from '@/app/common/common.module';
 
 @Module({
     imports: [
         ConfigModule,
-        TypeOrmModule.forFeature([TtsCache, TtsJob]),
+        TypeOrmModule.forFeature([TtsCache, TtsJob, TtsMaterialChunk, TtsMaterialMeta]),
         BullModule.registerQueue({
             name: 'tts',
         }),
@@ -23,3 +25,4 @@ import { CommonModule } from '@/app/common/common.module';
     exports: [TTSService],
 })
 export class TTSModule { }
+

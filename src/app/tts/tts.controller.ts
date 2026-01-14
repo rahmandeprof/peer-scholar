@@ -155,4 +155,50 @@ export class TTSController {
             ...result,
         };
     }
+
+    // ========== Material-Level TTS Endpoints ==========
+
+    /**
+     * Start TTS generation for a material
+     * Generates chunks from startChunk onwards
+     */
+    @Post('material/:materialId/start')
+    @UseGuards(AuthGuard('jwt'))
+    async startMaterialTts(
+        @Param('materialId') materialId: string,
+        @Body() body: { content: string; voice?: string; startChunk?: number },
+    ) {
+        this.logger.log(`Starting material TTS for ${materialId} from chunk ${body.startChunk || 0}`);
+
+        const result = await this.ttsService.startMaterialGeneration(
+            materialId,
+            body.content,
+            body.voice || 'Idera',
+            body.startChunk || 0,
+        );
+
+        return {
+            success: true,
+            ...result,
+        };
+    }
+
+    /**
+     * Get chunk status for a material
+     * Poll this endpoint to get available chunk URLs
+     */
+    @Get('material/:materialId/chunks')
+    @UseGuards(AuthGuard('jwt'))
+    async getMaterialChunks(
+        @Param('materialId') materialId: string,
+        @Req() req: Request,
+    ) {
+        const voice = (req.query.voice as string) || 'Idera';
+        const result = await this.ttsService.getMaterialChunkStatus(materialId, voice);
+
+        return {
+            success: true,
+            ...result,
+        };
+    }
 }
