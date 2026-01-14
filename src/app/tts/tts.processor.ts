@@ -126,12 +126,26 @@ export class TtsProcessor implements OnModuleInit {
         } catch (error: any) {
             this.logger.error(`Failed to process chunk ${chunkIndex} for job ${jobId}:`, error.message);
 
-            // Mark job as failed
+            // Determine if this is a rate limit error (HTTP 429)
+            const isRateLimited = error.response?.status === 429;
+
+            // Mark job with appropriate status
             const ttsJob = await this.ttsJobRepo.findOne({ where: { id: jobId } });
             if (ttsJob) {
-                ttsJob.status = TtsJobStatus.FAILED;
-                ttsJob.errorMessage = error.message;
+                if (isRateLimited) {
+                    ttsJob.status = TtsJobStatus.RATE_LIMITED;
+                    ttsJob.errorMessage = 'Text-to-speech is temporarily unavailable due to high demand. Please try again later.';
+                    this.logger.warn(`⚠️ Rate limit hit for job ${jobId} - marking as rate limited`);
+                } else {
+                    ttsJob.status = TtsJobStatus.FAILED;
+                    ttsJob.errorMessage = error.message || 'Failed to generate audio';
+                }
                 await this.ttsJobRepo.save(ttsJob);
+            }
+
+            // Re-throw rate limit errors so Bull can retry with longer backoff
+            if (isRateLimited) {
+                throw new Error('RATE_LIMITED: YarnGPT API rate limit exceeded');
             }
         }
     }

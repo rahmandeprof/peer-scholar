@@ -18,7 +18,7 @@ interface VoiceInfo {
 }
 
 interface JobStatus {
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'rate_limited';
   totalChunks: number;
   completedChunks: number;
   chunkUrls: string[];
@@ -207,7 +207,7 @@ export function TTSPlayer({
         }
       });
 
-      if (status.status === 'failed') {
+      if (status.status === 'failed' || status.status === 'rate_limited') {
         setError(status.errorMessage || 'TTS generation failed');
         setIsLoading(false);
         return;

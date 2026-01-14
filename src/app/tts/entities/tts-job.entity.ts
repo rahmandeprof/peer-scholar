@@ -11,6 +11,7 @@ export enum TtsJobStatus {
     PROCESSING = 'processing',
     COMPLETED = 'completed',
     FAILED = 'failed',
+    RATE_LIMITED = 'rate_limited', // YarnGPT daily limit reached
 }
 
 /**
