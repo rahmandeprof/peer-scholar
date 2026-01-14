@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, X, Loader2, Volume2 } from 'lucide-react';
+import { Play, Pause, X, Loader2, Volume2, SkipForward } from 'lucide-react';
 import api from '../lib/api';
 
 interface TTSPlayerProps {
@@ -67,6 +67,7 @@ export function TTSPlayer({
 }: TTSPlayerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false); // Waiting for next chunk
   const [error, setError] = useState<string | null>(null);
   const [voice, setVoice] = useState(defaultVoice);
   const [showVoiceSelector, setShowVoiceSelector] = useState(false);
@@ -155,9 +156,16 @@ export function TTSPlayer({
     const queue = audioQueueRef.current;
     const currentIndex = currentAudioIndexRef.current;
 
+    // Memory cleanup: clear already-played chunks to prevent memory leak
+    if (currentIndex > 0 && queue[currentIndex - 1]) {
+      queue[currentIndex - 1].src = '';
+      queue[currentIndex - 1] = null as any;
+    }
+
     if (currentIndex < queue.length && queue[currentIndex]) {
       const audio = queue[currentIndex];
       audio.playbackRate = playbackRateRef.current;
+      setIsBuffering(false);
       audio.play().catch(err => {
         console.error('Failed to play audio:', err);
         // Try next chunk on failure
@@ -169,8 +177,9 @@ export function TTSPlayer({
       // Update page estimate based on chunk progress
       updatePageFromProgress(currentIndex + 1, queue.length || progress.total);
     } else {
-      // No more to play right now
+      // No more to play right now - show buffering state
       setIsPlaying(false);
+      setIsBuffering(true); // Waiting for next chunk
     }
   }, [updatePageFromProgress, progress.total]);
 
@@ -211,6 +220,7 @@ export function TTSPlayer({
           console.log(`Resuming playback with chunk ${index} (was waiting for this chunk)`);
         }
         setIsLoading(false);
+        setIsBuffering(false); // Clear buffering state
         audio.play().catch(console.error);
         setIsPlaying(true);
       }
@@ -489,9 +499,58 @@ export function TTSPlayer({
     setPlaybackRate(rates[nextIndex]);
   };
 
+  // Skip current chunk if stuck
+  const skipCurrentChunk = () => {
+    console.log(`Skipping chunk ${currentAudioIndexRef.current}`);
+    const queue = audioQueueRef.current;
+    const currentIndex = currentAudioIndexRef.current;
+
+    // Stop current audio if playing
+    if (queue[currentIndex]) {
+      queue[currentIndex].pause();
+      queue[currentIndex].src = '';
+    }
+
+    // Move to next chunk
+    currentAudioIndexRef.current++;
+    setIsBuffering(false);
+    playNextInQueue();
+  };
+
   const handleVoiceChange = (newVoice: string) => {
+    if (newVoice === voice) {
+      setShowVoiceSelector(false);
+      return;
+    }
+
+    // Voice changed - stop current playback and restart with new voice
+    console.log(`Voice changed from ${voice} to ${newVoice}, restarting...`);
+
+    // Stop current audio
+    audioQueueRef.current.forEach(audio => {
+      if (audio) {
+        audio.pause();
+        audio.src = '';
+      }
+    });
+    audioQueueRef.current = [];
+    currentAudioIndexRef.current = startChunk || 0;
+    processedChunksRef.current.clear();
+
+    // Clear polling
+    if (pollingRef.current) {
+      clearTimeout(pollingRef.current);
+    }
+
+    // Update voice and restart
     setVoice(newVoice);
     setShowVoiceSelector(false);
+    setIsLoading(true);
+    setIsPlaying(false);
+    setIsBuffering(false);
+    setError(null);
+
+    // Will trigger useEffect to restart with new voice
   };
 
   const handleClose = () => {
@@ -619,6 +678,21 @@ export function TTSPlayer({
         {isLoading && progress.total > 0 && (
           <div className="text-xs text-gray-500 dark:text-gray-400 min-w-[40px]">
             {progress.current}/{progress.total}
+          </div>
+        )}
+
+        {/* Buffering indicator - waiting for next chunk */}
+        {isBuffering && !isLoading && (
+          <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            <span>Buffering...</span>
+            <button
+              onClick={skipCurrentChunk}
+              className="ml-1 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+              title="Skip to next chunk"
+            >
+              <SkipForward className="w-3 h-3" />
+            </button>
           </div>
         )}
 
