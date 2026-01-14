@@ -554,10 +554,18 @@ export class TTSService {
         const existingChunkMap = new Map(existingChunks.map(c => [c.chunkIndex, c]));
 
         const chunksToGenerate: number[] = [];
+        const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+
         for (let i = startChunk; i < meta.totalChunks; i++) {
             const existing = existingChunkMap.get(i);
             if (!existing || existing.status === TtsMaterialChunkStatus.FAILED) {
                 chunksToGenerate.push(i);
+            } else if (existing.status === TtsMaterialChunkStatus.PROCESSING) {
+                // Re-queue stuck PROCESSING chunks (older than 2 minutes)
+                if (existing.createdAt < twoMinutesAgo) {
+                    this.logger.warn(`Chunk ${i} stuck in PROCESSING, re-queuing`);
+                    chunksToGenerate.push(i);
+                }
             }
         }
 

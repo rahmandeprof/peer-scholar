@@ -945,7 +945,7 @@ export const MaterialView = () => {
             <TTSPlayer
               text={material.content}
               materialId={material.id}
-              startChunk={Math.floor((currentPage - 1) / totalPages * Math.ceil(material.content.length / 800))}
+              startChunk={Math.floor((currentPage - 1) / Math.max(totalPages, 1) * Math.ceil(material.content.length / 800))}
               onClose={() => setTtsOpen(false)}
               currentPage={currentPage}
               totalPages={totalPages}

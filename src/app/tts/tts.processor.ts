@@ -217,18 +217,30 @@ export class TtsProcessor implements OnModuleInit {
 
         try {
             // Check if already completed (another job beat us)
-            const existing = await this.materialChunkRepo.findOne({
+            let chunk = await this.materialChunkRepo.findOne({
                 where: { materialId, chunkIndex, voice },
             });
-            if (existing?.status === TtsMaterialChunkStatus.COMPLETED && existing.audioUrl) {
+            if (chunk?.status === TtsMaterialChunkStatus.COMPLETED && chunk.audioUrl) {
                 this.logger.log(`Chunk ${chunkIndex} already completed, skipping`);
                 return;
             }
 
-            // Mark as processing
-            if (existing) {
-                existing.status = TtsMaterialChunkStatus.PROCESSING;
-                await this.materialChunkRepo.save(existing);
+            // Create chunk record if it doesn't exist (handles race conditions)
+            if (!chunk) {
+                this.logger.warn(`Chunk record ${chunkIndex} not found, creating...`);
+                chunk = this.materialChunkRepo.create({
+                    materialId,
+                    chunkIndex,
+                    voice,
+                    charStart: 0,
+                    charEnd: text.length,
+                    status: TtsMaterialChunkStatus.PROCESSING,
+                });
+                await this.materialChunkRepo.save(chunk);
+            } else {
+                // Mark as processing
+                chunk.status = TtsMaterialChunkStatus.PROCESSING;
+                await this.materialChunkRepo.save(chunk);
             }
 
             // Generate audio
@@ -242,13 +254,11 @@ export class TtsProcessor implements OnModuleInit {
                 publicId: chunkId,
             });
 
-            // Update chunk record
-            if (existing) {
-                existing.status = TtsMaterialChunkStatus.COMPLETED;
-                existing.audioUrl = uploadResult.url;
-                existing.errorMessage = null;
-                await this.materialChunkRepo.save(existing);
-            }
+            // Update chunk record - always update since we ensured chunk exists
+            chunk.status = TtsMaterialChunkStatus.COMPLETED;
+            chunk.audioUrl = uploadResult.url;
+            chunk.errorMessage = null;
+            await this.materialChunkRepo.save(chunk);
 
             this.logger.log(`✅ Material chunk ${chunkIndex} completed for ${materialId}`);
         } catch (error: any) {

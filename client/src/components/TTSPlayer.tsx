@@ -91,6 +91,9 @@ export function TTSPlayer({
   const isPlayingRef = useRef(false);
   const playbackRateRef = useRef(1);
   const pollJobStatusRef = useRef<((jobId: string) => Promise<void>) | null>(null);
+  const voiceRef = useRef(defaultVoice);
+  const pollRetryCountRef = useRef(0);
+  const MAX_POLL_RETRIES = 30; // Max polling errors before giving up
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -106,6 +109,10 @@ export function TTSPlayer({
       }
     });
   }, [playbackRate]);
+
+  useEffect(() => {
+    voiceRef.current = voice;
+  }, [voice]);
 
   // Keep track of which page is being read (estimated from chunk progress)
   const onNavigateRef = useRef(_onNavigateToPage);
@@ -310,8 +317,12 @@ export function TTSPlayer({
               if (cancelledRef.current) return;
 
               try {
-                const statusRes = await api.get(`/tts/material/${materialId}/chunks?voice=${voice}`);
+                // Use voiceRef.current for stable reference
+                const statusRes = await api.get(`/tts/material/${materialId}/chunks?voice=${voiceRef.current}`);
                 const { totalChunks: total, chunks: updatedChunks } = statusRes.data;
+
+                // Reset retry count on successful poll
+                pollRetryCountRef.current = 0;
 
                 setProgress({
                   current: updatedChunks.filter((c: MaterialChunkStatus) => c.status === 'completed').length,
@@ -344,6 +355,15 @@ export function TTSPlayer({
                 pollingRef.current = setTimeout(pollMaterialChunks, 1000);
               } catch (err) {
                 console.error('Material chunk polling error:', err);
+                pollRetryCountRef.current++;
+
+                // Stop polling after max retries to prevent infinite loop
+                if (pollRetryCountRef.current >= MAX_POLL_RETRIES) {
+                  setError('Network error - please try again');
+                  setIsLoading(false);
+                  return;
+                }
+
                 pollingRef.current = setTimeout(pollMaterialChunks, 2000);
               }
             };
