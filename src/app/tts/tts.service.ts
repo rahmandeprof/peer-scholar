@@ -556,7 +556,9 @@ export class TTSService {
         const chunksToGenerate: number[] = [];
         const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
 
-        for (let i = startChunk; i < meta.totalChunks; i++) {
+        // Queue ALL chunks, not just from startChunk
+        // This allows users to navigate backwards after starting mid-file
+        for (let i = 0; i < meta.totalChunks; i++) {
             const existing = existingChunkMap.get(i);
             if (!existing || existing.status === TtsMaterialChunkStatus.FAILED) {
                 chunksToGenerate.push(i);
@@ -590,15 +592,26 @@ export class TTSService {
                 await this.materialChunkRepo.save(chunk);
             }
 
+            // Priority: chunks from startChunk onwards get low numbers (high priority)
+            // Earlier chunks get high numbers (low priority, processed later)
+            let priority: number;
+            if (chunkIndex >= startChunk) {
+                // High priority: 0, 1, 2, 3... for chunks starting at startChunk
+                priority = chunkIndex - startChunk;
+            } else {
+                // Low priority: 1000+, processed after main chunks
+                priority = 1000 + (startChunk - chunkIndex);
+            }
+
             await this.ttsQueue.add('generate-material-chunk', {
                 materialId,
                 chunkIndex,
                 text: chunkText,
                 voice: validatedVoice,
             }, {
-                attempts: 2,
+                attempts: 3,
                 backoff: { type: 'exponential', delay: 5000 },
-                priority: chunkIndex - startChunk,
+                priority,
             });
         }
 
@@ -625,9 +638,12 @@ export class TTSService {
             order: { chunkIndex: 'ASC' },
         });
 
+        // Use Map for O(1) lookup instead of O(n) find - Bug #6 fix
+        const chunkMap = new Map(chunks.map(c => [c.chunkIndex, c]));
+
         const chunkStatuses: MaterialChunkStatus[] = [];
         for (let i = 0; i < meta.totalChunks; i++) {
-            const chunk = chunks.find(c => c.chunkIndex === i);
+            const chunk = chunkMap.get(i);
             chunkStatuses.push({
                 chunkIndex: i,
                 status: chunk?.status || TtsMaterialChunkStatus.PENDING,

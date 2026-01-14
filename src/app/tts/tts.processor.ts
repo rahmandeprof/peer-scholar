@@ -271,27 +271,30 @@ export class TtsProcessor implements OnModuleInit {
         } catch (error: any) {
             this.logger.error(`❌ Material chunk ${chunkIndex} failed for ${materialId}: ${error.message}`);
 
-            // Mark as failed
+            const status = error.response?.status;
+            const isRateLimited = status === 429;
+            const isRetryable = !status || status >= 500 || isRateLimited;
+
+            // Only mark as FAILED for non-retryable errors (4xx client errors)
+            // Keep status as PROCESSING for retryable errors (they'll be retried)
             const chunk = await this.materialChunkRepo.findOne({
                 where: { materialId, chunkIndex, voice },
             });
-            if (chunk) {
-                const isRateLimited = error.response?.status === 429;
-                chunk.status = TtsMaterialChunkStatus.FAILED;
-                chunk.errorMessage = isRateLimited
-                    ? 'Rate limit reached. Please try again later.'
-                    : error.message || 'Generation failed';
-                await this.materialChunkRepo.save(chunk);
 
-                if (isRateLimited) {
-                    throw new Error('RATE_LIMITED');
+            if (chunk) {
+                if (isRetryable) {
+                    // Don't change status - keep as PROCESSING since we're retrying
+                    this.logger.warn(`⚠️ Transient error (${status || 'Network'}) for material chunk ${chunkIndex} - will retry`);
+                } else {
+                    // Permanent failure (4xx errors)
+                    chunk.status = TtsMaterialChunkStatus.FAILED;
+                    chunk.errorMessage = error.message || 'Generation failed';
+                    await this.materialChunkRepo.save(chunk);
                 }
             }
 
-            // Also re-throw server errors (5xx) and network errors for retry
-            const status = error.response?.status;
-            if (!status || status >= 500) {
-                this.logger.warn(`⚠️ Transient error (${status || 'Network'}) for job ${job.id} - re-throwing for retry`);
+            // Re-throw retryable errors so Bull can retry
+            if (isRetryable) {
                 throw error;
             }
         }

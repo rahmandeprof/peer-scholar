@@ -93,7 +93,10 @@ export function TTSPlayer({
   const pollJobStatusRef = useRef<((jobId: string) => Promise<void>) | null>(null);
   const voiceRef = useRef(defaultVoice);
   const pollRetryCountRef = useRef(0);
+  const startChunkRef = useRef(startChunk);
   const MAX_POLL_RETRIES = 30; // Max polling errors before giving up
+  const MAX_POLL_TIME_MS = 5 * 60 * 1000; // 5 minute absolute timeout
+  const pollStartTimeRef = useRef<number>(0);
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -113,6 +116,10 @@ export function TTSPlayer({
   useEffect(() => {
     voiceRef.current = voice;
   }, [voice]);
+
+  useEffect(() => {
+    startChunkRef.current = startChunk;
+  }, [startChunk]);
 
   // Keep track of which page is being read (estimated from chunk progress)
   const onNavigateRef = useRef(_onNavigateToPage);
@@ -191,9 +198,11 @@ export function TTSPlayer({
 
     audio.oncanplaythrough = () => {
       console.log(`Chunk ${index} ready to play, isPlaying=${isPlayingRef.current}, currentIndex=${currentAudioIndexRef.current}`);
-      // If this is the first chunk and nothing is playing yet, start playback
-      if (index === 0 && !isPlayingRef.current && currentAudioIndexRef.current === 0) {
-        console.log('Starting playback with first chunk');
+      // If this is the starting chunk and nothing is playing yet, start playback
+      // Use startChunkRef.current to handle mid-file playback
+      const effectiveStartChunk = startChunkRef.current || 0;
+      if (index === effectiveStartChunk && !isPlayingRef.current && currentAudioIndexRef.current === effectiveStartChunk) {
+        console.log(`Starting playback with chunk ${index} (startChunk=${effectiveStartChunk})`);
         setIsLoading(false);
         audio.play().catch(console.error);
         setIsPlaying(true);
@@ -276,8 +285,10 @@ export function TTSPlayer({
       }
     });
     audioQueueRef.current = [];
-    currentAudioIndexRef.current = 0;
+    // Initialize currentAudioIndex to startChunk for mid-file playback
+    currentAudioIndexRef.current = startChunk || 0;
     processedChunksRef.current.clear();
+    pollStartTimeRef.current = Date.now();
     if (pollingRef.current) {
       clearTimeout(pollingRef.current);
     }
@@ -348,6 +359,14 @@ export function TTSPlayer({
                 const allComplete = updatedChunks.every((c: MaterialChunkStatus) => c.status === 'completed');
                 if (allComplete) {
                   setIsLoading(false);
+                  return;
+                }
+
+                // Check absolute timeout (5 minutes) - Bug #5 fix
+                if (Date.now() - pollStartTimeRef.current > MAX_POLL_TIME_MS) {
+                  console.warn('Max polling time exceeded, stopping...');
+                  setIsLoading(false);
+                  // Don't show error - just stop loading, audio might still play
                   return;
                 }
 
