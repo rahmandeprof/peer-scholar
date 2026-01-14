@@ -1,5 +1,5 @@
-import { Process, Processor } from '@nestjs/bull';
-import { Logger } from '@nestjs/common';
+import { Process, Processor, OnQueueFailed, OnQueueCompleted, OnQueueError, OnQueueActive } from '@nestjs/bull';
+import { Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Job } from 'bull';
@@ -17,7 +17,7 @@ interface TtsChunkJobData {
 }
 
 @Processor('tts')
-export class TtsProcessor {
+export class TtsProcessor implements OnModuleInit {
     private readonly logger = new Logger(TtsProcessor.name);
     private readonly apiUrl = 'https://yarngpt.ai/api/v1/tts';
     private readonly apiKey: string | undefined;
@@ -29,6 +29,34 @@ export class TtsProcessor {
         private readonly configService: ConfigService,
     ) {
         this.apiKey = this.configService.get<string>('YARNGPT_API_KEY');
+        this.logger.log('🔧 TtsProcessor constructor called');
+        this.logger.log(`   API Key configured: ${this.apiKey ? 'YES' : 'NO'}`);
+    }
+
+    onModuleInit() {
+        this.logger.log('✅ TtsProcessor initialized and ready to process jobs');
+    }
+
+    @OnQueueActive()
+    onActive(job: Job<TtsChunkJobData>) {
+        this.logger.log(`🚀 Job ${job.id} started: chunk ${job.data.chunkIndex} for TTS job ${job.data.jobId}`);
+    }
+
+    @OnQueueCompleted()
+    onCompleted(job: Job<TtsChunkJobData>) {
+        this.logger.log(`✅ Job ${job.id} completed: chunk ${job.data.chunkIndex} for TTS job ${job.data.jobId}`);
+    }
+
+    @OnQueueFailed()
+    onFailed(job: Job<TtsChunkJobData>, error: Error) {
+        this.logger.error(`❌ Job ${job.id} FAILED: chunk ${job.data.chunkIndex} for TTS job ${job.data.jobId}`);
+        this.logger.error(`   Error: ${error.message}`);
+        this.logger.error(`   Stack: ${error.stack}`);
+    }
+
+    @OnQueueError()
+    onError(error: Error) {
+        this.logger.error(`🔥 Queue error: ${error.message}`);
     }
 
     @Process('generate-chunk')
@@ -109,22 +137,50 @@ export class TtsProcessor {
     }
 
     private async callTtsApi(text: string, voice: string, format: string): Promise<Buffer> {
-        const response = await axios.post(
-            this.apiUrl,
-            {
-                text,
-                voice,
-                response_format: format,
-            },
-            {
-                headers: {
-                    'Authorization': `Bearer ${this.apiKey}`,
-                    'Content-Type': 'application/json',
+        this.logger.log(`📞 Calling YarnGPT API: voice=${voice}, format=${format}, text length=${text.length}`);
+
+        try {
+            const response = await axios.post(
+                this.apiUrl,
+                {
+                    text,
+                    voice,
+                    response_format: format,
                 },
-                responseType: 'arraybuffer',
-                timeout: 120000,
-            },
-        );
-        return Buffer.from(response.data);
+                {
+                    headers: {
+                        'Authorization': `Bearer ${this.apiKey}`,
+                        'Content-Type': 'application/json',
+                    },
+                    responseType: 'arraybuffer',
+                    timeout: 120000,
+                },
+            );
+
+            this.logger.log(`✅ YarnGPT API returned ${response.data.byteLength} bytes`);
+            return Buffer.from(response.data);
+        } catch (error: any) {
+            // Detailed error logging for API failures
+            if (error.response) {
+                // The request was made and the server responded with a status code
+                this.logger.error(`❌ YarnGPT API error: HTTP ${error.response.status}`);
+                this.logger.error(`   Response headers: ${JSON.stringify(error.response.headers)}`);
+                // Try to decode error message if it's text
+                try {
+                    const errorText = Buffer.from(error.response.data).toString('utf8');
+                    this.logger.error(`   Response body: ${errorText.substring(0, 500)}`);
+                } catch {
+                    this.logger.error(`   Response body: [binary data, ${error.response.data?.byteLength || 0} bytes]`);
+                }
+            } else if (error.request) {
+                // The request was made but no response was received
+                this.logger.error(`❌ YarnGPT API no response (timeout or network error)`);
+                this.logger.error(`   Request URL: ${this.apiUrl}`);
+            } else {
+                // Something happened in setting up the request
+                this.logger.error(`❌ YarnGPT API request setup error: ${error.message}`);
+            }
+            throw error;
+        }
     }
 }
