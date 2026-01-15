@@ -141,26 +141,36 @@ export function TTSPlayer({
     const totalChunks = totalChunksRef.current;
     const totalPagesCount = totalPagesRef.current;
     const effectiveStartChunk = startChunkRef.current || 0;
+    const initialPage = initialStartPageRef.current;
 
+    // Early returns for invalid state
     if (!totalPagesCount || totalChunks <= 0) return;
 
+    // Safeguard: clamp currentChunkIndex to valid range
+    const safeChunkIndex = Math.min(currentChunkIndex, totalChunks - 1);
+
     // Calculate how many chunks we've played relative to startChunk
-    const chunksPlayedFromStart = currentChunkIndex - effectiveStartChunk;
+    const chunksPlayedFromStart = safeChunkIndex - effectiveStartChunk;
     if (chunksPlayedFromStart < 0) return; // Playing earlier chunks, don't update page
 
     // Calculate chunks per page based on total content
     const chunksPerPage = totalChunks / totalPagesCount;
     if (chunksPerPage <= 0) return;
 
-    // Calculate the pages advanced from the INITIAL starting page (not current)
-    // This prevents cumulative page advancement
-    const initialPage = initialStartPageRef.current;
-    const pagesAdvanced = Math.floor(chunksPlayedFromStart / chunksPerPage);
-    const estimatedPage = Math.min(initialPage + pagesAdvanced, totalPagesCount);
+    // Calculate pages advanced, capped to remaining pages from initial position
+    const maxPagesFromInitial = totalPagesCount - initialPage;
+    const rawPagesAdvanced = Math.floor(chunksPlayedFromStart / chunksPerPage);
+    const pagesAdvanced = Math.min(rawPagesAdvanced, maxPagesFromInitial);
+    const estimatedPage = initialPage + pagesAdvanced;
+
+    // Debug logging
+    console.log(`[Page Calc] chunk=${safeChunkIndex}/${totalChunks}, startChunk=${effectiveStartChunk}, ` +
+      `played=${chunksPlayedFromStart}, chunksPerPage=${chunksPerPage.toFixed(2)}, ` +
+      `pagesAdvanced=${pagesAdvanced}, estimatedPage=${estimatedPage}, initialPage=${initialPage}`);
 
     // Only update if different and valid
-    if (estimatedPage > 0 && estimatedPage !== currentPageRef.current) {
-      console.log(`Auto-advancing to page ${estimatedPage} (chunk ${currentChunkIndex}, started at page ${initialPage}, chunk ${effectiveStartChunk})`);
+    if (estimatedPage > 0 && estimatedPage <= totalPagesCount && estimatedPage !== currentPageRef.current) {
+      console.log(`Auto-advancing to page ${estimatedPage}`);
       _setReadingPage(estimatedPage);
       currentPageRef.current = estimatedPage;
       onNavigateRef.current?.(estimatedPage);
