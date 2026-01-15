@@ -240,15 +240,25 @@ export function TTSPlayer({
     audio.playbackRate = playbackRateRef.current;
 
     audio.onended = () => {
-      console.log(`Chunk ${index} ended, moving to next`);
-      currentAudioIndexRef.current++;
-      playNextInQueue();
+      // Only act if this chunk is still the current one (prevent race conditions)
+      if (currentAudioIndexRef.current === index) {
+        console.log(`Chunk ${index} ended, moving to next`);
+        currentAudioIndexRef.current++;
+        playNextInQueue();
+      } else {
+        console.log(`Chunk ${index} ended but already passed (current=${currentAudioIndexRef.current}), ignoring`);
+      }
     };
 
     audio.onerror = (e) => {
-      console.error(`Failed to load audio chunk ${index}:`, e);
-      currentAudioIndexRef.current++;
-      playNextInQueue();
+      // Only act if this chunk is still the current one (prevent late error handlers from skipping ahead)
+      if (currentAudioIndexRef.current === index) {
+        console.error(`Failed to load audio chunk ${index}:`, e);
+        currentAudioIndexRef.current++;
+        playNextInQueue();
+      } else {
+        console.warn(`Chunk ${index} error but already passed (current=${currentAudioIndexRef.current}), ignoring`);
+      }
     };
 
     audio.oncanplaythrough = () => {
