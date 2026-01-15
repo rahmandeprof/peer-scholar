@@ -204,6 +204,7 @@ export function TTSPlayer({
       setIsPlaying(false);
       setIsBuffering(false);
       setBufferingChunk(null);
+      onHighlightChangeRef.current?.(null); // Clear highlight when playback ends
       return;
     }
 
@@ -302,12 +303,17 @@ export function TTSPlayer({
       const chunkRange = boundaries[index];
       const chunkText = text.substring(chunkRange.start, chunkRange.end);
 
-      // Split into sentences
-      const sentences = chunkText.match(/[^.!?]+[.!?]+/g) || [chunkText];
+      // Split into sentences - handle periods, exclamations, questions, and newlines as breaks
+      // Use a more robust approach: split on sentence-ending punctuation followed by space/newline
+      const sentencePattern = /[^.!?\n]+(?:[.!?]+|\n)+|[^.!?\n]+$/g;
+      const sentences = chunkText.match(sentencePattern) || [chunkText];
       if (sentences.length === 0) return;
 
       const elapsed = audio.currentTime;
-      const duration = audio.duration || 1;
+      const duration = audio.duration;
+
+      // Guard against invalid duration (NaN before metadata loads, or 0)
+      if (!duration || isNaN(duration) || duration === 0) return;
 
       // Calculate which sentence based on elapsed time
       const timePerSentence = duration / sentences.length;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import axios from 'axios';
 import { AlertCircle } from 'lucide-react';
 import api from '../lib/api';
@@ -23,6 +23,7 @@ export function TextFileViewer({
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(false);
   const highlightRef = useRef<HTMLSpanElement>(null);
+  const lastScrolledRangeRef = useRef<string>(''); // Track last scrolled position to throttle
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -48,10 +49,15 @@ export function TextFileViewer({
     }
   }, [url, initialContent]);
 
-  // Auto-scroll to highlighted text
+  // Auto-scroll to highlighted text - throttled to only scroll when range key changes
   useEffect(() => {
     if (highlightRange && highlightRef.current) {
-      highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const rangeKey = `${highlightRange.start}-${highlightRange.end}`;
+      // Only scroll if this is a different range than before
+      if (rangeKey !== lastScrolledRangeRef.current) {
+        highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        lastScrolledRangeRef.current = rangeKey;
+      }
     }
   }, [highlightRange]);
 
@@ -70,8 +76,8 @@ export function TextFileViewer({
     }
   };
 
-  // Render content with optional highlight
-  const renderContent = () => {
+  // Memoized rendering of content with highlight - prevents recalculation on unrelated re-renders
+  const renderedContent = useMemo(() => {
     if (!content) return null;
 
     if (!highlightRange) {
@@ -100,7 +106,7 @@ export function TextFileViewer({
         {after}
       </>
     );
-  };
+  }, [content, highlightRange]);
 
   if (loading) {
     return (
@@ -161,7 +167,7 @@ export function TextFileViewer({
               lineHeight: 'var(--reader-line-height)',
             }}
           >
-            {renderContent()}
+            {renderedContent}
           </pre>
         </AnnotationManager>
       ) : (
@@ -173,7 +179,7 @@ export function TextFileViewer({
             lineHeight: 'var(--reader-line-height)',
           }}
         >
-          {renderContent()}
+          {renderedContent}
         </pre>
       )}
     </div>
