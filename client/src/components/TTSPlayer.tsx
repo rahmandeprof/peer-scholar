@@ -121,9 +121,9 @@ export function TTSPlayer({
     voiceRef.current = voice;
   }, [voice]);
 
-  useEffect(() => {
-    startChunkRef.current = startChunk;
-  }, [startChunk]);
+  // NOTE: startChunkRef is intentionally NOT updated after mount
+  // It's set once in useRef(startChunk) and stays fixed during playback
+  // This prevents page calculation from jumping backwards when onNavigate updates currentPage
 
   // Keep track of which page is being read (estimated from chunk progress)
   const onNavigateRef = useRef(_onNavigateToPage);
