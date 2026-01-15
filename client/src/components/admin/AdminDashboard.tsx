@@ -25,6 +25,7 @@ import {
   Upload,
   UserPlus,
   Flame,
+  Copy,
 } from 'lucide-react';
 import { BorderSpinner } from '../Skeleton';
 import api from '../../lib/api';
@@ -1011,6 +1012,21 @@ export function AdminDashboard() {
                       </button>
                       {expandedJobId === job.id && (
                         <div className='px-3 py-2 bg-white dark:bg-gray-900 text-xs space-y-2'>
+                          <div className='flex items-center justify-between mb-2'>
+                            <span className='text-gray-500 font-medium'>Job Details</span>
+                            <button
+                              onClick={() => {
+                                const logText = `Job ID: ${job.id}\nMaterial ID: ${job.data?.materialId || 'N/A'}\nAttempts: ${job.attemptsMade}\n\nError:\n${job.failedReason}\n\n${job.stacktrace && job.stacktrace.length > 0 ? `Stack Trace:\n${job.stacktrace.join('\n')}` : ''}`;
+                                navigator.clipboard.writeText(logText);
+                                toast.success('Error logs copied to clipboard');
+                              }}
+                              className='flex items-center gap-1 px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors'
+                              title='Copy error logs'
+                            >
+                              <Copy className='w-3 h-3' />
+                              Copy Logs
+                            </button>
+                          </div>
                           <div>
                             <span className='text-gray-500'>Material ID:</span>{' '}
                             <span className='font-mono text-gray-700 dark:text-gray-300'>
