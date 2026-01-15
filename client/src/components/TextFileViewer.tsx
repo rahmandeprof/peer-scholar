@@ -1,23 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { AlertCircle } from 'lucide-react';
 import api from '../lib/api';
 import { AnnotationManager } from './AnnotationManager';
 import { BorderSpinner, SkeletonText } from './Skeleton';
 
+interface TextFileViewerProps {
+  url?: string;
+  content?: string;
+  materialId?: string;
+  highlightRange?: { start: number; end: number } | null;
+}
+
 export function TextFileViewer({
   url,
   content: initialContent,
   materialId,
-}: {
-  url?: string;
-  content?: string;
-  materialId?: string;
-}) {
+  highlightRange,
+}: TextFileViewerProps) {
   const [content, setContent] = useState<string | null>(initialContent || null);
   const [loading, setLoading] = useState(!initialContent);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(false);
+  const highlightRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -43,6 +48,13 @@ export function TextFileViewer({
     }
   }, [url, initialContent]);
 
+  // Auto-scroll to highlighted text
+  useEffect(() => {
+    if (highlightRange && highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [highlightRange]);
+
   const handleGenerateText = async () => {
     if (!materialId) return;
 
@@ -56,6 +68,38 @@ export function TextFileViewer({
     } finally {
       setGenerating(false);
     }
+  };
+
+  // Render content with optional highlight
+  const renderContent = () => {
+    if (!content) return null;
+
+    if (!highlightRange) {
+      return content;
+    }
+
+    const { start, end } = highlightRange;
+
+    // Ensure bounds are valid
+    const safeStart = Math.max(0, Math.min(start, content.length));
+    const safeEnd = Math.max(safeStart, Math.min(end, content.length));
+
+    const before = content.substring(0, safeStart);
+    const highlighted = content.substring(safeStart, safeEnd);
+    const after = content.substring(safeEnd);
+
+    return (
+      <>
+        {before}
+        <span
+          ref={highlightRef}
+          className="bg-yellow-200 dark:bg-yellow-700/80 text-gray-900 dark:text-white px-0.5 rounded transition-colors duration-150"
+        >
+          {highlighted}
+        </span>
+        {after}
+      </>
+    );
   };
 
   if (loading) {
@@ -117,7 +161,7 @@ export function TextFileViewer({
               lineHeight: 'var(--reader-line-height)',
             }}
           >
-            {content}
+            {renderContent()}
           </pre>
         </AnnotationManager>
       ) : (
@@ -129,9 +173,10 @@ export function TextFileViewer({
             lineHeight: 'var(--reader-line-height)',
           }}
         >
-          {content}
+          {renderContent()}
         </pre>
       )}
     </div>
   );
 }
+

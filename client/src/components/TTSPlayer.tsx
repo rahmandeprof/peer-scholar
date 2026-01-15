@@ -13,6 +13,8 @@ interface TTSPlayerProps {
   // Material-level TTS (optional) - enables cache reuse across users
   materialId?: string;
   startChunk?: number;
+  // Highlight callback for text synchronization
+  onHighlightChange?: (range: { start: number; end: number } | null) => void;
 }
 
 interface VoiceInfo {
@@ -64,6 +66,7 @@ export function TTSPlayer({
   onNavigateToPage: _onNavigateToPage,
   materialId,
   startChunk = 0,
+  onHighlightChange,
 }: TTSPlayerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -98,6 +101,8 @@ export function TTSPlayer({
   const startChunkRef = useRef(startChunk);
   const totalChunksRef = useRef(0); // Actual total chunks from backend
   const initialStartPageRef = useRef(currentPage); // Page when TTS started - don't change this
+  const chunkBoundariesRef = useRef<{ start: number; end: number }[]>([]); // Chunk character boundaries for highlighting
+  const onHighlightChangeRef = useRef(onHighlightChange); // Stable callback ref
   const MAX_POLL_RETRIES = 30; // Max polling errors before giving up
   const MAX_POLL_TIME_MS = 5 * 60 * 1000; // 5 minute absolute timeout
   const pollStartTimeRef = useRef<number>(0);
@@ -120,6 +125,10 @@ export function TTSPlayer({
   useEffect(() => {
     voiceRef.current = voice;
   }, [voice]);
+
+  useEffect(() => {
+    onHighlightChangeRef.current = onHighlightChange;
+  }, [onHighlightChange]);
 
   // NOTE: startChunkRef is intentionally NOT updated after mount
   // It's set once in useRef(startChunk) and stays fixed during playback
@@ -283,12 +292,45 @@ export function TTSPlayer({
       }
     };
 
+    // Highlight-as-you-read: calculate sentence position from elapsed time
+    audio.ontimeupdate = () => {
+      if (!onHighlightChangeRef.current) return;
+
+      const boundaries = chunkBoundariesRef.current;
+      if (!boundaries.length || index >= boundaries.length) return;
+
+      const chunkRange = boundaries[index];
+      const chunkText = text.substring(chunkRange.start, chunkRange.end);
+
+      // Split into sentences
+      const sentences = chunkText.match(/[^.!?]+[.!?]+/g) || [chunkText];
+      if (sentences.length === 0) return;
+
+      const elapsed = audio.currentTime;
+      const duration = audio.duration || 1;
+
+      // Calculate which sentence based on elapsed time
+      const timePerSentence = duration / sentences.length;
+      const sentenceIndex = Math.min(Math.floor(elapsed / timePerSentence), sentences.length - 1);
+
+      // Calculate absolute character position
+      let charOffset = 0;
+      for (let i = 0; i < sentenceIndex && i < sentences.length; i++) {
+        charOffset += sentences[i].length;
+      }
+
+      const highlightStart = chunkRange.start + charOffset;
+      const highlightEnd = highlightStart + (sentences[sentenceIndex]?.length || 0);
+
+      onHighlightChangeRef.current({ start: highlightStart, end: highlightEnd });
+    };
+
     // Fill queue at the right position
     while (audioQueueRef.current.length <= index) {
       audioQueueRef.current.push(null as any);
     }
     audioQueueRef.current[index] = audio;
-  }, [playNextInQueue]);
+  }, [playNextInQueue, text]);
 
   // Poll job status - use ref to prevent useEffect dependency loop
   const pollJobStatus = useCallback(async (jobId: string) => {
@@ -383,8 +425,11 @@ export function TTSPlayer({
 
           if (cancelledRef.current) return;
 
-          const { totalChunks, chunks } = response.data;
+          const { totalChunks, chunks, chunkBoundaries } = response.data;
           totalChunksRef.current = totalChunks;
+          if (chunkBoundaries) {
+            chunkBoundariesRef.current = chunkBoundaries;
+          }
           setProgress({ current: chunks.filter((c: MaterialChunkStatus) => c.status === 'completed').length, total: totalChunks });
 
           // Add any already-completed chunks to queue
@@ -406,12 +451,15 @@ export function TTSPlayer({
               try {
                 // Use voiceRef.current for stable reference
                 const statusRes = await api.get(`/tts/material/${materialId}/chunks?voice=${voiceRef.current}`);
-                const { totalChunks: total, chunks: updatedChunks } = statusRes.data;
+                const { totalChunks: total, chunks: updatedChunks, chunkBoundaries: boundaries } = statusRes.data;
 
                 // Reset retry count on successful poll
                 pollRetryCountRef.current = 0;
 
                 totalChunksRef.current = total;
+                if (boundaries && chunkBoundariesRef.current.length === 0) {
+                  chunkBoundariesRef.current = boundaries;
+                }
                 setProgress({
                   current: updatedChunks.filter((c: MaterialChunkStatus) => c.status === 'completed').length,
                   total

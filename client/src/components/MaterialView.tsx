@@ -118,6 +118,7 @@ export const MaterialView = () => {
   // Page tracking for TTS
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
+  const [ttsHighlightRange, setTtsHighlightRange] = useState<{ start: number; end: number } | null>(null);
 
   // Callback for PDFViewer page changes
   const handlePdfPageChange = (page: number, total: number) => {
@@ -849,6 +850,7 @@ export const MaterialView = () => {
               <TextFileViewer
                 content={material.content}
                 materialId={material.id}
+                highlightRange={ttsOpen ? ttsHighlightRange : null}
               />
             ) : material.pdfUrl ||
               material.fileType.includes('pdf') ||
@@ -948,10 +950,14 @@ export const MaterialView = () => {
               startChunk={totalPages > 0
                 ? Math.floor((currentPage - 1) * Math.ceil(material.content.length / 800) / totalPages)
                 : 0}
-              onClose={() => setTtsOpen(false)}
+              onClose={() => {
+                setTtsOpen(false);
+                setTtsHighlightRange(null); // Clear highlight when TTS closes
+              }}
               currentPage={currentPage}
               totalPages={totalPages}
               onNavigateToPage={handleTtsNavigateToPage}
+              onHighlightChange={setTtsHighlightRange}
             />
           </Suspense>
         )}

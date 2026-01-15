@@ -625,7 +625,7 @@ export class TTSService {
     async getMaterialChunkStatus(
         materialId: string,
         voice: string,
-    ): Promise<{ totalChunks: number; chunks: MaterialChunkStatus[] }> {
+    ): Promise<{ totalChunks: number; chunks: MaterialChunkStatus[]; chunkBoundaries: { start: number; end: number }[] }> {
         const validatedVoice = this.validateVoice(voice);
 
         const meta = await this.materialMetaRepo.findOne({ where: { materialId } });
@@ -651,6 +651,10 @@ export class TTSService {
             });
         }
 
-        return { totalChunks: meta.totalChunks, chunks: chunkStatuses };
+        return {
+            totalChunks: meta.totalChunks,
+            chunks: chunkStatuses,
+            chunkBoundaries: meta.chunkBoundaries || [],
+        };
     }
 }
