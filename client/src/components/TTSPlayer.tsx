@@ -95,6 +95,7 @@ export function TTSPlayer({
   const voiceRef = useRef(defaultVoice);
   const pollRetryCountRef = useRef(0);
   const startChunkRef = useRef(startChunk);
+  const totalChunksRef = useRef(0); // Actual total chunks from backend
   const MAX_POLL_RETRIES = 30; // Max polling errors before giving up
   const MAX_POLL_TIME_MS = 5 * 60 * 1000; // 5 minute absolute timeout
   const pollStartTimeRef = useRef<number>(0);
@@ -133,20 +134,32 @@ export function TTSPlayer({
     currentPageRef.current = currentPage;
   }, [_onNavigateToPage, totalPages, currentPage]);
 
-  // Estimate current page based on chunk progress
-  const updatePageFromProgress = useCallback((completedChunks: number, totalChunks: number) => {
-    if (!totalPagesRef.current || totalChunks <= 0) return;
+  // Estimate current page based on which chunk is currently playing
+  const updatePageFromProgress = useCallback((currentChunkIndex: number) => {
+    const totalChunks = totalChunksRef.current;
+    const totalPagesCount = totalPagesRef.current;
+    const effectiveStartChunk = startChunkRef.current || 0;
 
-    // Calculate remaining pages from current position  
-    const remainingPages = totalPagesRef.current - currentPageRef.current + 1;
-    const chunksPerPage = totalChunks / remainingPages;
+    if (!totalPagesCount || totalChunks <= 0) return;
 
-    // Estimate which page we're on based on completed chunks
-    const estimatedPage = currentPageRef.current + Math.floor(completedChunks / chunksPerPage);
+    // Calculate how many chunks we've played relative to startChunk
+    const chunksPlayedFromStart = currentChunkIndex - effectiveStartChunk;
+    if (chunksPlayedFromStart < 0) return; // Playing earlier chunks, don't update page
 
-    if (estimatedPage !== currentPageRef.current && estimatedPage <= totalPagesRef.current) {
-      console.log(`Auto-advancing to page ${estimatedPage}`);
+    // Calculate chunks per page based on total content
+    const chunksPerPage = totalChunks / totalPagesCount;
+    if (chunksPerPage <= 0) return;
+
+    // Calculate the pages advanced from the starting page
+    const startingPage = currentPageRef.current;
+    const pagesAdvanced = Math.floor(chunksPlayedFromStart / chunksPerPage);
+    const estimatedPage = Math.min(startingPage + pagesAdvanced, totalPagesCount);
+
+    // Only update if different and valid
+    if (estimatedPage > 0 && estimatedPage !== currentPageRef.current) {
+      console.log(`Auto-advancing to page ${estimatedPage} (chunk ${currentChunkIndex}, started at chunk ${effectiveStartChunk})`);
       _setReadingPage(estimatedPage);
+      currentPageRef.current = estimatedPage;
       onNavigateRef.current?.(estimatedPage);
     }
   }, []);
@@ -174,14 +187,14 @@ export function TTSPlayer({
       });
       setIsPlaying(true);
 
-      // Update page estimate based on chunk progress
-      updatePageFromProgress(currentIndex + 1, queue.length || progress.total);
+      // Update page estimate based on which chunk is playing
+      updatePageFromProgress(currentIndex);
     } else {
       // No more to play right now - show buffering state
       setIsPlaying(false);
       setIsBuffering(true); // Waiting for next chunk
     }
-  }, [updatePageFromProgress, progress.total]);
+  }, [updatePageFromProgress]);
 
   // Add chunk to queue
   const addChunkToQueue = useCallback((url: string, index: number) => {
@@ -246,6 +259,7 @@ export function TTSPlayer({
       const status: JobStatus = response.data;
 
       console.log(`Job status: ${status.status}, chunks: ${status.completedChunks}/${status.totalChunks}`);
+      totalChunksRef.current = status.totalChunks;
       setProgress({ current: status.completedChunks, total: status.totalChunks });
 
       // Add new chunks to queue
@@ -326,6 +340,7 @@ export function TTSPlayer({
           if (cancelledRef.current) return;
 
           const { totalChunks, chunks } = response.data;
+          totalChunksRef.current = totalChunks;
           setProgress({ current: chunks.filter((c: MaterialChunkStatus) => c.status === 'completed').length, total: totalChunks });
 
           // Add any already-completed chunks to queue
@@ -352,6 +367,7 @@ export function TTSPlayer({
                 // Reset retry count on successful poll
                 pollRetryCountRef.current = 0;
 
+                totalChunksRef.current = total;
                 setProgress({
                   current: updatedChunks.filter((c: MaterialChunkStatus) => c.status === 'completed').length,
                   total
@@ -423,6 +439,7 @@ export function TTSPlayer({
         // If cached (completed job), add all chunks to queue immediately
         if (cached && chunkUrls && chunkUrls.length > 0) {
           console.log(`TTS from cache: ${chunkUrls.length} chunks ready`);
+          totalChunksRef.current = totalChunks;
           setProgress({ current: completedChunks, total: totalChunks });
 
           // Add all cached chunks to queue
@@ -440,6 +457,7 @@ export function TTSPlayer({
         // Start/join a job - poll for chunks
         console.log(`TTS stream job: ${jobId}, status=${status}, ${completedChunks}/${totalChunks} chunks ready`);
         jobIdRef.current = jobId;
+        totalChunksRef.current = totalChunks;
         setProgress({ current: completedChunks || 0, total: totalChunks });
 
         // Add any already-available chunks
