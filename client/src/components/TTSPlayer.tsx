@@ -631,6 +631,7 @@ export function TTSPlayer({
     currentAudioIndexRef.current++;
     setIsBuffering(false);
     setBufferingChunk(null);
+    onHighlightChangeRef.current?.(null); // Clear highlight when skipping
     playNextInQueue();
   };
 
@@ -666,6 +667,7 @@ export function TTSPlayer({
     setIsPlaying(false);
     setIsBuffering(false);
     setError(null);
+    onHighlightChangeRef.current?.(null); // Clear highlight on voice change
 
     // Will trigger useEffect to restart with new voice
   };
