@@ -68,6 +68,7 @@ export function TTSPlayer({
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false); // Waiting for next chunk
+  const [bufferingChunk, setBufferingChunk] = useState<number | null>(null); // Which chunk we're waiting for
   const [error, setError] = useState<string | null>(null);
   const [voice, setVoice] = useState(defaultVoice);
   const [showVoiceSelector, setShowVoiceSelector] = useState(false);
@@ -179,6 +180,7 @@ export function TTSPlayer({
       const audio = queue[currentIndex];
       audio.playbackRate = playbackRateRef.current;
       setIsBuffering(false);
+      setBufferingChunk(null);
       audio.play().catch(err => {
         console.error('Failed to play audio:', err);
         // Try next chunk on failure
@@ -189,10 +191,19 @@ export function TTSPlayer({
 
       // Update page estimate based on which chunk is playing
       updatePageFromProgress(currentIndex);
+
+      // Preload: trigger loading of next chunk if not already in queue
+      const nextIndex = currentIndex + 1;
+      if (nextIndex < totalChunksRef.current && !processedChunksRef.current.has(nextIndex)) {
+        console.log(`Preloading: chunk ${nextIndex} should be prioritized`);
+        // The backend will have it in queue, but we note it for logging
+      }
     } else {
-      // No more to play right now - show buffering state
+      // No more to play right now - show buffering state with specific chunk
       setIsPlaying(false);
-      setIsBuffering(true); // Waiting for next chunk
+      setIsBuffering(true);
+      setBufferingChunk(currentIndex); // Track which chunk we're waiting for
+      console.log(`Buffering: waiting for chunk ${currentIndex}`);
     }
   }, [updatePageFromProgress]);
 
@@ -234,6 +245,7 @@ export function TTSPlayer({
         }
         setIsLoading(false);
         setIsBuffering(false); // Clear buffering state
+        setBufferingChunk(null); // Clear which chunk we were waiting for
         audio.play().catch(console.error);
         setIsPlaying(true);
       }
@@ -532,6 +544,7 @@ export function TTSPlayer({
     // Move to next chunk
     currentAudioIndexRef.current++;
     setIsBuffering(false);
+    setBufferingChunk(null);
     playNextInQueue();
   };
 
@@ -703,7 +716,11 @@ export function TTSPlayer({
         {isBuffering && !isLoading && (
           <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
             <Loader2 className="w-3 h-3 animate-spin" />
-            <span>Buffering...</span>
+            <span>
+              {bufferingChunk !== null && progress.total > 0
+                ? `Waiting ${bufferingChunk + 1}/${progress.total}`
+                : 'Buffering...'}
+            </span>
             <button
               onClick={skipCurrentChunk}
               className="ml-1 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
