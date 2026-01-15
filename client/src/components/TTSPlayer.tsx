@@ -97,6 +97,7 @@ export function TTSPlayer({
   const pollRetryCountRef = useRef(0);
   const startChunkRef = useRef(startChunk);
   const totalChunksRef = useRef(0); // Actual total chunks from backend
+  const initialStartPageRef = useRef(currentPage); // Page when TTS started - don't change this
   const MAX_POLL_RETRIES = 30; // Max polling errors before giving up
   const MAX_POLL_TIME_MS = 5 * 60 * 1000; // 5 minute absolute timeout
   const pollStartTimeRef = useRef<number>(0);
@@ -151,14 +152,15 @@ export function TTSPlayer({
     const chunksPerPage = totalChunks / totalPagesCount;
     if (chunksPerPage <= 0) return;
 
-    // Calculate the pages advanced from the starting page
-    const startingPage = currentPageRef.current;
+    // Calculate the pages advanced from the INITIAL starting page (not current)
+    // This prevents cumulative page advancement
+    const initialPage = initialStartPageRef.current;
     const pagesAdvanced = Math.floor(chunksPlayedFromStart / chunksPerPage);
-    const estimatedPage = Math.min(startingPage + pagesAdvanced, totalPagesCount);
+    const estimatedPage = Math.min(initialPage + pagesAdvanced, totalPagesCount);
 
     // Only update if different and valid
     if (estimatedPage > 0 && estimatedPage !== currentPageRef.current) {
-      console.log(`Auto-advancing to page ${estimatedPage} (chunk ${currentChunkIndex}, started at chunk ${effectiveStartChunk})`);
+      console.log(`Auto-advancing to page ${estimatedPage} (chunk ${currentChunkIndex}, started at page ${initialPage}, chunk ${effectiveStartChunk})`);
       _setReadingPage(estimatedPage);
       currentPageRef.current = estimatedPage;
       onNavigateRef.current?.(estimatedPage);
@@ -169,11 +171,21 @@ export function TTSPlayer({
   const playNextInQueue = useCallback(() => {
     const queue = audioQueueRef.current;
     const currentIndex = currentAudioIndexRef.current;
+    const totalChunks = totalChunksRef.current;
 
     // Memory cleanup: clear already-played chunks to prevent memory leak
     if (currentIndex > 0 && queue[currentIndex - 1]) {
       queue[currentIndex - 1].src = '';
       queue[currentIndex - 1] = null as any;
+    }
+
+    // Check if we've finished all chunks (playback complete)
+    if (totalChunks > 0 && currentIndex >= totalChunks) {
+      console.log('Playback complete - all chunks played');
+      setIsPlaying(false);
+      setIsBuffering(false);
+      setBufferingChunk(null);
+      return;
     }
 
     if (currentIndex < queue.length && queue[currentIndex]) {
@@ -194,7 +206,7 @@ export function TTSPlayer({
 
       // Preload: trigger loading of next chunk if not already in queue
       const nextIndex = currentIndex + 1;
-      if (nextIndex < totalChunksRef.current && !processedChunksRef.current.has(nextIndex)) {
+      if (nextIndex < totalChunks && !processedChunksRef.current.has(nextIndex)) {
         console.log(`Preloading: chunk ${nextIndex} should be prioritized`);
         // The backend will have it in queue, but we note it for logging
       }
@@ -203,7 +215,7 @@ export function TTSPlayer({
       setIsPlaying(false);
       setIsBuffering(true);
       setBufferingChunk(currentIndex); // Track which chunk we're waiting for
-      console.log(`Buffering: waiting for chunk ${currentIndex}`);
+      console.log(`Buffering: waiting for chunk ${currentIndex}/${totalChunks}`);
     }
   }, [updatePageFromProgress]);
 
