@@ -357,56 +357,57 @@ export function StudyPartner() {
                     key={partner.id}
                     className='bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-4 hover:shadow-md transition-all'
                   >
-                    <div className='flex items-center justify-between'>
-                      {/* Partner Info */}
-                      <div className='flex items-center gap-4'>
-                        <div className='relative'>
+                    {/* Mobile: Vertical Stack / Desktop: Horizontal */}
+                    <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
+                      {/* Partner Info Row */}
+                      <div className='flex items-center gap-3'>
+                        <div className='relative flex-shrink-0'>
                           <div className='w-12 h-12 bg-gradient-to-br from-primary-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-lg'>
                             {partner.firstName[0]}
                           </div>
                           <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white dark:border-gray-800 ${formatLastSeen(partner.lastSeen) === 'Online' ? 'bg-green-500' : 'bg-gray-400'
                             }`} />
                         </div>
-                        <div>
-                          <h3 className='font-bold text-gray-900 dark:text-gray-100'>
+                        <div className='min-w-0'>
+                          <h3 className='font-bold text-gray-900 dark:text-gray-100 truncate'>
                             {partner.firstName} {partner.lastName}
                           </h3>
-                          <div className='flex items-center gap-3 text-sm text-gray-500'>
+                          <div className='flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-500'>
                             <span className='flex items-center gap-1'>
-                              <span className='w-2 h-2 bg-green-400 rounded-full'></span>
+                              <span className='w-2 h-2 bg-green-400 rounded-full flex-shrink-0'></span>
                               {partner.currentStreak} day streak
                             </span>
                             <span className='flex items-center gap-1'>
-                              <Clock className='w-3 h-3' />
+                              <Clock className='w-3 h-3 flex-shrink-0' />
                               {formatLastSeen(partner.lastSeen)}
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Combined Streak Badge */}
-                      <div className='hidden sm:block text-center bg-primary-50 dark:bg-primary-900/20 px-4 py-2 rounded-xl'>
+                      {/* Combined Streak Badge - Hidden on mobile */}
+                      <div className='hidden md:block text-center bg-primary-50 dark:bg-primary-900/20 px-4 py-2 rounded-xl flex-shrink-0'>
                         <div className='text-2xl font-bold text-primary-600 dark:text-primary-400'>
                           {partner.combinedStreak}
                         </div>
                         <div className='text-xs text-gray-500'>Combined</div>
                       </div>
 
-                      {/* Actions */}
-                      <div className='flex items-center gap-2'>
+                      {/* Actions - Full width on mobile */}
+                      <div className='flex items-center gap-2 sm:flex-shrink-0'>
                         <button
                           onClick={() => handleNudge(partner.id)}
-                          className='px-3 py-2 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl text-sm font-medium hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors'
+                          className='flex-1 sm:flex-none px-4 py-2.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl text-sm font-medium hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors flex items-center justify-center gap-1'
                           title='Send Nudge'
                         >
-                          ⚡ Nudge
+                          <span>⚡</span> Nudge
                         </button>
                         <button
                           onClick={() => handleChallenge(partner.id)}
-                          className='px-3 py-2 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-xl text-sm font-medium hover:from-red-600 hover:to-orange-600 transition-colors shadow-sm'
+                          className='flex-1 sm:flex-none px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-xl text-sm font-medium hover:from-red-600 hover:to-orange-600 transition-colors shadow-sm flex items-center justify-center gap-1'
                           title='Challenge to Quiz'
                         >
-                          ⚔️ Challenge
+                          <span>⚔️</span> Challenge
                         </button>
                       </div>
                     </div>
@@ -431,51 +432,54 @@ export function StudyPartner() {
                 <span className='text-sm font-medium'>Use the invite form to get started</span>
               </div>
             </div>
-          )}
-        </div>
-      </div>
+          )
+          }
+        </div >
+      </div >
 
       {/* Challenge Request Modal */}
-      {pendingChallenge && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-yellow-500/50 animate-in fade-in zoom-in duration-200">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-yellow-600 dark:text-yellow-400">
-                <Swords className="w-8 h-8" />
+      {
+        pendingChallenge && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-yellow-500/50 animate-in fade-in zoom-in duration-200">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-yellow-600 dark:text-yellow-400">
+                  <Swords className="w-8 h-8" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Challenge Incoming!</h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  You have been challenged to a quiz battle!
+                </p>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Challenge Incoming!</h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                You have been challenged to a quiz battle!
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setPendingChallenge(null)}
-                className="py-3 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-              >
-                Decline
-              </button>
-              <button
-                onClick={() => {
-                  if (socket) {
-                    socket.emit('challenge_response', {
-                      senderId: pendingChallenge.senderId,
-                      receiverId: user?.id,
-                      materialId: pendingChallenge.materialId,
-                      accept: true
-                    });
-                    toast.success('Challenge Accepted!');
-                    setPendingChallenge(null);
-                  }
-                }}
-                className="py-3 px-4 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-bold transition-colors shadow-lg"
-              >
-                Accept!
-              </button>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setPendingChallenge(null)}
+                  className="py-3 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Decline
+                </button>
+                <button
+                  onClick={() => {
+                    if (socket) {
+                      socket.emit('challenge_response', {
+                        senderId: pendingChallenge.senderId,
+                        receiverId: user?.id,
+                        materialId: pendingChallenge.materialId,
+                        accept: true
+                      });
+                      toast.success('Challenge Accepted!');
+                      setPendingChallenge(null);
+                    }
+                  }}
+                  className="py-3 px-4 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-bold transition-colors shadow-lg"
+                >
+                  Accept!
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 }
