@@ -58,11 +58,22 @@ export class UsersService {
     this.logger.setContext(UsersService.name);
   }
 
-  async invitePartner(userId: string, email: string) {
+  async invitePartner(userId: string, identifier: string) {
     const sender = await this.getOne(userId);
-    const receiver = await this.findByEmail(email);
 
-    if (!receiver) throw new NotFoundException('User not found');
+    // Try to find by username or email based on format
+    const isEmail = identifier.includes('@');
+    let receiver = isEmail
+      ? await this.findByEmail(identifier.toLowerCase())
+      : await this.findByUsername(identifier);
+
+    if (!receiver) {
+      if (isEmail) {
+        throw new NotFoundException('User not found with that email');
+      } else {
+        throw new NotFoundException('No user found with that username. Try their email instead.');
+      }
+    }
     if (sender.id === receiver.id) throw new BadRequestException('Cannot invite yourself');
     // Removed single partner checks to allow multiple partners
 
@@ -324,7 +335,11 @@ export class UsersService {
   }
 
   findByEmail(email: string) {
-    return this.userRepository.findOne({ where: { email } });
+    return this.userRepository.findOne({ where: { email: email.toLowerCase() } });
+  }
+
+  findByUsername(username: string) {
+    return this.userRepository.findOne({ where: { username: username.toLowerCase() } });
   }
 
   findByVerificationToken(token: string) {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, UserPlus, Check, X, Mail, Clock, Swords, Send, Copy, ChevronRight } from 'lucide-react';
+import { Users, UserPlus, Check, X, Clock, Swords, Send, Copy, ChevronRight } from 'lucide-react';
 import api from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
 import { getApiErrorMessage } from '../lib/errorUtils';
@@ -224,12 +224,12 @@ export function StudyPartner() {
 
             <form onSubmit={handleInvite} className='space-y-3'>
               <div className='relative'>
-                <Mail className='absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60' />
+                <UserPlus className='absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60' />
                 <input
-                  type='email'
+                  type='text'
                   value={inviteEmail}
                   onChange={(e) => { setInviteEmail(e.target.value); setNotFoundEmail(null); }}
-                  placeholder="Friend's email"
+                  placeholder="Username or email"
                   className='w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/20 placeholder-white/60 text-white border border-white/20 focus:border-white/40 focus:ring-0 outline-none text-sm'
                 />
               </div>
@@ -245,14 +245,18 @@ export function StudyPartner() {
             {notFoundEmail && (
               <div className='mt-3 p-3 bg-white/10 rounded-xl border border-white/20'>
                 <p className='text-xs text-white/80 mb-2'>
-                  <strong>{notFoundEmail}</strong> isn't on PeerToLearn yet.
+                  {notFoundEmail.includes('@')
+                    ? <><strong>{notFoundEmail}</strong> isn't on PeerToLearn yet.</>
+                    : <>No user found with username <strong>{notFoundEmail}</strong>. Try their email instead!</>}
                 </p>
-                <button
-                  onClick={handleCopyInviteLink}
-                  className='flex items-center gap-2 text-xs font-medium bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition-colors'
-                >
-                  <Copy className='w-3 h-3' /> Copy Invite Link
-                </button>
+                {notFoundEmail.includes('@') && (
+                  <button
+                    onClick={handleCopyInviteLink}
+                    className='flex items-center gap-2 text-xs font-medium bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition-colors'
+                  >
+                    <Copy className='w-3 h-3' /> Copy Invite Link
+                  </button>
+                )}
               </div>
             )}
           </div>
