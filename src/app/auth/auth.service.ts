@@ -269,7 +269,7 @@ export class AuthService {
 
   async googleLogin(req: GoogleAuthRequest) {
     if (!req.user) {
-      return 'No user from google';
+      throw new BadRequestException('Google authentication failed - no user data received');
     }
 
     const { email, firstName, lastName, picture, googleId } = req.user;

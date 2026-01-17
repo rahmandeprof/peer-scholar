@@ -1,4 +1,4 @@
-import { Injectable, ExecutionContext } from '@nestjs/common';
+import { Injectable, ExecutionContext, HttpException, HttpStatus } from '@nestjs/common';
 import { ThrottlerGuard, ThrottlerLimitDetail } from '@nestjs/throttler';
 
 @Injectable()
@@ -12,9 +12,9 @@ export class RateLimitGuard extends ThrottlerGuard {
     const path = request.path;
 
     if (path.includes('/chat/quiz')) {
-      throw new Error('Daily quiz limit reached. Try again tomorrow.');
+      throw new HttpException('Daily quiz limit reached. Try again tomorrow.', HttpStatus.TOO_MANY_REQUESTS);
     } else if (path.includes('/materials') && request.method === 'POST') {
-      throw new Error('Hourly upload limit reached. Try again later.');
+      throw new HttpException('Hourly upload limit reached. Try again later.', HttpStatus.TOO_MANY_REQUESTS);
     }
 
     await super.throwThrottlingException(context, throttlerLimitDetail);
