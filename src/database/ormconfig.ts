@@ -31,10 +31,7 @@ export const AppDataSource = new DataSource(
         idleTimeoutMillis: 30000, // Close idle connections after 30s
         connectionTimeoutMillis: 5000, // Fail fast if can't connect
       },
-      synchronize:
-        configuration.NODE_ENV === 'production'
-          ? false
-          : configuration.TYPEORM_SYNCHRONIZE,
+      synchronize: configuration.TYPEORM_SYNCHRONIZE, // Respect env var in all environments
       migrationsRun: configuration.NODE_ENV === 'production',
       migrations: [configuration.TYPEORM_MIGRATIONS],
       entities: [configuration.TYPEORM_ENTITIES],
