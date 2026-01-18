@@ -16,6 +16,7 @@ import { User } from '@/app/users/entities/user.entity';
 
 import { ChatService } from '@/app/chat/chat.service';
 import { ChallengeCacheService } from './challenge-cache.service';
+import { PushService } from '@/app/notifications/push.service';
 
 import { Server, Socket } from 'socket.io';
 import { Repository } from 'typeorm';
@@ -47,6 +48,7 @@ export class StudyGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly challengeCache: ChallengeCacheService,
+    private readonly pushService: PushService,
   ) { }
 
   async handleConnection(client: Socket) {
@@ -101,7 +103,7 @@ export class StudyGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('challenge_request')
-  handleChallengeRequest(
+  async handleChallengeRequest(
     @MessageBody()
     data: {
       senderId: string;
@@ -109,7 +111,24 @@ export class StudyGateway implements OnGatewayConnection, OnGatewayDisconnect {
       materialId: string;
     },
   ) {
+    // Emit socket event for real-time in-app notification
     this.server.to(`user_${data.receiverId}`).emit('receive_challenge', data);
+
+    // Send push notification if receiver is offline or has app in background
+    try {
+      const receiver = await this.userRepo.findOne({ where: { id: data.receiverId } });
+      const sender = await this.userRepo.findOne({ where: { id: data.senderId } });
+
+      if (receiver?.pushSubscription && sender) {
+        await this.pushService.sendChallengeNotification(
+          receiver.pushSubscription,
+          sender.firstName,
+          data.materialId,
+        );
+      }
+    } catch (e) {
+      this.logger.error('Failed to send challenge push notification', e);
+    }
   }
 
   @SubscribeMessage('challenge_response')

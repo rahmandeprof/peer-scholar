@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { ChatModule } from '@/app/chat/chat.module';
 import { UsersModule } from '@/app/users/users.module';
+import { NotificationsModule } from '@/app/notifications/notifications.module';
 
 import { StudySession } from './entities/study-session.entity';
 import { FlashcardProgress } from './entities/flashcard-progress.entity';
@@ -24,6 +25,7 @@ import { StudyGateway } from './study.gateway';
     UsersModule,
     ChatModule,
     JwtModule.register({}), // Uses ConfigService for secret at runtime
+    NotificationsModule,
   ],
   controllers: [StudyController],
   providers: [StudyService, SpacedRepetitionService, StudyProcessor, StudyGateway, ChallengeCacheService],
