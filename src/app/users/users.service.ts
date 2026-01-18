@@ -683,13 +683,14 @@ export class UsersService {
       .getMany();
 
     // Top by uploads (need to count materials)
+    // Use lowercase alias to avoid PostgreSQL case sensitivity issues
     const topUploaders = await this.userRepository
       .createQueryBuilder('user')
       .leftJoin('user.materials', 'material')
       .select(['user.id', 'user.firstName', 'user.lastName', 'user.email'])
-      .addSelect('COUNT(material.id)', 'uploadCount')
+      .addSelect('COUNT(material.id)', 'upload_count')
       .groupBy('user.id')
-      .orderBy('uploadCount', 'DESC')
+      .orderBy('"upload_count"', 'DESC')
       .limit(10)
       .getRawMany();
 
@@ -699,21 +700,28 @@ export class UsersService {
       .createQueryBuilder('user')
       .leftJoin('referral', 'referral', 'referral.referrer_id = user.id AND referral.status = :status', { status: ReferralStatus.COMPLETED })
       .select(['user.id', 'user.firstName', 'user.lastName', 'user.email'])
-      .addSelect('COUNT(referral.id)', 'referralCount')
+      .addSelect('COUNT(referral.id)', 'referral_count')
       .groupBy('user.id')
       .having('COUNT(referral.id) > 0')
-      .orderBy('referralCount', 'DESC')
+      .orderBy('"referral_count"', 'DESC')
       .limit(10)
       .getRawMany();
 
     // Top by current streak
     const topStreaks = await this.streakRepository
       .createQueryBuilder('streak')
-      .leftJoinAndSelect('streak.user', 'user')
-      .select(['user.id', 'user.firstName', 'user.lastName', 'user.email', 'streak.currentStreak', 'streak.longestStreak'])
+      .leftJoin('streak.user', 'user')
+      .select([
+        'user.id AS user_id',
+        'user.firstName AS first_name',
+        'user.lastName AS last_name',
+        'user.email AS email',
+        'streak.currentStreak AS current_streak',
+        'streak.longestStreak AS longest_streak',
+      ])
       .orderBy('streak.currentStreak', 'DESC')
       .limit(10)
-      .getMany();
+      .getRawMany();
 
     return {
       reputation: topReputation.map(u => ({
@@ -724,22 +732,22 @@ export class UsersService {
       })),
       uploaders: topUploaders.map(u => ({
         id: u.user_id,
-        name: `${u.user_firstName} ${u.user_lastName}`,
+        name: `${u.user_first_name} ${u.user_last_name}`,
         email: u.user_email,
-        value: parseInt(u.uploadCount) || 0,
+        value: parseInt(u.upload_count) || 0,
       })),
       referrers: topReferrers.map(u => ({
         id: u.user_id,
-        name: `${u.user_firstName} ${u.user_lastName}`,
+        name: `${u.user_first_name} ${u.user_last_name}`,
         email: u.user_email,
-        value: parseInt(u.referralCount) || 0,
+        value: parseInt(u.referral_count) || 0,
       })),
       streaks: topStreaks.map(s => ({
-        id: s.user?.id,
-        name: s.user ? `${s.user.firstName} ${s.user.lastName}` : 'Unknown',
-        email: s.user?.email,
-        value: s.currentStreak,
-        longest: s.longestStreak,
+        id: s.user_id,
+        name: s.first_name ? `${s.first_name} ${s.last_name}` : 'Unknown',
+        email: s.email,
+        value: s.current_streak,
+        longest: s.longest_streak,
       })),
     };
   }
