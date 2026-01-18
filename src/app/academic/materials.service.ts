@@ -1196,4 +1196,77 @@ export class MaterialsService {
       .whereInIds(materialIds)
       .getMany();
   }
+
+  // ===== ADMIN METHODS =====
+
+  async updateBulkVisibility(
+    materialIds: string[],
+    scope: string,
+    departmentId?: string,
+    facultyId?: string,
+  ) {
+    if (!materialIds || materialIds.length === 0) {
+      return { updated: 0 };
+    }
+
+    const validScopes = ['public', 'faculty', 'department', 'course', 'private'];
+    if (!validScopes.includes(scope)) {
+      throw new BadRequestException(`Invalid scope. Must be one of: ${validScopes.join(', ')}`);
+    }
+
+    const result = await this.materialRepo
+      .createQueryBuilder()
+      .update()
+      .set({ scope: scope as AccessScope })
+      .whereInIds(materialIds)
+      .execute();
+
+    return {
+      updated: result.affected || 0,
+      scope,
+      departmentId,
+      facultyId,
+    };
+  }
+
+  async getAllMaterialsAdmin(page = 1, limit = 50) {
+    const [materials, total] = await this.materialRepo.findAndCount({
+      relations: ['uploader', 'course', 'course.department'],
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    // Map to simplified response
+    const data = materials.map(m => ({
+      id: m.id,
+      title: m.title,
+      scope: m.scope,
+      type: m.type,
+      status: m.status,
+      createdAt: m.createdAt,
+      uploader: m.uploader ? {
+        id: m.uploader.id,
+        firstName: m.uploader.firstName,
+        lastName: m.uploader.lastName,
+        email: m.uploader.email,
+      } : null,
+      course: m.course ? {
+        id: m.course.id,
+        title: m.course.title,
+        department: m.course.department ? {
+          id: m.course.department.id,
+          name: m.course.department.name,
+        } : null,
+      } : null,
+    }));
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
 }

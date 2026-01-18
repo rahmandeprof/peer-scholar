@@ -358,4 +358,38 @@ export class MaterialsController {
   ) {
     return this.materialsService.deleteBookmark(req.user.id, bookmarkId);
   }
+
+  // ===== ADMIN ENDPOINTS =====
+
+  @Patch('admin/bulk-visibility')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  updateBulkVisibility(
+    @Body() body: {
+      materialIds: string[];
+      scope: string;
+      departmentId?: string;
+      facultyId?: string;
+    },
+  ) {
+    return this.materialsService.updateBulkVisibility(
+      body.materialIds,
+      body.scope,
+      body.departmentId,
+      body.facultyId,
+    );
+  }
+
+  @Get('admin/all')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  getAllMaterialsAdmin(
+    @Query('page') page = '1',
+    @Query('limit') limit = '50',
+  ) {
+    return this.materialsService.getAllMaterialsAdmin(
+      parseInt(page),
+      parseInt(limit),
+    );
+  }
 }
