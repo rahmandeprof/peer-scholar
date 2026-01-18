@@ -9,6 +9,7 @@ import { NotificationsModule } from '@/app/notifications/notifications.module';
 import { StudySession } from './entities/study-session.entity';
 import { FlashcardProgress } from './entities/flashcard-progress.entity';
 import { User } from '@/app/users/entities/user.entity';
+import { StudyStreak } from '@/app/users/entities/study-streak.entity';
 
 import { StudyController } from './study.controller';
 
@@ -21,7 +22,7 @@ import { StudyGateway } from './study.gateway';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([StudySession, FlashcardProgress, User]),
+    TypeOrmModule.forFeature([StudySession, FlashcardProgress, User, StudyStreak]),
     UsersModule,
     ChatModule,
     JwtModule.register({}), // Uses ConfigService for secret at runtime
