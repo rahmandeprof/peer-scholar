@@ -135,5 +135,12 @@ export class User extends IDAndTimestamp {
   // Feature flags and UI preferences (synced across devices)
   @Column({ name: 'preferences', type: 'json', nullable: true, default: '{}' })
   preferences: Record<string, any>;
+
+  // Web push notification subscription
+  @Column({ name: 'push_subscription', type: 'json', nullable: true })
+  pushSubscription: {
+    endpoint: string;
+    keys: { p256dh: string; auth: string };
+  } | null;
 }
 

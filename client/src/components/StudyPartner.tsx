@@ -7,6 +7,7 @@ import { getApiErrorMessage } from '../lib/errorUtils';
 import confetti from 'canvas-confetti';
 import { useSocket } from '../contexts/SocketContext';
 import { useAuth } from '../contexts/AuthContext';
+import { subscribeToPush, isPushEnabled } from '../lib/pushNotifications';
 
 interface PartnerData {
   id: string;
@@ -103,6 +104,15 @@ export function StudyPartner() {
 
       setInviteEmail('');
       fetchData();
+
+      // Request push notification permission after first invite
+      const pushEnabled = await isPushEnabled();
+      if (!pushEnabled) {
+        const subscribed = await subscribeToPush();
+        if (subscribed) {
+          toast.success('Push notifications enabled!');
+        }
+      }
     } catch (err: unknown) {
       let message = 'Failed to send invite';
       if (err instanceof Error) {

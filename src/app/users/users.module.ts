@@ -16,6 +16,7 @@ import { BadgeController } from '@/app/users/badge.controller';
 import { UsersService } from '@/app/users/users.service';
 import { BadgeService } from '@/app/users/badge.service';
 import { WinstonLoggerService } from '@/logger/winston-logger/winston-logger.service';
+import { NotificationsModule } from '@/app/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { WinstonLoggerService } from '@/logger/winston-logger/winston-logger.ser
       ReadingProgress,
       ViewingHistory,
     ]),
+    NotificationsModule,
   ],
   controllers: [UsersController, BadgeController],
   providers: [UsersService, BadgeService, WinstonLoggerService],

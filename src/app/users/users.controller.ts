@@ -215,4 +215,19 @@ export class UsersController {
     }
     return this.usersService.getLeaderboards();
   }
+
+  // ===== Push Notifications =====
+
+  @Post('push-subscription')
+  savePushSubscription(
+    @Req() req: AuthenticatedRequest,
+    @Body() subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
+  ) {
+    return this.usersService.savePushSubscription(req.user.id, subscription);
+  }
+
+  @Delete('push-subscription')
+  removePushSubscription(@Req() req: AuthenticatedRequest) {
+    return this.usersService.removePushSubscription(req.user.id);
+  }
 }

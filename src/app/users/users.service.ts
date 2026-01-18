@@ -28,6 +28,7 @@ import { UpdateUserDto } from '@/app/users/dto/update-user.dto';
 import { EmailService } from '@/app/common/services/email.service';
 import { WinstonLoggerService } from '@/logger/winston-logger/winston-logger.service';
 import { PaginationService } from '@/pagination/pagination.service';
+import { PushService } from '@/app/notifications/push.service';
 
 import { SuccessResponse } from '@/utils/response';
 
@@ -54,6 +55,7 @@ export class UsersService {
     private readonly logger: WinstonLoggerService,
     private readonly emailService: EmailService,
     private readonly configService: ConfigService,
+    private readonly pushService: PushService,
   ) {
     this.logger.setContext(UsersService.name);
   }
@@ -145,6 +147,14 @@ export class UsersService {
       request.status = PartnerRequestStatus.ACCEPTED;
       // No need to update partnerId on User entity anymore.
       // The PartnerRequest with status ACCEPTED serves as the link.
+
+      // Send push notification to original sender
+      if (request.sender.pushSubscription) {
+        await this.pushService.sendPartnerAcceptedNotification(
+          request.sender.pushSubscription,
+          request.receiver.firstName,
+        );
+      }
     } else {
       request.status = PartnerRequestStatus.REJECTED;
 
@@ -203,6 +213,14 @@ export class UsersService {
       sender.firstName,
       `${sender.firstName} sent you a study nudge!`,
     );
+
+    // Send push notification if receiver has subscription
+    if (receiver.pushSubscription) {
+      await this.pushService.sendNudgeNotification(
+        receiver.pushSubscription,
+        sender.firstName,
+      );
+    }
 
     request.lastNudgedAt = new Date();
     await this.partnerRequestRepo.save(request);
@@ -829,6 +847,25 @@ export class UsersService {
 
     await this.userRepository.save(user);
     return user.preferences;
+  }
+
+  // ===== Push Notification Subscriptions =====
+
+  async savePushSubscription(
+    userId: string,
+    subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
+  ) {
+    const user = await this.getOne(userId);
+    user.pushSubscription = subscription;
+    await this.userRepository.save(user);
+    return { success: true, message: 'Push subscription saved' };
+  }
+
+  async removePushSubscription(userId: string) {
+    const user = await this.getOne(userId);
+    user.pushSubscription = null;
+    await this.userRepository.save(user);
+    return { success: true, message: 'Push subscription removed' };
   }
 }
 
