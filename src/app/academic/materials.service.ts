@@ -869,14 +869,22 @@ export class MaterialsService {
     // value should be 1 (upvote), -1 (downvote), or 0 (remove vote)
     const normalizedValue = Math.max(-1, Math.min(1, value));
 
-    const note = await this.publicNoteRepo.findOne({ where: { id: noteId } });
+    const note = await this.publicNoteRepo.findOne({
+      where: { id: noteId },
+      relations: ['user'],
+    });
     if (!note) {
       throw new NotFoundException('Note not found');
     }
 
+    // Check if user is voting on their own note
+    const isOwnNote = note.user?.id === userId;
+
     const existingVote = await this.publicNoteVoteRepo.findOne({
       where: { noteId, userId },
     });
+
+    let isNewUpvote = false;
 
     if (normalizedValue === 0) {
       // Remove vote
@@ -901,6 +909,7 @@ export class MaterialsService {
         // Apply new vote
         if (normalizedValue === 1) {
           note.upvotes += 1;
+          isNewUpvote = existingVote.value !== 1; // Changed to upvote
         } else {
           note.downvotes += 1;
         }
@@ -917,12 +926,18 @@ export class MaterialsService {
       await this.publicNoteVoteRepo.save(newVote);
       if (normalizedValue === 1) {
         note.upvotes += 1;
+        isNewUpvote = true;
       } else {
         note.downvotes += 1;
       }
     }
 
     await this.publicNoteRepo.save(note);
+
+    // Award reputation to note author for upvotes (but not for self-votes)
+    if (isNewUpvote && !isOwnNote && note.user) {
+      await this.usersService.increaseReputation(note.user.id, 3); // UPVOTE_RECEIVED
+    }
 
     return {
       upvotes: note.upvotes,
