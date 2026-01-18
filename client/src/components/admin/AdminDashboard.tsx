@@ -230,6 +230,25 @@ export function AdminDashboard() {
   const [showLeaderboards, setShowLeaderboards] = useState(false);
   const [leaderboardsLoading, setLeaderboardsLoading] = useState(false);
 
+  // Materials Visibility state
+  const [allMaterials, setAllMaterials] = useState<{
+    id: string;
+    title: string;
+    scope: string;
+    type: string;
+    status: string;
+    createdAt: string;
+    uploader: { id: string; firstName: string; lastName: string; email: string } | null;
+    course: { id: string; title: string; department: { id: string; name: string } | null } | null;
+  }[]>([]);
+  const [materialsPage, setMaterialsPage] = useState(1);
+  const [materialsTotalPages, setMaterialsTotalPages] = useState(1);
+  const [materialsLoading, setMaterialsLoading] = useState(false);
+  const [showMaterialsManager, setShowMaterialsManager] = useState(false);
+  const [selectedMaterialIds, setSelectedMaterialIds] = useState<string[]>([]);
+  const [bulkScope, setBulkScope] = useState('department');
+  const [updatingVisibility, setUpdatingVisibility] = useState(false);
+
   // Check admin access
   useEffect(() => {
     if (user && user.role !== 'admin') {
@@ -473,6 +492,55 @@ export function AdminDashboard() {
       toast.error('Failed to fetch leaderboards');
     } finally {
       setLeaderboardsLoading(false);
+    }
+  };
+
+  const fetchAllMaterials = async (page = 1) => {
+    setMaterialsLoading(true);
+    try {
+      const res = await api.get(`/materials/admin/all?page=${page}&limit=50`);
+      setAllMaterials(res.data.data);
+      setMaterialsPage(res.data.page);
+      setMaterialsTotalPages(res.data.totalPages);
+    } catch (err) {
+      toast.error('Failed to fetch materials');
+    } finally {
+      setMaterialsLoading(false);
+    }
+  };
+
+  const handleBulkVisibilityUpdate = async () => {
+    if (selectedMaterialIds.length === 0) {
+      toast.error('Select at least one material');
+      return;
+    }
+    setUpdatingVisibility(true);
+    try {
+      const res = await api.patch('/materials/admin/bulk-visibility', {
+        materialIds: selectedMaterialIds,
+        scope: bulkScope,
+      });
+      toast.success(`Updated ${res.data.updated} materials to ${bulkScope}`);
+      setSelectedMaterialIds([]);
+      fetchAllMaterials(materialsPage);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to update visibility');
+    } finally {
+      setUpdatingVisibility(false);
+    }
+  };
+
+  const toggleMaterialSelection = (id: string) => {
+    setSelectedMaterialIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const selectAllMaterials = () => {
+    if (selectedMaterialIds.length === allMaterials.length) {
+      setSelectedMaterialIds([]);
+    } else {
+      setSelectedMaterialIds(allMaterials.map(m => m.id));
     }
   };
 
@@ -1873,6 +1941,143 @@ export function AdminDashboard() {
               <p className='text-sm text-gray-500 text-center'>
                 No data available
               </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Materials Visibility Manager Section */}
+      <div className='bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden'>
+        <button
+          onClick={() => {
+            setShowMaterialsManager(!showMaterialsManager);
+            if (!allMaterials.length && !materialsLoading) {
+              fetchAllMaterials(1);
+            }
+          }}
+          className='w-full p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50'
+        >
+          <div className='flex items-center gap-2'>
+            <Eye className='w-4 h-4 text-blue-500' />
+            <h3 className='font-semibold text-gray-900 dark:text-white text-sm'>
+              Materials Visibility Manager
+            </h3>
+          </div>
+          <ChevronRight
+            className={`w-4 h-4 text-gray-400 transition-transform ${showMaterialsManager ? 'rotate-90' : ''}`}
+          />
+        </button>
+        {showMaterialsManager && (
+          <div className='border-t border-gray-100 dark:border-gray-800 p-4'>
+            {materialsLoading ? (
+              <div className='flex justify-center py-4'>
+                <BorderSpinner />
+              </div>
+            ) : allMaterials.length > 0 ? (
+              <div className='space-y-4'>
+                {/* Bulk Actions */}
+                <div className='flex flex-wrap items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg'>
+                  <span className='text-sm text-gray-600 dark:text-gray-400'>
+                    {selectedMaterialIds.length} selected
+                  </span>
+                  <select
+                    value={bulkScope}
+                    onChange={(e) => setBulkScope(e.target.value)}
+                    className='text-sm px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700'
+                  >
+                    <option value='public'>Public</option>
+                    <option value='faculty'>Faculty</option>
+                    <option value='department'>Department</option>
+                    <option value='course'>Course</option>
+                    <option value='private'>Private</option>
+                  </select>
+                  <button
+                    onClick={handleBulkVisibilityUpdate}
+                    disabled={updatingVisibility || selectedMaterialIds.length === 0}
+                    className='px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50'
+                  >
+                    {updatingVisibility ? 'Updating...' : 'Set Visibility'}
+                  </button>
+                </div>
+
+                {/* Materials Table */}
+                <div className='overflow-x-auto'>
+                  <table className='w-full text-sm'>
+                    <thead>
+                      <tr className='bg-gray-50 dark:bg-gray-800'>
+                        <th className='p-2 text-left'>
+                          <input
+                            type='checkbox'
+                            checked={selectedMaterialIds.length === allMaterials.length}
+                            onChange={selectAllMaterials}
+                            className='rounded'
+                          />
+                        </th>
+                        <th className='p-2 text-left text-gray-700 dark:text-gray-300'>Title</th>
+                        <th className='p-2 text-left text-gray-700 dark:text-gray-300'>Scope</th>
+                        <th className='p-2 text-left text-gray-700 dark:text-gray-300'>Uploader</th>
+                        <th className='p-2 text-left text-gray-700 dark:text-gray-300'>Course</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allMaterials.map((m) => (
+                        <tr key={m.id} className='border-t border-gray-100 dark:border-gray-800'>
+                          <td className='p-2'>
+                            <input
+                              type='checkbox'
+                              checked={selectedMaterialIds.includes(m.id)}
+                              onChange={() => toggleMaterialSelection(m.id)}
+                              className='rounded'
+                            />
+                          </td>
+                          <td className='p-2 text-gray-900 dark:text-white max-w-xs truncate' title={m.title}>
+                            {m.title}
+                          </td>
+                          <td className='p-2'>
+                            <span className={`px-2 py-0.5 rounded text-xs ${m.scope === 'public' ? 'bg-green-100 text-green-800' :
+                                m.scope === 'department' ? 'bg-blue-100 text-blue-800' :
+                                  m.scope === 'faculty' ? 'bg-purple-100 text-purple-800' :
+                                    m.scope === 'course' ? 'bg-yellow-100 text-yellow-800' :
+                                      'bg-gray-100 text-gray-800'
+                              }`}>
+                              {m.scope || 'private'}
+                            </span>
+                          </td>
+                          <td className='p-2 text-gray-600 dark:text-gray-400'>
+                            {m.uploader ? `${m.uploader.firstName} ${m.uploader.lastName}` : '-'}
+                          </td>
+                          <td className='p-2 text-gray-600 dark:text-gray-400'>
+                            {m.course?.title || '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination */}
+                <div className='flex justify-between items-center'>
+                  <button
+                    onClick={() => fetchAllMaterials(materialsPage - 1)}
+                    disabled={materialsPage <= 1}
+                    className='px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 rounded disabled:opacity-50'
+                  >
+                    Previous
+                  </button>
+                  <span className='text-sm text-gray-600 dark:text-gray-400'>
+                    Page {materialsPage} of {materialsTotalPages}
+                  </span>
+                  <button
+                    onClick={() => fetchAllMaterials(materialsPage + 1)}
+                    disabled={materialsPage >= materialsTotalPages}
+                    className='px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 rounded disabled:opacity-50'
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className='text-sm text-gray-500 text-center'>No materials found</p>
             )}
           </div>
         )}
