@@ -3,10 +3,12 @@ import { LayoutDashboard, BookOpen, Users, User, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { UserProfile } from './UserProfile';
 import { UploadModal } from './UploadModal';
+import { usePartnerRequests } from '../hooks/usePartnerRequests';
 
 export function BottomNav() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const { pendingCount } = usePartnerRequests();
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     `flex flex-col items-center justify-center flex-1 h-full space-y-0.5 transition-all duration-200 active:scale-95 ${isActive
@@ -54,8 +56,15 @@ export function BottomNav() {
         {/* Right nav items */}
         <NavLink to='/study-partner' className={navLinkClass}>
           {({ isActive }) => (
-            <div className={navLinkInner(isActive)}>
-              <Users className='w-5 h-5' />
+            <div className={`${navLinkInner(isActive)} relative`}>
+              <div className='relative'>
+                <Users className='w-5 h-5' />
+                {pendingCount > 0 && (
+                  <span className='absolute -top-1.5 -right-1.5 min-w-[16px] h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1'>
+                    {pendingCount > 9 ? '9+' : pendingCount}
+                  </span>
+                )}
+              </div>
               <span className='text-[10px] font-semibold'>Partner</span>
             </div>
           )}
@@ -82,3 +91,4 @@ export function BottomNav() {
     </>
   );
 }
+
