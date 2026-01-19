@@ -695,14 +695,19 @@ export class UsersService {
       .getRawMany();
 
     // Top by referrals (count completed referrals)
-    // Using ReferralStatus enum for type safety, HAVING to exclude users with 0 referrals
+    // Use raw SQL subquery to avoid TypeORM adding deleted_at filter on referral table
     const topReferrers = await this.userRepository
       .createQueryBuilder('user')
-      .leftJoin('referral', 'referral', 'referral.referrer_id = user.id AND referral.status = :status', { status: ReferralStatus.COMPLETED })
       .select(['user.id', 'user.firstName', 'user.lastName', 'user.email'])
-      .addSelect('COUNT(referral.id)', 'referral_count')
+      .addSelect(`(
+        SELECT COUNT(*) FROM referral r 
+        WHERE r.referrer_id = user.id AND r.status = 'completed'
+      )`, 'referral_count')
+      .having(`(
+        SELECT COUNT(*) FROM referral r 
+        WHERE r.referrer_id = user.id AND r.status = 'completed'
+      ) > 0`)
       .groupBy('user.id')
-      .having('COUNT(referral.id) > 0')
       .orderBy('"referral_count"', 'DESC')
       .limit(10)
       .getRawMany();
