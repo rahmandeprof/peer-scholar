@@ -78,6 +78,16 @@ const AdminDashboard = lazyWithRetry(
 const AdminRoute = lazyWithRetry(() => import('./components/AdminRoute'));
 const NotFound = lazyWithRetry(() => import('./components/NotFound'));
 
+// Public pages (no auth required)
+const AboutPage = lazyWithRetryNamed(
+  () => import('./components/AboutPage'),
+  'AboutPage',
+);
+const HowToUsePage = lazyWithRetryNamed(
+  () => import('./components/HowToUsePage'),
+  'HowToUsePage',
+);
+
 // Suspense fallback for route loading
 const RouteLoadingFallback = () => (
   <div className='min-h-screen flex items-center justify-center'>
@@ -174,6 +184,10 @@ function AppContent() {
     <div className='min-h-screen text-gray-900 dark:text-gray-100'>
       <Suspense fallback={<RouteLoadingFallback />}>
         <Routes>
+          {/* Public pages - no auth required */}
+          <Route path='/about' element={<AboutPage />} />
+          <Route path='/how-to-use' element={<HowToUsePage />} />
+
           <Route path='/auth/callback' element={<GoogleCallback />} />
           <Route path='/verify-email' element={<VerifyEmail />} />
           {/* Redirect for emails sent with /auth/verify-email path */}
