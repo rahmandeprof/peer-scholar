@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense } from 'react';
+import { useEffect, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -87,6 +87,9 @@ const HowToUsePage = lazyWithRetryNamed(
   () => import('./components/HowToUsePage'),
   'HowToUsePage',
 );
+const LandingPage = lazyWithRetry(
+  () => import('./components/LandingPage'),
+);
 
 // Suspense fallback for route loading
 const RouteLoadingFallback = () => (
@@ -149,7 +152,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
-  const [isLogin, setIsLogin] = useState(true);
 
   // Prevent back button from going to auth pages when authenticated (PWA fix)
   useEffect(() => {
@@ -184,6 +186,9 @@ function AppContent() {
     <div className='min-h-screen text-gray-900 dark:text-gray-100'>
       <Suspense fallback={<RouteLoadingFallback />}>
         <Routes>
+          {/* Public marketing landing page */}
+          <Route path='/' element={<LandingPage />} />
+
           {/* Public pages - no auth required */}
           <Route path='/about' element={<AboutPage />} />
           <Route path='/how-to-use' element={<HowToUsePage />} />
@@ -263,12 +268,14 @@ function AppContent() {
             />
           </Route>
 
+          {/* Auth routes */}
           <Route
-            path='/'
+            path='/login'
             element={
-              <div className='min-h-screen flex flex-col items-center justify-center px-4 py-6 sm:py-12 overflow-y-auto'>
-                {/* Logo header for auth page */}
-                {!isAuthenticated && (
+              isAuthenticated ? (
+                <Navigate to='/dashboard' replace />
+              ) : (
+                <div className='min-h-screen flex flex-col items-center justify-center px-4 py-6 sm:py-12 overflow-y-auto'>
                   <div className='mb-8 flex flex-col items-center'>
                     <img
                       src='/wordmark-black.png'
@@ -281,18 +288,33 @@ function AppContent() {
                       className='h-16 md:h-20 object-contain hidden dark:block'
                     />
                   </div>
-                )}
-                {isAuthenticated ? (
-                  <Navigate
-                    to={location.state?.from?.pathname || '/dashboard'}
-                    replace
-                  />
-                ) : isLogin ? (
-                  <Login onSwitch={() => setIsLogin(false)} />
-                ) : (
-                  <Signup onSwitch={() => setIsLogin(true)} />
-                )}
-              </div>
+                  <Login onSwitch={() => window.location.href = '/signup'} />
+                </div>
+              )
+            }
+          />
+          <Route
+            path='/signup'
+            element={
+              isAuthenticated ? (
+                <Navigate to='/dashboard' replace />
+              ) : (
+                <div className='min-h-screen flex flex-col items-center justify-center px-4 py-6 sm:py-12 overflow-y-auto'>
+                  <div className='mb-8 flex flex-col items-center'>
+                    <img
+                      src='/wordmark-black.png'
+                      alt='PeerToLearn'
+                      className='h-16 md:h-20 object-contain dark:hidden'
+                    />
+                    <img
+                      src='/wordmark-blue.png'
+                      alt='PeerToLearn'
+                      className='h-16 md:h-20 object-contain hidden dark:block'
+                    />
+                  </div>
+                  <Signup onSwitch={() => window.location.href = '/login'} />
+                </div>
+              )
             }
           />
 
