@@ -4,6 +4,7 @@ import api from '../lib/api';
 import { Link } from 'react-router-dom';
 import { TrendingUp, ThumbsUp } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { BorderSpinner } from './Skeleton';
 
 export function RecommendedMaterials() {
     const [materials, setMaterials] = useState<Material[]>([]);
@@ -25,10 +26,8 @@ export function RecommendedMaterials() {
 
     if (loading) {
         return (
-            <div className="animate-pulse space-y-3">
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-                <div className="h-24 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
-                <div className="h-24 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+            <div className='flex items-center justify-center py-12'>
+                <BorderSpinner size='lg' />
             </div>
         );
     }

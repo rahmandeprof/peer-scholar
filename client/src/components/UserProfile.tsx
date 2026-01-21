@@ -26,6 +26,7 @@ import {
   MoreVertical,
   Moon,
   Sun,
+  BookOpen,
 } from 'lucide-react';
 import { useNetwork } from '../contexts/NetworkContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -709,6 +710,46 @@ export function UserProfile({ onClose, onFeedbackOpen }: UserProfileProps) {
                     </div>
                     <span className='font-medium text-gray-900 dark:text-gray-100'>
                       My Flashcards
+                    </span>
+                  </div>
+                  <ChevronRight className='w-4 h-4 text-gray-400' />
+                </button>
+
+                <button
+                  type='button'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClose();
+                    navigate('/about');
+                  }}
+                  className='w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group'
+                >
+                  <div className='flex items-center'>
+                    <div className='w-8 h-8 rounded-lg bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400 mr-3 group-hover:scale-110 transition-transform'>
+                      <BookOpen className='w-4 h-4' />
+                    </div>
+                    <span className='font-medium text-gray-900 dark:text-gray-100'>
+                      About PeerToLearn
+                    </span>
+                  </div>
+                  <ChevronRight className='w-4 h-4 text-gray-400' />
+                </button>
+
+                <button
+                  type='button'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClose();
+                    navigate('/how-to-use');
+                  }}
+                  className='w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group'
+                >
+                  <div className='flex items-center'>
+                    <div className='w-8 h-8 rounded-lg bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center text-sky-600 dark:text-sky-400 mr-3 group-hover:scale-110 transition-transform'>
+                      <BookOpen className='w-4 h-4' />
+                    </div>
+                    <span className='font-medium text-gray-900 dark:text-gray-100'>
+                      How to Use Guide
                     </span>
                   </div>
                   <ChevronRight className='w-4 h-4 text-gray-400' />
