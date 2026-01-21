@@ -187,10 +187,12 @@ export class MaterialsController {
     body: {
       selectedText: string;
       pageNumber?: number;
-      year: string;
-      session: string;
+      year?: string;
+      session?: string;
+      noteContent?: string;
       contextBefore?: string;
       contextAfter?: string;
+      type?: 'note' | 'pq';
     },
 
     @Req() req: AuthenticatedRequest,

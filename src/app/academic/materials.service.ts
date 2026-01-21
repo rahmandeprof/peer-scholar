@@ -714,8 +714,9 @@ export class MaterialsService {
     data: {
       selectedText: string;
       pageNumber?: number;
-      year: string;
-      session: string;
+      year?: string;
+      session?: string;
+      noteContent?: string;
       contextBefore?: string;
       contextAfter?: string;
       type?: 'note' | 'pq';
