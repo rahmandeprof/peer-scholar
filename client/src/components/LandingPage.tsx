@@ -1,6 +1,5 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useEffect } from 'react';
 import {
     BookOpen,
     Users,
@@ -19,14 +18,7 @@ import './LandingPage.css';
 
 export default function LandingPage() {
     const { user, isLoading } = useAuth();
-    const navigate = useNavigate();
-
-    // Redirect authenticated users to dashboard
-    useEffect(() => {
-        if (!isLoading && user) {
-            navigate('/dashboard', { replace: true });
-        }
-    }, [user, isLoading, navigate]);
+    const isAuthenticated = !!user;
 
     // Show nothing while checking auth
     if (isLoading) return null;
@@ -44,7 +36,11 @@ export default function LandingPage() {
                         <li><a href="#features">Features</a></li>
                         <li><a href="#about">About</a></li>
                     </ul>
-                    <Link to="/login" className="landing-nav-cta">Get Started</Link>
+                    {isAuthenticated ? (
+                        <Link to="/dashboard" className="landing-nav-cta">Go to Dashboard</Link>
+                    ) : (
+                        <Link to="/login" className="landing-nav-cta">Get Started</Link>
+                    )}
                 </div>
             </nav>
 
@@ -62,10 +58,17 @@ export default function LandingPage() {
                                 Access notes, past questions, and slides — organized and searchable.
                             </p>
                             <div className="landing-hero-buttons">
-                                <Link to="/signup" className="landing-btn-primary">
-                                    Start Studying
-                                    <ArrowRight size={20} />
-                                </Link>
+                                {isAuthenticated ? (
+                                    <Link to="/dashboard" className="landing-btn-primary">
+                                        Go to Dashboard
+                                        <ArrowRight size={20} />
+                                    </Link>
+                                ) : (
+                                    <Link to="/signup" className="landing-btn-primary">
+                                        Start Studying
+                                        <ArrowRight size={20} />
+                                    </Link>
+                                )}
                                 <a href="#features" className="landing-btn-secondary">
                                     See Features
                                 </a>
@@ -198,12 +201,19 @@ export default function LandingPage() {
             {/* CTA Section */}
             <section className="landing-cta">
                 <div className="landing-container">
-                    <h2>Ready to Study Smarter?</h2>
-                    <p>Join thousands of students who've upgraded their study game. It's free.</p>
-                    <Link to="/signup" className="landing-btn-primary">
-                        <Sparkles size={20} />
-                        Get Started Free
-                    </Link>
+                    <h2>{isAuthenticated ? 'Welcome Back!' : 'Ready to Study Smarter?'}</h2>
+                    <p>{isAuthenticated ? 'Continue where you left off.' : "Join thousands of students who've upgraded their study game. It's free."}</p>
+                    {isAuthenticated ? (
+                        <Link to="/dashboard" className="landing-btn-primary">
+                            <Sparkles size={20} />
+                            Go to Dashboard
+                        </Link>
+                    ) : (
+                        <Link to="/signup" className="landing-btn-primary">
+                            <Sparkles size={20} />
+                            Get Started Free
+                        </Link>
+                    )}
                 </div>
             </section>
 
@@ -242,7 +252,7 @@ export default function LandingPage() {
                         </div>
                     </div>
                     <div className="landing-footer-bottom">
-                        <p>&copy; 2026 PeerToLearn. Made with ❤️ for Nigerian students.</p>
+                        <p>&copy; 2026 PeerToLearn.</p>
                     </div>
                 </div>
             </footer>
