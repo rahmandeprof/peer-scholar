@@ -246,29 +246,76 @@ export const MaterialView = () => {
   }, [id]);
 
   // Reading time heartbeat - sends every 30 seconds while viewing
+  // Pauses when tab is hidden (user switches tabs or minimizes)
   useEffect(() => {
     if (!readingSessionId || !sessionStartTimeRef.current) return;
 
+    // Track if we're paused due to visibility
+    let isPaused = false;
+    let pausedAt = 0;
+    let totalPausedTime = 0;
+
     // Use the ref for consistent timing across the session
-    const getElapsedSeconds = () =>
-      Math.floor((Date.now() - sessionStartTimeRef.current) / 1000);
+    const getElapsedSeconds = () => {
+      const totalElapsed = Date.now() - sessionStartTimeRef.current;
+      // Subtract time spent paused
+      const activeTime = totalElapsed - totalPausedTime - (isPaused ? (Date.now() - pausedAt) : 0);
+      return Math.floor(Math.max(0, activeTime) / 1000);
+    };
 
-    heartbeatIntervalRef.current = setInterval(() => {
-      const elapsedSeconds = getElapsedSeconds();
-      readingSecondsRef.current = elapsedSeconds;
-
-      // Send heartbeat to backend (or accumulate locally if offline)
-      if (navigator.onLine) {
-        api
-          .post('/study/reading/heartbeat', {
-            sessionId: readingSessionId,
-            seconds: elapsedSeconds,
-          })
-          .catch(console.error);
+    const startHeartbeat = () => {
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
       }
-      // Always accumulate locally as fallback (will sync when online)
-      accumulateReadingTime(id || '', 30);
-    }, 30000); // Every 30 seconds
+
+      heartbeatIntervalRef.current = setInterval(() => {
+        if (isPaused) return; // Skip if paused
+
+        const elapsedSeconds = getElapsedSeconds();
+        readingSecondsRef.current = elapsedSeconds;
+
+        // Send heartbeat to backend (or accumulate locally if offline)
+        if (navigator.onLine) {
+          api
+            .post('/study/reading/heartbeat', {
+              sessionId: readingSessionId,
+              seconds: elapsedSeconds,
+            })
+            .catch(console.error);
+        }
+        // Always accumulate locally as fallback (will sync when online)
+        accumulateReadingTime(id || '', 30);
+      }, 30000); // Every 30 seconds
+    };
+
+    // Handle visibility change (tab switch, minimize, etc.)
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Tab became hidden - pause timing
+        isPaused = true;
+        pausedAt = Date.now();
+        // Stop heartbeat to save resources
+        if (heartbeatIntervalRef.current) {
+          clearInterval(heartbeatIntervalRef.current);
+          heartbeatIntervalRef.current = null;
+        }
+      } else {
+        // Tab became visible - resume timing
+        if (isPaused) {
+          totalPausedTime += Date.now() - pausedAt;
+          isPaused = false;
+          pausedAt = 0;
+          // Restart heartbeat
+          startHeartbeat();
+        }
+      }
+    };
+
+    // Start initial heartbeat
+    startHeartbeat();
+
+    // Add visibility change listener
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Use sendBeacon for reliable delivery on page unload
     const sendEndRequest = () => {
@@ -321,6 +368,7 @@ export const MaterialView = () => {
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);
       }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
       // Send end request on React unmount (navigation within app)
       sendEndRequest();
