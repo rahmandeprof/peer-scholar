@@ -70,6 +70,13 @@ Always follow the agreed structure strictly.
   }
 ]
 
+**Math Formatting**:
+- When content contains mathematical expressions, use LaTeX syntax
+- Inline math: $expression$ (e.g., $x^2$, $\\frac{a}{b}$)
+- Block equations: $$expression$$
+- Use proper LaTeX commands: \\frac{}{}, \\sqrt{}, \\sum, \\int, \\lim, etc.
+- Apply to questions, answers, options, explanations, and flashcard content as needed
+
 IMPORTANT: Respond with ONLY valid JSON. No markdown, no explanations, just the JSON object/array.`;
     }
 

@@ -186,8 +186,8 @@ function AppContent() {
     <div className='min-h-screen text-gray-900 dark:text-gray-100'>
       <Suspense fallback={<RouteLoadingFallback />}>
         <Routes>
-          {/* Public marketing landing page */}
-          <Route path='/' element={<LandingPage />} />
+          {/* Public marketing landing page - authenticated users go straight to dashboard */}
+          <Route path='/' element={isAuthenticated ? <Navigate to='/dashboard' replace /> : <LandingPage />} />
 
           {/* Public pages - no auth required */}
           <Route path='/about' element={<AboutPage />} />

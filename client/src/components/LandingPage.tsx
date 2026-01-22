@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import {
     BookOpen,
     Users,
@@ -17,11 +16,8 @@ import {
 import './LandingPage.css';
 
 export default function LandingPage() {
-    const { user, isLoading } = useAuth();
-    const isAuthenticated = !!user;
-
-    // Show nothing while checking auth
-    if (isLoading) return null;
+    // This component only renders for unauthenticated users
+    // Authenticated users are redirected to dashboard at the route level
 
     return (
         <div className="landing-page">
@@ -29,18 +25,14 @@ export default function LandingPage() {
             <nav className="landing-nav">
                 <div className="landing-nav-content">
                     <Link to="/" className="landing-logo">
-                        <div className="landing-logo-icon">📚</div>
+                        <img src="/logo.png" alt="PeerToLearn" className="landing-logo-img" />
                         PeerToLearn
                     </Link>
                     <ul className="landing-nav-links">
                         <li><a href="#features">Features</a></li>
                         <li><a href="#about">About</a></li>
                     </ul>
-                    {isAuthenticated ? (
-                        <Link to="/dashboard" className="landing-nav-cta">Go to Dashboard</Link>
-                    ) : (
-                        <Link to="/login" className="landing-nav-cta">Get Started</Link>
-                    )}
+                    <Link to="/login" className="landing-nav-cta">Get Started</Link>
                 </div>
             </nav>
 
@@ -58,17 +50,10 @@ export default function LandingPage() {
                                 Access notes, past questions, and slides — organized and searchable.
                             </p>
                             <div className="landing-hero-buttons">
-                                {isAuthenticated ? (
-                                    <Link to="/dashboard" className="landing-btn-primary">
-                                        Go to Dashboard
-                                        <ArrowRight size={20} />
-                                    </Link>
-                                ) : (
-                                    <Link to="/signup" className="landing-btn-primary">
-                                        Start Studying
-                                        <ArrowRight size={20} />
-                                    </Link>
-                                )}
+                                <Link to="/signup" className="landing-btn-primary">
+                                    Start Studying
+                                    <ArrowRight size={20} />
+                                </Link>
                                 <a href="#features" className="landing-btn-secondary">
                                     See Features
                                 </a>
@@ -98,7 +83,7 @@ export default function LandingPage() {
                             <p>Active Students</p>
                         </div>
                         <div className="landing-stat-item">
-                            <h3>10<span>+</span></h3>
+                            <h3>50<span>+</span></h3>
                             <p>Departments</p>
                         </div>
                         <div className="landing-stat-item">
@@ -201,19 +186,12 @@ export default function LandingPage() {
             {/* CTA Section */}
             <section className="landing-cta">
                 <div className="landing-container">
-                    <h2>{isAuthenticated ? 'Welcome Back!' : 'Ready to Study Smarter?'}</h2>
-                    <p>{isAuthenticated ? 'Continue where you left off.' : "Join thousands of students who've upgraded their study game. It's free."}</p>
-                    {isAuthenticated ? (
-                        <Link to="/dashboard" className="landing-btn-primary">
-                            <Sparkles size={20} />
-                            Go to Dashboard
-                        </Link>
-                    ) : (
-                        <Link to="/signup" className="landing-btn-primary">
-                            <Sparkles size={20} />
-                            Get Started Free
-                        </Link>
-                    )}
+                    <h2>Ready to Study Smarter?</h2>
+                    <p>Join thousands of students who've upgraded their study game. It's free.</p>
+                    <Link to="/signup" className="landing-btn-primary">
+                        <Sparkles size={20} />
+                        Get Started Free
+                    </Link>
                 </div>
             </section>
 
@@ -223,7 +201,7 @@ export default function LandingPage() {
                     <div className="landing-footer-content">
                         <div className="landing-footer-brand">
                             <Link to="/" className="landing-logo">
-                                <div className="landing-logo-icon">📚</div>
+                                <img src="/logo.png" alt="PeerToLearn" className="landing-logo-img" />
                                 PeerToLearn
                             </Link>
                             <p>Study materials, finally organized. Built for Nigerian university students.</p>

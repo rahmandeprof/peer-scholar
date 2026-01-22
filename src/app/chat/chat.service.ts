@@ -1079,6 +1079,12 @@ export class ChatService {
     If the user asks for a summary, provide a comprehensive summary of the FOCUSED SOURCE.
     If the context contains relevant course material, cite it. 
     If the student asks about past questions, look for materials categorized as such.
+    
+    **Math Formatting**: When including mathematical expressions, use LaTeX syntax:
+    - Inline math: $expression$ (e.g., $x^2 + y^2 = z^2$)
+    - Block equations: $$expression$$ (e.g., $$\\frac{a}{b} = c$$)
+    - Use proper LaTeX commands like \\frac{}{}, \\sqrt{}, \\sum, \\int, etc.
+    
     Context:\n${context}`;
 
     const userPrompt = `History:\n${historyText}\n\nQuestion: ${question}`;
@@ -1210,7 +1216,8 @@ export class ChatService {
       case ContextActionType.SIMPLIFY:
         systemPrompt = `You are a clever tutor. The student is reading a complex text.
 Explain the following text to a university student using a simple, real-world analogy.
-Keep it under 100 words.`;
+Keep it under 100 words.
+When including math expressions, use LaTeX: $inline$ or $$block$$.`;
         userPrompt = dto.text;
         temperature = 0.7;
         break;
@@ -1225,13 +1232,15 @@ Keep it under 100 words.`;
 
       case ContextActionType.KEYWORDS:
         systemPrompt = `Extract the top 5 technical "Keywords" or "Phrases" that a student MUST include in their answer to get full marks.
-Present them as a bulleted list with brief definitions.`;
+Present them as a bulleted list with brief definitions.
+When including math expressions, use LaTeX: $inline$ or $$block$$.`;
         userPrompt = dto.text;
         temperature = 0.2;
         break;
 
       case ContextActionType.QUIZ:
-        systemPrompt = `You are a strict API endpoint. You receive text and output ONLY valid JSON. Do not include markdown formatting like \`\`\`json or \`\`\`.`;
+        systemPrompt = `You are a strict API endpoint. You receive text and output ONLY valid JSON. Do not include markdown formatting like \`\`\`json or \`\`\`.
+When content has math, use LaTeX: $inline$ or $$block$$.`;
         userPrompt = `Generate 3 multiple-choice questions based on this text:
 '${dto.text}'
 
