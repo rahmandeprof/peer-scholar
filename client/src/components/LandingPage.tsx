@@ -25,7 +25,7 @@ export default function LandingPage() {
             <nav className="landing-nav">
                 <div className="landing-nav-content">
                     <Link to="/" className="landing-logo">
-                        <img src="/logo.png" alt="PeerToLearn" className="landing-logo-img" />
+                        <img src="/logomark-blue.png" alt="PeerToLearn" className="landing-logo-img" />
                         PeerToLearn
                     </Link>
                     <ul className="landing-nav-links">
@@ -201,7 +201,7 @@ export default function LandingPage() {
                     <div className="landing-footer-content">
                         <div className="landing-footer-brand">
                             <Link to="/" className="landing-logo">
-                                <img src="/logo.png" alt="PeerToLearn" className="landing-logo-img" />
+                                <img src="/logomark-blue.png" alt="PeerToLearn" className="landing-logo-img" />
                                 PeerToLearn
                             </Link>
                             <p>Study materials, finally organized. Built for Nigerian university students.</p>
