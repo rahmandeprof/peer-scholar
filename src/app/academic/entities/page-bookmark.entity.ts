@@ -1,32 +1,42 @@
-import {
-    Column,
-    CreateDateColumn,
-    Entity,
-    ManyToOne,
-    PrimaryGeneratedColumn,
-    Index,
-} from 'typeorm';
-import { User } from '@/app/users/entities/user.entity';
 import { Material } from './material.entity';
+import { User } from '@/app/users/entities/user.entity';
+
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 @Entity()
-@Index(['user', 'material']) // For efficient queries by user+material
+@Index(['userId', 'materialId']) // Use column names, not relation names
 export class PageBookmark {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-    @ManyToOne(() => User, { onDelete: 'CASCADE' })
-    user: User;
+  @Column()
+  userId: string;
 
-    @ManyToOne(() => Material, { onDelete: 'CASCADE' })
-    material: Material;
+  @Column()
+  materialId: string;
 
-    @Column()
-    pageNumber: number;
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'userId' })
+  user: User;
 
-    @Column({ nullable: true, length: 100 })
-    note: string; // Optional label/note for the bookmark
+  @ManyToOne(() => Material, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'materialId' })
+  material: Material;
 
-    @CreateDateColumn()
-    createdAt: Date;
+  @Column()
+  pageNumber: number;
+
+  @Column({ nullable: true, length: 100 })
+  note: string; // Optional label/note for the bookmark
+
+  @CreateDateColumn()
+  createdAt: Date;
 }

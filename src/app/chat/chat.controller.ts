@@ -23,8 +23,11 @@ import { MaterialType } from '../academic/entities/material.entity';
 import { User } from '@/app/users/entities/user.entity';
 
 import { ContextActionDto } from './dto/context-action.dto';
+import { SaveQuizResultDto } from './dto/save-quiz-result.dto';
 
 import { ChatService } from './chat.service';
+
+import { QuizDifficulty } from '@/app/quiz-engine';
 
 import { Request } from 'express';
 
@@ -35,7 +38,7 @@ interface RequestWithUser extends Request {
 @Controller('chat')
 @UseGuards(AuthGuard('jwt'))
 export class ChatController {
-  constructor(private readonly chatService: ChatService) { }
+  constructor(private readonly chatService: ChatService) {}
 
   /**
    * @deprecated Use POST /materials instead. This endpoint will be removed in v2.
@@ -125,9 +128,11 @@ export class ChatController {
   @Get('materials/:id/exists')
   async checkMaterialExists(@Param('id', new ParseUUIDPipe()) id: string) {
     const exists = await this.chatService.materialExists(id);
+
     if (!exists) {
       return { exists: false };
     }
+
     return { exists: true };
   }
 
@@ -150,7 +155,14 @@ export class ChatController {
     @Body('difficulty') difficulty?: 'beginner' | 'intermediate' | 'advanced',
     @Body('questionCount') questionCount?: number,
   ) {
-    return this.chatService.generateQuiz(id, pageStart, pageEnd, regenerate, difficulty as any, questionCount);
+    return this.chatService.generateQuiz(
+      id,
+      pageStart,
+      pageEnd,
+      regenerate,
+      difficulty as QuizDifficulty,
+      questionCount,
+    );
   }
 
   @Post('flashcards/:id')
@@ -162,7 +174,12 @@ export class ChatController {
     @Body('pageStart') pageStart?: number,
     @Body('pageEnd') pageEnd?: number,
   ) {
-    return this.chatService.generateFlashcards(id, cardCount, pageStart, pageEnd);
+    return this.chatService.generateFlashcards(
+      id,
+      cardCount,
+      pageStart,
+      pageEnd,
+    );
   }
 
   @Get('summary/:id')
@@ -180,20 +197,12 @@ export class ChatController {
   }
 
   @Post('quiz/result')
-  saveQuizResult(
-    @Body()
-    body: {
-      materialId: string;
-      score: number;
-      totalQuestions: number;
-    },
-    @Req() req: RequestWithUser,
-  ) {
+  saveQuizResult(@Body() dto: SaveQuizResultDto, @Req() req: RequestWithUser) {
     return this.chatService.saveQuizResult(
       req.user,
-      body.materialId,
-      body.score,
-      body.totalQuestions,
+      dto.materialId,
+      dto.score,
+      dto.totalQuestions,
     );
   }
 

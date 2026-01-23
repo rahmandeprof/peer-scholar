@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
+
+/* eslint-disable @typescript-eslint/no-misused-spread */
 import { InjectQueue } from '@nestjs/bull';
 import {
   BadRequestException,
@@ -8,6 +11,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 
+import { Department } from './entities/department.entity';
 import {
   AccessScope,
   Material,
@@ -16,15 +20,19 @@ import {
 } from './entities/material.entity';
 import { MaterialAnnotation } from './entities/material-annotation.entity';
 import { MaterialFavorite } from './entities/material-favorite.entity';
+import {
+  FlagReason,
+  FlagStatus,
+  MaterialFlag,
+} from './entities/material-flag.entity';
 import { MaterialRating } from './entities/material-rating.entity';
 import { MaterialReport } from './entities/material-report.entity';
 import { Note } from './entities/note.entity';
-import { PublicNote, PublicNoteVote } from './entities/public-note.entity';
-import { MaterialFlag, FlagReason } from './entities/material-flag.entity';
 import { PageBookmark } from './entities/page-bookmark.entity';
-import { ViewingHistory } from '@/app/users/entities/viewing-history.entity';
+import { PublicNote, PublicNoteVote } from './entities/public-note.entity';
 import { Course } from '@/app/academic/entities/course.entity';
 import { User } from '@/app/users/entities/user.entity';
+import { ViewingHistory } from '@/app/users/entities/viewing-history.entity';
 
 import { CreateMaterialDto } from './dto/create-material.dto';
 
@@ -78,10 +86,13 @@ export class MaterialsService {
     });
 
     // Determine storage provider
-    const configuredProvider = this.configService.get<string>('STORAGE_PROVIDER');
-    this.storageProvider = configuredProvider === 'r2' && this.r2Service.isConfigured()
-      ? 'r2'
-      : 'cloudinary';
+    const configuredProvider =
+      this.configService.get<string>('STORAGE_PROVIDER');
+
+    this.storageProvider =
+      configuredProvider === 'r2' && this.r2Service.isConfigured()
+        ? 'r2'
+        : 'cloudinary';
   }
 
   // ... (existing getPresignedUrl)
@@ -99,7 +110,7 @@ export class MaterialsService {
       .whereInIds(materialIds)
       .getMany();
 
-    return materials.map(m => ({
+    return materials.map((m) => ({
       id: m.id,
       processingStatus: m.processingStatus,
       status: m.status,
@@ -156,7 +167,10 @@ export class MaterialsService {
 
     // Primary: R2 if configured
     if (this.storageProvider === 'r2') {
-      const r2Presign = await this.r2Service.getPresignedUploadUrl(fileType, filename);
+      const r2Presign = await this.r2Service.getPresignedUploadUrl(
+        fileType,
+        filename,
+      );
 
       // Also include Cloudinary fallback for files < 10MB
       const cloudinaryFallback = this.getCloudinaryPresign();
@@ -182,6 +196,7 @@ export class MaterialsService {
 
     // Default: Cloudinary only
     const cloudinaryPresign = this.getCloudinaryPresign();
+
     return {
       provider: 'cloudinary' as const,
       primary: cloudinaryPresign,
@@ -317,9 +332,9 @@ export class MaterialsService {
     courseId?: string,
     type?: string,
     search?: string,
-    page: number = 1,
-    limit: number = 12,
-    sortBy: string = 'createdAt',
+    page = 1,
+    limit = 12,
+    sortBy = 'createdAt',
     order: 'ASC' | 'DESC' = 'DESC',
   ) {
     const query = this.materialRepo
@@ -423,6 +438,7 @@ export class MaterialsService {
 
     // Apply pagination
     const skip = (page - 1) * limit;
+
     query.skip(skip).take(limit);
 
     const materials = await query.getMany();
@@ -534,7 +550,7 @@ export class MaterialsService {
     return {
       ...material,
       isFavorited: !!fav,
-      userRating: rating?.value || 0,
+      userRating: rating?.value ?? 0,
     };
   }
 
@@ -542,6 +558,7 @@ export class MaterialsService {
     const count = await this.favoriteRepo.count({
       where: { user: { id: userId } },
     });
+
     return { count };
   }
 
@@ -553,7 +570,6 @@ export class MaterialsService {
     });
 
     return favorites.map((fav) => ({
-      // eslint-disable-next-line @typescript-eslint/no-misused-spread
       ...fav.material,
       isFavorited: true,
     }));
@@ -833,7 +849,7 @@ export class MaterialsService {
 
       return notes.map((note) => ({
         ...note,
-        userVote: voteMap.get(note.id) || 0,
+        userVote: voteMap.get(note.id) ?? 0,
         user: {
           id: note.user.id,
           firstName: note.user.firstName,
@@ -863,6 +879,7 @@ export class MaterialsService {
     }
 
     await this.publicNoteRepo.delete(noteId);
+
     return { success: true };
   }
 
@@ -874,6 +891,7 @@ export class MaterialsService {
       where: { id: noteId },
       relations: ['user'],
     });
+
     if (!note) {
       throw new NotFoundException('Note not found');
     }
@@ -924,6 +942,7 @@ export class MaterialsService {
         userId,
         value: normalizedValue,
       });
+
       await this.publicNoteVoteRepo.save(newVote);
       if (normalizedValue === 1) {
         note.upvotes += 1;
@@ -1025,7 +1044,7 @@ export class MaterialsService {
     // Update all flags to dismissed
     await this.flagRepo.update(
       { materialId },
-      { status: 'dismissed' as any },
+      { status: FlagStatus.DISMISSED },
     );
 
     // Reset flag count and unhide
@@ -1064,8 +1083,8 @@ export class MaterialsService {
     // Check if bookmark already exists for this page
     const existing = await this.bookmarkRepo.findOne({
       where: {
-        user: { id: userId },
-        material: { id: materialId },
+        userId,
+        materialId,
         pageNumber,
       },
     });
@@ -1076,13 +1095,14 @@ export class MaterialsService {
         existing.note = note;
         await this.bookmarkRepo.save(existing);
       }
+
       return existing;
     }
 
     // Create new bookmark
     const bookmark = this.bookmarkRepo.create({
-      user: { id: userId },
-      material: { id: materialId },
+      userId,
+      materialId,
       pageNumber,
       note,
     });
@@ -1096,13 +1116,13 @@ export class MaterialsService {
   async getBookmarks(userId: string, materialId: string) {
     const bookmarks = await this.bookmarkRepo.find({
       where: {
-        user: { id: userId },
-        material: { id: materialId },
+        userId,
+        materialId,
       },
       order: { pageNumber: 'ASC' },
     });
 
-    return bookmarks.map(b => ({
+    return bookmarks.map((b) => ({
       id: b.id,
       pageNumber: b.pageNumber,
       note: b.note,
@@ -1117,7 +1137,7 @@ export class MaterialsService {
     const bookmark = await this.bookmarkRepo.findOne({
       where: {
         id: bookmarkId,
-        user: { id: userId },
+        userId,
       },
     });
 
@@ -1126,6 +1146,7 @@ export class MaterialsService {
     }
 
     await this.bookmarkRepo.remove(bookmark);
+
     return { success: true };
   }
 
@@ -1134,7 +1155,7 @@ export class MaterialsService {
   /**
    * Get recommended materials based on what others in the same department are reading
    */
-  async getRecommendations(user: User, limit: number = 5) {
+  async getRecommendations(user: User, limit = 5) {
     if (!user.department) {
       // Fallback to trending if no department
       return this.materialRepo.find({
@@ -1150,7 +1171,7 @@ export class MaterialsService {
     const deptName =
       typeof user.department === 'string'
         ? user.department
-        : (user.department as any).name;
+        : (user.department as Department).name;
 
     // specific materials the user has already seen
     const userViewed = await this.viewingHistoryRepo
@@ -1160,7 +1181,9 @@ export class MaterialsService {
       .getRawMany();
 
     const excludedIds = userViewed.map((v) => v.history_materialId);
-    if (excludedIds.length === 0) excludedIds.push('00000000-0000-0000-0000-000000000000'); // Dummy UUID
+
+    if (excludedIds.length === 0)
+      excludedIds.push('00000000-0000-0000-0000-000000000000'); // Dummy UUID
 
     // Find popular materials in same department, excluding what user has seen
     const popularInDept = await this.viewingHistoryRepo
@@ -1189,7 +1212,7 @@ export class MaterialsService {
     }
 
     // Fetch full material objects for the recommended IDs
-    // We use createQueryBuilder to maintain the order of IDs if possible, 
+    // We use createQueryBuilder to maintain the order of IDs if possible,
     // or just fetch and let client sort (or just return popular ones)
     return this.materialRepo
       .createQueryBuilder('material')
@@ -1210,9 +1233,18 @@ export class MaterialsService {
       return { updated: 0 };
     }
 
-    const validScopes = ['public', 'faculty', 'department', 'course', 'private'];
+    const validScopes = [
+      'public',
+      'faculty',
+      'department',
+      'course',
+      'private',
+    ];
+
     if (!validScopes.includes(scope)) {
-      throw new BadRequestException(`Invalid scope. Must be one of: ${validScopes.join(', ')}`);
+      throw new BadRequestException(
+        `Invalid scope. Must be one of: ${validScopes.join(', ')}`,
+      );
     }
 
     const result = await this.materialRepo
@@ -1223,7 +1255,7 @@ export class MaterialsService {
       .execute();
 
     return {
-      updated: result.affected || 0,
+      updated: result.affected ?? 0,
       scope,
       departmentId,
       facultyId,
@@ -1239,27 +1271,29 @@ export class MaterialsService {
     });
 
     // Map to simplified response
-    const data = materials.map(m => ({
+    const data = materials.map((m) => ({
       id: m.id,
       title: m.title,
       scope: m.scope,
       type: m.type,
       status: m.status,
       createdAt: m.createdAt,
-      uploader: m.uploader ? {
+      uploader: {
         id: m.uploader.id,
         firstName: m.uploader.firstName,
         lastName: m.uploader.lastName,
         email: m.uploader.email,
-      } : null,
-      course: m.course ? {
-        id: m.course.id,
-        title: m.course.title,
-        department: m.course.department ? {
-          id: m.course.department.id,
-          name: m.course.department.name,
-        } : null,
-      } : null,
+      },
+      course: m.course
+        ? {
+            id: m.course.id,
+            title: m.course.title,
+            department: {
+              id: m.course.department.id,
+              name: m.course.department.name,
+            },
+          }
+        : null,
     }));
 
     return {
