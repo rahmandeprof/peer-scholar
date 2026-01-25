@@ -10,7 +10,6 @@ import {
   Smartphone,
   ArrowRight,
   X,
-  Sparkles,
   Timer,
   Rocket,
   Upload,
