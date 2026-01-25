@@ -72,7 +72,6 @@ export function DashboardLayout() {
 
   const confirmLogout = () => {
     logout();
-    navigate('/login');
   };
 
   const fetchHistory = async () => {

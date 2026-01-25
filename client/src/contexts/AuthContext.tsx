@@ -34,7 +34,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (token: string, user: User) => void;
-  logout: () => void;
+  logout: (showToast?: boolean) => void;
   refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -153,13 +153,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [toast],
   );
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setToken(null);
-    setUser(null);
-    toast.info('Logged out successfully');
-  }, [toast]);
+  const logout = useCallback(
+    (showToast = true) => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setToken(null);
+      setUser(null);
+      if (showToast) {
+        toast.info('Logged out successfully');
+      }
+    },
+    [toast],
+  );
 
   return (
     <AuthContext.Provider

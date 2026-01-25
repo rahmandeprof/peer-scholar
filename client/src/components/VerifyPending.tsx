@@ -100,7 +100,7 @@ export function VerifyPending() {
           </button>
 
           <button
-            onClick={logout}
+            onClick={() => logout()}
             className='w-full py-3 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 font-medium transition-colors flex items-center justify-center'
           >
             <LogOut className='w-4 h-4 mr-2' />

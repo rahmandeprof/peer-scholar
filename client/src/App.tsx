@@ -87,9 +87,7 @@ const HowToUsePage = lazyWithRetryNamed(
   () => import('./components/HowToUsePage'),
   'HowToUsePage',
 );
-const LandingPage = lazyWithRetry(
-  () => import('./components/LandingPage'),
-);
+const LandingPage = lazyWithRetry(() => import('./components/LandingPage'));
 
 // Suspense fallback for route loading
 const RouteLoadingFallback = () => (
@@ -117,7 +115,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
 
   if (!isAuthenticated) {
-    return <Navigate to='/' state={{ from: location }} replace />;
+    return <Navigate to='/login' state={{ from: location }} replace />;
   }
 
   // Check for email verification (only for manual signup users)
@@ -187,7 +185,16 @@ function AppContent() {
       <Suspense fallback={<RouteLoadingFallback />}>
         <Routes>
           {/* Public marketing landing page - authenticated users go straight to dashboard */}
-          <Route path='/' element={isAuthenticated ? <Navigate to='/dashboard' replace /> : <LandingPage />} />
+          <Route
+            path='/'
+            element={
+              isAuthenticated ? (
+                <Navigate to='/dashboard' replace />
+              ) : (
+                <LandingPage />
+              )
+            }
+          />
 
           {/* Public pages - no auth required */}
           <Route path='/about' element={<AboutPage />} />
@@ -196,7 +203,10 @@ function AppContent() {
           <Route path='/auth/callback' element={<GoogleCallback />} />
           <Route path='/verify-email' element={<VerifyEmail />} />
           {/* Redirect for emails sent with /auth/verify-email path */}
-          <Route path='/auth/verify-email' element={<Navigate to='/verify-email' replace />} />
+          <Route
+            path='/auth/verify-email'
+            element={<Navigate to='/verify-email' replace />}
+          />
           <Route
             path='/forgot-password'
             element={
@@ -288,7 +298,7 @@ function AppContent() {
                       className='h-16 md:h-20 object-contain hidden dark:block'
                     />
                   </div>
-                  <Login onSwitch={() => window.location.href = '/signup'} />
+                  <Login onSwitch={() => (window.location.href = '/signup')} />
                 </div>
               )
             }
@@ -312,7 +322,7 @@ function AppContent() {
                       className='h-16 md:h-20 object-contain hidden dark:block'
                     />
                   </div>
-                  <Signup onSwitch={() => window.location.href = '/login'} />
+                  <Signup onSwitch={() => (window.location.href = '/login')} />
                 </div>
               )
             }

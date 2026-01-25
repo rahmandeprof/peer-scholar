@@ -1,7 +1,14 @@
 export const UNILORIN_FACULTIES = [
   {
-    name: 'Faculty of Administration',
-    departments: ['Marketing', 'Business Administration'],
+    name: 'Faculty of Management Sciences',
+    departments: [
+      'Marketing',
+      'Business Administration',
+      'Accounting',
+      'Finance',
+      'Public Administration',
+      'Industrial Relations and Personnel Management.',
+    ],
   },
   {
     name: 'Faculty Of Agriculture',
@@ -19,9 +26,7 @@ export const UNILORIN_FACULTIES = [
       'Performing Arts',
       'Linguistics',
       'Islamic Studies',
-      'Igbo',
       'History And International Studies',
-      'Hausa',
       'French',
       'English Language',
       'Comparative Religious Studies',
@@ -39,7 +44,7 @@ export const UNILORIN_FACULTIES = [
       'Educational Management',
       'Counselor Education',
       'Computer Science Education',
-      'Art Education',
+      'Arts Education',
       'Science Education',
       'Adult and Primary Education',
     ],
@@ -51,6 +56,7 @@ export const UNILORIN_FACULTIES = [
       'Library And Information Science',
       'Computer Science',
       'Information Technology',
+      'Mass Communication',
     ],
   },
   {
@@ -58,7 +64,8 @@ export const UNILORIN_FACULTIES = [
     departments: [
       'Architecture',
       'Urban And Regional Planning',
-      'Quantity Surveying Surveying And Geoinformation',
+      'Quantity Surveying And Geoinformatics',
+      'Estate Management',
     ],
   },
   {
@@ -77,7 +84,7 @@ export const UNILORIN_FACULTIES = [
     ],
   },
   {
-    name: 'Faculty Of Law/Legal Studies',
+    name: 'Faculty Of Law',
     departments: ['Common Law', 'Common & Islamic Law'],
   },
   {
@@ -116,13 +123,13 @@ export const UNILORIN_FACULTIES = [
     departments: [
       'Psychology',
       'Political Sciences',
-      'Mass Communication',
       'Geography And Environmental Management',
       'Finance',
       'Economics',
       'Accounting',
       'Sociology',
       'Social Work',
+      'Criminology',
     ],
   },
 ];
