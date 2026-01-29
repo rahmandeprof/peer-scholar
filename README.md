@@ -2,7 +2,7 @@
 
 A powerful, AI-driven study platform designed for Nigerian university students. **PeerToLearn** solves the chaos of scattered study materials by organizing department resources, providing offline capabilities, and enhancing learning with AI tools like text-to-speech, auto-generated quizzes, and study streaks.
 
-![License](https://img.shields.io/badge/license-UNLICENSED-blue)
+![License](https://img.shields.io/badge/license-MIT-blue)
 ![Tech](https://img.shields.io/badge/stack-NestJS%20%7C%20React%20%7C%20PostgreSQL-green)
 ![PWA](https://img.shields.io/badge/platform-Web%20%7C%20PWA%20%7C%20Mobile-orange)
 
@@ -118,4 +118,4 @@ Automated CI/CD is configured for:
 
 ## 📄 License
 
-UNLICENSED
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
