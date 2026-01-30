@@ -47,7 +47,7 @@ export function ForgotPassword() {
           We've sent a password reset link to <strong>{email}</strong>
         </p>
         <Link
-          to='/'
+          to='/login'
           className='inline-flex items-center text-primary-600 hover:text-primary-700 font-medium'
         >
           <ArrowLeft className='w-4 h-4 mr-2' />
@@ -98,7 +98,7 @@ export function ForgotPassword() {
 
         <div className='text-center'>
           <Link
-            to='/'
+            to='/login'
             className='text-sm text-gray-500 hover:text-gray-900 dark:hover:text-gray-300'
           >
             Back to Login

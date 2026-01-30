@@ -2,7 +2,7 @@
     "name": "PeerToLearn",
     "short_name": "PeerToLearn",
     "description": "Collaborative Academic Learning Platform - Share notes, study together, and ace your exams",
-    "start_url": "/",
+    "start_url": "/dashboard",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#4F46E5",

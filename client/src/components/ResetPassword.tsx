@@ -34,7 +34,7 @@ export function ResetPassword() {
       await api.post('/auth/reset-password', { token, newPassword: password });
       setSuccess(true);
       toast.success('Password reset successfully');
-      setTimeout(() => navigate('/'), 3000);
+      setTimeout(() => navigate('/login'), 3000);
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : 'Something went wrong';
@@ -57,7 +57,7 @@ export function ResetPassword() {
           Your password has been successfully reset. Redirecting to login...
         </p>
         <Link
-          to='/'
+          to='/login'
           className='inline-flex items-center text-primary-600 hover:text-primary-700 font-medium mt-4'
         >
           Go to Login Now
