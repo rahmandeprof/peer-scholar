@@ -4,6 +4,7 @@ import {
   Delete,
   ForbiddenException,
   Get,
+  Header,
   Param,
   Patch,
   Post,
@@ -111,13 +112,13 @@ export class MaterialsController {
   }
 
   @Get('trending')
-
+  @Header('Cache-Control', 'public, max-age=300, s-maxage=600') // 5min client, 10min CDN
   getTrending(@Req() req: AuthenticatedRequest) {
     return this.materialsService.getTrending(req.user);
   }
 
   @Get('recommendations')
-
+  @Header('Cache-Control', 'public, max-age=600, s-maxage=1800') // 10min client, 30min CDN
   getRecommendations(@Req() req: AuthenticatedRequest) {
     return this.materialsService.getRecommendations(req.user);
   }

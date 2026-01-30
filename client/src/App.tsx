@@ -154,10 +154,10 @@ function AppContent() {
   // Prevent back button from going to auth pages when authenticated (PWA fix)
   useEffect(() => {
     const handlePopState = () => {
-      // If user is authenticated and navigates to root, redirect to dashboard
-      if (isAuthenticated && window.location.pathname === '/') {
+      // If user is authenticated and navigates to auth pages, redirect to dashboard
+      const authPages = ['/', '/login', '/signup'];
+      if (isAuthenticated && authPages.includes(window.location.pathname)) {
         window.history.replaceState(null, '', '/dashboard');
-        window.location.reload();
       }
     };
 

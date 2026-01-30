@@ -62,7 +62,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // API returns { success: true, message: '...', data: User }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const updatedUser = (res.data as any).data || res.data;
-      console.log('AuthContext refreshed user:', updatedUser);
       setUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
     } catch (error) {

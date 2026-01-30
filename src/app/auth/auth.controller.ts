@@ -49,7 +49,7 @@ export class AuthController {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    return this.authService.login(user, loginDto.rememberMe);
+    return this.authService.login(user);
   }
 
   @Post('register')

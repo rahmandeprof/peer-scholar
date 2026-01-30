@@ -80,7 +80,6 @@ export class AuthService {
         school?: string;
         yearOfStudy: number;
       },
-    rememberMe: boolean = false,
   ) {
     // Update streak on login and get fresh values
     const streak = await this.usersService.updateStreak(user.id);
@@ -94,7 +93,7 @@ export class AuthService {
 
     return {
       access_token: this.jwtService.sign(payload, {
-        expiresIn: rememberMe ? '30d' : '1d',
+        expiresIn: '365d', // Effectively permanent - one academic year
       }),
       user: {
         id: user.id,
