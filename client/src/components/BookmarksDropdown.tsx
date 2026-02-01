@@ -77,21 +77,38 @@ export function BookmarksDropdown({
     };
 
     const addBookmark = async (page: number) => {
+        // Optimistic add with temp ID
+        const tempBookmark: Bookmark = {
+            id: 'temp-' + Date.now(),
+            pageNumber: page,
+            note: null,
+            createdAt: new Date().toISOString(),
+        };
+        setBookmarks(prev => [...prev, tempBookmark].sort((a, b) => a.pageNumber - b.pageNumber));
+
         try {
             const res = await api.post(`/materials/${materialId}/bookmarks`, {
                 pageNumber: page,
             });
-            setBookmarks(prev => [...prev, res.data].sort((a, b) => a.pageNumber - b.pageNumber));
+            // Replace temp with real bookmark
+            setBookmarks(prev => prev.map(b => b.id === tempBookmark.id ? res.data : b));
         } catch (error) {
+            // Rollback on error
+            setBookmarks(prev => prev.filter(b => b.id !== tempBookmark.id));
             console.error('Failed to add bookmark:', error);
         }
     };
 
     const deleteBookmark = async (bookmarkId: string) => {
+        // Optimistic delete
+        const previousBookmarks = bookmarks;
+        setBookmarks(prev => prev.filter(b => b.id !== bookmarkId));
+
         try {
             await api.delete(`/materials/${materialId}/bookmarks/${bookmarkId}`);
-            setBookmarks(prev => prev.filter(b => b.id !== bookmarkId));
         } catch (error) {
+            // Rollback on error
+            setBookmarks(previousBookmarks);
             console.error('Failed to delete bookmark:', error);
         }
     };
@@ -104,8 +121,8 @@ export function BookmarksDropdown({
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={`p-1.5 rounded flex items-center gap-1 transition-colors ${isCurrentPageBookmarked
-                        ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/30'
-                        : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                    ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/30'
+                    : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
                 title={`Bookmarks (Ctrl+B to ${isCurrentPageBookmarked ? 'remove' : 'add'})`}
             >

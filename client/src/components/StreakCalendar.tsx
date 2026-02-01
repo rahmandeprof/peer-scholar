@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Flame, Calendar, TrendingUp } from 'lucide-react';
+import { Flame, Calendar, TrendingUp, Snowflake } from 'lucide-react';
 import api from '../lib/api';
 
 interface ActivityDay {
@@ -19,12 +19,19 @@ export function StreakCalendar({ compact = false }: StreakCalendarProps) {
     const [hoveredDay, setHoveredDay] = useState<ActivityDay | null>(null);
     const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number } | null>(null);
     const cellRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+    const [streakFreezes, setStreakFreezes] = useState(0);
+    const [weeklyActiveDays, setWeeklyActiveDays] = useState(0);
 
     useEffect(() => {
-        const fetchActivity = async () => {
+        const fetchData = async () => {
             try {
-                const res = await api.get('/study/activity/history');
-                setActivity(res.data);
+                const [activityRes, insightsRes] = await Promise.all([
+                    api.get('/study/activity/history'),
+                    api.get('/study/streak'),
+                ]);
+                setActivity(activityRes.data);
+                setStreakFreezes(insightsRes.data.streakFreezes ?? 0);
+                setWeeklyActiveDays(insightsRes.data.weeklyActiveDays ?? 0);
             } catch (error) {
                 console.error('Failed to fetch activity:', error);
             } finally {
@@ -32,7 +39,7 @@ export function StreakCalendar({ compact = false }: StreakCalendarProps) {
             }
         };
 
-        fetchActivity();
+        fetchData();
     }, []);
 
     // Dismiss tooltip on scroll, touchmove, or tap outside (fixes mobile issue where tooltip stays glued)
@@ -205,6 +212,25 @@ export function StreakCalendar({ compact = false }: StreakCalendarProps) {
                             </div>
                             <div className='text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
                                 Total
+                            </div>
+                        </div>
+                        {/* Streak Freezes */}
+                        {streakFreezes > 0 && (
+                            <div className='text-center' title={`${streakFreezes} streak freeze${streakFreezes > 1 ? 's' : ''} available`}>
+                                <div className='font-bold text-cyan-500 flex items-center justify-center gap-0.5'>
+                                    <Snowflake className='w-3 h-3' />
+                                    {streakFreezes}
+                                </div>
+                                <div className='text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
+                                    Freeze{streakFreezes > 1 ? 's' : ''}
+                                </div>
+                            </div>
+                        )}
+                        {/* Weekly Progress */}
+                        <div className='text-center hidden sm:block' title={`${weeklyActiveDays}/7 days active this week`}>
+                            <div className='font-bold text-violet-500'>{weeklyActiveDays}/7</div>
+                            <div className='text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
+                                Week
                             </div>
                         </div>
                     </div>

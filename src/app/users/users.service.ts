@@ -498,29 +498,62 @@ export class UsersService {
       userId,
       currentStreak: 0,
       longestStreak: 0,
+      weeklyActiveDays: 0,
+      streakFreezes: 0,
     });
 
     const now = new Date();
+
+    // Check if it's a new week (Monday start)
+    const isNewWeek = this.isNewWeek(streak.weekStartDate, now);
+    if (isNewWeek) {
+      // Award freezes based on last week's activity before resetting
+      if (streak.weeklyActiveDays >= 7) {
+        streak.streakFreezes += 2;
+      } else if (streak.weeklyActiveDays >= 5) {
+        streak.streakFreezes += 1;
+      }
+      // Reset weekly counter for new week
+      streak.weeklyActiveDays = 0;
+      streak.weekStartDate = this.getWeekStart(now);
+    }
 
     if (streak.lastActivityDate) {
       const diffDays = this.getDiffDays(now, streak.lastActivityDate);
 
       if (diffDays === 0) {
-        // Same day, do nothing
+        // Same day, do nothing to streak, but we're still active this day
       } else if (diffDays === 1) {
-        // Consecutive day
+        // Consecutive day - increment streak and weekly counter
         streak.currentStreak += 1;
+        streak.weeklyActiveDays += 1;
 
         if (streak.currentStreak > streak.longestStreak) {
           streak.longestStreak = streak.currentStreak;
         }
       } else {
-        // Streak broken
-        streak.currentStreak = 1;
+        // Gap of 2+ days - streak would break
+        if (streak.streakFreezes > 0) {
+          // Use a freeze to preserve the streak
+          streak.streakFreezes -= 1;
+          streak.currentStreak += 1; // Continue the streak
+          streak.weeklyActiveDays += 1;
+
+          if (streak.currentStreak > streak.longestStreak) {
+            streak.longestStreak = streak.currentStreak;
+          }
+        } else {
+          // No freezes available - streak breaks
+          streak.currentStreak = 1;
+          streak.weeklyActiveDays += 1;
+        }
       }
     } else {
+      // First activity ever
       streak.currentStreak = 1;
       streak.longestStreak = 1;
+      streak.weeklyActiveDays = 1;
+      streak.weekStartDate = this.getWeekStart(now);
     }
 
     streak.lastActivityDate = now;
@@ -536,7 +569,26 @@ export class UsersService {
     return {
       currentStreak: streak.currentStreak,
       longestStreak: streak.longestStreak,
+      streakFreezes: streak.streakFreezes,
+      weeklyActiveDays: streak.weeklyActiveDays,
     };
+  }
+
+  // Check if we're in a new week compared to the stored week start
+  private isNewWeek(storedWeekStart: Date | null, now: Date): boolean {
+    if (!storedWeekStart) return true;
+    const currentWeekStart = this.getWeekStart(now);
+    return currentWeekStart.getTime() !== new Date(storedWeekStart).getTime();
+  }
+
+  // Get the Monday of the current week
+  private getWeekStart(date: Date): Date {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
+    const monday = new Date(d.setDate(diff));
+    monday.setHours(0, 0, 0, 0);
+    return monday;
   }
 
   private getStage(streak: number): string {
@@ -557,6 +609,8 @@ export class UsersService {
       longestStreak: streak?.longestStreak ?? 0,
       lastActivity: streak?.lastActivityDate,
       stage: this.getStage(effectiveStreak),
+      streakFreezes: streak?.streakFreezes ?? 0,
+      weeklyActiveDays: streak?.weeklyActiveDays ?? 0,
     };
   }
   async increaseReputation(userId: string, amount: number) {

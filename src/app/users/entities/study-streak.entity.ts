@@ -20,4 +20,14 @@ export class StudyStreak extends IDAndTimestamp {
 
   @Column({ name: 'last_activity_date', type: 'timestamp', nullable: true })
   lastActivityDate!: Date | null;
+
+  // Weekly tracking for streak freeze system
+  @Column({ name: 'weekly_active_days', default: 0 })
+  weeklyActiveDays!: number;
+
+  @Column({ name: 'streak_freezes', default: 0 })
+  streakFreezes!: number;
+
+  @Column({ name: 'week_start_date', type: 'date', nullable: true })
+  weekStartDate!: Date | null;
 }

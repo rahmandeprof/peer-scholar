@@ -66,6 +66,10 @@ export function FolderView({ folder, onClose, onUpdate }: FolderViewProps) {
   };
 
   const handleRemoveFromFolder = async (materialId: string) => {
+    // Optimistic removal
+    const previousMaterials = materials;
+    setMaterials((prev) => prev.filter((m) => m.id !== materialId));
+
     try {
       if (folder.type === 'favorites') {
         await api.post(`/materials/${materialId}/favorite`);
@@ -74,10 +78,11 @@ export function FolderView({ folder, onClose, onUpdate }: FolderViewProps) {
           `/academic/collections/${folder.id}/materials/${materialId}`,
         );
       }
-      setMaterials((prev) => prev.filter((m) => m.id !== materialId));
       onUpdate();
       success('Removed from folder');
     } catch (err) {
+      // Rollback on error
+      setMaterials(previousMaterials);
       error('Failed to remove material');
     }
   };
