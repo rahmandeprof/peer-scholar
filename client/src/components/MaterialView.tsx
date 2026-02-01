@@ -36,6 +36,7 @@ import { useToast } from '../contexts/ToastContext';
 import { FeatureSpotlightModal } from './FeatureSpotlightModal';
 import { ReportModal } from './ReportModal';
 import { CollectionModal } from './CollectionModal';
+import { SaveOfflineButton } from './SaveOfflineButton';
 import { PenTool, Folder, MessageSquare, Link2 } from 'lucide-react';
 
 // Lazy-loaded heavy modals and sidebars for better code splitting
@@ -62,7 +63,9 @@ const HelpfulLinksPanel = lazy(() =>
   import('./HelpfulLinksPanel').then((m) => ({ default: m.default })),
 );
 const RecommendedMaterials = lazy(() =>
-  import('./RecommendedMaterials').then((m) => ({ default: m.RecommendedMaterials })),
+  import('./RecommendedMaterials').then((m) => ({
+    default: m.RecommendedMaterials,
+  })),
 );
 
 // Loading spinner for lazy modals
@@ -74,8 +77,6 @@ const ModalLoadingFallback = () => (
     </div>
   </div>
 );
-
-
 
 export const MaterialView = () => {
   const { id } = useParams<{ id: string }>();
@@ -118,7 +119,10 @@ export const MaterialView = () => {
   // Page tracking for TTS
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
-  const [ttsHighlightRange, setTtsHighlightRange] = useState<{ start: number; end: number } | null>(null);
+  const [ttsHighlightRange, setTtsHighlightRange] = useState<{
+    start: number;
+    end: number;
+  } | null>(null);
 
   // Callback for PDFViewer page changes
   const handlePdfPageChange = (page: number, total: number) => {
@@ -132,7 +136,6 @@ export const MaterialView = () => {
       setCurrentPage(page);
     }
   };
-
 
   const handleSessionEnd = () => {
     setSessionEndModalOpen(true);
@@ -198,10 +201,10 @@ export const MaterialView = () => {
           courseCode: res.data.courseCode,
           uploader: res.data.uploader
             ? {
-              id: res.data.uploader.id,
-              firstName: res.data.uploader.firstName,
-              lastName: res.data.uploader.lastName,
-            }
+                id: res.data.uploader.id,
+                firstName: res.data.uploader.firstName,
+                lastName: res.data.uploader.lastName,
+              }
             : undefined,
         });
 
@@ -259,7 +262,8 @@ export const MaterialView = () => {
     const getElapsedSeconds = () => {
       const totalElapsed = Date.now() - sessionStartTimeRef.current;
       // Subtract time spent paused
-      const activeTime = totalElapsed - totalPausedTime - (isPaused ? (Date.now() - pausedAt) : 0);
+      const activeTime =
+        totalElapsed - totalPausedTime - (isPaused ? Date.now() - pausedAt : 0);
       return Math.floor(Math.max(0, activeTime) / 1000);
     };
 
@@ -510,7 +514,10 @@ export const MaterialView = () => {
                 </div>
               </h1>
               <p className='text-sm text-gray-500 dark:text-gray-400 truncate'>
-                Uploaded by {material.uploader ? getDisplayName(material.uploader) : 'Unknown'}
+                Uploaded by{' '}
+                {material.uploader
+                  ? getDisplayName(material.uploader)
+                  : 'Unknown'}
               </p>
             </div>
           </div>
@@ -548,10 +555,11 @@ export const MaterialView = () => {
 
             <button
               onClick={() => setJotterOpen(!jotterOpen)}
-              className={`hidden md:flex px-3 py-1.5 rounded-full transition-colors items-center font-medium text-sm ${jotterOpen
-                ? 'bg-yellow-200 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-400'
-                : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-200 dark:hover:bg-yellow-900/50'
-                }`}
+              className={`hidden md:flex px-3 py-1.5 rounded-full transition-colors items-center font-medium text-sm ${
+                jotterOpen
+                  ? 'bg-yellow-200 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-400'
+                  : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-200 dark:hover:bg-yellow-900/50'
+              }`}
             >
               <PenTool className='w-4 h-4 mr-1.5' />
               Jotter
@@ -575,10 +583,11 @@ export const MaterialView = () => {
 
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className={`hidden md:flex p-2 rounded-full transition-colors ${sidebarOpen
-                ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
-                : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
+              className={`hidden md:flex p-2 rounded-full transition-colors ${
+                sidebarOpen
+                  ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
+                  : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
               title='Open AI Companion'
             >
               <Sparkles className='w-5 h-5' />
@@ -604,20 +613,28 @@ export const MaterialView = () => {
                     onTouchStart={(e) => {
                       const touch = e.touches[0];
                       e.currentTarget.dataset.startY = touch.clientY.toString();
-                      e.currentTarget.dataset.currentY = touch.clientY.toString();
+                      e.currentTarget.dataset.currentY =
+                        touch.clientY.toString();
                     }}
                     onTouchMove={(e) => {
                       const touch = e.touches[0];
-                      const startY = parseFloat(e.currentTarget.dataset.startY || '0');
+                      const startY = parseFloat(
+                        e.currentTarget.dataset.startY || '0',
+                      );
                       const deltaY = touch.clientY - startY;
                       if (deltaY > 0) {
                         e.currentTarget.style.transform = `translateY(${deltaY}px)`;
-                        e.currentTarget.dataset.currentY = touch.clientY.toString();
+                        e.currentTarget.dataset.currentY =
+                          touch.clientY.toString();
                       }
                     }}
                     onTouchEnd={(e) => {
-                      const startY = parseFloat(e.currentTarget.dataset.startY || '0');
-                      const currentY = parseFloat(e.currentTarget.dataset.currentY || '0');
+                      const startY = parseFloat(
+                        e.currentTarget.dataset.startY || '0',
+                      );
+                      const currentY = parseFloat(
+                        e.currentTarget.dataset.currentY || '0',
+                      );
                       const deltaY = currentY - startY;
                       if (deltaY > 100) {
                         setMenuOpen(false);
@@ -629,7 +646,9 @@ export const MaterialView = () => {
                     {/* Mobile Header with Close Button */}
                     <div className='md:hidden sticky top-0 bg-white dark:bg-gray-800 z-10 px-4 py-3 border-b border-gray-100 dark:border-gray-700'>
                       <div className='flex items-center justify-between'>
-                        <span className='text-sm font-semibold text-gray-900 dark:text-white'>Actions</span>
+                        <span className='text-sm font-semibold text-gray-900 dark:text-white'>
+                          Actions
+                        </span>
                         <button
                           onClick={() => setMenuOpen(false)}
                           className='p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors'
@@ -655,7 +674,9 @@ export const MaterialView = () => {
                       </button>
                       <button
                         onClick={() => {
-                          const hasSeen = localStorage.getItem('has_seen_flashcards');
+                          const hasSeen = localStorage.getItem(
+                            'has_seen_flashcards',
+                          );
                           if (!hasSeen) {
                             setShowFlashcardSpotlight(true);
                             localStorage.setItem('has_seen_flashcards', 'true');
@@ -738,7 +759,7 @@ export const MaterialView = () => {
                       <button
                         onClick={() => {
                           handleToggleFavorite();
-                          // Keep open or close? User usually wants feedback. 
+                          // Keep open or close? User usually wants feedback.
                           // But to be consistent with "mobile feel", let's close it.
                           setMenuOpen(false);
                         }}
@@ -801,6 +822,14 @@ export const MaterialView = () => {
                         <Download className='w-4 h-4 mr-3' />
                         Download File
                       </a>
+
+                      {/* Save for Offline */}
+                      <div className='px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50'>
+                        <SaveOfflineButton
+                          materialId={material.id}
+                          materialTitle={material.title}
+                        />
+                      </div>
 
                       <button
                         onClick={() => {
@@ -995,9 +1024,15 @@ export const MaterialView = () => {
             <TTSPlayer
               text={material.content}
               materialId={material.id}
-              startChunk={totalPages > 0
-                ? Math.floor((currentPage - 1) * Math.ceil(material.content.length / 800) / totalPages)
-                : 0}
+              startChunk={
+                totalPages > 0
+                  ? Math.floor(
+                      ((currentPage - 1) *
+                        Math.ceil(material.content.length / 800)) /
+                        totalPages,
+                    )
+                  : 0
+              }
               onClose={() => {
                 setTtsOpen(false);
                 setTtsHighlightRange(null); // Clear highlight when TTS closes

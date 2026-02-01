@@ -21,6 +21,7 @@ import { getDisplayName } from '../lib/displayName';
 import { getApiErrorMessage } from '../lib/errorUtils';
 import { removeFromViewingHistory } from '../lib/viewingHistory';
 import { BorderSpinner } from './Skeleton';
+import { OfflineBadge } from './SaveOfflineButton';
 import api from '../lib/api';
 
 interface Material {
@@ -34,13 +35,13 @@ interface Material {
   createdAt: string;
   status?: 'pending' | 'processing' | 'ready' | 'failed';
   processingStatus?:
-  | 'pending'
-  | 'extracting'
-  | 'cleaning'
-  | 'segmenting'
-  | 'completed'
-  | 'failed'
-  | 'ocr_extracting';
+    | 'pending'
+    | 'extracting'
+    | 'cleaning'
+    | 'segmenting'
+    | 'completed'
+    | 'failed'
+    | 'ocr_extracting';
   processingVersion?: 'v1' | 'v2';
   isOcrProcessed?: boolean;
   ocrConfidence?: number;
@@ -164,6 +165,9 @@ export const MaterialCard = memo(function MaterialCard({
       <div
         className={`bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl overflow-visible shadow-sm rounded-2xl hover:shadow-md transition-all border border-gray-200/50 dark:border-gray-700/50 group relative hover-lift active-press flex flex-col h-full ${menuOpen ? 'z-[100]' : ''}`}
       >
+        {/* Offline Badge */}
+        <OfflineBadge materialId={material.id} />
+
         <div className='p-6 flex-grow'>
           <div className='flex items-start justify-between mb-4'>
             <div className='flex-1 min-w-0 mr-4'>
@@ -189,12 +193,12 @@ export const MaterialCard = memo(function MaterialCard({
 
               {/* Processing Status Badge */}
               {material.status === 'processing' ||
-                material.status === 'pending' ||
-                material.processingStatus?.toLowerCase() === 'extracting' ||
-                material.processingStatus?.toLowerCase() === 'cleaning' ||
-                material.processingStatus?.toLowerCase() === 'segmenting' ||
-                material.processingStatus?.toLowerCase() === 'pending' ||
-                material.processingStatus?.toLowerCase() === 'ocr_extracting' ? (
+              material.status === 'pending' ||
+              material.processingStatus?.toLowerCase() === 'extracting' ||
+              material.processingStatus?.toLowerCase() === 'cleaning' ||
+              material.processingStatus?.toLowerCase() === 'segmenting' ||
+              material.processingStatus?.toLowerCase() === 'pending' ||
+              material.processingStatus?.toLowerCase() === 'ocr_extracting' ? (
                 isStaleProcessing(material) ? (
                   // Stale/stuck processing badge
                   <span
@@ -211,13 +215,13 @@ export const MaterialCard = memo(function MaterialCard({
                     {material.processingStatus?.toLowerCase() === 'extracting'
                       ? 'Extracting'
                       : material.processingStatus?.toLowerCase() ===
-                        'segmenting'
+                          'segmenting'
                         ? 'Segmenting'
                         : material.processingStatus?.toLowerCase() ===
-                          'cleaning'
+                            'cleaning'
                           ? 'Cleaning'
                           : material.processingStatus?.toLowerCase() ===
-                            'ocr_extracting'
+                              'ocr_extracting'
                             ? 'OCR Processing'
                             : 'Processing'}
                   </span>
@@ -244,12 +248,13 @@ export const MaterialCard = memo(function MaterialCard({
               {/* OCR Quality Badge */}
               {material.isOcrProcessed && (
                 <span
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${(material.ocrConfidence ?? 0) >= 80
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${
+                    (material.ocrConfidence ?? 0) >= 80
                       ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-100 dark:border-blue-800'
                       : (material.ocrConfidence ?? 0) >= 50
                         ? 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-100 dark:border-yellow-800'
                         : 'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border-orange-100 dark:border-orange-800'
-                    }`}
+                  }`}
                   title={`Scanned document - OCR confidence: ${(material.ocrConfidence ?? 0).toFixed(0)}%`}
                 >
                   <Scan className='w-3 h-3' />
