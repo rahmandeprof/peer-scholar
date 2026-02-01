@@ -37,6 +37,11 @@ import { FeatureSpotlightModal } from './FeatureSpotlightModal';
 import { ReportModal } from './ReportModal';
 import { CollectionModal } from './CollectionModal';
 import { SaveOfflineButton } from './SaveOfflineButton';
+import {
+  saveMaterialOffline,
+  isMaterialOffline,
+  evictOldAutoCached,
+} from '../lib/offlineStorage';
 import { PenTool, Folder, MessageSquare, Link2 } from 'lucide-react';
 
 // Lazy-loaded heavy modals and sidebars for better code splitting
@@ -247,6 +252,45 @@ export const MaterialView = () => {
       void fetchMaterial();
     }
   }, [id]);
+
+  // Auto-cache recently viewed PDFs for offline access
+  useEffect(() => {
+    if (!material || !material.fileUrl) return;
+
+    const autoCachePdf = async () => {
+      try {
+        // Don't auto-cache if already saved offline
+        const alreadyOffline = await isMaterialOffline(material.id);
+        if (alreadyOffline) return;
+
+        // Fetch the PDF and cache it
+        const response = await fetch(material.fileUrl);
+        if (!response.ok) return;
+
+        const blob = await response.blob();
+        await saveMaterialOffline(
+          material.id,
+          material.title,
+          blob,
+          false, // isUserSaved = false (auto-cached)
+        );
+
+        // Evict old auto-cached items to keep storage lean
+        await evictOldAutoCached(5);
+        console.log('[Offline] Auto-cached material:', material.title);
+      } catch (err) {
+        console.error('[Offline] Failed to auto-cache:', err);
+      }
+    };
+
+    // Only auto-cache PDFs
+    if (
+      material.fileUrl?.endsWith('.pdf') ||
+      material.fileType?.includes('pdf')
+    ) {
+      void autoCachePdf();
+    }
+  }, [material]);
 
   // Reading time heartbeat - sends every 30 seconds while viewing
   // Pauses when tab is hidden (user switches tabs or minimizes)

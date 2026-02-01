@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from 'react';
+import { syncPendingActions, getPendingCount } from '../lib/syncQueue';
 
 interface NetworkPreferences {
   autoPlayVideos: boolean;
@@ -12,6 +19,8 @@ interface NetworkContextType {
   saveData: boolean;
   preferences: NetworkPreferences;
   updatePreferences: (prefs: Partial<NetworkPreferences>) => void;
+  pendingSyncCount: number;
+  triggerSync: () => Promise<void>;
 }
 
 const NetworkContext = createContext<NetworkContextType | undefined>(undefined);
@@ -27,9 +36,9 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({
     return saved
       ? JSON.parse(saved)
       : {
-        autoPlayVideos: false,
-        highQualityImages: false, // Default to false (smart mode)
-      };
+          autoPlayVideos: false,
+          highQualityImages: false, // Default to false (smart mode)
+        };
   });
 
   useEffect(() => {
@@ -58,7 +67,14 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Track online/offline status
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
+    const handleOnline = async () => {
+      setIsOnline(true);
+      // Auto-sync when coming back online
+      console.log('[Network] Back online, syncing pending actions...');
+      await syncPendingActions();
+      const count = await getPendingCount();
+      setPendingSyncCount(count);
+    };
     const handleOffline = () => setIsOnline(false);
 
     window.addEventListener('online', handleOnline);
@@ -69,6 +85,22 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
+
+  // Track pending sync count
+  const [pendingSyncCount, setPendingSyncCount] = useState(0);
+
+  // Check pending count on mount
+  useEffect(() => {
+    getPendingCount().then(setPendingSyncCount);
+  }, []);
+
+  // Manual trigger sync
+  const triggerSync = useCallback(async () => {
+    if (!isOnline) return;
+    await syncPendingActions();
+    const count = await getPendingCount();
+    setPendingSyncCount(count);
+  }, [isOnline]);
 
   const updatePreferences = (prefs: Partial<NetworkPreferences>) => {
     setPreferences((prev) => {
@@ -99,6 +131,8 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({
         saveData,
         preferences,
         updatePreferences,
+        pendingSyncCount,
+        triggerSync,
       }}
     >
       {children}
