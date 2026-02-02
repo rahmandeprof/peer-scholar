@@ -134,6 +134,7 @@ export class MaterialsService {
       topic: dto.topic,
       targetYear: dto.targetYear,
       uploader: user,
+      schoolId: user.schoolId, // Auto-assign from uploader for multi-university scoping
       status: MaterialStatus.PENDING,
       processingStatus: ProcessingStatus.PENDING,
       fileHash: dto.fileHash,
@@ -249,6 +250,11 @@ export class MaterialsService {
     // Non-admin users should not see hidden materials
     if (!isAdmin) {
       query.andWhere('material.isHidden = :isHidden', { isHidden: false });
+
+      // Multi-university scoping: only show materials from user's university
+      if (user.schoolId) {
+        query.andWhere('material.school_id = :schoolId', { schoolId: user.schoolId });
+      }
     }
 
     // Admin sees all materials, non-admin sees scoped materials
@@ -347,6 +353,11 @@ export class MaterialsService {
     // Non-admin users should not see hidden materials
     if (!isAdmin) {
       query.andWhere('material.isHidden = :isHidden', { isHidden: false });
+
+      // Multi-university scoping: only show materials from user's university
+      if (user.schoolId) {
+        query.andWhere('material.school_id = :schoolId', { schoolId: user.schoolId });
+      }
     }
 
     if (courseId) {
@@ -1286,13 +1297,13 @@ export class MaterialsService {
       },
       course: m.course
         ? {
-            id: m.course.id,
-            title: m.course.title,
-            department: {
-              id: m.course.department.id,
-              name: m.course.department.name,
-            },
-          }
+          id: m.course.id,
+          title: m.course.title,
+          department: {
+            id: m.course.department.id,
+            name: m.course.department.name,
+          },
+        }
         : null,
     }));
 

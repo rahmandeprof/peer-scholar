@@ -4,6 +4,7 @@ import { CapitalizeTransformer } from '@/utils/transformers/capitalize';
 
 import { Exclude } from 'class-transformer';
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
+import { School } from '../../academic/entities/school.entity';
 
 @Entity('user')
 export class User extends IDAndTimestamp {
@@ -55,6 +56,14 @@ export class User extends IDAndTimestamp {
 
   @Column({ name: 'school', nullable: true })
   school: string;
+
+  // Foreign key relation to School (university)
+  @Column({ name: 'school_id', type: 'uuid', nullable: true })
+  schoolId: string | null;
+
+  @ManyToOne(() => School, { nullable: true })
+  @JoinColumn({ name: 'school_id' })
+  schoolEntity: School | null;
 
   @Column({ name: 'current_streak', type: 'int', default: 0 })
   currentStreak: number;

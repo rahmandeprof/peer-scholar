@@ -2,6 +2,7 @@ import { DocumentSegment } from './document-segment.entity';
 import { MaterialChunk } from './material-chunk.entity';
 import { MaterialFavorite } from './material-favorite.entity';
 import { MaterialRating } from './material-rating.entity';
+import { School } from './school.entity';
 import { Course } from '@/app/academic/entities/course.entity';
 import { PersonalCourse } from '@/app/academic/entities/personal-course.entity';
 import { User } from '@/app/users/entities/user.entity';
@@ -148,6 +149,14 @@ export class Material extends IDAndTimestamp {
     default: AccessScope.PRIVATE,
   })
   scope: AccessScope;
+
+  // University scoping - auto-filled from uploader
+  @Column({ name: 'school_id', type: 'uuid', nullable: true })
+  schoolId: string | null;
+
+  @ManyToOne(() => School, { nullable: true })
+  @JoinColumn({ name: 'school_id' })
+  school: School | null;
 
   @Column({
     name: 'status',

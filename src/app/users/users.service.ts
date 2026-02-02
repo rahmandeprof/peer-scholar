@@ -431,6 +431,7 @@ export class UsersService {
 
     if (dto.schoolId) {
       user.school = dto.schoolId;
+      user.schoolId = dto.schoolId; // Set FK for multi-university scoping
     }
 
     if (dto.facultyId) {
