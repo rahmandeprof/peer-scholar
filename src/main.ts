@@ -1,11 +1,9 @@
 // Sentry must be imported first before any other modules
-import './instrument';
-import * as Sentry from '@sentry/nestjs';
-
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { AppModule } from '@/app/app.module';
 
@@ -14,13 +12,13 @@ import { RequestIdInterceptor } from './app/common/interceptors/request-id.inter
 
 import { EnvironmentVariables } from '@/validation/env.validation';
 
+import './instrument';
 import { CLIENT_URL_REGEX, PREVIEW_CLIENT_URL_REGEX } from '@/utils/constants';
+
+import compression from 'compression';
 
 import { GlobalExceptionFilter } from './app/common/filters/http-exception.filter';
 import { validationExceptionFactory } from './utils/validation';
-
-import compression from 'compression';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -68,7 +66,10 @@ async function bootstrap() {
   const port = config.get<number>('PORT');
 
   // Swagger API documentation (development only for security)
-  if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_SWAGGER === 'true') {
+  if (
+    process.env.NODE_ENV !== 'production' ||
+    process.env.ENABLE_SWAGGER === 'true'
+  ) {
     const swaggerConfig = new DocumentBuilder()
       .setTitle('PeerToLearn API')
       .setDescription('API documentation for PeerToLearn study platform')
@@ -76,6 +77,7 @@ async function bootstrap() {
       .addBearerAuth()
       .build();
     const document = SwaggerModule.createDocument(app, swaggerConfig);
+
     SwaggerModule.setup('api/docs', app, document);
     console.log(`📚 Swagger docs available at /api/docs`);
   }
