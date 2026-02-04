@@ -79,6 +79,7 @@ export class AuthService {
           department: string;
           faculty?: string;
           school?: string;
+          schoolId?: string;
           yearOfStudy: number;
         },
   ) {
@@ -104,6 +105,7 @@ export class AuthService {
         department: user.department,
         faculty: user.faculty,
         school: user.school,
+        schoolId: user.schoolId,
         yearOfStudy: user.yearOfStudy,
         currentStreak: streak.currentStreak,
         longestStreak: streak.longestStreak,

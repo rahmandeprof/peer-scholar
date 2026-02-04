@@ -43,6 +43,13 @@ export default function CompleteProfile() {
   const [loadingFaculties, setLoadingFaculties] = useState(false);
   const [loadingDepartments, setLoadingDepartments] = useState(false);
 
+  // Pre-fill school from user data if available (e.g. from Google Auth + backend link)
+  useEffect(() => {
+    if (user?.schoolId && !formData.schoolId) {
+      setFormData((prev) => ({ ...prev, schoolId: user.schoolId! }));
+    }
+  }, [user, formData.schoolId]);
+
   useEffect(() => {
     // If user already has all data, redirect to dashboard
     if (
