@@ -26,6 +26,7 @@ import {
   UserPlus,
   Flame,
   Copy,
+  Building,
 } from 'lucide-react';
 import { BorderSpinner } from '../Skeleton';
 import api from '../../lib/api';
@@ -248,6 +249,25 @@ export function AdminDashboard() {
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<string[]>([]);
   const [bulkScope, setBulkScope] = useState('department');
   const [updatingVisibility, setUpdatingVisibility] = useState(false);
+
+  // University seeding state
+  const [showUniversities, setShowUniversities] = useState(false);
+  const [schools, setSchools] = useState<{
+    id: string;
+    name: string;
+    country: string;
+    facultyCount: number;
+    userCount: number;
+    materialCount: number;
+  }[]>([]);
+  const [schoolsLoading, setSchoolsLoading] = useState(false);
+  const [seedForm, setSeedForm] = useState({
+    schoolName: '',
+    country: 'Nigeria',
+    facultyName: '',
+    departments: '',
+  });
+  const [seeding, setSeeding] = useState(false);
 
   // Check admin access
   useEffect(() => {
@@ -541,6 +561,47 @@ export function AdminDashboard() {
       setSelectedMaterialIds([]);
     } else {
       setSelectedMaterialIds(allMaterials.map(m => m.id));
+    }
+  };
+
+  const fetchSchools = async () => {
+    setSchoolsLoading(true);
+    try {
+      const res = await api.get('/admin/schools');
+      setSchools(res.data.schools || []);
+    } catch (err) {
+      toast.error('Failed to fetch schools');
+    } finally {
+      setSchoolsLoading(false);
+    }
+  };
+
+  const handleSeedUniversity = async () => {
+    const departments = seedForm.departments
+      .split('\n')
+      .map((d) => d.trim())
+      .filter((d) => d.length > 0);
+
+    if (!seedForm.schoolName || !seedForm.facultyName || departments.length === 0) {
+      toast.error('Please fill all fields');
+      return;
+    }
+
+    setSeeding(true);
+    try {
+      const res = await api.post('/admin/schools/seed', {
+        schoolName: seedForm.schoolName,
+        country: seedForm.country,
+        facultyName: seedForm.facultyName,
+        departments,
+      });
+      toast.success(res.data.message);
+      setSeedForm({ schoolName: '', country: 'Nigeria', facultyName: '', departments: '' });
+      fetchSchools();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to seed data');
+    } finally {
+      setSeeding(false);
     }
   };
 
@@ -2035,10 +2096,10 @@ export function AdminDashboard() {
                           </td>
                           <td className='p-2'>
                             <span className={`px-2 py-0.5 rounded text-xs ${m.scope === 'public' ? 'bg-green-100 text-green-800' :
-                                m.scope === 'department' ? 'bg-blue-100 text-blue-800' :
-                                  m.scope === 'faculty' ? 'bg-purple-100 text-purple-800' :
-                                    m.scope === 'course' ? 'bg-yellow-100 text-yellow-800' :
-                                      'bg-gray-100 text-gray-800'
+                              m.scope === 'department' ? 'bg-blue-100 text-blue-800' :
+                                m.scope === 'faculty' ? 'bg-purple-100 text-purple-800' :
+                                  m.scope === 'course' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-gray-100 text-gray-800'
                               }`}>
                               {m.scope || 'private'}
                             </span>
@@ -2081,6 +2142,128 @@ export function AdminDashboard() {
             )}
           </div>
         )}
+
+        {/* Universities Management Section */}
+        <div className='bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4'>
+          <button
+            onClick={() => {
+              setShowUniversities(!showUniversities);
+              if (!showUniversities) fetchSchools();
+            }}
+            className='w-full flex items-center justify-between'
+          >
+            <div className='flex items-center gap-3'>
+              <div className='w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center'>
+                <Building className='w-5 h-5 text-indigo-600 dark:text-indigo-400' />
+              </div>
+              <div className='text-left'>
+                <h3 className='font-semibold text-gray-900 dark:text-white'>Universities</h3>
+                <p className='text-xs text-gray-500 dark:text-gray-400'>Manage schools, faculties & departments</p>
+              </div>
+            </div>
+            <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform ${showUniversities ? 'rotate-90' : ''}`} />
+          </button>
+
+          {showUniversities && (
+            <div className='mt-4 space-y-4'>
+              {/* Seeding Form */}
+              <div className='p-4 bg-gray-50 dark:bg-gray-800 rounded-lg'>
+                <h4 className='text-sm font-semibold text-gray-900 dark:text-white mb-3'>Quick Add University Data</h4>
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
+                  <div>
+                    <label className='block text-xs text-gray-500 dark:text-gray-400 mb-1'>University Name</label>
+                    <input
+                      type='text'
+                      value={seedForm.schoolName}
+                      onChange={(e) => setSeedForm({ ...seedForm, schoolName: e.target.value })}
+                      placeholder='e.g. Usmanu Danfodiyo University'
+                      className='w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-xs text-gray-500 dark:text-gray-400 mb-1'>Country</label>
+                    <input
+                      type='text'
+                      value={seedForm.country}
+                      onChange={(e) => setSeedForm({ ...seedForm, country: e.target.value })}
+                      placeholder='Nigeria'
+                      className='w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-xs text-gray-500 dark:text-gray-400 mb-1'>Faculty Name</label>
+                    <input
+                      type='text'
+                      value={seedForm.facultyName}
+                      onChange={(e) => setSeedForm({ ...seedForm, facultyName: e.target.value })}
+                      placeholder='e.g. Faculty of Science'
+                      className='w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-xs text-gray-500 dark:text-gray-400 mb-1'>Departments (one per line)</label>
+                    <textarea
+                      value={seedForm.departments}
+                      onChange={(e) => setSeedForm({ ...seedForm, departments: e.target.value })}
+                      placeholder={'Physics\nChemistry\nMathematics\nBiology'}
+                      rows={4}
+                      className='w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={handleSeedUniversity}
+                  disabled={seeding}
+                  className='mt-3 px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2'
+                >
+                  {seeding ? <BorderSpinner size='xs' /> : <Upload className='w-4 h-4' />}
+                  Add University Data
+                </button>
+              </div>
+
+              {/* Schools List */}
+              <div>
+                <div className='flex items-center justify-between mb-2'>
+                  <h4 className='text-sm font-semibold text-gray-900 dark:text-white'>Universities ({schools.length})</h4>
+                  <button
+                    onClick={fetchSchools}
+                    disabled={schoolsLoading}
+                    className='p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded'
+                  >
+                    <RefreshCw className={`w-4 h-4 text-gray-400 ${schoolsLoading ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+
+                {schoolsLoading ? (
+                  <div className='flex justify-center py-4'>
+                    <BorderSpinner size='sm' />
+                  </div>
+                ) : schools.length === 0 ? (
+                  <p className='text-sm text-gray-500 text-center py-4'>No universities found</p>
+                ) : (
+                  <div className='space-y-2'>
+                    {schools.map((school) => (
+                      <div
+                        key={school.id}
+                        className='flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg'
+                      >
+                        <div>
+                          <p className='font-medium text-gray-900 dark:text-white'>{school.name}</p>
+                          <p className='text-xs text-gray-500 dark:text-gray-400'>{school.country}</p>
+                        </div>
+                        <div className='flex items-center gap-4 text-xs text-gray-500'>
+                          <span>{school.facultyCount} faculties</span>
+                          <span>{school.userCount} users</span>
+                          <span>{school.materialCount} materials</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Bulk Delete Confirmation Modal */}

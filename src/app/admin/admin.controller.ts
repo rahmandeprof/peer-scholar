@@ -13,6 +13,9 @@ import { DocumentSegment } from '@/app/academic/entities/document-segment.entity
 import { MaterialReport } from '@/app/academic/entities/material-report.entity';
 import { User } from '@/app/users/entities/user.entity';
 import { QuizResult } from '@/app/chat/entities/quiz-result.entity';
+import { School } from '@/app/academic/entities/school.entity';
+import { Faculty } from '@/app/academic/entities/faculty.entity';
+import { Department } from '@/app/academic/entities/department.entity';
 
 import { Role } from '@/app/auth/decorators';
 import { RolesGuard } from '@/app/auth/guards/roles.guard';
@@ -47,6 +50,12 @@ export class AdminController {
     private readonly userRepo: Repository<User>,
     @InjectRepository(QuizResult)
     private readonly quizResultRepo: Repository<QuizResult>,
+    @InjectRepository(School)
+    private readonly schoolRepo: Repository<School>,
+    @InjectRepository(Faculty)
+    private readonly facultyRepo: Repository<Faculty>,
+    @InjectRepository(Department)
+    private readonly departmentRepo: Repository<Department>,
     @InjectQueue('materials')
     private readonly materialsQueue: Queue,
     private readonly configService: ConfigService,
@@ -1144,6 +1153,142 @@ export class AdminController {
       message: `Deleted ${deleted.length} of ${ids.length} materials`,
       deleted,
       errors,
+    };
+  }
+
+  // ========== UNIVERSITY MANAGEMENT ==========
+
+  @Get('schools')
+  async getSchools() {
+    const schools = await this.schoolRepo
+      .createQueryBuilder('school')
+      .leftJoin('school.faculties', 'faculty')
+      .leftJoin('faculty.departments', 'department')
+      .loadRelationCountAndMap('school.facultyCount', 'school.faculties')
+      .select(['school.id', 'school.name', 'school.country'])
+      .getMany();
+
+    // Get counts for each school
+    const schoolsWithCounts = await Promise.all(
+      schools.map(async (school) => {
+        const facultyCount = await this.facultyRepo.count({
+          where: { school: { id: school.id } },
+        });
+        const userCount = await this.userRepo.count({
+          where: { schoolId: school.id },
+        });
+        const materialCount = await this.materialRepo.count({
+          where: { schoolId: school.id },
+        });
+        return {
+          ...school,
+          facultyCount,
+          userCount,
+          materialCount,
+        };
+      }),
+    );
+
+    return { schools: schoolsWithCounts };
+  }
+
+  @Get('schools/:id/faculties')
+  async getSchoolFaculties(@Param('id', new ParseUUIDPipe()) id: string) {
+    const faculties = await this.facultyRepo.find({
+      where: { school: { id } },
+      relations: ['departments'],
+      order: { name: 'ASC' },
+    });
+
+    return {
+      faculties: faculties.map((f) => ({
+        id: f.id,
+        name: f.name,
+        departments: f.departments.map((d) => ({ id: d.id, name: d.name })),
+        departmentCount: f.departments.length,
+      })),
+    };
+  }
+
+  @Post('schools/seed')
+  async seedUniversityData(
+    @Body()
+    body: {
+      schoolName: string;
+      country?: string;
+      facultyName: string;
+      departments: string[];
+    },
+  ) {
+    const { schoolName, country, facultyName, departments } = body;
+
+    if (!schoolName || !facultyName || !departments?.length) {
+      throw new BadRequestException(
+        'schoolName, facultyName, and departments are required',
+      );
+    }
+
+    // 1. Find or create school
+    let school = await this.schoolRepo.findOne({
+      where: { name: schoolName },
+    });
+
+    if (!school) {
+      school = this.schoolRepo.create({
+        name: schoolName,
+        country: country || 'Nigeria',
+      });
+      await this.schoolRepo.save(school);
+      this.logger.log(`Created school: ${schoolName}`);
+    }
+
+    // 2. Find or create faculty
+    let faculty = await this.facultyRepo.findOne({
+      where: { name: facultyName, school: { id: school.id } },
+    });
+
+    if (!faculty) {
+      faculty = this.facultyRepo.create({
+        name: facultyName,
+        school,
+      });
+      await this.facultyRepo.save(faculty);
+      this.logger.log(`Created faculty: ${facultyName}`);
+    }
+
+    // 3. Create departments
+    const createdDepts: string[] = [];
+    const existingDepts: string[] = [];
+
+    for (const deptName of departments) {
+      const trimmedName = deptName.trim();
+      if (!trimmedName) continue;
+
+      const existing = await this.departmentRepo.findOne({
+        where: { name: trimmedName, faculty: { id: faculty.id } },
+      });
+
+      if (existing) {
+        existingDepts.push(trimmedName);
+      } else {
+        const dept = this.departmentRepo.create({
+          name: trimmedName,
+          faculty,
+        });
+        await this.departmentRepo.save(dept);
+        createdDepts.push(trimmedName);
+      }
+    }
+
+    return {
+      success: true,
+      school: { id: school.id, name: school.name },
+      faculty: { id: faculty.id, name: faculty.name },
+      departments: {
+        created: createdDepts,
+        existing: existingDepts,
+      },
+      message: `Created ${createdDepts.length} departments, ${existingDepts.length} already existed`,
     };
   }
 }
