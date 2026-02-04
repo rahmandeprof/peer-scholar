@@ -132,6 +132,8 @@ export class AuthService {
       firstName: userData.firstName,
       lastName: userData.lastName,
       email: userData.email,
+      school: userData.school,
+      schoolId: userData.schoolId,
       department: userData.department,
       faculty: userData.faculty,
       yearOfStudy: userData.yearOfStudy,

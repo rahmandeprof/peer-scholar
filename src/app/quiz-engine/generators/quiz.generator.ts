@@ -123,57 +123,52 @@ export class QuizGenerator {
         }
       }
 
-      // Filter out questions with < 2 options (hybrid filtering)
+      // REPAIR incomplete questions instead of discarding them
       const allQuestions = quizData.questions || [];
-      const validQuestions = allQuestions.filter(
-        (q) =>
-          Array.isArray(q.options) &&
-          q.options.length >= 2 &&
-          q.question?.length >= 10 &&
-          q.answer?.length >= 1 &&
-          q.explanation?.length >= 10,
-      );
+      const repairedQuestions = allQuestions
+        .map((q) => this.repairQuestion(q))
+        .filter((q) => q !== null);
 
-      const invalidCount = allQuestions.length - validQuestions.length;
+      const repairedCount = allQuestions.length - repairedQuestions.length;
 
-      if (invalidCount > 0) {
+      if (repairedCount > 0) {
         this.logger.warn(
-          `Filtered out ${invalidCount} invalid questions (< 2 options or missing fields)`,
+          `Could not repair ${repairedCount} questions (missing critical fields)`,
         );
       }
 
       // Track best attempt
-      if (validQuestions.length > bestAttemptQuestions.length) {
-        bestAttemptQuestions = validQuestions;
+      if (repairedQuestions.length > bestAttemptQuestions.length) {
+        bestAttemptQuestions = repairedQuestions;
         bestAttemptData = quizData;
       }
 
-      // Check if we have enough valid questions (at least 50% or minimum 3)
-      const minRequired = Math.max(3, Math.floor(questionCount * 0.5));
+      // Check if we have enough questions (relaxed: at least 2 or 30% of requested)
+      const minRequired = Math.max(2, Math.floor(questionCount * 0.3));
 
       if (
-        validQuestions.length >= minRequired ||
-        validQuestions.length >= questionCount
+        repairedQuestions.length >= minRequired ||
+        repairedQuestions.length >= questionCount
       ) {
-        // Success with filtered questions
+        // Success with repaired questions
         this.logger.debug(
-          `Quiz generated successfully after ${totalAttempts} attempt(s) with ${validQuestions.length} valid questions`,
+          `Quiz generated successfully after ${totalAttempts} attempt(s) with ${repairedQuestions.length} questions`,
         );
 
         return {
           success: true,
           data: {
             ...quizData,
-            questions: validQuestions,
+            questions: repairedQuestions,
           } as QuizResponse,
           retryCount: totalAttempts,
         };
       }
 
-      // Not enough valid questions, retry
-      lastError = `Only ${validQuestions.length} valid questions (need ${minRequired})`;
+      // Not enough questions, retry
+      lastError = `Only ${repairedQuestions.length} questions (need ${minRequired})`;
       this.logger.warn(
-        `Insufficient valid questions on attempt ${retry + 1}: ${lastError}`,
+        `Insufficient questions on attempt ${retry + 1}: ${lastError}`,
       );
     }
 
@@ -364,56 +359,51 @@ export class QuizGenerator {
         }
       }
 
-      // Filter out questions with < 2 options (hybrid filtering)
+      // REPAIR incomplete questions instead of discarding them
       const allQuestions = quizData.questions || [];
-      const validQuestions = allQuestions.filter(
-        (q) =>
-          Array.isArray(q.options) &&
-          q.options.length >= 2 &&
-          q.question?.length >= 10 &&
-          q.answer?.length >= 1 &&
-          q.explanation?.length >= 10,
-      );
+      const repairedQuestions = allQuestions
+        .map((q) => this.repairQuestion(q))
+        .filter((q) => q !== null);
 
-      const invalidCount = allQuestions.length - validQuestions.length;
+      const repairedCount = allQuestions.length - repairedQuestions.length;
 
-      if (invalidCount > 0) {
+      if (repairedCount > 0) {
         this.logger.warn(
-          `Filtered out ${invalidCount} invalid questions (< 2 options or missing fields)`,
+          `Could not repair ${repairedCount} questions (missing critical fields)`,
         );
       }
 
       // Track best attempt
-      if (validQuestions.length > bestAttemptQuestions.length) {
-        bestAttemptQuestions = validQuestions;
+      if (repairedQuestions.length > bestAttemptQuestions.length) {
+        bestAttemptQuestions = repairedQuestions;
         bestAttemptData = quizData;
       }
 
-      // Check if we have enough valid questions (at least 50% or minimum 3)
-      const minRequired = Math.max(3, Math.floor(adjustedQuestionCount * 0.5));
+      // Check if we have enough questions (relaxed: at least 2 or 30% of requested)
+      const minRequired = Math.max(2, Math.floor(adjustedQuestionCount * 0.3));
 
       if (
-        validQuestions.length >= minRequired ||
-        validQuestions.length >= adjustedQuestionCount
+        repairedQuestions.length >= minRequired ||
+        repairedQuestions.length >= adjustedQuestionCount
       ) {
         this.logger.debug(
-          `Quiz generated from segments successfully after ${totalAttempts} attempt(s) with ${validQuestions.length} valid questions`,
+          `Quiz generated from segments successfully after ${totalAttempts} attempt(s) with ${repairedQuestions.length} questions`,
         );
 
         return {
           success: true,
           data: {
             ...quizData,
-            questions: validQuestions,
+            questions: repairedQuestions,
           } as QuizResponse,
           retryCount: totalAttempts,
         };
       }
 
-      // Not enough valid questions, retry
-      lastError = `Only ${validQuestions.length} valid questions (need ${minRequired})`;
+      // Not enough questions, retry
+      lastError = `Only ${repairedQuestions.length} questions (need ${minRequired})`;
       this.logger.warn(
-        `Insufficient valid questions on attempt ${retry + 1}: ${lastError}`,
+        `Insufficient questions on attempt ${retry + 1}: ${lastError}`,
       );
     }
 
@@ -443,5 +433,171 @@ export class QuizGenerator {
       error: `Failed to generate quiz after ${totalAttempts} attempts: ${lastError}`,
       retryCount: totalAttempts,
     };
+  }
+
+  /**
+   * Repair an incomplete question by filling in missing fields
+   * Returns null only if the question is completely unsalvageable
+   */
+  // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+  private repairQuestion(q: any): any | null {
+    // Must have at least a question text
+    if (
+      !q?.question ||
+      typeof q.question !== 'string' ||
+      q.question.length < 5
+    ) {
+      return null;
+    }
+
+    // Must have an answer
+    if (!q?.answer || typeof q.answer !== 'string' || q.answer.length < 1) {
+      return null;
+    }
+
+    const repaired = { ...q };
+
+    // Ensure options is an array
+    if (!Array.isArray(repaired.options)) {
+      repaired.options = [];
+    }
+
+    // If answer is not in options, add it
+    if (!repaired.options.includes(repaired.answer)) {
+      repaired.options.unshift(repaired.answer);
+    }
+
+    // Generate filler options if we have fewer than 4
+    if (repaired.options.length < 4) {
+      const fillers = this.generateFillerOptions(
+        repaired.question,
+        repaired.answer,
+        repaired.options,
+        4 - repaired.options.length,
+      );
+
+      repaired.options = [...repaired.options, ...fillers];
+    }
+
+    // Shuffle options so correct answer isn't always first
+    repaired.options = this.shuffleArray([...repaired.options]);
+
+    // Fix short or missing explanation
+    if (!repaired.explanation || repaired.explanation.length < 5) {
+      repaired.explanation = `The correct answer is: ${repaired.answer}`;
+    }
+
+    // Ensure hint exists
+    if (!repaired.hint) {
+      repaired.hint = 'Think carefully about the question.';
+    }
+
+    // Ensure ID exists
+    if (!repaired.id) {
+      repaired.id = `q${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    }
+
+    // Ensure type exists
+    if (!repaired.type) {
+      repaired.type = 'mcq';
+    }
+
+    return repaired;
+  }
+
+  /**
+   * Generate smart filler options based on the question context
+   */
+  private generateFillerOptions(
+    question: string,
+    correctAnswer: string,
+    existingOptions: string[],
+    count: number,
+  ): string[] {
+    const fillers: string[] = [];
+
+    // Common distractor patterns
+    const genericDistractors = [
+      'None of the above',
+      'All of the above',
+      'Cannot be determined',
+      'Not applicable',
+    ];
+
+    // Try to generate contextual distractors based on answer type
+    const answerLower = correctAnswer.toLowerCase();
+
+    // If answer is a number, generate nearby numbers
+    const numMatch = /^(\d+(?:\.\d+)?)/.exec(correctAnswer);
+
+    if (numMatch) {
+      const num = parseFloat(numMatch[1]);
+      const variations = [
+        (num * 0.5).toFixed(numMatch[0].includes('.') ? 1 : 0),
+        (num * 1.5).toFixed(numMatch[0].includes('.') ? 1 : 0),
+        (num * 2).toFixed(numMatch[0].includes('.') ? 1 : 0),
+        (num + 1).toString(),
+        (num - 1).toString(),
+      ];
+
+      for (const v of variations) {
+        if (
+          v !== correctAnswer &&
+          !existingOptions.includes(v) &&
+          !fillers.includes(v) &&
+          fillers.length < count
+        ) {
+          fillers.push(v);
+        }
+      }
+    }
+
+    // If answer is True/False, add the opposite
+    if (answerLower === 'true' && !existingOptions.includes('False')) {
+      fillers.push('False');
+    } else if (answerLower === 'false' && !existingOptions.includes('True')) {
+      fillers.push('True');
+    }
+
+    // Fill remaining with generic distractors
+    for (const distractor of genericDistractors) {
+      if (
+        !existingOptions.includes(distractor) &&
+        !fillers.includes(distractor) &&
+        fillers.length < count
+      ) {
+        fillers.push(distractor);
+      }
+    }
+
+    // If still not enough, add letter-based options
+    const letters = ['Option A', 'Option B', 'Option C', 'Option D'];
+
+    for (const letter of letters) {
+      if (
+        !existingOptions.includes(letter) &&
+        !fillers.includes(letter) &&
+        fillers.length < count
+      ) {
+        fillers.push(letter);
+      }
+    }
+
+    return fillers.slice(0, count);
+  }
+
+  /**
+   * Shuffle array using Fisher-Yates algorithm
+   */
+  private shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array];
+
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    return shuffled;
   }
 }

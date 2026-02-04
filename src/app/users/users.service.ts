@@ -441,17 +441,22 @@ export class UsersService {
       }
     }
 
+    // Handle school - prefer FK, but also set legacy string field
     if (dto.schoolId) {
-      user.school = dto.schoolId;
-      user.schoolId = dto.schoolId; // Set FK for multi-university scoping
+      user.schoolId = dto.schoolId;
+    }
+    if (dto.school) {
+      user.school = dto.school;
     }
 
-    if (dto.facultyId) {
-      user.faculty = dto.facultyId;
+    // Handle faculty - legacy string field
+    if (dto.faculty) {
+      user.faculty = dto.faculty;
     }
 
-    if (dto.departmentId) {
-      user.department = dto.departmentId;
+    // Handle department - legacy string field
+    if (dto.department) {
+      user.department = dto.department;
     }
 
     if (dto.yearOfStudy) {

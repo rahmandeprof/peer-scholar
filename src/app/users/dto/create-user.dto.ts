@@ -40,6 +40,11 @@ export class CreateUserDto {
   @IsOptional()
   schoolId?: string;
 
+  // Legacy string field for school name
+  @IsString()
+  @IsOptional()
+  school?: string;
+
   @IsString()
   @IsOptional()
   faculty?: string;

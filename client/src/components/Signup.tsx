@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -6,7 +6,20 @@ import api from '../lib/api';
 import { ArrowRight } from 'lucide-react';
 import { BorderSpinner } from './Skeleton';
 
-import { UNILORIN_FACULTIES } from '../data/unilorin-faculties';
+interface School {
+  id: string;
+  name: string;
+}
+
+interface Faculty {
+  id: string;
+  name: string;
+}
+
+interface Department {
+  id: string;
+  name: string;
+}
 
 interface SignupProps {
   onSwitch: () => void;
@@ -22,30 +35,131 @@ export function Signup({ onSwitch }: SignupProps) {
     lastName: '',
     email: '',
     password: '',
-    schoolId: 'University of Ilorin',
-    faculty: '',
-    department: '',
+    schoolId: '',
+    facultyId: '',
+    departmentId: '',
     yearOfStudy: 1,
   });
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const toast = useToast();
 
+  // Dynamic data from API
+  const [schools, setSchools] = useState<School[]>([]);
+  const [faculties, setFaculties] = useState<Faculty[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loadingSchools, setLoadingSchools] = useState(true);
+  const [loadingFaculties, setLoadingFaculties] = useState(false);
+  const [loadingDepartments, setLoadingDepartments] = useState(false);
+
+  // Fetch schools on mount
+  useEffect(() => {
+    const fetchSchools = async () => {
+      try {
+        const res = await api.get('/academic/schools');
+        setSchools(res.data);
+      } catch (err) {
+        console.error('Failed to fetch schools:', err);
+        toast.error('Failed to load schools. Please refresh the page.');
+      } finally {
+        setLoadingSchools(false);
+      }
+    };
+
+    fetchSchools();
+  }, []);
+
+  // Fetch faculties when school changes
+  useEffect(() => {
+    if (!formData.schoolId) {
+      setFaculties([]);
+      setDepartments([]);
+      return;
+    }
+
+    const fetchFaculties = async () => {
+      setLoadingFaculties(true);
+      setFaculties([]);
+      setDepartments([]);
+      setFormData((prev) => ({ ...prev, facultyId: '', departmentId: '' }));
+
+      try {
+        const res = await api.get(
+          `/academic/schools/${formData.schoolId}/faculties`,
+        );
+        setFaculties(res.data);
+      } catch (err) {
+        console.error('Failed to fetch faculties:', err);
+        toast.error('Failed to load faculties.');
+      } finally {
+        setLoadingFaculties(false);
+      }
+    };
+
+    fetchFaculties();
+  }, [formData.schoolId]);
+
+  // Fetch departments when faculty changes
+  useEffect(() => {
+    if (!formData.facultyId) {
+      setDepartments([]);
+      return;
+    }
+
+    const fetchDepartments = async () => {
+      setLoadingDepartments(true);
+      setDepartments([]);
+      setFormData((prev) => ({ ...prev, departmentId: '' }));
+
+      try {
+        const res = await api.get(
+          `/academic/faculties/${formData.facultyId}/departments`,
+        );
+        setDepartments(res.data);
+      } catch (err) {
+        console.error('Failed to fetch departments:', err);
+        toast.error('Failed to load departments.');
+      } finally {
+        setLoadingDepartments(false);
+      }
+    };
+
+    fetchDepartments();
+  }, [formData.facultyId]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
+      // Find the selected names for legacy field compatibility
+      const selectedSchool = schools.find((s) => s.id === formData.schoolId);
+      const selectedFaculty = faculties.find(
+        (f) => f.id === formData.facultyId,
+      );
+      const selectedDepartment = departments.find(
+        (d) => d.id === formData.departmentId,
+      );
+
       const res = await api.post('/auth/register', {
-        ...formData,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        schoolId: formData.schoolId,
+        facultyId: formData.facultyId,
+        departmentId: formData.departmentId,
+        // Also send string versions for legacy field compatibility
+        school: selectedSchool?.name,
+        faculty: selectedFaculty?.name,
+        department: selectedDepartment?.name,
+        yearOfStudy: formData.yearOfStudy,
         referralCode: referralCode || undefined,
       });
       login(res.data.access_token, res.data.user);
     } catch (err: any) {
-      // Extract meaningful error message from API response
       let errorMessage = 'Registration failed. Please try again.';
 
       if (err.response?.data?.message) {
-        // Handle array of messages (validation errors)
         const apiMessage = err.response.data.message;
         if (Array.isArray(apiMessage)) {
           errorMessage = apiMessage.join('. ');
@@ -151,9 +265,17 @@ export function Signup({ onSwitch }: SignupProps) {
               onChange={(e) =>
                 setFormData({ ...formData, schoolId: e.target.value })
               }
-              className='w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none'
+              disabled={loadingSchools}
+              className='w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-50'
             >
-              <option value='University of Ilorin'>University of Ilorin</option>
+              <option value=''>
+                {loadingSchools ? 'Loading schools...' : 'Select School'}
+              </option>
+              {schools.map((school) => (
+                <option key={school.id} value={school.id}>
+                  {school.name}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -163,19 +285,18 @@ export function Signup({ onSwitch }: SignupProps) {
             </label>
             <select
               required
-              value={formData.faculty}
-              onChange={(e) => {
-                setFormData({
-                  ...formData,
-                  faculty: e.target.value,
-                  department: '',
-                });
-              }}
-              className='w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none'
+              value={formData.facultyId}
+              onChange={(e) =>
+                setFormData({ ...formData, facultyId: e.target.value })
+              }
+              disabled={!formData.schoolId || loadingFaculties}
+              className='w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-50'
             >
-              <option value=''>Select Faculty</option>
-              {UNILORIN_FACULTIES.map((f) => (
-                <option key={f.name} value={f.name}>
+              <option value=''>
+                {loadingFaculties ? 'Loading faculties...' : 'Select Faculty'}
+              </option>
+              {faculties.map((f) => (
+                <option key={f.id} value={f.id}>
                   {f.name}
                 </option>
               ))}
@@ -187,22 +308,21 @@ export function Signup({ onSwitch }: SignupProps) {
             </label>
             <select
               required
-              disabled={!formData.faculty}
-              value={formData.department}
+              disabled={!formData.facultyId || loadingDepartments}
+              value={formData.departmentId}
               onChange={(e) =>
-                setFormData({ ...formData, department: e.target.value })
+                setFormData({ ...formData, departmentId: e.target.value })
               }
               className='w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-50'
             >
-              <option value=''>Select Department</option>
-              {formData.faculty &&
-                UNILORIN_FACULTIES.find(
-                  (f) => f.name === formData.faculty,
-                )?.departments.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
+              <option value=''>
+                {loadingDepartments ? 'Loading...' : 'Select Department'}
+              </option>
+              {departments.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
             </select>
           </div>
           <div className='space-y-2'>
@@ -232,8 +352,8 @@ export function Signup({ onSwitch }: SignupProps) {
           disabled={
             loading ||
             !formData.schoolId ||
-            !formData.faculty ||
-            !formData.department
+            !formData.facultyId ||
+            !formData.departmentId
           }
           className='w-full py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed'
         >

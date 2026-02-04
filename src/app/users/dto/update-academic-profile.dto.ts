@@ -1,17 +1,31 @@
-import { IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, IsUUID, Min } from 'class-validator';
 
 export class UpdateAcademicProfileDto {
-  @IsString()
+  // New FK-based fields (UUIDs)
+  @IsUUID()
   @IsOptional()
   schoolId?: string;
 
-  @IsString()
+  @IsUUID()
   @IsOptional()
   facultyId?: string;
 
-  @IsString()
+  @IsUUID()
   @IsOptional()
   departmentId?: string;
+
+  // Legacy string fields (names) - for backward compatibility
+  @IsString()
+  @IsOptional()
+  school?: string;
+
+  @IsString()
+  @IsOptional()
+  faculty?: string;
+
+  @IsString()
+  @IsOptional()
+  department?: string;
 
   @IsInt()
   @Min(1)

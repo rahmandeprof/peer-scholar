@@ -1,11 +1,20 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import axios from 'axios';
 import { X, Upload as UploadIcon, FileText, Check } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { UNILORIN_FACULTIES } from '../data/unilorin-faculties';
 import { useModalBack } from '../hooks/useModalBack';
+
+interface Faculty {
+  id: string;
+  name: string;
+}
+
+interface Department {
+  id: string;
+  name: string;
+}
 
 // Type definition for Cloudinary presign response
 interface CloudinaryConfig {
@@ -45,6 +54,61 @@ export function UploadModal({
   const [courseCode, setCourseCode] = useState('');
   const [specificFaculty, setSpecificFaculty] = useState('');
   const [specificDepartment, setSpecificDepartment] = useState('');
+
+  // Dynamic faculty/department data
+  const [faculties, setFaculties] = useState<Faculty[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loadingFaculties, setLoadingFaculties] = useState(false);
+  const [loadingDepartments, setLoadingDepartments] = useState(false);
+
+  // Fetch faculties when modal opens and user has a school
+  useEffect(() => {
+    if (!isOpen || !user?.schoolId) return;
+
+    const fetchFaculties = async () => {
+      setLoadingFaculties(true);
+      try {
+        const res = await api.get(
+          `/academic/schools/${user.schoolId}/faculties`,
+        );
+        setFaculties(res.data);
+      } catch (err) {
+        console.error('Failed to fetch faculties:', err);
+      } finally {
+        setLoadingFaculties(false);
+      }
+    };
+
+    fetchFaculties();
+  }, [isOpen, user?.schoolId]);
+
+  // Fetch departments when faculty changes
+  useEffect(() => {
+    if (!specificFaculty) {
+      setDepartments([]);
+      return;
+    }
+
+    // Find the faculty ID from name
+    const faculty = faculties.find((f) => f.name === specificFaculty);
+    if (!faculty) return;
+
+    const fetchDepartments = async () => {
+      setLoadingDepartments(true);
+      try {
+        const res = await api.get(
+          `/academic/faculties/${faculty.id}/departments`,
+        );
+        setDepartments(res.data);
+      } catch (err) {
+        console.error('Failed to fetch departments:', err);
+      } finally {
+        setLoadingDepartments(false);
+      }
+    };
+
+    fetchDepartments();
+  }, [specificFaculty, faculties]);
   const [targetYear, setTargetYear] = useState<number | ''>('');
 
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
@@ -321,13 +385,13 @@ export function UploadModal({
         typeof user?.faculty === 'string'
           ? user.faculty
           : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (user?.faculty as any)?.name;
+            (user?.faculty as any)?.name;
     } else if (visibility === 'department') {
       targetDepartment =
         typeof user?.department === 'string'
           ? user.department
           : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (user?.department as any)?.name;
+            (user?.department as any)?.name;
     }
 
     await api.post('/materials', {
@@ -508,7 +572,7 @@ export function UploadModal({
                     {typeof user?.faculty === 'string'
                       ? user.faculty
                       : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      (user?.faculty as any)?.name || ''}
+                        (user?.faculty as any)?.name || ''}
                     )
                   </option>
                   <option value='department'>
@@ -516,7 +580,7 @@ export function UploadModal({
                     {typeof user?.department === 'string'
                       ? user.department
                       : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      (user?.department as any)?.name || ''}
+                        (user?.department as any)?.name || ''}
                     )
                   </option>
                   <option value='specific_faculty'>Specific Faculty</option>
@@ -559,9 +623,11 @@ export function UploadModal({
                     className='w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none'
                     required
                   >
-                    <option value=''>Select Faculty</option>
-                    {UNILORIN_FACULTIES.map((f) => (
-                      <option key={f.name} value={f.name}>
+                    <option value=''>
+                      {loadingFaculties ? 'Loading...' : 'Select Faculty'}
+                    </option>
+                    {faculties.map((f) => (
+                      <option key={f.id} value={f.name}>
                         {f.name}
                       </option>
                     ))}
@@ -584,9 +650,11 @@ export function UploadModal({
                       className='w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none'
                       required
                     >
-                      <option value=''>Select Faculty</option>
-                      {UNILORIN_FACULTIES.map((f) => (
-                        <option key={f.name} value={f.name}>
+                      <option value=''>
+                        {loadingFaculties ? 'Loading...' : 'Select Faculty'}
+                      </option>
+                      {faculties.map((f) => (
+                        <option key={f.id} value={f.name}>
                           {f.name}
                         </option>
                       ))}
@@ -603,15 +671,16 @@ export function UploadModal({
                       required
                       disabled={!specificFaculty}
                     >
-                      <option value=''>Select Department</option>
-                      {specificFaculty &&
-                        UNILORIN_FACULTIES.find(
-                          (f) => f.name === specificFaculty,
-                        )?.departments.map((d) => (
-                          <option key={d} value={d}>
-                            {d}
-                          </option>
-                        ))}
+                      <option value=''>
+                        {loadingDepartments
+                          ? 'Loading...'
+                          : 'Select Department'}
+                      </option>
+                      {departments.map((d) => (
+                        <option key={d.id} value={d.name}>
+                          {d.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -660,12 +729,13 @@ export function UploadModal({
               {/* Upload tips note */}
               <div className='p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg space-y-1'>
                 <p className='text-xs text-amber-700 dark:text-amber-400'>
-                  <strong>📄 Scanned PDFs:</strong> Limited to 50 pages for text recognition.
-                  Regular PDFs with selectable text have no limit.
+                  <strong>📄 Scanned PDFs:</strong> Limited to 50 pages for text
+                  recognition. Regular PDFs with selectable text have no limit.
                 </p>
                 <p className='text-xs text-amber-700 dark:text-amber-400'>
-                  <strong>🤖 AI Features:</strong> Best results for documents under 200 pages.
-                  For textbooks, consider uploading individual chapters.
+                  <strong>🤖 AI Features:</strong> Best results for documents
+                  under 200 pages. For textbooks, consider uploading individual
+                  chapters.
                 </p>
               </div>
 

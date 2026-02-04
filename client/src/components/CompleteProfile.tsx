@@ -3,9 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import api from '../lib/api';
-import { UNILORIN_FACULTIES } from '../data/unilorin-faculties';
 import { GraduationCap, Building, School, AlertTriangle } from 'lucide-react';
 import { BorderSpinner } from './Skeleton';
+
+interface SchoolData {
+  id: string;
+  name: string;
+}
+
+interface Faculty {
+  id: string;
+  name: string;
+}
+
+interface Department {
+  id: string;
+  name: string;
+}
 
 export default function CompleteProfile() {
   const { user, refreshUser, isLoading } = useAuth();
@@ -15,11 +29,19 @@ export default function CompleteProfile() {
   const [confirmed, setConfirmed] = useState(false);
 
   const [formData, setFormData] = useState({
-    school: 'University of Ilorin', // Default for now
-    faculty: '',
-    department: '',
+    schoolId: '',
+    facultyId: '',
+    departmentId: '',
     yearOfStudy: 1,
   });
+
+  // Dynamic data from API
+  const [schools, setSchools] = useState<SchoolData[]>([]);
+  const [faculties, setFaculties] = useState<Faculty[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loadingSchools, setLoadingSchools] = useState(true);
+  const [loadingFaculties, setLoadingFaculties] = useState(false);
+  const [loadingDepartments, setLoadingDepartments] = useState(false);
 
   useEffect(() => {
     // If user already has all data, redirect to dashboard
@@ -34,15 +56,103 @@ export default function CompleteProfile() {
     }
   }, [user, navigate, isLoading]);
 
+  // Fetch schools on mount
+  useEffect(() => {
+    const fetchSchools = async () => {
+      try {
+        const res = await api.get('/academic/schools');
+        setSchools(res.data);
+      } catch (err) {
+        console.error('Failed to fetch schools:', err);
+        toast.error('Failed to load schools. Please refresh the page.');
+      } finally {
+        setLoadingSchools(false);
+      }
+    };
+
+    fetchSchools();
+  }, []);
+
+  // Fetch faculties when school changes
+  useEffect(() => {
+    if (!formData.schoolId) {
+      setFaculties([]);
+      setDepartments([]);
+      return;
+    }
+
+    const fetchFaculties = async () => {
+      setLoadingFaculties(true);
+      setFaculties([]);
+      setDepartments([]);
+      setFormData((prev) => ({ ...prev, facultyId: '', departmentId: '' }));
+
+      try {
+        const res = await api.get(
+          `/academic/schools/${formData.schoolId}/faculties`,
+        );
+        setFaculties(res.data);
+      } catch (err) {
+        console.error('Failed to fetch faculties:', err);
+        toast.error('Failed to load faculties.');
+      } finally {
+        setLoadingFaculties(false);
+      }
+    };
+
+    fetchFaculties();
+  }, [formData.schoolId]);
+
+  // Fetch departments when faculty changes
+  useEffect(() => {
+    if (!formData.facultyId) {
+      setDepartments([]);
+      return;
+    }
+
+    const fetchDepartments = async () => {
+      setLoadingDepartments(true);
+      setDepartments([]);
+      setFormData((prev) => ({ ...prev, departmentId: '' }));
+
+      try {
+        const res = await api.get(
+          `/academic/faculties/${formData.facultyId}/departments`,
+        );
+        setDepartments(res.data);
+      } catch (err) {
+        console.error('Failed to fetch departments:', err);
+        toast.error('Failed to load departments.');
+      } finally {
+        setLoadingDepartments(false);
+      }
+    };
+
+    fetchDepartments();
+  }, [formData.facultyId]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      // Find the selected names for legacy field compatibility
+      const selectedSchool = schools.find((s) => s.id === formData.schoolId);
+      const selectedFaculty = faculties.find(
+        (f) => f.id === formData.facultyId,
+      );
+      const selectedDepartment = departments.find(
+        (d) => d.id === formData.departmentId,
+      );
+
       await api.patch('/users/academic-profile', {
-        schoolId: formData.school,
-        facultyId: formData.faculty,
-        departmentId: formData.department,
+        schoolId: formData.schoolId,
+        facultyId: formData.facultyId,
+        departmentId: formData.departmentId,
+        // Also send string versions for legacy field compatibility
+        school: selectedSchool?.name,
+        faculty: selectedFaculty?.name,
+        department: selectedDepartment?.name,
         yearOfStudy: formData.yearOfStudy,
       });
 
@@ -92,15 +202,22 @@ export default function CompleteProfile() {
               School
             </label>
             <select
-              value={formData.school}
+              value={formData.schoolId}
               onChange={(e) =>
-                setFormData({ ...formData, school: e.target.value })
+                setFormData({ ...formData, schoolId: e.target.value })
               }
-              className='w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none'
+              disabled={loadingSchools}
+              className='w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-50'
               required
             >
-              <option value='University of Ilorin'>University of Ilorin</option>
-              {/* Add more schools later */}
+              <option value=''>
+                {loadingSchools ? 'Loading schools...' : 'Select School'}
+              </option>
+              {schools.map((school) => (
+                <option key={school.id} value={school.id}>
+                  {school.name}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -111,20 +228,19 @@ export default function CompleteProfile() {
               Faculty
             </label>
             <select
-              value={formData.faculty}
+              value={formData.facultyId}
               onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  faculty: e.target.value,
-                  department: '',
-                })
+                setFormData({ ...formData, facultyId: e.target.value })
               }
-              className='w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none'
+              disabled={!formData.schoolId || loadingFaculties}
+              className='w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-50'
               required
             >
-              <option value=''>Select Faculty</option>
-              {UNILORIN_FACULTIES.map((f) => (
-                <option key={f.name} value={f.name}>
+              <option value=''>
+                {loadingFaculties ? 'Loading faculties...' : 'Select Faculty'}
+              </option>
+              {faculties.map((f) => (
+                <option key={f.id} value={f.id}>
                   {f.name}
                 </option>
               ))}
@@ -138,23 +254,22 @@ export default function CompleteProfile() {
               Department
             </label>
             <select
-              value={formData.department}
+              value={formData.departmentId}
               onChange={(e) =>
-                setFormData({ ...formData, department: e.target.value })
+                setFormData({ ...formData, departmentId: e.target.value })
               }
-              disabled={!formData.faculty}
+              disabled={!formData.facultyId || loadingDepartments}
               className='w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-50'
               required
             >
-              <option value=''>Select Department</option>
-              {formData.faculty &&
-                UNILORIN_FACULTIES.find(
-                  (f) => f.name === formData.faculty,
-                )?.departments.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
+              <option value=''>
+                {loadingDepartments ? 'Loading...' : 'Select Department'}
+              </option>
+              {departments.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -222,7 +337,7 @@ export default function CompleteProfile() {
 
           <button
             type='submit'
-            disabled={loading || !confirmed}
+            disabled={loading || !confirmed || !formData.departmentId}
             className='w-full py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary-600/20'
           >
             {loading ? <BorderSpinner size='md' /> : 'Finish Setup'}

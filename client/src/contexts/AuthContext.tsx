@@ -17,6 +17,7 @@ interface User {
   department?: { id: string; name: string };
   faculty?: { id: string; name: string };
   school?: { id: string; name: string };
+  schoolId?: string; // FK UUID
   yearOfStudy?: number;
   reputation?: number;
   isVerified?: boolean;

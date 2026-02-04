@@ -67,7 +67,7 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
   const [pageEnd, setPageEnd] = useState('');
   const [showConfig, setShowConfig] = useState(true);
   const [difficulty, setDifficulty] = useState<Difficulty>('intermediate');
-  const [questionCount, setQuestionCount] = useState(5);
+  const [questionCount, setQuestionCount] = useState(7);
   // const [topic, setTopic] = useState(''); // Reserved for future topic-specific quiz filtering
 
   // Offline mode tracking
@@ -122,7 +122,7 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
     setPageStart('');
     setPageEnd('');
     setDifficulty('intermediate');
-    setQuestionCount(5);
+    setQuestionCount(7);
     setIsOfflineMode(false);
     setIsUpgrading(false);
     // setTopic(''); // Reserved for future topic-specific quiz filtering
@@ -238,19 +238,26 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
   };
 
   const saveResult = async (finalScore: number) => {
+    console.log(
+      `[Quiz] Attempting to save: materialId=${materialId}, score=${finalScore}, total=${questions.length}`,
+    );
     try {
-      await api.post('/chat/quiz/result', {
+      const response = await api.post('/chat/quiz/result', {
         materialId,
         score: finalScore,
         totalQuestions: questions.length,
       });
+      console.log('[Quiz] Save successful:', response.data);
       // toast.success('Quiz result saved!'); // Optional: don't spam user if not needed, but good for feedback
-    } catch (err) {
-      console.error('Failed to save quiz result', err);
+    } catch (err: any) {
+      console.error(
+        '[Quiz] Failed to save quiz result:',
+        err.response?.data || err.message,
+      );
       // If offline, save locally for later sync
       if (!navigator.onLine) {
         await savePendingResult(materialId, finalScore, questions.length);
-        console.log('Quiz result saved locally for offline sync');
+        console.log('[Quiz] Result saved locally for offline sync');
       } else {
         toast.error(
           'Failed to save quiz result. Your score may not be recorded.',
@@ -267,8 +274,11 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
         setSelectedOption(null);
         setIsCorrect(null);
       } else {
+        // Calculate final score correctly (score already includes latest answer)
+        const finalScore = score;
+        console.log(`[Quiz] Saving result: ${finalScore}/${questions.length}`);
         setShowResult(true);
-        saveResult(score);
+        saveResult(finalScore);
       }
       setAnimating(false);
     }, 300);
@@ -444,15 +454,15 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
                   </div>
                 </div>
 
-                {/* Page Range Inputs - Collapsible on mobile */}
-                <details className='group'>
-                  <summary className='flex items-center justify-between cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
-                    <span>Page Range (Optional)</span>
-                    <span className='text-xs text-gray-400 group-open:hidden'>
-                      Expand
+                {/* Page Range Inputs - Always visible */}
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+                    Page Range{' '}
+                    <span className='text-xs font-normal text-gray-400'>
+                      (Optional - min 3 pages recommended)
                     </span>
-                  </summary>
-                  <div className='flex items-center gap-3 mt-3'>
+                  </label>
+                  <div className='flex items-center gap-3'>
                     <input
                       type='number'
                       value={pageStart}
@@ -473,7 +483,15 @@ export function QuizModal({ isOpen, onClose, materialId }: QuizModalProps) {
                       className='flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 outline-none text-center'
                     />
                   </div>
-                </details>
+                  {pageStart &&
+                    pageEnd &&
+                    parseInt(pageEnd) - parseInt(pageStart) < 2 && (
+                      <p className='text-xs text-amber-600 dark:text-amber-400 mt-2 flex items-center gap-1'>
+                        <AlertCircle className='w-3 h-3' />
+                        Select at least 3 pages for better quiz quality
+                      </p>
+                    )}
+                </div>
 
                 {/* Tip */}
                 <div className='p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl'>

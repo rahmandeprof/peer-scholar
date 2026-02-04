@@ -850,10 +850,13 @@ export const MaterialView = () => {
                         Helpful Resources
                       </button>
 
-                      <div className='px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200'>
+                      <button
+                        onClick={() => setMenuOpen(false)}
+                        className='w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200'
+                      >
                         <TextSettings />
                         <span className='ml-3'>Text Settings</span>
-                      </div>
+                      </button>
 
                       <a
                         href={material.fileUrl}

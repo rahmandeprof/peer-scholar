@@ -34,11 +34,13 @@ export function PDFViewer({
   const [hasSetInitialPage, setHasSetInitialPage] = useState(false);
 
   // Use controlled page if provided, otherwise internal state
-  const pageNumber = controlledPage !== undefined ? controlledPage : internalPage;
+  const pageNumber =
+    controlledPage !== undefined ? controlledPage : internalPage;
 
   // Wrapper to update page via callback or internal state
   const setPageNumber = (pageOrFn: number | ((prev: number) => number)) => {
-    const newPage = typeof pageOrFn === 'function' ? pageOrFn(pageNumber) : pageOrFn;
+    const newPage =
+      typeof pageOrFn === 'function' ? pageOrFn(pageNumber) : pageOrFn;
     const clampedPage = Math.max(1, Math.min(newPage, numPages || 1));
 
     if (controlledPage !== undefined && onPageChange) {
@@ -79,10 +81,12 @@ export function PDFViewer({
   useEffect(() => {
     if (materialId) {
       const timer = setTimeout(() => {
-        api.post('/users/activity/update', {
-          materialId,
-          page: pageNumber,
-        }).catch(console.error);
+        api
+          .post('/users/activity/update', {
+            materialId,
+            page: pageNumber,
+          })
+          .catch(console.error);
       }, 1000); // Debounce updates
 
       return () => clearTimeout(timer);
@@ -109,6 +113,51 @@ export function PDFViewer({
       resizeObserver.disconnect();
     };
   }, []);
+
+  // Keyboard navigation support
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't handle if user is typing in an input
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      switch (e.key) {
+        case 'ArrowRight':
+        case 'ArrowDown':
+          e.preventDefault();
+          setPageNumber((prev) => Math.min(prev + 1, numPages));
+          break;
+        case 'ArrowLeft':
+        case 'ArrowUp':
+          e.preventDefault();
+          setPageNumber((prev) => Math.max(prev - 1, 1));
+          break;
+        case 'PageDown':
+          e.preventDefault();
+          setPageNumber((prev) => Math.min(prev + 1, numPages));
+          break;
+        case 'PageUp':
+          e.preventDefault();
+          setPageNumber((prev) => Math.max(prev - 1, 1));
+          break;
+        case 'Home':
+          e.preventDefault();
+          setPageNumber(1);
+          break;
+        case 'End':
+          e.preventDefault();
+          setPageNumber(numPages);
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [numPages]);
 
   const [goToPage, setGoToPage] = useState('');
   const [showGoToInput, setShowGoToInput] = useState(false);
@@ -195,7 +244,10 @@ export function PDFViewer({
                 Go
               </button>
               <button
-                onClick={() => { setShowGoToInput(false); setGoToPage(''); }}
+                onClick={() => {
+                  setShowGoToInput(false);
+                  setGoToPage('');
+                }}
                 className='p-1 text-gray-400 hover:text-gray-600'
               >
                 <X className='w-4 h-4' />
@@ -285,7 +337,6 @@ export function PDFViewer({
             </div>
           }
         >
-
           {materialId ? (
             <AnnotationManager materialId={materialId} pageNumber={pageNumber}>
               <Page
@@ -318,7 +369,10 @@ export function PDFViewer({
 
           {/* Prefetch next page - hidden but loaded for instant navigation */}
           {pageNumber < numPages && (
-            <div className='absolute -left-[9999px] opacity-0 pointer-events-none' aria-hidden='true'>
+            <div
+              className='absolute -left-[9999px] opacity-0 pointer-events-none'
+              aria-hidden='true'
+            >
               <Page
                 pageNumber={pageNumber + 1}
                 width={containerWidth ? containerWidth * scale : undefined}
