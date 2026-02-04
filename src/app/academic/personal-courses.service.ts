@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { Material } from './entities/material.entity';
@@ -13,7 +17,7 @@ export class PersonalCoursesService {
     private courseRepo: Repository<PersonalCourse>,
     @InjectRepository(Material)
     private materialRepo: Repository<Material>,
-  ) { }
+  ) {}
 
   async create(
     userId: string,
@@ -23,6 +27,7 @@ export class PersonalCoursesService {
     const existing = await this.courseRepo.findOne({
       where: { userId, title: data.title },
     });
+
     if (existing) {
       throw new ConflictException('A collection with this name already exists');
     }
@@ -51,12 +56,16 @@ export class PersonalCoursesService {
       const existing = await this.courseRepo.findOne({
         where: { userId, title: data.title, id: Not(id) },
       });
+
       if (existing) {
-        throw new ConflictException('A collection with this name already exists');
+        throw new ConflictException(
+          'A collection with this name already exists',
+        );
       }
     }
 
     Object.assign(course, data);
+
     return this.courseRepo.save(course);
   }
 

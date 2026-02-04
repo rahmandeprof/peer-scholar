@@ -1,19 +1,20 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Request } from 'express';
 
-import { User } from '@/app/users/entities/user.entity';
+import { GoogleOAuthUser } from './strategies/google.strategy';
+
 import { Referral, ReferralStatus } from '@/app/users/entities/referral.entity';
+import { User } from '@/app/users/entities/user.entity';
 
 import { CreateUserDto } from '@/app/users/dto/create-user.dto';
 
 import { EmailService } from '@/app/common/services/email.service';
 import { UsersService } from '@/app/users/users.service';
-import { GoogleOAuthUser } from './strategies/google.strategy';
 
 import * as bcrypt from 'bcrypt';
+import { Request } from 'express';
+import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 
 // Typed request with Google OAuth user
@@ -31,7 +32,7 @@ export class AuthService {
     private emailService: EmailService,
     @InjectRepository(Referral)
     private referralRepo: Repository<Referral>,
-  ) { }
+  ) {}
 
   async validateUser(
     email: string,
@@ -71,15 +72,15 @@ export class AuthService {
       | User
       | Omit<User, 'password'>
       | {
-        id: string;
-        email: string;
-        firstName: string;
-        lastName: string;
-        department: string;
-        faculty?: string;
-        school?: string;
-        yearOfStudy: number;
-      },
+          id: string;
+          email: string;
+          firstName: string;
+          lastName: string;
+          department: string;
+          faculty?: string;
+          school?: string;
+          yearOfStudy: number;
+        },
   ) {
     // Update streak on login and get fresh values
     const streak = await this.usersService.updateStreak(user.id);
@@ -116,9 +117,11 @@ export class AuthService {
 
     // Validate referral code if provided
     let referrerId: string | null = null;
+
     if (userData.referralCode) {
       try {
         const referrer = await this.usersService.getOne(userData.referralCode);
+
         referrerId = referrer.id;
       } catch {
         this.logger.warn(`Invalid referral code: ${userData.referralCode}`);
@@ -186,8 +189,13 @@ export class AuthService {
         await this.referralRepo.save(referral);
 
         // Award points to referrer
-        await this.usersService.increaseReputation(user.referredById, REFERRAL_REWARD);
-        this.logger.log(`Awarded ${REFERRAL_REWARD} points to referrer ${user.referredById} for referring ${user.id}`);
+        await this.usersService.increaseReputation(
+          user.referredById,
+          REFERRAL_REWARD,
+        );
+        this.logger.log(
+          `Awarded ${REFERRAL_REWARD} points to referrer ${user.referredById} for referring ${user.id}`,
+        );
       }
     }
 
@@ -268,7 +276,9 @@ export class AuthService {
 
   async googleLogin(req: GoogleAuthRequest) {
     if (!req.user) {
-      throw new BadRequestException('Google authentication failed - no user data received');
+      throw new BadRequestException(
+        'Google authentication failed - no user data received',
+      );
     }
 
     const { email, firstName, lastName, picture, googleId } = req.user;
@@ -291,7 +301,11 @@ export class AuthService {
       user = await this.usersService.create(userData as CreateUserDto);
     } else if (!user.googleId) {
       // Link existing user and mark as verified
-      await this.usersService.update(user.id, { googleId, image: picture ?? undefined, isVerified: true });
+      await this.usersService.update(user.id, {
+        googleId,
+        image: picture ?? undefined,
+        isVerified: true,
+      });
       user.googleId = googleId;
       user.isVerified = true;
     }

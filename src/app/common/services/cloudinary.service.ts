@@ -113,13 +113,17 @@ export class CloudinaryService {
           if (error) {
             this.logger.error('Cloudinary buffer upload failed', error);
             reject(new Error(JSON.stringify(error)));
+
             return;
           }
           if (!result) {
             reject(new Error('Cloudinary upload returned no result'));
+
             return;
           }
-          this.logger.log(`Uploaded TTS audio to Cloudinary: ${result.public_id}`);
+          this.logger.log(
+            `Uploaded TTS audio to Cloudinary: ${result.public_id}`,
+          );
           resolve({
             url: result.secure_url,
             publicId: result.public_id,

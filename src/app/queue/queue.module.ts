@@ -1,12 +1,13 @@
 import { BullModule } from '@nestjs/bull';
 import { Logger, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+
 import Redis from 'ioredis';
 
 // Separate Redis clients for each Bull connection type
 // Bull REQUIRES separate connections to prevent lock conflicts:
 // - client: regular Redis operations
-// - subscriber: pub/sub notifications  
+// - subscriber: pub/sub notifications
 // - bclient: blocking operations (BLPOP) - MUST be separate or locks expire
 let sharedRedisClient: Redis | null = null;
 let sharedSubscriberClient: Redis | null = null;
@@ -24,7 +25,10 @@ function createRedisOptions(configService: ConfigService) {
   };
 }
 
-function createRedisClient(configService: ConfigService, type: 'client' | 'subscriber' | 'bclient'): Redis {
+function createRedisClient(
+  configService: ConfigService,
+  type: 'client' | 'subscriber' | 'bclient',
+): Redis {
   const options = createRedisOptions(configService);
 
   // Subscriber - separate connection for pub/sub
@@ -39,6 +43,7 @@ function createRedisClient(configService: ConfigService, type: 'client' | 'subsc
         logger.error(`Subscriber Redis error: ${error.message}`);
       });
     }
+
     return sharedSubscriberClient;
   }
 
@@ -55,6 +60,7 @@ function createRedisClient(configService: ConfigService, type: 'client' | 'subsc
         logger.error(`BClient Redis error: ${error.message}`);
       });
     }
+
     return sharedBClient;
   }
 
@@ -69,6 +75,7 @@ function createRedisClient(configService: ConfigService, type: 'client' | 'subsc
       logger.error(`Redis error: ${error.message}`);
     });
   }
+
   return sharedRedisClient;
 }
 
@@ -80,7 +87,9 @@ function createRedisClient(configService: ConfigService, type: 'client' | 'subsc
         const host = configService.get<string>('REDIS_HOST') ?? 'localhost';
         const port = configService.get<number>('REDIS_PORT') ?? 6379;
 
-        logger.log(`🚀 Connecting to Redis at ${host}:${String(port)} with 3 separate connections`);
+        logger.log(
+          `🚀 Connecting to Redis at ${host}:${String(port)} with 3 separate connections`,
+        );
 
         return {
           createClient: (type) => createRedisClient(configService, type),
@@ -92,5 +101,4 @@ function createRedisClient(configService: ConfigService, type: 'client' | 'subsc
   providers: [],
   exports: [BullModule],
 })
-export class QueueModule { }
-
+export class QueueModule {}

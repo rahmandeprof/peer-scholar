@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { Request } from 'express';
 
 import { AuthService } from '../auth.service';
 
-import { Strategy, VerifyCallback, Profile } from 'passport-google-oauth20';
+import { Request } from 'express';
+import { Profile, Strategy, VerifyCallback } from 'passport-google-oauth20';
 
 // User data extracted from Google OAuth profile
 export interface GoogleOAuthUser {

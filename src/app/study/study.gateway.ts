@@ -14,8 +14,8 @@ import {
 
 import { User } from '@/app/users/entities/user.entity';
 
-import { ChatService } from '@/app/chat/chat.service';
 import { ChallengeCacheService } from './challenge-cache.service';
+import { ChatService } from '@/app/chat/chat.service';
 import { PushService } from '@/app/notifications/push.service';
 
 import { Server, Socket } from 'socket.io';
@@ -26,7 +26,12 @@ import { Repository } from 'typeorm';
     origin: (origin, callback) => {
       // Allow connections from trusted origins or same-origin (no origin header)
       const trustedOrigins = process.env.TRUSTED_ORIGINS?.split(',') ?? [];
-      if (!origin || trustedOrigins.includes(origin) || origin.includes('localhost')) {
+
+      if (
+        !origin ||
+        trustedOrigins.includes(origin) ||
+        origin.includes('localhost')
+      ) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
@@ -49,7 +54,7 @@ export class StudyGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly configService: ConfigService,
     private readonly challengeCache: ChallengeCacheService,
     private readonly pushService: PushService,
-  ) { }
+  ) {}
 
   async handleConnection(client: Socket) {
     try {
@@ -61,6 +66,7 @@ export class StudyGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (!token) {
         this.logger.warn(`Connection rejected: No token provided`);
         client.disconnect();
+
         return;
       }
 
@@ -116,8 +122,12 @@ export class StudyGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // Send push notification if receiver is offline or has app in background
     try {
-      const receiver = await this.userRepo.findOne({ where: { id: data.receiverId } });
-      const sender = await this.userRepo.findOne({ where: { id: data.senderId } });
+      const receiver = await this.userRepo.findOne({
+        where: { id: data.receiverId },
+      });
+      const sender = await this.userRepo.findOne({
+        where: { id: data.senderId },
+      });
 
       if (receiver?.pushSubscription && sender) {
         await this.pushService.sendChallengeNotification(
@@ -181,7 +191,10 @@ export class StudyGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const { challengeId, userId, score, timeTaken } = data;
 
     // Store score in Redis/cache
-    await this.challengeCache.setScore(challengeId, userId, { score, timeTaken });
+    await this.challengeCache.setScore(challengeId, userId, {
+      score,
+      timeTaken,
+    });
 
     // Check if we have 2 scores (assuming 2 player challenge)
     const scoreCount = await this.challengeCache.getScoreCount(challengeId);

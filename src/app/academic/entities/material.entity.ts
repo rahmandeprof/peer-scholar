@@ -53,8 +53,8 @@ export enum ProcessingStatus {
 
 // Processing version - V1 = legacy content-based, V2 = segment-based
 export enum ProcessingVersion {
-  V1 = 'v1',  // Legacy - uses content field only
-  V2 = 'v2',  // Modern - uses DocumentSegments
+  V1 = 'v1', // Legacy - uses content field only
+  V2 = 'v2', // Modern - uses DocumentSegments
 }
 
 /**
@@ -69,6 +69,7 @@ export function isActivelyProcessing(status: ProcessingStatus): boolean {
     ProcessingStatus.CLEANING,
     ProcessingStatus.SEGMENTING,
   ];
+
   return activeStates.includes(status);
 }
 
@@ -78,8 +79,8 @@ export interface QuizQuestion {
   type?: string;
   question: string;
   options: string[];
-  correctAnswer?: string;  // Old format
-  answer?: string;         // New format
+  correctAnswer?: string; // Old format
+  answer?: string; // New format
   explanation?: string;
   hint?: string;
 }
@@ -87,10 +88,10 @@ export interface QuizQuestion {
 // Support both old format (term/definition) and new format (id/front/back)
 export interface FlashcardItem {
   id?: string;
-  term?: string;       // Old format
+  term?: string; // Old format
   definition?: string; // Old format
-  front?: string;      // New format
-  back?: string;       // New format
+  front?: string; // New format
+  back?: string; // New format
 }
 
 @Entity('material')

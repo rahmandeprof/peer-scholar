@@ -17,18 +17,20 @@ import { Throttle } from '@nestjs/throttler';
 
 import { RateLimitGuard } from '@/app/auth/guards/rate-limit.guard';
 import { RolesGuard } from '@/app/common/guards/roles.guard';
+
 import { Roles } from '@/app/common/decorators/roles.decorator';
-import { AuthenticatedRequest } from '@/app/common/types/request.types';
 
 import { CreateMaterialDto } from './dto/create-material.dto';
 import { FlagMaterialDto } from './dto/flag-material.dto';
 
 import { MaterialsService } from './materials.service';
 
+import { AuthenticatedRequest } from '@/app/common/types/request.types';
+
 @Controller('materials')
 @UseGuards(AuthGuard('jwt'))
 export class MaterialsController {
-  constructor(private readonly materialsService: MaterialsService) { }
+  constructor(private readonly materialsService: MaterialsService) {}
 
   /**
    * Get processing status for multiple materials at once
@@ -36,7 +38,8 @@ export class MaterialsController {
    */
   @Get('batch-status')
   getBatchStatus(@Query('ids') ids: string) {
-    const materialIds = ids ? ids.split(',').filter(id => id.trim()) : [];
+    const materialIds = ids ? ids.split(',').filter((id) => id.trim()) : [];
+
     return this.materialsService.getBatchStatus(materialIds);
   }
 
@@ -45,13 +48,15 @@ export class MaterialsController {
     @Query('fileType') fileType?: string,
     @Query('filename') filename?: string,
   ) {
-    return this.materialsService.getPresignedUrl(fileType || 'application/octet-stream', filename);
+    return this.materialsService.getPresignedUrl(
+      fileType || 'application/octet-stream',
+      filename,
+    );
   }
 
   @Post()
   @UseGuards(RateLimitGuard)
   @Throttle({ upload: { limit: 5, ttl: 3600000 } })
-
   create(@Body() dto: CreateMaterialDto, @Req() req: AuthenticatedRequest) {
     if (!req.user.isVerified) {
       throw new ForbiddenException(
@@ -63,20 +68,17 @@ export class MaterialsController {
   }
 
   @Get('favorites/count')
-
   getFavoritesCount(@Req() req: AuthenticatedRequest) {
     return this.materialsService.getFavoritesCount(req.user.id);
   }
 
   @Get('favorites')
-
   getFavorites(@Req() req: AuthenticatedRequest) {
     return this.materialsService.getFavorites(req.user.id);
   }
 
   @Get()
   findAll(
-
     @Req() req: AuthenticatedRequest,
     @Query('courseId') courseId?: string,
     @Query('type') type?: string,
@@ -88,6 +90,7 @@ export class MaterialsController {
   ) {
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 12;
+
     return this.materialsService.findAll(
       req.user,
       courseId,
@@ -129,13 +132,11 @@ export class MaterialsController {
   }
 
   @Get(':id/full')
-
   findOneFull(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.materialsService.findOneFull(id, req.user.id);
   }
 
   @Get(':id')
-
   findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.materialsService.findOne(id, req.user?.id);
   }
@@ -154,7 +155,6 @@ export class MaterialsController {
   }
 
   @Post(':id/favorite')
-
   toggleFavorite(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.materialsService.toggleFavorite(id, req.user.id);
   }
@@ -170,13 +170,14 @@ export class MaterialsController {
   }
 
   @Get(':id/interactions')
-
-  getInteractionStatus(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+  getInteractionStatus(
+    @Param('id') id: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.materialsService.getInteractionStatus(id, req.user.id);
   }
 
   @Post(':id/contributor')
-
   addContributor(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.materialsService.addContributor(id, req.user.id);
   }
@@ -241,7 +242,6 @@ export class MaterialsController {
 
   // Public Notes Endpoints
   @Get(':id/public-notes')
-
   getPublicNotes(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.materialsService.getPublicNotes(id, req.user?.id);
   }
@@ -332,7 +332,6 @@ export class MaterialsController {
   // ==================== Page Bookmarks ====================
 
   @Post(':id/bookmarks')
-
   createBookmark(
     @Param('id') id: string,
     @Req() req: AuthenticatedRequest,
@@ -347,13 +346,11 @@ export class MaterialsController {
   }
 
   @Get(':id/bookmarks')
-
   getBookmarks(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.materialsService.getBookmarks(req.user.id, id);
   }
 
   @Delete(':id/bookmarks/:bookmarkId')
-
   deleteBookmark(
     @Param('id') id: string,
     @Param('bookmarkId') bookmarkId: string,
@@ -368,7 +365,8 @@ export class MaterialsController {
   @UseGuards(RolesGuard)
   @Roles('admin')
   updateBulkVisibility(
-    @Body() body: {
+    @Body()
+    body: {
       materialIds: string[];
       scope: string;
       departmentId?: string;

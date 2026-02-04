@@ -5,10 +5,11 @@ import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { UsersModule } from '@/app/users/users.module';
-import { Referral } from '@/app/users/entities/referral.entity';
 
 import { JwtStrategy } from './jwt.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
+
+import { Referral } from '@/app/users/entities/referral.entity';
 
 import { AuthController } from './auth.controller';
 
@@ -33,5 +34,4 @@ import { AuthService } from './auth.service';
   controllers: [AuthController],
   exports: [AuthService],
 })
-export class AuthModule { }
-
+export class AuthModule {}

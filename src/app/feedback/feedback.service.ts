@@ -1,51 +1,57 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+
 import { Feedback } from './entities/feedback.entity';
-import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { User } from '@/app/users/entities/user.entity';
+
+import { CreateFeedbackDto } from './dto/create-feedback.dto';
+
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class FeedbackService {
-    private readonly logger = new Logger(FeedbackService.name);
+  private readonly logger = new Logger(FeedbackService.name);
 
-    constructor(
-        @InjectRepository(Feedback)
-        private readonly feedbackRepo: Repository<Feedback>,
-    ) { }
+  constructor(
+    @InjectRepository(Feedback)
+    private readonly feedbackRepo: Repository<Feedback>,
+  ) {}
 
-    async create(dto: CreateFeedbackDto, user: User): Promise<Feedback> {
-        const feedback = this.feedbackRepo.create({
-            message: dto.message,
-            userEmail: user.email,
-            userName: `${user.firstName} ${user.lastName}`,
-            user: user,
-        });
+  async create(dto: CreateFeedbackDto, user: User): Promise<Feedback> {
+    const feedback = this.feedbackRepo.create({
+      message: dto.message,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      user: user,
+    });
 
-        this.logger.log(`New feedback from ${user.email}`);
-        return this.feedbackRepo.save(feedback);
-    }
+    this.logger.log(`New feedback from ${user.email}`);
 
-    async findAll(): Promise<Feedback[]> {
-        return this.feedbackRepo.find({
-            order: { createdAt: 'DESC' },
-            take: 100, // Limit to last 100 feedbacks
-        });
-    }
+    return this.feedbackRepo.save(feedback);
+  }
 
-    async count(): Promise<number> {
-        return this.feedbackRepo.count();
-    }
+  async findAll(): Promise<Feedback[]> {
+    return this.feedbackRepo.find({
+      order: { createdAt: 'DESC' },
+      take: 100, // Limit to last 100 feedbacks
+    });
+  }
 
-    async countUnread(): Promise<number> {
-        return this.feedbackRepo.count({ where: { isRead: false } });
-    }
+  async count(): Promise<number> {
+    return this.feedbackRepo.count();
+  }
 
-    async toggleRead(id: string): Promise<Feedback | null> {
-        const feedback = await this.feedbackRepo.findOne({ where: { id } });
-        if (!feedback) return null;
+  async countUnread(): Promise<number> {
+    return this.feedbackRepo.count({ where: { isRead: false } });
+  }
 
-        feedback.isRead = !feedback.isRead;
-        return this.feedbackRepo.save(feedback);
-    }
+  async toggleRead(id: string): Promise<Feedback | null> {
+    const feedback = await this.feedbackRepo.findOne({ where: { id } });
+
+    if (!feedback) return null;
+
+    feedback.isRead = !feedback.isRead;
+
+    return this.feedbackRepo.save(feedback);
+  }
 }

@@ -14,10 +14,9 @@ import {
   PartnerRequest,
   PartnerRequestStatus,
 } from '@/app/users/entities/partner-request.entity';
-import { ReferralStatus } from '@/app/users/entities/referral.entity';
+import { ReadingProgress } from '@/app/users/entities/reading-progress.entity';
 import { StudyStreak } from '@/app/users/entities/study-streak.entity';
 import { User } from '@/app/users/entities/user.entity';
-import { ReadingProgress } from '@/app/users/entities/reading-progress.entity';
 import { ViewingHistory } from '@/app/users/entities/viewing-history.entity';
 
 import { CreateUserDto } from '@/app/users/dto/create-user.dto';
@@ -26,9 +25,9 @@ import { UpdateTimerSettingsDto } from '@/app/users/dto/update-timer-settings.dt
 import { UpdateUserDto } from '@/app/users/dto/update-user.dto';
 
 import { EmailService } from '@/app/common/services/email.service';
+import { PushService } from '@/app/notifications/push.service';
 import { WinstonLoggerService } from '@/logger/winston-logger/winston-logger.service';
 import { PaginationService } from '@/pagination/pagination.service';
-import { PushService } from '@/app/notifications/push.service';
 
 import { SuccessResponse } from '@/utils/response';
 
@@ -65,7 +64,7 @@ export class UsersService {
 
     // Try to find by username or email based on format
     const isEmail = identifier.includes('@');
-    let receiver = isEmail
+    const receiver = isEmail
       ? await this.findByEmail(identifier.toLowerCase())
       : await this.findByUsername(identifier);
 
@@ -73,10 +72,13 @@ export class UsersService {
       if (isEmail) {
         throw new NotFoundException('User not found with that email');
       } else {
-        throw new NotFoundException('No user found with that username. Try their email instead.');
+        throw new NotFoundException(
+          'No user found with that username. Try their email instead.',
+        );
       }
     }
-    if (sender.id === receiver.id) throw new BadRequestException('Cannot invite yourself');
+    if (sender.id === receiver.id)
+      throw new BadRequestException('Cannot invite yourself');
     // Removed single partner checks to allow multiple partners
 
     const existingRequest = await this.partnerRequestRepo.findOne({
@@ -94,7 +96,8 @@ export class UsersService {
       ],
     });
 
-    if (existingRequest) throw new ConflictException('Pending request already exists');
+    if (existingRequest)
+      throw new ConflictException('Pending request already exists');
 
     const request = this.partnerRequestRepo.create({
       sender,
@@ -125,7 +128,8 @@ export class UsersService {
     });
 
     if (!request) throw new NotFoundException('Request not found');
-    if (request.sender.id !== userId) throw new ForbiddenException('Not authorized');
+    if (request.sender.id !== userId)
+      throw new ForbiddenException('Not authorized');
     if (request.status !== PartnerRequestStatus.PENDING)
       throw new BadRequestException('Cannot cancel processed request');
 
@@ -139,7 +143,8 @@ export class UsersService {
     });
 
     if (!request) throw new NotFoundException('Request not found');
-    if (request.receiver.id !== userId) throw new ForbiddenException('Not authorized');
+    if (request.receiver.id !== userId)
+      throw new ForbiddenException('Not authorized');
     if (request.status !== PartnerRequestStatus.PENDING)
       throw new BadRequestException('Request already handled');
 
@@ -190,7 +195,8 @@ export class UsersService {
       relations: ['sender', 'receiver'],
     });
 
-    if (!request) throw new BadRequestException('You are not partners with this user');
+    if (!request)
+      throw new BadRequestException('You are not partners with this user');
 
     // Check rate limit (e.g., 1 hour)
     if (request.lastNudgedAt) {
@@ -198,7 +204,9 @@ export class UsersService {
       const hours = diff / (1000 * 60 * 60);
 
       if (hours < 1) {
-        throw new BadRequestException('You can only nudge a partner once per hour');
+        throw new BadRequestException(
+          'You can only nudge a partner once per hour',
+        );
       }
     }
 
@@ -353,11 +361,15 @@ export class UsersService {
   }
 
   findByEmail(email: string) {
-    return this.userRepository.findOne({ where: { email: email.toLowerCase() } });
+    return this.userRepository.findOne({
+      where: { email: email.toLowerCase() },
+    });
   }
 
   findByUsername(username: string) {
-    return this.userRepository.findOne({ where: { username: username.toLowerCase() } });
+    return this.userRepository.findOne({
+      where: { username: username.toLowerCase() },
+    });
   }
 
   findByVerificationToken(token: string) {
@@ -507,6 +519,7 @@ export class UsersService {
 
     // Check if it's a new week (Monday start)
     const isNewWeek = this.isNewWeek(streak.weekStartDate, now);
+
     if (isNewWeek) {
       // Award freezes based on last week's activity before resetting
       if (streak.weeklyActiveDays >= 7) {
@@ -579,6 +592,7 @@ export class UsersService {
   private isNewWeek(storedWeekStart: Date | null, now: Date): boolean {
     if (!storedWeekStart) return true;
     const currentWeekStart = this.getWeekStart(now);
+
     return currentWeekStart.getTime() !== new Date(storedWeekStart).getTime();
   }
 
@@ -588,7 +602,9 @@ export class UsersService {
     const day = d.getDay();
     const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
     const monday = new Date(d.setDate(diff));
+
     monday.setHours(0, 0, 0, 0);
+
     return monday;
   }
 
@@ -636,6 +652,7 @@ export class UsersService {
         materialId,
         lastPage: page,
       });
+
       await this.readingProgressRepo.save(progress);
     }
 
@@ -651,6 +668,7 @@ export class UsersService {
     const stripContent = (material: any) => {
       if (!material) return null;
       const { content, ...rest } = material;
+
       return rest;
     };
 
@@ -732,7 +750,13 @@ export class UsersService {
     // Top by reputation
     const topReputation = await this.userRepository
       .createQueryBuilder('user')
-      .select(['user.id', 'user.firstName', 'user.lastName', 'user.email', 'user.reputation'])
+      .select([
+        'user.id',
+        'user.firstName',
+        'user.lastName',
+        'user.email',
+        'user.reputation',
+      ])
       .orderBy('user.reputation', 'DESC')
       .limit(10)
       .getMany();
@@ -754,14 +778,19 @@ export class UsersService {
     const topReferrers = await this.userRepository
       .createQueryBuilder('user')
       .select(['user.id', 'user.firstName', 'user.lastName', 'user.email'])
-      .addSelect(`(
+      .addSelect(
+        `(
         SELECT COUNT(*) FROM referral r 
         WHERE r.referrer_id = user.id AND r.status = 'completed'
-      )`, 'referral_count')
-      .having(`(
+      )`,
+        'referral_count',
+      )
+      .having(
+        `(
         SELECT COUNT(*) FROM referral r 
         WHERE r.referrer_id = user.id AND r.status = 'completed'
-      ) > 0`)
+      ) > 0`,
+      )
       .groupBy('user.id')
       .orderBy('"referral_count"', 'DESC')
       .limit(10)
@@ -784,25 +813,25 @@ export class UsersService {
       .getRawMany();
 
     return {
-      reputation: topReputation.map(u => ({
+      reputation: topReputation.map((u) => ({
         id: u.id,
         name: `${u.firstName} ${u.lastName}`,
         email: u.email,
         value: u.reputation,
       })),
-      uploaders: topUploaders.map(u => ({
+      uploaders: topUploaders.map((u) => ({
         id: u.user_id,
         name: `${u.user_first_name} ${u.user_last_name}`,
         email: u.user_email,
         value: parseInt(u.upload_count) || 0,
       })),
-      referrers: topReferrers.map(u => ({
+      referrers: topReferrers.map((u) => ({
         id: u.user_id,
         name: `${u.user_first_name} ${u.user_last_name}`,
         email: u.user_email,
         value: parseInt(u.referral_count) || 0,
       })),
-      streaks: topStreaks.map(s => ({
+      streaks: topStreaks.map((s) => ({
         id: s.user_id,
         name: s.first_name ? `${s.first_name} ${s.last_name}` : 'Unknown',
         email: s.email,
@@ -841,6 +870,7 @@ export class UsersService {
     }
 
     await this.viewingHistoryRepo.save(entry);
+
     return { success: true };
   }
 
@@ -856,18 +886,20 @@ export class UsersService {
       take: limit,
     });
 
-    return history.map(h => ({
+    return history.map((h) => ({
       id: h.material.id,
       title: h.material.title,
       type: h.material.type,
       courseCode: h.material.courseCode,
       lastPage: h.lastPage,
       viewedAt: h.viewedAt,
-      uploader: h.material.uploader ? {
-        id: h.material.uploader.id,
-        firstName: h.material.uploader.firstName,
-        lastName: h.material.uploader.lastName,
-      } : undefined,
+      uploader: h.material.uploader
+        ? {
+            id: h.material.uploader.id,
+            firstName: h.material.uploader.firstName,
+            lastName: h.material.uploader.lastName,
+          }
+        : undefined,
     }));
   }
 
@@ -879,6 +911,7 @@ export class UsersService {
       user: { id: userId },
       material: { id: materialId },
     });
+
     return { success: true };
   }
 
@@ -892,6 +925,7 @@ export class UsersService {
       where: { id: userId },
       select: ['preferences'],
     });
+
     return user?.preferences || {};
   }
 
@@ -914,6 +948,7 @@ export class UsersService {
     };
 
     await this.userRepository.save(user);
+
     return user.preferences;
   }
 
@@ -924,16 +959,19 @@ export class UsersService {
     subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
   ) {
     const user = await this.getOne(userId);
+
     user.pushSubscription = subscription;
     await this.userRepository.save(user);
+
     return { success: true, message: 'Push subscription saved' };
   }
 
   async removePushSubscription(userId: string) {
     const user = await this.getOne(userId);
+
     user.pushSubscription = null;
     await this.userRepository.save(user);
+
     return { success: true, message: 'Push subscription removed' };
   }
 }
-

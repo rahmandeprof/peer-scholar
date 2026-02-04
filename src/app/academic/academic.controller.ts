@@ -4,7 +4,7 @@ import { AcademicService } from './academic.service';
 
 @Controller('academic')
 export class AcademicController {
-  constructor(private readonly academicService: AcademicService) { }
+  constructor(private readonly academicService: AcademicService) {}
 
   @Get('schools')
   @Header('Cache-Control', 'public, max-age=3600, s-maxage=7200') // 1hr client, 2hr CDN

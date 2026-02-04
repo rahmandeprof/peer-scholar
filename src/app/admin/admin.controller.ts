@@ -1,26 +1,43 @@
-import { Controller, Get, Post, Param, Body, UseGuards, Logger, NotFoundException, ParseUUIDPipe, BadRequestException } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import { InjectQueue } from '@nestjs/bull';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull, Not } from 'typeorm';
-import { Queue } from 'bull';
-import OpenAI from 'openai';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Logger,
+  NotFoundException,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { AuthGuard } from '@nestjs/passport';
+import { InjectRepository } from '@nestjs/typeorm';
 
-import { UsersService } from '@/app/users/users.service';
-import { Material, MaterialStatus, ProcessingStatus } from '@/app/academic/entities/material.entity';
-import { DocumentSegment } from '@/app/academic/entities/document-segment.entity';
-import { MaterialReport } from '@/app/academic/entities/material-report.entity';
-import { User } from '@/app/users/entities/user.entity';
-import { QuizResult } from '@/app/chat/entities/quiz-result.entity';
-import { School } from '@/app/academic/entities/school.entity';
-import { Faculty } from '@/app/academic/entities/faculty.entity';
-import { Department } from '@/app/academic/entities/department.entity';
-
-import { Role } from '@/app/auth/decorators';
 import { RolesGuard } from '@/app/auth/guards/roles.guard';
 
+import { Department } from '@/app/academic/entities/department.entity';
+import { DocumentSegment } from '@/app/academic/entities/document-segment.entity';
+import { Faculty } from '@/app/academic/entities/faculty.entity';
+import {
+  Material,
+  MaterialStatus,
+  ProcessingStatus,
+} from '@/app/academic/entities/material.entity';
+import { MaterialReport } from '@/app/academic/entities/material-report.entity';
+import { School } from '@/app/academic/entities/school.entity';
+import { QuizResult } from '@/app/chat/entities/quiz-result.entity';
+import { User } from '@/app/users/entities/user.entity';
+
+import { UsersService } from '@/app/users/users.service';
+
+import { Role } from '@/app/auth/decorators';
+
+import { Queue } from 'bull';
 import { Paginate, PaginateQuery } from 'nestjs-paginate';
+import OpenAI from 'openai';
+import { IsNull, Repository } from 'typeorm';
 
 @Controller('admin')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -61,6 +78,7 @@ export class AdminController {
     private readonly configService: ConfigService,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
+
     if (apiKey) {
       this.openai = new OpenAI({ apiKey });
     }
@@ -78,19 +96,33 @@ export class AdminController {
    */
   @Post('reprocess-stuck')
   async reprocessStuckMaterials() {
-    this.logger.log('Admin requested reprocessing of stuck materials (pending only)');
+    this.logger.log(
+      'Admin requested reprocessing of stuck materials (pending only)',
+    );
 
     const stuckMaterials = await this.materialRepo.find({
       where: [
         { status: MaterialStatus.PENDING },
         { processingStatus: ProcessingStatus.PENDING },
       ],
-      select: ['id', 'title', 'fileUrl', 'status', 'processingStatus', 'createdAt'],
+      select: [
+        'id',
+        'title',
+        'fileUrl',
+        'status',
+        'processingStatus',
+        'createdAt',
+      ],
       order: { createdAt: 'DESC' },
     });
 
     if (stuckMaterials.length === 0) {
-      return { success: true, message: 'No stuck materials found', count: 0, materials: [] };
+      return {
+        success: true,
+        message: 'No stuck materials found',
+        count: 0,
+        materials: [],
+      };
     }
 
     const queued: string[] = [];
@@ -103,7 +135,9 @@ export class AdminController {
           fileUrl: material.fileUrl,
         });
         queued.push(material.id);
-        this.logger.log(`Queued stuck material: ${material.id} (${material.title})`);
+        this.logger.log(
+          `Queued stuck material: ${material.id} (${material.title})`,
+        );
       } catch (error) {
         failed.push(material.id);
         this.logger.error(`Failed to queue material ${material.id}:`, error);
@@ -115,7 +149,7 @@ export class AdminController {
       message: `Queued ${queued.length} materials for reprocessing`,
       count: queued.length,
       failed: failed.length,
-      materials: stuckMaterials.map(m => ({
+      materials: stuckMaterials.map((m) => ({
         id: m.id,
         title: m.title,
         status: m.status,
@@ -130,10 +164,13 @@ export class AdminController {
    * Default: materials stuck for more than 30 minutes in EXTRACTING, OCR_EXTRACTING, CLEANING, or SEGMENTING
    */
   @Post('reprocess-stale')
-  async reprocessStaleMaterials(@Body('staleMinutes') staleMinutes: number = 30) {
-    this.logger.log(`Admin requested reprocessing of stale materials (>${staleMinutes} minutes)`);
+  async reprocessStaleMaterials(@Body('staleMinutes') staleMinutes = 30) {
+    this.logger.log(
+      `Admin requested reprocessing of stale materials (>${staleMinutes} minutes)`,
+    );
 
     const staleThreshold = new Date();
+
     staleThreshold.setMinutes(staleThreshold.getMinutes() - staleMinutes);
 
     // Find materials stuck in active processing states for too long
@@ -147,13 +184,28 @@ export class AdminController {
           ProcessingStatus.SEGMENTING,
         ],
       })
-      .andWhere('material.updatedAt < :threshold', { threshold: staleThreshold })
-      .select(['material.id', 'material.title', 'material.fileUrl', 'material.status', 'material.processingStatus', 'material.createdAt', 'material.updatedAt'])
+      .andWhere('material.updatedAt < :threshold', {
+        threshold: staleThreshold,
+      })
+      .select([
+        'material.id',
+        'material.title',
+        'material.fileUrl',
+        'material.status',
+        'material.processingStatus',
+        'material.createdAt',
+        'material.updatedAt',
+      ])
       .orderBy('material.updatedAt', 'ASC')
       .getMany();
 
     if (staleMaterials.length === 0) {
-      return { success: true, message: 'No stale materials found', count: 0, materials: [] };
+      return {
+        success: true,
+        message: 'No stale materials found',
+        count: 0,
+        materials: [],
+      };
     }
 
     const queued: string[] = [];
@@ -172,10 +224,15 @@ export class AdminController {
           fileUrl: material.fileUrl,
         });
         queued.push(material.id);
-        this.logger.log(`Requeued stale material: ${material.id} (${material.title}) - was ${material.processingStatus}`);
+        this.logger.log(
+          `Requeued stale material: ${material.id} (${material.title}) - was ${material.processingStatus}`,
+        );
       } catch (error) {
         errors.push(material.id);
-        this.logger.error(`Failed to requeue stale material ${material.id}:`, error);
+        this.logger.error(
+          `Failed to requeue stale material ${material.id}:`,
+          error,
+        );
       }
     }
 
@@ -185,7 +242,7 @@ export class AdminController {
       count: queued.length,
       failed: errors.length,
       staleThresholdMinutes: staleMinutes,
-      materials: staleMaterials.map(m => ({
+      materials: staleMaterials.map((m) => ({
         id: m.id,
         title: m.title,
         status: m.status,
@@ -226,7 +283,9 @@ export class AdminController {
       fileUrl: material.fileUrl,
     });
 
-    this.logger.log(`Force requeued material: ${id} (${material.title}) - was ${previousStatus}`);
+    this.logger.log(
+      `Force requeued material: ${id} (${material.title}) - was ${previousStatus}`,
+    );
 
     return {
       success: true,
@@ -262,6 +321,7 @@ export class AdminController {
 
     // Count stale materials (active states for > 30 minutes)
     const staleThreshold = new Date();
+
     staleThreshold.setMinutes(staleThreshold.getMinutes() - 30);
 
     const staleCount = await this.materialRepo
@@ -274,7 +334,9 @@ export class AdminController {
           ProcessingStatus.SEGMENTING,
         ],
       })
-      .andWhere('material.updatedAt < :threshold', { threshold: staleThreshold })
+      .andWhere('material.updatedAt < :threshold', {
+        threshold: staleThreshold,
+      })
       .getCount();
 
     return {
@@ -317,10 +379,15 @@ export class AdminController {
       this.materialRepo.count({
         where: this.ACTIVELY_PROCESSING_WHERE,
       }),
-      this.materialRepo.count({ where: { processingStatus: ProcessingStatus.FAILED } }),
+      this.materialRepo.count({
+        where: { processingStatus: ProcessingStatus.FAILED },
+      }),
       this.quizResultRepo.count(),
       this.materialRepo.count({
-        where: { summary: IsNull(), processingStatus: ProcessingStatus.COMPLETED },
+        where: {
+          summary: IsNull(),
+          processingStatus: ProcessingStatus.COMPLETED,
+        },
       }),
       // Stuck count
       this.materialRepo.count({
@@ -338,8 +405,10 @@ export class AdminController {
 
     // Build queue status response
     let queueStatus = null;
+
     if (queueStatusResult) {
       const [waiting, active, completed, failed, delayed] = queueStatusResult;
+
       queueStatus = {
         queue: 'materials',
         counts: { waiting, active, completed, failed, delayed },
@@ -388,10 +457,15 @@ export class AdminController {
       this.materialRepo.count({
         where: this.ACTIVELY_PROCESSING_WHERE,
       }),
-      this.materialRepo.count({ where: { processingStatus: ProcessingStatus.FAILED } }),
+      this.materialRepo.count({
+        where: { processingStatus: ProcessingStatus.FAILED },
+      }),
       this.quizResultRepo.count(),
       this.materialRepo.count({
-        where: { summary: IsNull(), processingStatus: ProcessingStatus.COMPLETED },
+        where: {
+          summary: IsNull(),
+          processingStatus: ProcessingStatus.COMPLETED,
+        },
       }),
     ]);
 
@@ -412,7 +486,7 @@ export class AdminController {
    * Backfill summaries for materials that don't have them
    */
   @Post('backfill-summaries')
-  async backfillSummaries(@Body('limit') limit: number = 10) {
+  async backfillSummaries(@Body('limit') limit = 10) {
     this.logger.log(`Admin requested summary backfill (limit: ${limit})`);
 
     if (!this.openai) {
@@ -420,16 +494,28 @@ export class AdminController {
     }
 
     const materials = await this.materialRepo.find({
-      where: { summary: IsNull(), processingStatus: ProcessingStatus.COMPLETED },
+      where: {
+        summary: IsNull(),
+        processingStatus: ProcessingStatus.COMPLETED,
+      },
       take: Math.min(limit, 50),
       order: { createdAt: 'DESC' },
     });
 
     if (materials.length === 0) {
-      return { success: true, message: 'No materials need summaries', processed: 0 };
+      return {
+        success: true,
+        message: 'No materials need summaries',
+        processed: 0,
+      };
     }
 
-    const results: { id: string; title: string; success: boolean; error?: string }[] = [];
+    const results: {
+      id: string;
+      title: string;
+      success: boolean;
+      error?: string;
+    }[] = [];
 
     for (const material of materials) {
       try {
@@ -440,12 +526,18 @@ export class AdminController {
         });
 
         if (segments.length === 0) {
-          results.push({ id: material.id, title: material.title, success: false, error: 'No segments' });
+          results.push({
+            id: material.id,
+            title: material.title,
+            success: false,
+            error: 'No segments',
+          });
           continue;
         }
 
         let content = '';
         let tokenCount = 0;
+
         for (const segment of segments) {
           if (tokenCount + segment.tokenCount > 6000) break;
           content += segment.text + '\n\n';
@@ -453,14 +545,25 @@ export class AdminController {
         }
 
         if (!content.trim()) {
-          results.push({ id: material.id, title: material.title, success: false, error: 'Empty content' });
+          results.push({
+            id: material.id,
+            title: material.title,
+            success: false,
+            error: 'Empty content',
+          });
           continue;
         }
 
         const response = await this.openai.chat.completions.create({
-          model: this.configService.get<string>('OPENAI_CHAT_MODEL') ?? 'gpt-3.5-turbo',
+          model:
+            this.configService.get<string>('OPENAI_CHAT_MODEL') ??
+            'gpt-3.5-turbo',
           messages: [
-            { role: 'system', content: 'Summarize the following text concisely but comprehensively for a student.' },
+            {
+              role: 'system',
+              content:
+                'Summarize the following text concisely but comprehensively for a student.',
+            },
             { role: 'user', content },
           ],
           max_tokens: 500,
@@ -471,19 +574,38 @@ export class AdminController {
         if (summary) {
           material.summary = summary;
           await this.materialRepo.save(material);
-          results.push({ id: material.id, title: material.title, success: true });
+          results.push({
+            id: material.id,
+            title: material.title,
+            success: true,
+          });
           this.logger.log(`Generated summary for material: ${material.id}`);
         } else {
-          results.push({ id: material.id, title: material.title, success: false, error: 'Empty response' });
+          results.push({
+            id: material.id,
+            title: material.title,
+            success: false,
+            error: 'Empty response',
+          });
         }
       } catch (error) {
         const errMsg = error instanceof Error ? error.message : 'Unknown error';
-        results.push({ id: material.id, title: material.title, success: false, error: errMsg });
-        this.logger.error(`Failed to generate summary for ${material.id}:`, error);
+
+        results.push({
+          id: material.id,
+          title: material.title,
+          success: false,
+          error: errMsg,
+        });
+        this.logger.error(
+          `Failed to generate summary for ${material.id}:`,
+          error,
+        );
       }
     }
 
-    const successCount = results.filter(r => r.success).length;
+    const successCount = results.filter((r) => r.success).length;
+
     return {
       success: true,
       message: `Generated ${successCount} of ${materials.length} summaries`,
@@ -504,12 +626,13 @@ export class AdminController {
     this.logger.log(`Admin toggling ban for user: ${id}`);
 
     const user = await this.userRepo.findOne({ where: { id } });
+
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
     user.banned = !user.banned;
-    user.banReason = user.banned ? (reason || 'Banned by admin') : null;
+    user.banReason = user.banned ? reason || 'Banned by admin' : null;
     user.banExpires = null;
 
     await this.userRepo.save(user);
@@ -518,7 +641,9 @@ export class AdminController {
 
     return {
       success: true,
-      message: user.banned ? 'User banned successfully' : 'User unbanned successfully',
+      message: user.banned
+        ? 'User banned successfully'
+        : 'User unbanned successfully',
       user: {
         id: user.id,
         email: user.email,
@@ -554,6 +679,7 @@ export class AdminController {
       };
     } catch (error) {
       this.logger.error('Failed to get queue status:', error);
+
       return {
         success: false,
         message: 'Failed to get queue status. Redis may not be connected.',
@@ -591,6 +717,7 @@ export class AdminController {
       };
     } catch (error) {
       this.logger.error('Failed to get failed jobs:', error);
+
       return {
         success: false,
         message: 'Failed to retrieve failed jobs',
@@ -637,6 +764,7 @@ export class AdminController {
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
       this.logger.error(`Failed to get job ${jobId}:`, error);
+
       return {
         success: false,
         message: `Failed to retrieve job ${jobId}`,
@@ -665,6 +793,7 @@ export class AdminController {
           this.logger.log(`Retried job: ${job.id}`);
         } catch (err) {
           const message = err instanceof Error ? err.message : 'Unknown error';
+
           errors.push(`Job ${job.id}: ${message}`);
           this.logger.error(`Failed to retry job ${job.id}:`, err);
         }
@@ -679,6 +808,7 @@ export class AdminController {
       };
     } catch (error) {
       this.logger.error('Failed to retry failed jobs:', error);
+
       return {
         success: false,
         message: 'Failed to retry jobs',
@@ -698,6 +828,7 @@ export class AdminController {
       const failedJobs = await this.materialsQueue.getFailed(0, 1000);
 
       let clearedCount = 0;
+
       for (const job of failedJobs) {
         await job.remove();
         clearedCount++;
@@ -712,6 +843,7 @@ export class AdminController {
       };
     } catch (error) {
       this.logger.error('Failed to clear failed jobs:', error);
+
       return {
         success: false,
         message: 'Failed to clear failed jobs',
@@ -728,9 +860,11 @@ export class AdminController {
     this.logger.log('Admin requested clearing completed jobs');
     try {
       await this.materialsQueue.clean(0, 'completed');
+
       return { success: true, message: 'Completed jobs cleared' };
     } catch (error) {
       this.logger.error('Failed to clear completed jobs:', error);
+
       return {
         success: false,
         message: 'Failed to clear completed jobs',
@@ -748,12 +882,24 @@ export class AdminController {
 
     const failedMaterials = await this.materialRepo.find({
       where: { processingStatus: ProcessingStatus.FAILED },
-      select: ['id', 'title', 'fileUrl', 'status', 'processingStatus', 'createdAt'],
+      select: [
+        'id',
+        'title',
+        'fileUrl',
+        'status',
+        'processingStatus',
+        'createdAt',
+      ],
       order: { createdAt: 'DESC' },
     });
 
     if (failedMaterials.length === 0) {
-      return { success: true, message: 'No failed materials found', count: 0, materials: [] };
+      return {
+        success: true,
+        message: 'No failed materials found',
+        count: 0,
+        materials: [],
+      };
     }
 
     const queued: string[] = [];
@@ -771,7 +917,9 @@ export class AdminController {
           fileUrl: material.fileUrl,
         });
         queued.push(material.id);
-        this.logger.log(`Requeued failed material: ${material.id} (${material.title})`);
+        this.logger.log(
+          `Requeued failed material: ${material.id} (${material.title})`,
+        );
       } catch (error) {
         errors.push(material.id);
         this.logger.error(`Failed to requeue material ${material.id}:`, error);
@@ -783,7 +931,7 @@ export class AdminController {
       message: `Queued ${queued.length} failed materials for reprocessing`,
       count: queued.length,
       failed: errors.length,
-      materials: failedMaterials.map(m => ({
+      materials: failedMaterials.map((m) => ({
         id: m.id,
         title: m.title,
         status: m.status,
@@ -825,14 +973,15 @@ export class AdminController {
       },
       segmentCount: segments.length,
       totalTokens: segments.reduce((sum, s) => sum + s.tokenCount, 0),
-      segments: segments.map(s => ({
+      segments: segments.map((s) => ({
         id: s.id,
         index: s.segmentIndex,
         pageStart: s.pageStart,
         pageEnd: s.pageEnd,
         tokenCount: s.tokenCount,
         source: s.source,
-        textPreview: s.text.substring(0, 200) + (s.text.length > 200 ? '...' : ''),
+        textPreview:
+          s.text.substring(0, 200) + (s.text.length > 200 ? '...' : ''),
       })),
     };
   }
@@ -892,21 +1041,25 @@ export class AdminController {
 
     return {
       count: reports.length,
-      reports: reports.map(r => ({
+      reports: reports.map((r) => ({
         id: r.id,
         reason: r.reason,
         description: r.description,
         createdAt: r.createdAt,
-        material: r.material ? {
-          id: r.material.id,
-          title: r.material.title,
-        } : null,
-        reporter: r.reporter ? {
-          id: r.reporter.id,
-          firstName: r.reporter.firstName,
-          lastName: r.reporter.lastName,
-          email: r.reporter.email,
-        } : null,
+        material: r.material
+          ? {
+              id: r.material.id,
+              title: r.material.title,
+            }
+          : null,
+        reporter: r.reporter
+          ? {
+              id: r.reporter.id,
+              firstName: r.reporter.firstName,
+              lastName: r.reporter.lastName,
+              email: r.reporter.email,
+            }
+          : null,
       })),
     };
   }
@@ -932,7 +1085,10 @@ export class AdminController {
       // Calculate average score
       const avgScoreResult = await this.quizResultRepo
         .createQueryBuilder('quiz')
-        .select('AVG(CAST(quiz.score AS FLOAT) / CAST(quiz.totalQuestions AS FLOAT))', 'avgScore')
+        .select(
+          'AVG(CAST(quiz.score AS FLOAT) / CAST(quiz.totalQuestions AS FLOAT))',
+          'avgScore',
+        )
         .getRawOne();
 
       const averageScore = avgScoreResult?.avgScore
@@ -942,7 +1098,7 @@ export class AdminController {
       return {
         total: totalQuizzes,
         averageScore: Math.round(averageScore * 100) / 100, // Round to 2 decimal places
-        recentQuizzes: recentQuizzes.map(q => ({
+        recentQuizzes: recentQuizzes.map((q) => ({
           id: q.id,
           userName: `${q.user.firstName} ${q.user.lastName}`,
           userEmail: q.user.email,
@@ -981,6 +1137,7 @@ export class AdminController {
     }
 
     const previousRole = user.role;
+
     user.role = role;
 
     await this.userRepo.save(user);
@@ -1012,6 +1169,7 @@ export class AdminController {
 
     // Get registrations by day for last 30 days
     const thirtyDaysAgo = new Date();
+
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const [
@@ -1022,19 +1180,23 @@ export class AdminController {
       materialsByStatus,
     ] = await Promise.all([
       // Users in last 30 days
-      this.userRepo.createQueryBuilder('user')
+      this.userRepo
+        .createQueryBuilder('user')
         .where('user.createdAt >= :date', { date: thirtyDaysAgo })
         .getCount(),
       // Materials in last 30 days
-      this.materialRepo.createQueryBuilder('material')
+      this.materialRepo
+        .createQueryBuilder('material')
         .where('material.createdAt >= :date', { date: thirtyDaysAgo })
         .getCount(),
       // Quizzes in last 30 days
-      this.quizResultRepo.createQueryBuilder('quiz')
+      this.quizResultRepo
+        .createQueryBuilder('quiz')
         .where('quiz.createdAt >= :date', { date: thirtyDaysAgo })
         .getCount(),
       // Top uploaders (top 5)
-      this.materialRepo.createQueryBuilder('material')
+      this.materialRepo
+        .createQueryBuilder('material')
         .select('material.uploader_id', 'uploaderId')
         .addSelect('COUNT(*)', 'count')
         .leftJoin('material.uploader', 'user')
@@ -1047,7 +1209,8 @@ export class AdminController {
         .limit(5)
         .getRawMany(),
       // Materials by status
-      this.materialRepo.createQueryBuilder('material')
+      this.materialRepo
+        .createQueryBuilder('material')
         .select('material.processingStatus', 'status')
         .addSelect('COUNT(*)', 'count')
         .groupBy('material.processingStatus')
@@ -1067,6 +1230,7 @@ export class AdminController {
       })),
       materialsByStatus: materialsByStatus.reduce((acc: any, item: any) => {
         acc[item.status || 'null'] = parseInt(item.count, 10);
+
         return acc;
       }, {}),
     };
@@ -1081,7 +1245,14 @@ export class AdminController {
 
     // Get recent materials processed/failed
     const recentActivity = await this.materialRepo.find({
-      select: ['id', 'title', 'status', 'processingStatus', 'createdAt', 'updatedAt'],
+      select: [
+        'id',
+        'title',
+        'status',
+        'processingStatus',
+        'createdAt',
+        'updatedAt',
+      ],
       order: { updatedAt: 'DESC' },
       take: 50,
     });
@@ -1094,7 +1265,7 @@ export class AdminController {
     });
 
     return {
-      recentMaterialActivity: recentActivity.map(m => ({
+      recentMaterialActivity: recentActivity.map((m) => ({
         id: m.id,
         title: m.title,
         status: m.status,
@@ -1102,7 +1273,7 @@ export class AdminController {
         createdAt: m.createdAt,
         updatedAt: m.updatedAt,
       })),
-      recentQuizzes: recentQuizzes.map(q => ({
+      recentQuizzes: recentQuizzes.map((q) => ({
         id: q.id,
         userId: q.user?.id,
         userName: q.user ? `${q.user.firstName} ${q.user.lastName}` : 'Unknown',
@@ -1119,14 +1290,18 @@ export class AdminController {
    */
   @Post('bulk-delete')
   async bulkDeleteMaterials(@Body('ids') ids: string[]) {
-    this.logger.log(`Admin requested bulk delete of ${ids?.length || 0} materials`);
+    this.logger.log(
+      `Admin requested bulk delete of ${ids?.length || 0} materials`,
+    );
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       throw new BadRequestException('No material IDs provided');
     }
 
     if (ids.length > 50) {
-      throw new BadRequestException('Cannot delete more than 50 materials at once');
+      throw new BadRequestException(
+        'Cannot delete more than 50 materials at once',
+      );
     }
 
     const deleted: string[] = [];
@@ -1135,6 +1310,7 @@ export class AdminController {
     for (const id of ids) {
       try {
         const material = await this.materialRepo.findOne({ where: { id } });
+
         if (!material) {
           errors.push({ id, error: 'Not found' });
           continue;
@@ -1143,7 +1319,10 @@ export class AdminController {
         deleted.push(id);
         this.logger.log(`Deleted material: ${id}`);
       } catch (error) {
-        errors.push({ id, error: error instanceof Error ? error.message : 'Unknown error' });
+        errors.push({
+          id,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
         this.logger.error(`Failed to delete material ${id}:`, error);
       }
     }
@@ -1180,6 +1359,7 @@ export class AdminController {
         const materialCount = await this.materialRepo.count({
           where: { schoolId: school.id },
         });
+
         return {
           ...school,
           facultyCount,
@@ -1262,6 +1442,7 @@ export class AdminController {
 
     for (const deptName of departments) {
       const trimmedName = deptName.trim();
+
       if (!trimmedName) continue;
 
       const existing = await this.departmentRepo.findOne({
@@ -1275,6 +1456,7 @@ export class AdminController {
           name: trimmedName,
           faculty,
         });
+
         await this.departmentRepo.save(dept);
         createdDepts.push(trimmedName);
       }

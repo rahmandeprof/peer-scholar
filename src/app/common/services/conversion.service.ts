@@ -116,9 +116,14 @@ export class ConversionService {
       try {
         const officeparser = await import('officeparser');
         const text = await officeparser.parseOfficeAsync(buffer);
+
         return text || '';
       } catch (e) {
-        this.logger.warn('Failed to extract text from PPTX with officeparser', e);
+        this.logger.warn(
+          'Failed to extract text from PPTX with officeparser',
+          e,
+        );
+
         // Fallback: return empty and let PDF extraction handle it
         return '';
       }
@@ -132,18 +137,20 @@ export class ConversionService {
       try {
         const officeparser = await import('officeparser');
         const text = await officeparser.parseOfficeAsync(buffer);
+
         return text || '';
       } catch (e) {
-        this.logger.warn('Failed to extract text from .doc with officeparser', e);
+        this.logger.warn(
+          'Failed to extract text from .doc with officeparser',
+          e,
+        );
+
         return '';
       }
     }
 
     // .docx files - use mammoth (more reliable for modern Word docs)
-    if (
-      mimetype.includes('officedocument') ||
-      originalname.endsWith('.docx')
-    ) {
+    if (mimetype.includes('officedocument') || originalname.endsWith('.docx')) {
       try {
         const mammoth = await import('mammoth');
         const res = await mammoth.extractRawText({ buffer });

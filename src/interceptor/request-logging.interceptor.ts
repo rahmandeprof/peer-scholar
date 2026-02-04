@@ -106,10 +106,14 @@ export class RequestLoggingInterceptor implements NestInterceptor {
     // For quiz/flashcard endpoints, just log summary
     if (url.includes('/chat/quiz/') || url.includes('/chat/flashcards/')) {
       if (Array.isArray(responseBody)) {
-        return { _summary: `Generated ${responseBody.length} items`, type: 'quiz/flashcard' };
+        return {
+          _summary: `Generated ${responseBody.length} items`,
+          type: 'quiz/flashcard',
+        };
       }
       if (typeof responseBody === 'object' && responseBody !== null) {
         const obj = responseBody as Record<string, unknown>;
+
         if (obj.status === 'upgrading') {
           return { status: 'upgrading', materialId: obj.materialId };
         }
@@ -117,7 +121,11 @@ export class RequestLoggingInterceptor implements NestInterceptor {
     }
 
     // For material content endpoints, summarize
-    if (url.includes('/materials/') && typeof responseBody === 'object' && responseBody !== null) {
+    if (
+      url.includes('/materials/') &&
+      typeof responseBody === 'object' &&
+      responseBody !== null
+    ) {
       return this.sanitizeForLogging(responseBody);
     }
 
@@ -126,10 +134,13 @@ export class RequestLoggingInterceptor implements NestInterceptor {
       if (responseBody.length > MAX_ARRAY_ITEMS_TO_LOG) {
         return {
           _summary: `Array with ${responseBody.length} items`,
-          _preview: responseBody.slice(0, MAX_ARRAY_ITEMS_TO_LOG).map(item => this.sanitizeForLogging(item)),
+          _preview: responseBody
+            .slice(0, MAX_ARRAY_ITEMS_TO_LOG)
+            .map((item) => this.sanitizeForLogging(item)),
         };
       }
-      return responseBody.map(item => this.sanitizeForLogging(item));
+
+      return responseBody.map((item) => this.sanitizeForLogging(item));
     }
 
     if (typeof responseBody === 'object' && responseBody !== null) {
@@ -150,9 +161,15 @@ export class RequestLoggingInterceptor implements NestInterceptor {
     if (Array.isArray(obj)) {
       // Limit array logging to prevent bloat
       if (obj.length > MAX_ARRAY_ITEMS_TO_LOG) {
-        return { _summary: `Array[${obj.length}]`, _preview: obj.slice(0, 2).map(item => this.sanitizeForLogging(item)) };
+        return {
+          _summary: `Array[${obj.length}]`,
+          _preview: obj
+            .slice(0, 2)
+            .map((item) => this.sanitizeForLogging(item)),
+        };
       }
-      return obj.map(item => this.sanitizeForLogging(item));
+
+      return obj.map((item) => this.sanitizeForLogging(item));
     }
 
     if (typeof obj !== 'object') {
@@ -164,8 +181,13 @@ export class RequestLoggingInterceptor implements NestInterceptor {
     for (const [key, value] of Object.entries(obj)) {
       if (SENSITIVE_FIELDS.includes(key)) {
         // Redact sensitive field - show length hint for debugging
-        const length = typeof value === 'string' ? value.length :
-          Array.isArray(value) ? value.length : 0;
+        const length =
+          typeof value === 'string'
+            ? value.length
+            : Array.isArray(value)
+              ? value.length
+              : 0;
+
         sanitized[key] = `[REDACTED:${length}]`;
       } else if (typeof value === 'object' && value !== null) {
         sanitized[key] = this.sanitizeForLogging(value);
@@ -177,4 +199,3 @@ export class RequestLoggingInterceptor implements NestInterceptor {
     return sanitized;
   }
 }
-

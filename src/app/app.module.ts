@@ -3,20 +3,19 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { SentryModule } from '@sentry/nestjs/setup';
 
 import { AcademicModule } from '@/app/academic/academic.module';
 import { AdminModule } from '@/app/admin/admin.module';
 import { AuthModule } from '@/app/auth/auth.module';
+import { CacheModule } from '@/app/cache/cache.module';
 import { ChatModule } from '@/app/chat/chat.module';
 import { CommonModule } from '@/app/common/common.module';
 import { DocumentProcessingModule } from '@/app/document-processing/document-processing.module';
+import { FeedbackModule } from '@/app/feedback/feedback.module';
 import { OtpModule } from '@/app/otp/otp.module';
 import { QueueModule } from '@/app/queue/queue.module';
 import { QuizEngineModule } from '@/app/quiz-engine/quiz-engine.module';
 import { StudyModule } from '@/app/study/study.module';
-import { CacheModule } from '@/app/cache/cache.module';
-import { FeedbackModule } from '@/app/feedback/feedback.module';
 import { TTSModule } from '@/app/tts/tts.module';
 import { UsersModule } from '@/app/users/users.module';
 import { DatabaseModule } from '@/database/database.module';
@@ -34,6 +33,7 @@ import { WinstonLoggerService } from '@/logger/winston-logger/winston-logger.ser
 
 import configuration from '@/config/configuration';
 
+import { SentryModule } from '@sentry/nestjs/setup';
 import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
 
 @Module({
@@ -102,4 +102,4 @@ import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

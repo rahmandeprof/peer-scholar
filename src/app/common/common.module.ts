@@ -4,10 +4,10 @@ import { Global, Module } from '@nestjs/common';
 import { MailModule } from '@/mail/mail.module';
 
 import { CloudinaryService } from './services/cloudinary.service';
-import { R2Service } from './services/r2.service';
-import { StorageService } from './services/storage.service';
 import { ConversionService } from './services/conversion.service';
 import { EmailService } from './services/email.service';
+import { R2Service } from './services/r2.service';
+import { StorageService } from './services/storage.service';
 
 import { EmailProcessor } from './processors/email.processor';
 
@@ -27,7 +27,13 @@ import { EmailProcessor } from './processors/email.processor';
     EmailProcessor,
     ConversionService,
   ],
-  exports: [CloudinaryService, R2Service, StorageService, EmailService, BullModule, ConversionService],
+  exports: [
+    CloudinaryService,
+    R2Service,
+    StorageService,
+    EmailService,
+    BullModule,
+    ConversionService,
+  ],
 })
-export class CommonModule { }
-
+export class CommonModule {}

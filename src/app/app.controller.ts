@@ -6,7 +6,7 @@ import { Public } from '@/app/auth/decorators';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) { }
+  constructor(private readonly appService: AppService) {}
 
   @Public()
   @Get()

@@ -1,6 +1,6 @@
+import { BullModule } from '@nestjs/bull';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { BullModule } from '@nestjs/bull';
 
 import { CommonModule } from '@/app/common/common.module';
 import { DocumentProcessingModule } from '@/app/document-processing/document-processing.module';
@@ -42,4 +42,4 @@ import { ChatService } from './chat.service';
   providers: [ChatService],
   exports: [ChatService],
 })
-export class ChatModule { }
+export class ChatModule {}

@@ -2,25 +2,26 @@
  * Prompt Builder Service - Constructs system and user prompts for quiz/flashcard generation
  */
 import { Injectable } from '@nestjs/common';
+
 import { QuizDifficulty } from '../types';
 
 export type GenerationType = 'quiz' | 'flashcards';
 
 export interface PromptConfig {
-    type: GenerationType;
-    topic: string;
-    difficulty?: QuizDifficulty;
-    itemCount?: number;
-    textSegment?: string;
+  type: GenerationType;
+  topic: string;
+  difficulty?: QuizDifficulty;
+  itemCount?: number;
+  textSegment?: string;
 }
 
 @Injectable()
 export class PromptBuilderService {
-    /**
-     * The permanent system prompt for PeerToLearn quiz/flashcard generation
-     */
-    getSystemPrompt(): string {
-        return `You generate quizzes and flashcards for PeerToLearn based on topics or text segments.
+  /**
+   * The permanent system prompt for PeerToLearn quiz/flashcard generation
+   */
+  getSystemPrompt(): string {
+    return `You generate quizzes and flashcards for PeerToLearn based on topics or text segments.
 Always follow the agreed structure strictly.
 
 **Quiz Behavior**
@@ -78,106 +79,114 @@ Always follow the agreed structure strictly.
 - Apply to questions, answers, options, explanations, and flashcard content as needed
 
 IMPORTANT: Respond with ONLY valid JSON. No markdown, no explanations, just the JSON object/array.`;
-    }
+  }
 
-    /**
-     * Build a user prompt for the specified generation type
-     */
-    buildUserPrompt(config: PromptConfig): string {
-        const { type, topic, difficulty, itemCount, textSegment } = config;
+  /**
+   * Build a user prompt for the specified generation type
+   */
+  buildUserPrompt(config: PromptConfig): string {
+    const { type, topic, difficulty, itemCount, textSegment } = config;
 
-        const typeLabel = type === 'quiz' ? 'quiz questions' : 'flashcards';
-        const count = itemCount || (type === 'quiz' ? 5 : 10);
-        const difficultyLabel = difficulty || 'intermediate';
+    const typeLabel = type === 'quiz' ? 'quiz questions' : 'flashcards';
+    const count = itemCount || (type === 'quiz' ? 5 : 10);
+    const difficultyLabel = difficulty || 'intermediate';
 
-        let prompt = `Generate ${count} ${typeLabel} based on the following context:
+    let prompt = `Generate ${count} ${typeLabel} based on the following context:
 
 Topic: "${topic}"`;
 
-        if (type === 'quiz') {
-            prompt += `
+    if (type === 'quiz') {
+      prompt += `
 Difficulty: ${difficultyLabel}`;
-        }
+    }
 
-        if (textSegment && textSegment.trim().length > 0) {
-            // Limit segment length to avoid token issues
-            const segment = textSegment.length > 8000
-                ? textSegment.substring(0, 8000) + '...'
-                : textSegment;
+    if (textSegment && textSegment.trim().length > 0) {
+      // Limit segment length to avoid token issues
+      const segment =
+        textSegment.length > 8000
+          ? textSegment.substring(0, 8000) + '...'
+          : textSegment;
 
-            prompt += `
+      prompt += `
 
 Text Content (use this as the primary source for questions):
 """
 ${segment}
 """`;
-        }
+    }
 
-        prompt += `
+    prompt += `
 
 Ensure the output is dynamic, educational, and follows the required JSON format strictly.
-${type === 'quiz'
-                ? 'Include a diverse mix of question types (MCQ, true/false, fill-in-the-blank, etc.).'
-                : 'Focus on the most important concepts that would be useful for spaced repetition study.'}
+${
+  type === 'quiz'
+    ? 'Include a diverse mix of question types (MCQ, true/false, fill-in-the-blank, etc.).'
+    : 'Focus on the most important concepts that would be useful for spaced repetition study.'
+}
 
 Respond with ONLY valid JSON.`;
 
-        return prompt;
-    }
+    return prompt;
+  }
 
-    /**
-     * Build prompts for quiz generation
-     */
-    buildQuizPrompts(
-        topic: string,
-        difficulty: QuizDifficulty = QuizDifficulty.INTERMEDIATE,
-        questionCount: number = 5,
-        textSegment?: string,
-    ): { systemPrompt: string; userPrompt: string } {
-        return {
-            systemPrompt: this.getSystemPrompt(),
-            userPrompt: this.buildUserPrompt({
-                type: 'quiz',
-                topic,
-                difficulty,
-                itemCount: questionCount,
-                textSegment,
-            }),
-        };
-    }
+  /**
+   * Build prompts for quiz generation
+   */
+  buildQuizPrompts(
+    topic: string,
+    difficulty: QuizDifficulty = QuizDifficulty.INTERMEDIATE,
+    questionCount = 5,
+    textSegment?: string,
+  ): { systemPrompt: string; userPrompt: string } {
+    return {
+      systemPrompt: this.getSystemPrompt(),
+      userPrompt: this.buildUserPrompt({
+        type: 'quiz',
+        topic,
+        difficulty,
+        itemCount: questionCount,
+        textSegment,
+      }),
+    };
+  }
 
-    /**
-     * Build prompts for flashcard generation
-     */
-    buildFlashcardPrompts(
-        topic: string,
-        cardCount: number = 10,
-        textSegment?: string,
-    ): { systemPrompt: string; userPrompt: string } {
-        return {
-            systemPrompt: this.getSystemPrompt(),
-            userPrompt: this.buildUserPrompt({
-                type: 'flashcards',
-                topic,
-                itemCount: cardCount,
-                textSegment,
-            }),
-        };
-    }
+  /**
+   * Build prompts for flashcard generation
+   */
+  buildFlashcardPrompts(
+    topic: string,
+    cardCount = 10,
+    textSegment?: string,
+  ): { systemPrompt: string; userPrompt: string } {
+    return {
+      systemPrompt: this.getSystemPrompt(),
+      userPrompt: this.buildUserPrompt({
+        type: 'flashcards',
+        topic,
+        itemCount: cardCount,
+        textSegment,
+      }),
+    };
+  }
 
-    /**
-     * Build prompts for quiz generation from document segments
-     * This explicitly restricts the AI to only use provided segment content
-     */
-    buildQuizPromptsFromSegments(
-        segments: Array<{ text: string; pageStart?: number; pageEnd?: number; heading?: string }>,
-        topic: string,
-        difficulty: QuizDifficulty = QuizDifficulty.INTERMEDIATE,
-        questionCount: number = 5,
-    ): { systemPrompt: string; userPrompt: string } {
-        const formattedSegments = this.formatSegmentsForPrompt(segments);
+  /**
+   * Build prompts for quiz generation from document segments
+   * This explicitly restricts the AI to only use provided segment content
+   */
+  buildQuizPromptsFromSegments(
+    segments: {
+      text: string;
+      pageStart?: number;
+      pageEnd?: number;
+      heading?: string;
+    }[],
+    topic: string,
+    difficulty: QuizDifficulty = QuizDifficulty.INTERMEDIATE,
+    questionCount = 5,
+  ): { systemPrompt: string; userPrompt: string } {
+    const formattedSegments = this.formatSegmentsForPrompt(segments);
 
-        const userPrompt = `Generate ${questionCount} quiz questions based ONLY on the following document segments.
+    const userPrompt = `Generate ${questionCount} quiz questions based ONLY on the following document segments.
 
 Topic: "${topic}"
 Difficulty: ${difficulty}
@@ -199,23 +208,28 @@ Requirements:
 
 Respond with ONLY valid JSON following the quiz format.`;
 
-        return {
-            systemPrompt: this.getSystemPrompt(),
-            userPrompt,
-        };
-    }
+    return {
+      systemPrompt: this.getSystemPrompt(),
+      userPrompt,
+    };
+  }
 
-    /**
-     * Build prompts for flashcard generation from document segments
-     */
-    buildFlashcardPromptsFromSegments(
-        segments: Array<{ text: string; pageStart?: number; pageEnd?: number; heading?: string }>,
-        topic: string,
-        cardCount: number = 10,
-    ): { systemPrompt: string; userPrompt: string } {
-        const formattedSegments = this.formatSegmentsForPrompt(segments);
+  /**
+   * Build prompts for flashcard generation from document segments
+   */
+  buildFlashcardPromptsFromSegments(
+    segments: {
+      text: string;
+      pageStart?: number;
+      pageEnd?: number;
+      heading?: string;
+    }[],
+    topic: string,
+    cardCount = 10,
+  ): { systemPrompt: string; userPrompt: string } {
+    const formattedSegments = this.formatSegmentsForPrompt(segments);
 
-        const userPrompt = `Generate ${cardCount} flashcards based ONLY on the following document segments.
+    const userPrompt = `Generate ${cardCount} flashcards based ONLY on the following document segments.
 
 Topic: "${topic}"
 
@@ -236,40 +250,49 @@ Requirements:
 
 Respond with ONLY valid JSON following the flashcard format.`;
 
-        return {
-            systemPrompt: this.getSystemPrompt(),
-            userPrompt,
-        };
-    }
+    return {
+      systemPrompt: this.getSystemPrompt(),
+      userPrompt,
+    };
+  }
 
-    /**
-     * Format segments for inclusion in prompts
-     */
-    private formatSegmentsForPrompt(
-        segments: Array<{ text: string; pageStart?: number; pageEnd?: number; heading?: string }>,
-    ): string {
-        return segments.map((segment, index) => {
-            let header = `[Segment ${index + 1}`;
+  /**
+   * Format segments for inclusion in prompts
+   */
+  private formatSegmentsForPrompt(
+    segments: {
+      text: string;
+      pageStart?: number;
+      pageEnd?: number;
+      heading?: string;
+    }[],
+  ): string {
+    return segments
+      .map((segment, index) => {
+        let header = `[Segment ${index + 1}`;
 
-            if (segment.pageStart !== undefined) {
-                if (segment.pageEnd !== undefined && segment.pageEnd !== segment.pageStart) {
-                    header += ` - Pages ${segment.pageStart}-${segment.pageEnd}`;
-                } else {
-                    header += ` - Page ${segment.pageStart}`;
-                }
-            }
+        if (segment.pageStart !== undefined) {
+          if (
+            segment.pageEnd !== undefined &&
+            segment.pageEnd !== segment.pageStart
+          ) {
+            header += ` - Pages ${segment.pageStart}-${segment.pageEnd}`;
+          } else {
+            header += ` - Page ${segment.pageStart}`;
+          }
+        }
 
-            if (segment.heading) {
-                header += ` - "${segment.heading}"`;
-            }
+        if (segment.heading) {
+          header += ` - "${segment.heading}"`;
+        }
 
-            header += ']';
+        header += ']';
 
-            return `${header}
+        return `${header}
 """
 ${segment.text}
 """`;
-        }).join('\n\n');
-    }
+      })
+      .join('\n\n');
+  }
 }
-

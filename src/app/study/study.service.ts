@@ -6,8 +6,8 @@ import {
   StudySessionType,
 } from './entities/study-session.entity';
 
-import { UsersService } from '@/app/users/users.service';
 import { BadgeService } from '@/app/users/badge.service';
+import { UsersService } from '@/app/users/users.service';
 
 import { REPUTATION_REWARDS } from '@/app/common/constants/reputation.constants';
 
@@ -20,7 +20,7 @@ export class StudyService {
     private readonly studySessionRepo: Repository<StudySession>,
     private readonly usersService: UsersService,
     private readonly badgeService: BadgeService,
-  ) { }
+  ) {}
 
   startSession(userId: string, type: StudySessionType) {
     const session = this.studySessionRepo.create({
@@ -141,6 +141,7 @@ export class StudyService {
     if (seconds < 5) {
       // Delete the session instead of marking complete
       await this.studySessionRepo.remove(session);
+
       return { success: true, durationSeconds: 0, skipped: true };
     }
 
@@ -230,6 +231,7 @@ export class StudyService {
    */
   async getActivityHistory(userId: string, days = 30) {
     const startDate = new Date();
+
     startDate.setDate(startDate.getDate() - days);
     startDate.setHours(0, 0, 0, 0);
 
@@ -250,6 +252,7 @@ export class StudyService {
     for (const session of sessions) {
       const dateKey = session.startTime.toISOString().split('T')[0]; // YYYY-MM-DD
       const existing = activityMap.get(dateKey) || { minutes: 0, sessions: 0 };
+
       existing.minutes += Math.round((session.durationSeconds || 0) / 60);
       existing.sessions += 1;
       activityMap.set(dateKey, existing);
@@ -259,11 +262,13 @@ export class StudyService {
     const result: { date: string; minutes: number; sessions: number }[] = [];
     const currentDate = new Date(startDate);
     const today = new Date();
+
     today.setHours(23, 59, 59, 999);
 
     while (currentDate <= today) {
       const dateKey = currentDate.toISOString().split('T')[0];
       const activity = activityMap.get(dateKey) || { minutes: 0, sessions: 0 };
+
       result.push({
         date: dateKey,
         ...activity,
@@ -280,10 +285,16 @@ export class StudyService {
     const dayOfWeek = now.getDay();
     const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
     const weekStart = new Date(now.setDate(diff));
+
     weekStart.setHours(0, 0, 0, 0);
 
     // Get user's department for filtering
-    let currentUser: { department?: string; firstName?: string; image?: string | null } | null = null;
+    let currentUser: {
+      department?: string;
+      firstName?: string;
+      image?: string | null;
+    } | null = null;
+
     try {
       currentUser = await this.usersService.getOne(userId);
     } catch {
@@ -356,10 +367,14 @@ export class StudyService {
         totalMinutes: Math.round((parseInt(r.totalSeconds) || 0) / 60),
         isCurrentUser: r.userId === userId,
       })),
-      currentUser: currentUserStats ? {
-        rank: currentUserRank,
-        totalMinutes: Math.round((parseInt(currentUserStats.totalSeconds) || 0) / 60),
-      } : null,
+      currentUser: currentUserStats
+        ? {
+            rank: currentUserRank,
+            totalMinutes: Math.round(
+              (parseInt(currentUserStats.totalSeconds) || 0) / 60,
+            ),
+          }
+        : null,
     };
   }
 
@@ -387,13 +402,20 @@ export class StudyService {
 
     // Award reputation for reading time (1 point per 10 minutes)
     const repPoints = Math.floor(durationSeconds / 600);
+
     if (repPoints > 0) {
       await this.usersService.increaseReputation(userId, repPoints);
     }
 
     // Check study badges for the user
     const currentHour = new Date().getHours();
-    await this.badgeService.checkStudyBadges(userId, durationSeconds, currentHour, true);
+
+    await this.badgeService.checkStudyBadges(
+      userId,
+      durationSeconds,
+      currentHour,
+      true,
+    );
 
     return {
       success: true,
@@ -402,4 +424,3 @@ export class StudyService {
     };
   }
 }
-

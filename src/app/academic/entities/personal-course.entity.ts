@@ -2,7 +2,14 @@ import { Material } from './material.entity';
 import { User } from '@/app/users/entities/user.entity';
 import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
 
-import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+} from 'typeorm';
 
 @Entity('personal_course')
 export class PersonalCourse extends IDAndTimestamp {

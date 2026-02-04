@@ -12,12 +12,14 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { Throttle } from '@nestjs/throttler';
 
+import { GoogleOAuthUser } from './strategies/google.strategy';
+
+import { User } from '@/app/users/entities/user.entity';
+
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { CreateUserDto } from '@/app/users/dto/create-user.dto';
-import { User } from '@/app/users/entities/user.entity';
-import { GoogleOAuthUser } from './strategies/google.strategy';
 
 import { AuthService } from './auth.service';
 
@@ -35,7 +37,7 @@ interface GoogleAuthRequest extends Request {
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) { }
+  constructor(private authService: AuthService) {}
 
   @Post('login')
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 attempts per minute
@@ -89,11 +91,14 @@ export class AuthController {
   @Get('google')
   @UseGuards(AuthGuard('google'))
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  async googleAuth() { }
+  async googleAuth() {}
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  async googleAuthRedirect(@Req() req: GoogleAuthRequest, @Res() res: Response) {
+  async googleAuthRedirect(
+    @Req() req: GoogleAuthRequest,
+    @Res() res: Response,
+  ) {
     const data = await this.authService.googleLogin(req);
     const clientUrl = process.env.CLIENT_URL ?? 'http://localhost:5173';
 

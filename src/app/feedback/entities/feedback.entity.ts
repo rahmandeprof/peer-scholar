@@ -1,12 +1,13 @@
+import { User } from '@/app/users/entities/user.entity';
+
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  ManyToOne,
+  Entity,
   JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
-import { User } from '@/app/users/entities/user.entity';
 
 @Entity('feedbacks')
 export class Feedback {

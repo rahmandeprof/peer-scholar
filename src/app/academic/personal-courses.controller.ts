@@ -18,7 +18,7 @@ import { PersonalCoursesService } from './personal-courses.service';
 export class PersonalCoursesController {
   constructor(
     private readonly personalCoursesService: PersonalCoursesService,
-  ) { }
+  ) {}
 
   @Post()
   create(

@@ -1,12 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan, Not } from 'typeorm';
 
-import { UsersService } from '@/app/users/users.service';
-import { PushService } from '@/app/notifications/push.service';
 import { StudyStreak } from '@/app/users/entities/study-streak.entity';
 import { User } from '@/app/users/entities/user.entity';
+
+import { PushService } from '@/app/notifications/push.service';
+import { UsersService } from '@/app/users/users.service';
+
+import { LessThan, Not, Repository } from 'typeorm';
 
 @Injectable()
 export class StudyProcessor {
@@ -19,7 +21,7 @@ export class StudyProcessor {
     private readonly userRepo: Repository<User>,
     @InjectRepository(StudyStreak)
     private readonly streakRepo: Repository<StudyStreak>,
-  ) { }
+  ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   handleDailyStreakCheck() {
@@ -39,6 +41,7 @@ export class StudyProcessor {
     try {
       // Find users with active streaks who haven't studied today
       const today = new Date();
+
       today.setHours(0, 0, 0, 0);
 
       // Get streaks that are active but haven't been updated today
@@ -53,18 +56,23 @@ export class StudyProcessor {
 
       for (const streak of activeStreaks) {
         // Get the user for this streak
-        const user = await this.userRepo.findOne({ where: { id: streak.userId } });
+        const user = await this.userRepo.findOne({
+          where: { id: streak.userId },
+        });
 
         if (user?.pushSubscription) {
           const sent = await this.pushService.sendStreakWarningNotification(
             user.pushSubscription,
             streak.currentStreak,
           );
+
           if (sent) notificationsSent++;
         }
       }
 
-      this.logger.debug(`Streak warning: sent ${notificationsSent} notifications`);
+      this.logger.debug(
+        `Streak warning: sent ${notificationsSent} notifications`,
+      );
     } catch (error) {
       this.logger.error('Failed to send streak warning notifications', error);
     }

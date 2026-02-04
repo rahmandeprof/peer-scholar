@@ -253,7 +253,9 @@ export class MaterialsService {
 
       // Multi-university scoping: only show materials from user's university
       if (user.schoolId) {
-        query.andWhere('material.school_id = :schoolId', { schoolId: user.schoolId });
+        query.andWhere('material.school_id = :schoolId', {
+          schoolId: user.schoolId,
+        });
       }
     }
 
@@ -356,7 +358,9 @@ export class MaterialsService {
 
       // Multi-university scoping: only show materials from user's university
       if (user.schoolId) {
-        query.andWhere('material.school_id = :schoolId', { schoolId: user.schoolId });
+        query.andWhere('material.school_id = :schoolId', {
+          schoolId: user.schoolId,
+        });
       }
     }
 
@@ -1297,13 +1301,13 @@ export class MaterialsService {
       },
       course: m.course
         ? {
-          id: m.course.id,
-          title: m.course.title,
-          department: {
-            id: m.course.department.id,
-            name: m.course.department.name,
-          },
-        }
+            id: m.course.id,
+            title: m.course.title,
+            department: {
+              id: m.course.department.id,
+              name: m.course.department.name,
+            },
+          }
         : null,
     }));
 

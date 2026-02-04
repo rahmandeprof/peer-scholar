@@ -4,22 +4,22 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
+import { FlashcardGenerator, QuizGenerator } from './generators';
 import { LLMService, PromptBuilderService } from './services';
-import { QuizGenerator, FlashcardGenerator } from './generators';
 
 @Module({
-    imports: [ConfigModule],
-    providers: [
-        LLMService,
-        PromptBuilderService,
-        QuizGenerator,
-        FlashcardGenerator,
-    ],
-    exports: [
-        LLMService,
-        PromptBuilderService,
-        QuizGenerator,
-        FlashcardGenerator,
-    ],
+  imports: [ConfigModule],
+  providers: [
+    LLMService,
+    PromptBuilderService,
+    QuizGenerator,
+    FlashcardGenerator,
+  ],
+  exports: [
+    LLMService,
+    PromptBuilderService,
+    QuizGenerator,
+    FlashcardGenerator,
+  ],
 })
-export class QuizEngineModule { }
+export class QuizEngineModule {}

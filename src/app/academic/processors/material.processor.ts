@@ -3,15 +3,21 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { Material, MaterialStatus, ProcessingStatus, ProcessingVersion } from '../entities/material.entity';
 import { DocumentSegment } from '../entities/document-segment.entity';
+import {
+  Material,
+  MaterialStatus,
+  ProcessingStatus,
+  ProcessingVersion,
+} from '../entities/material.entity';
 import { MaterialChunk } from '../entities/material-chunk.entity';
 
+import { CleanerService } from '@/app/document-processing/services/cleaner.service';
 import { OcrService } from '@/app/document-processing/services/ocr.service';
 import { PdfImageService } from '@/app/document-processing/services/pdf-image.service';
-import { CleanerService } from '@/app/document-processing/services/cleaner.service';
-import { QuizGenerator, QuizDifficulty } from '@/app/quiz-engine';
 import { SegmentSelectorService } from '@/app/document-processing/services/segment-selector.service';
+
+import { QuizDifficulty, QuizGenerator } from '@/app/quiz-engine';
 
 import axios from 'axios';
 import { Job } from 'bull';
@@ -78,7 +84,10 @@ export class MaterialProcessor {
 
       // Log file size for debugging
       const fileSizeMB = (buffer.length / (1024 * 1024)).toFixed(2);
-      this.logger.log(`[DOWNLOAD] Material ${materialId}: ${fileSizeMB}MB downloaded`);
+
+      this.logger.log(
+        `[DOWNLOAD] Material ${materialId}: ${fileSizeMB}MB downloaded`,
+      );
 
       // 2. Extract text
       let text = '';
@@ -88,7 +97,10 @@ export class MaterialProcessor {
       this.logger.log(`[TEXT-EXTRACT] Title: "${material.title}"`);
       this.logger.log(`[TEXT-EXTRACT] Buffer size: ${buffer.length} bytes`);
 
-      if (material.fileType === 'application/pdf' || material.fileType?.includes('pdf')) {
+      if (
+        material.fileType === 'application/pdf' ||
+        material.fileType?.includes('pdf')
+      ) {
         this.logger.log(`[TEXT-EXTRACT] Matched: PDF`);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const candidate = (pdfLib as any).default ?? pdfLib;
@@ -127,10 +139,12 @@ export class MaterialProcessor {
         }
 
         text = data.text;
-        this.logger.log(`[TEXT-EXTRACT] PDF extracted ${text?.length ?? 0} chars`);
+        this.logger.log(
+          `[TEXT-EXTRACT] PDF extracted ${text?.length ?? 0} chars`,
+        );
       } else if (
         material.fileType ===
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
         material.fileType?.includes('wordprocessingml') ||
         material.title?.toLowerCase().endsWith('.docx')
       ) {
@@ -138,35 +152,48 @@ export class MaterialProcessor {
         const result = await mammoth.extractRawText({ buffer });
 
         text = result.value;
-        this.logger.log(`[TEXT-EXTRACT] DOCX extracted ${text?.length ?? 0} chars`);
+        this.logger.log(
+          `[TEXT-EXTRACT] DOCX extracted ${text?.length ?? 0} chars`,
+        );
       } else if (material.fileType === 'text/plain') {
         this.logger.log(`[TEXT-EXTRACT] Matched: Plain text`);
         text = buffer.toString('utf-8');
-        this.logger.log(`[TEXT-EXTRACT] TXT extracted ${text?.length ?? 0} chars`);
+        this.logger.log(
+          `[TEXT-EXTRACT] TXT extracted ${text?.length ?? 0} chars`,
+        );
       } else if (
         material.fileType ===
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation' ||
+          'application/vnd.openxmlformats-officedocument.presentationml.presentation' ||
         material.fileType?.includes('presentationml') ||
         material.title?.toLowerCase().endsWith('.pptx')
       ) {
         this.logger.log(`[TEXT-EXTRACT] Matched: PPTX`);
         text = await this.extractTextFromPPTX(buffer);
-        this.logger.log(`[TEXT-EXTRACT] PPTX extracted ${text?.length ?? 0} chars`);
+        this.logger.log(
+          `[TEXT-EXTRACT] PPTX extracted ${text?.length ?? 0} chars`,
+        );
       } else if (material.fileType?.startsWith('image/')) {
         // Direct OCR for images
         this.logger.log(`[TEXT-EXTRACT] Matched: Image - using OCR`);
         text = await this.extractTextViaOCR(material.fileUrl, true);
-        this.logger.log(`[TEXT-EXTRACT] Image OCR extracted ${text?.length ?? 0} chars`);
+        this.logger.log(
+          `[TEXT-EXTRACT] Image OCR extracted ${text?.length ?? 0} chars`,
+        );
       } else if (
         material.fileType?.includes('msword') ||
         material.title?.toLowerCase().endsWith('.doc')
       ) {
         // Legacy .doc files
-        this.logger.log(`[TEXT-EXTRACT] Matched: Legacy DOC - attempting officeparser`);
+        this.logger.log(
+          `[TEXT-EXTRACT] Matched: Legacy DOC - attempting officeparser`,
+        );
         try {
           const officeparser = await import('officeparser');
-          text = await officeparser.parseOfficeAsync(buffer) || '';
-          this.logger.log(`[TEXT-EXTRACT] DOC extracted ${text?.length ?? 0} chars`);
+
+          text = (await officeparser.parseOfficeAsync(buffer)) || '';
+          this.logger.log(
+            `[TEXT-EXTRACT] DOC extracted ${text?.length ?? 0} chars`,
+          );
         } catch (e) {
           this.logger.warn(`[TEXT-EXTRACT] DOC extraction failed:`, e);
         }
@@ -175,21 +202,29 @@ export class MaterialProcessor {
         material.title?.toLowerCase().endsWith('.ppt')
       ) {
         // Legacy .ppt files
-        this.logger.log(`[TEXT-EXTRACT] Matched: Legacy PPT - attempting officeparser`);
+        this.logger.log(
+          `[TEXT-EXTRACT] Matched: Legacy PPT - attempting officeparser`,
+        );
         try {
           const officeparser = await import('officeparser');
-          text = await officeparser.parseOfficeAsync(buffer) || '';
-          this.logger.log(`[TEXT-EXTRACT] PPT extracted ${text?.length ?? 0} chars`);
+
+          text = (await officeparser.parseOfficeAsync(buffer)) || '';
+          this.logger.log(
+            `[TEXT-EXTRACT] PPT extracted ${text?.length ?? 0} chars`,
+          );
         } catch (e) {
           this.logger.warn(`[TEXT-EXTRACT] PPT extraction failed:`, e);
         }
       } else {
-        this.logger.warn(`[TEXT-EXTRACT] NO MATCH for fileType: "${material.fileType}"`);
+        this.logger.warn(
+          `[TEXT-EXTRACT] NO MATCH for fileType: "${material.fileType}"`,
+        );
       }
 
       // Log text preview
       if (text && text.length > 0) {
         const preview = text.substring(0, 200).replace(/\n/g, ' ').trim();
+
         this.logger.log(`[TEXT-EXTRACT] Preview: "${preview}..."`);
       }
 
@@ -202,12 +237,16 @@ export class MaterialProcessor {
 
         if (ocrText) {
           text = ocrText;
-          this.logger.log(`[TEXT-EXTRACT] OCR fallback extracted ${text?.length ?? 0} chars`);
+          this.logger.log(
+            `[TEXT-EXTRACT] OCR fallback extracted ${text?.length ?? 0} chars`,
+          );
         }
       }
 
       if (!text) {
-        this.logger.warn(`[TEXT-EXTRACT] FINAL: No text extracted from material: ${materialId}`);
+        this.logger.warn(
+          `[TEXT-EXTRACT] FINAL: No text extracted from material: ${materialId}`,
+        );
         text =
           'This document appears to be a scanned image or contains no extractable text. AI features like summary and chat may be limited.';
       }
@@ -294,12 +333,18 @@ export class MaterialProcessor {
 
       // Pre-generate quiz in background for faster first access
       this.preGenerateQuiz(material).catch((err) => {
-        this.logger.warn(`[PRE-GEN] Quiz pre-generation failed for ${materialId}:`, err.message);
+        this.logger.warn(
+          `[PRE-GEN] Quiz pre-generation failed for ${materialId}:`,
+          err.message,
+        );
       });
 
       // Pre-generate summary in background for faster first access
       this.preGenerateSummary(material).catch((err) => {
-        this.logger.warn(`[PRE-GEN] Summary pre-generation failed for ${materialId}:`, err.message);
+        this.logger.warn(
+          `[PRE-GEN] Summary pre-generation failed for ${materialId}:`,
+          err.message,
+        );
       });
     } catch (error) {
       this.logger.error(`Failed to process material: ${materialId}`, error);
@@ -379,6 +424,7 @@ export class MaterialProcessor {
         // For single images, use GPT-4 Vision if available, otherwise skip
         if (!this.openai) {
           this.logger.warn('OpenAI not configured, skipping image OCR');
+
           return '';
         }
 
@@ -408,7 +454,9 @@ export class MaterialProcessor {
 
       // For PDFs: Download, convert to images, and run Tesseract OCR
       // This works with ANY file URL (R2, Cloudinary, or any HTTP source)
-      this.logger.log(`[OCR-FALLBACK] Downloading PDF for local OCR: ${fileUrl}`);
+      this.logger.log(
+        `[OCR-FALLBACK] Downloading PDF for local OCR: ${fileUrl}`,
+      );
 
       const pdfResponse = await axios.get(fileUrl, {
         responseType: 'arraybuffer',
@@ -416,17 +464,22 @@ export class MaterialProcessor {
       });
       const pdfBuffer = Buffer.from(pdfResponse.data);
 
-      this.logger.log(`[OCR-FALLBACK] PDF downloaded: ${pdfBuffer.length} bytes`);
+      this.logger.log(
+        `[OCR-FALLBACK] PDF downloaded: ${pdfBuffer.length} bytes`,
+      );
 
       // Convert PDF to images using pdftoppm
       const images = await this.pdfImageService.convertToImages(pdfBuffer);
 
       if (images.length === 0) {
         this.logger.warn('[OCR-FALLBACK] No images generated from PDF');
+
         return '';
       }
 
-      this.logger.log(`[OCR-FALLBACK] Converted PDF to ${images.length} images`);
+      this.logger.log(
+        `[OCR-FALLBACK] Converted PDF to ${images.length} images`,
+      );
 
       // Run Tesseract OCR on images
       const ocrResult = await this.ocrService.extractFromImages(images);
@@ -441,6 +494,7 @@ export class MaterialProcessor {
       return cleanedText;
     } catch (error) {
       this.logger.error('[OCR-FALLBACK] Failed to perform OCR:', error);
+
       return '';
     }
   }
@@ -466,7 +520,10 @@ export class MaterialProcessor {
   /**
    * Segment material text into document segments for the new architecture
    */
-  private async segmentMaterial(material: Material, text: string): Promise<void> {
+  private async segmentMaterial(
+    material: Material,
+    text: string,
+  ): Promise<void> {
     if (!text || text.trim().length < 50) {
       return;
     }
@@ -476,7 +533,9 @@ export class MaterialProcessor {
       await this.segmentRepo.delete({ materialId: material.id });
 
       // Simple segmentation: split by paragraphs and merge to ~400 tokens
-      const paragraphs = text.split(/\n{2,}/).filter(p => p.trim().length > 0);
+      const paragraphs = text
+        .split(/\n{2,}/)
+        .filter((p) => p.trim().length > 0);
       const segments: { text: string; tokenCount: number }[] = [];
 
       let currentSegment = '';
@@ -526,7 +585,10 @@ export class MaterialProcessor {
         }
 
         // If adding would exceed target substantially
-        if (currentTokens > 0 && currentTokens + paragraphTokens > targetTokens * 1.5) {
+        if (
+          currentTokens > 0 &&
+          currentTokens + paragraphTokens > targetTokens * 1.5
+        ) {
           segments.push({
             text: currentSegment.trim(),
             tokenCount: currentTokens,
@@ -538,6 +600,7 @@ export class MaterialProcessor {
 
         // If reached target, flush
         const newTokens = Math.ceil(currentSegment.length / 4);
+
         if (newTokens >= targetTokens) {
           segments.push({
             text: currentSegment.trim(),
@@ -558,6 +621,7 @@ export class MaterialProcessor {
       // Save segments
       for (let i = 0; i < segments.length; i++) {
         const segment = new DocumentSegment();
+
         segment.materialId = material.id;
         segment.text = segments[i].text;
         segment.tokenCount = segments[i].tokenCount;
@@ -567,7 +631,9 @@ export class MaterialProcessor {
         await this.segmentRepo.save(segment);
       }
 
-      this.logger.log(`Created ${segments.length} segments for material ${material.id}`);
+      this.logger.log(
+        `Created ${segments.length} segments for material ${material.id}`,
+      );
     } catch (error) {
       this.logger.error(`Failed to segment material ${material.id}:`, error);
       // Don't throw - segmentation failure shouldn't fail the whole process
@@ -582,29 +648,41 @@ export class MaterialProcessor {
   async handleUpgrade(job: Job<{ materialId: string }>) {
     const { materialId } = job.data;
 
-    this.logger.log(`[UPGRADE] Starting lazy upgrade for material: ${materialId}`);
+    this.logger.log(
+      `[UPGRADE] Starting lazy upgrade for material: ${materialId}`,
+    );
 
     try {
       const material = await this.materialRepo.findOneBy({ id: materialId });
 
       if (!material) {
         this.logger.error(`[UPGRADE] Material not found: ${materialId}`);
+
         return;
       }
 
       // Prevent duplicate upgrades
       if (material.processingVersion === ProcessingVersion.V2) {
-        this.logger.debug(`[UPGRADE] Material ${materialId} is already v2, skipping`);
+        this.logger.debug(
+          `[UPGRADE] Material ${materialId} is already v2, skipping`,
+        );
+
         return;
       }
 
       // Check if already has segments (might be in progress)
-      const existingSegments = await this.segmentRepo.count({ where: { materialId } });
+      const existingSegments = await this.segmentRepo.count({
+        where: { materialId },
+      });
+
       if (existingSegments > 0) {
-        this.logger.debug(`[UPGRADE] Material ${materialId} already has ${existingSegments} segments`);
+        this.logger.debug(
+          `[UPGRADE] Material ${materialId} already has ${existingSegments} segments`,
+        );
         material.processingVersion = ProcessingVersion.V2;
         material.processingStatus = ProcessingStatus.COMPLETED;
         await this.materialRepo.save(material);
+
         return;
       }
 
@@ -616,7 +694,9 @@ export class MaterialProcessor {
         const isPdf = material.fileType?.toLowerCase().includes('pdf');
 
         if (isPdf && material.fileUrl) {
-          this.logger.log(`[UPGRADE] Material ${materialId} has insufficient content, attempting OCR extraction`);
+          this.logger.log(
+            `[UPGRADE] Material ${materialId} has insufficient content, attempting OCR extraction`,
+          );
 
           try {
             // Mark as OCR extracting
@@ -631,7 +711,8 @@ export class MaterialProcessor {
             const pdfBuffer = Buffer.from(response.data);
 
             // Convert PDF to images
-            const images = await this.pdfImageService.convertToImages(pdfBuffer);
+            const images =
+              await this.pdfImageService.convertToImages(pdfBuffer);
 
             if (images.length === 0) {
               throw new Error('No images generated from PDF');
@@ -644,13 +725,18 @@ export class MaterialProcessor {
             text = this.ocrService.cleanOcrText(ocrResult.text);
             text = this.cleanerService.clean(text);
 
-            this.logger.log(`[UPGRADE] OCR extracted ${text.length} chars with ${ocrResult.confidence.toFixed(1)}% confidence`);
+            this.logger.log(
+              `[UPGRADE] OCR extracted ${text.length} chars with ${ocrResult.confidence.toFixed(1)}% confidence`,
+            );
 
             if (!text || text.trim().length < 50) {
-              this.logger.warn(`[UPGRADE] OCR extraction still insufficient for ${materialId}`);
+              this.logger.warn(
+                `[UPGRADE] OCR extraction still insufficient for ${materialId}`,
+              );
               // Leave as v1 - will continue using legacy flow
               material.processingStatus = ProcessingStatus.PENDING;
               await this.materialRepo.save(material);
+
               return;
             }
 
@@ -658,16 +744,22 @@ export class MaterialProcessor {
             material.content = text;
             material.isOcrProcessed = true;
             material.ocrConfidence = ocrResult.confidence;
-
           } catch (ocrError) {
-            this.logger.error(`[UPGRADE] OCR failed for ${materialId}:`, ocrError);
+            this.logger.error(
+              `[UPGRADE] OCR failed for ${materialId}:`,
+              ocrError,
+            );
             // Leave as v1 - will continue using legacy flow
             material.processingStatus = ProcessingStatus.PENDING;
             await this.materialRepo.save(material);
+
             return;
           }
         } else {
-          this.logger.warn(`[UPGRADE] Material ${materialId} has insufficient content and is not a PDF, skipping upgrade`);
+          this.logger.warn(
+            `[UPGRADE] Material ${materialId} has insufficient content and is not a PDF, skipping upgrade`,
+          );
+
           // Leave as v1 - will continue using legacy flow
           return;
         }
@@ -685,12 +777,18 @@ export class MaterialProcessor {
       material.processingStatus = ProcessingStatus.COMPLETED;
       await this.materialRepo.save(material);
 
-      this.logger.log(`[UPGRADE] Successfully upgraded material ${materialId} to v2`);
+      this.logger.log(
+        `[UPGRADE] Successfully upgraded material ${materialId} to v2`,
+      );
     } catch (error) {
-      this.logger.error(`[UPGRADE] Failed to upgrade material ${materialId}:`, error);
+      this.logger.error(
+        `[UPGRADE] Failed to upgrade material ${materialId}:`,
+        error,
+      );
 
       // Mark as failed but keep v1 status so legacy flow continues
       const material = await this.materialRepo.findOneBy({ id: materialId });
+
       if (material) {
         material.processingStatus = ProcessingStatus.FAILED;
         await this.materialRepo.save(material);
@@ -704,16 +802,24 @@ export class MaterialProcessor {
    */
   private async preGenerateQuiz(material: Material): Promise<void> {
     try {
-      this.logger.log(`[PRE-GEN] Starting quiz pre-generation for material ${material.id}`);
+      this.logger.log(
+        `[PRE-GEN] Starting quiz pre-generation for material ${material.id}`,
+      );
 
       // Select segments for quiz generation
-      const { segments } = await this.segmentSelector.selectSegments(material.id, {
-        maxTokens: 8000,
-        maxSegments: 20,
-      });
+      const { segments } = await this.segmentSelector.selectSegments(
+        material.id,
+        {
+          maxTokens: 8000,
+          maxSegments: 20,
+        },
+      );
 
       if (segments.length === 0) {
-        this.logger.warn(`[PRE-GEN] No segments available for ${material.id}, skipping pre-gen`);
+        this.logger.warn(
+          `[PRE-GEN] No segments available for ${material.id}, skipping pre-gen`,
+        );
+
         return;
       }
 
@@ -726,7 +832,10 @@ export class MaterialProcessor {
       );
 
       if (!result.success || !result.data) {
-        this.logger.warn(`[PRE-GEN] Quiz generation failed for ${material.id}: ${result.error}`);
+        this.logger.warn(
+          `[PRE-GEN] Quiz generation failed for ${material.id}: ${result.error}`,
+        );
+
         return;
       }
 
@@ -735,10 +844,15 @@ export class MaterialProcessor {
       material.quizGeneratedVersion = material.materialVersion;
       await this.materialRepo.save(material);
 
-      this.logger.log(`[PRE-GEN] Successfully pre-generated ${result.data.questions.length} quiz questions for material ${material.id}`);
+      this.logger.log(
+        `[PRE-GEN] Successfully pre-generated ${result.data.questions.length} quiz questions for material ${material.id}`,
+      );
     } catch (error) {
       // Don't throw - this is a background optimization, not critical path
-      this.logger.warn(`[PRE-GEN] Pre-generation failed for ${material.id}:`, error instanceof Error ? error.message : error);
+      this.logger.warn(
+        `[PRE-GEN] Pre-generation failed for ${material.id}:`,
+        error instanceof Error ? error.message : error,
+      );
     }
   }
 
@@ -749,17 +863,25 @@ export class MaterialProcessor {
   private async preGenerateSummary(material: Material): Promise<void> {
     // Skip if already has summary
     if (material.summary) {
-      this.logger.debug(`[PRE-GEN] Material ${material.id} already has summary, skipping`);
+      this.logger.debug(
+        `[PRE-GEN] Material ${material.id} already has summary, skipping`,
+      );
+
       return;
     }
 
     if (!this.openai) {
-      this.logger.warn(`[PRE-GEN] OpenAI not configured, skipping summary pre-generation`);
+      this.logger.warn(
+        `[PRE-GEN] OpenAI not configured, skipping summary pre-generation`,
+      );
+
       return;
     }
 
     try {
-      this.logger.log(`[PRE-GEN] Starting summary pre-generation for material ${material.id}`);
+      this.logger.log(
+        `[PRE-GEN] Starting summary pre-generation for material ${material.id}`,
+      );
 
       // Get segments for this material
       const segments = await this.segmentRepo.find({
@@ -769,13 +891,17 @@ export class MaterialProcessor {
       });
 
       if (segments.length === 0) {
-        this.logger.warn(`[PRE-GEN] No segments available for ${material.id}, skipping summary pre-gen`);
+        this.logger.warn(
+          `[PRE-GEN] No segments available for ${material.id}, skipping summary pre-gen`,
+        );
+
         return;
       }
 
       // Build content from segments
       let content = '';
       let tokenCount = 0;
+
       for (const segment of segments) {
         if (tokenCount + segment.tokenCount > 6000) break;
         content += segment.text + '\n\n';
@@ -784,16 +910,20 @@ export class MaterialProcessor {
 
       if (!content.trim()) {
         this.logger.warn(`[PRE-GEN] No content extracted for ${material.id}`);
+
         return;
       }
 
       // Generate summary
       const response = await this.openai.chat.completions.create({
-        model: this.configService.get<string>('OPENAI_CHAT_MODEL') ?? 'gpt-3.5-turbo',
+        model:
+          this.configService.get<string>('OPENAI_CHAT_MODEL') ??
+          'gpt-3.5-turbo',
         messages: [
           {
             role: 'system',
-            content: 'Summarize the following text concisely but comprehensively for a student. Focus on key concepts and main ideas.',
+            content:
+              'Summarize the following text concisely but comprehensively for a student. Focus on key concepts and main ideas.',
           },
           { role: 'user', content },
         ],
@@ -805,12 +935,16 @@ export class MaterialProcessor {
       if (summary) {
         material.summary = summary;
         await this.materialRepo.save(material);
-        this.logger.log(`[PRE-GEN] Successfully pre-generated summary for material ${material.id}`);
+        this.logger.log(
+          `[PRE-GEN] Successfully pre-generated summary for material ${material.id}`,
+        );
       }
     } catch (error) {
       // Don't throw - this is a background optimization, not critical path
-      this.logger.warn(`[PRE-GEN] Summary pre-generation failed for ${material.id}:`, error instanceof Error ? error.message : error);
+      this.logger.warn(
+        `[PRE-GEN] Summary pre-generation failed for ${material.id}:`,
+        error instanceof Error ? error.message : error,
+      );
     }
   }
 }
-

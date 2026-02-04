@@ -1,10 +1,10 @@
+import { School } from '../../academic/entities/school.entity';
 import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
 
 import { CapitalizeTransformer } from '@/utils/transformers/capitalize';
 
 import { Exclude } from 'class-transformer';
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
-import { School } from '../../academic/entities/school.entity';
 
 @Entity('user')
 export class User extends IDAndTimestamp {
@@ -130,7 +130,12 @@ export class User extends IDAndTimestamp {
   showOnLeaderboard: boolean;
 
   // Display name preference - what to show publicly
-  @Column({ name: 'display_name_preference', type: 'varchar', length: 20, default: 'fullname' })
+  @Column({
+    name: 'display_name_preference',
+    type: 'varchar',
+    length: 20,
+    default: 'fullname',
+  })
   displayNamePreference: 'username' | 'fullname';
 
   // Referral tracking - who referred this user
@@ -152,4 +157,3 @@ export class User extends IDAndTimestamp {
     keys: { p256dh: string; auth: string };
   } | null;
 }
-

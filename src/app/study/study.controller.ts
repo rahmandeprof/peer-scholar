@@ -1,13 +1,25 @@
-import { Body, Controller, Get, Post, Param, Req, UseGuards, UnauthorizedException } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
-import { JwtService } from '@nestjs/jwt';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Req,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import { AuthGuard } from '@nestjs/passport';
 
 import { StudySessionType } from './entities/study-session.entity';
 import { User } from '@/app/users/entities/user.entity';
 
+import {
+  QualityRating,
+  SpacedRepetitionService,
+} from './services/spaced-repetition.service';
 import { StudyService } from './study.service';
-import { SpacedRepetitionService, QualityRating } from './services/spaced-repetition.service';
 
 import { Request } from 'express';
 
@@ -22,7 +34,7 @@ export class StudyController {
     private readonly spacedRepetitionService: SpacedRepetitionService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
   // Beacon endpoint - no auth guard, validates token from body
   // This is called by sendBeacon on page unload
@@ -44,6 +56,7 @@ export class StudyController {
         const payload = this.jwtService.verify(bodyToken, {
           secret: this.configService.get<string>('JWT_SECRET'),
         });
+
         userId = payload.sub;
       } catch {
         throw new UnauthorizedException('Invalid token');
@@ -159,7 +172,8 @@ export class StudyController {
   @Post('reading/offline-sync')
   syncOfflineReading(
     @Req() req: RequestWithUser,
-    @Body() body: { materialId?: string; durationSeconds: number; timestamp: number },
+    @Body()
+    body: { materialId?: string; durationSeconds: number; timestamp: number },
   ) {
     if (!req.user) {
       throw new Error('User not found');
@@ -190,7 +204,12 @@ export class StudyController {
     }
     // Note: totalCards should be passed from frontend based on material's flashcard count
     const totalCards = body?.totalCards || 20; // Default fallback
-    return this.spacedRepetitionService.getDueCards(req.user.id, materialId, totalCards);
+
+    return this.spacedRepetitionService.getDueCards(
+      req.user.id,
+      materialId,
+      totalCards,
+    );
   }
 
   /**
@@ -207,7 +226,12 @@ export class StudyController {
       throw new UnauthorizedException('User not found');
     }
     const totalCards = body?.totalCards || 20;
-    return this.spacedRepetitionService.getProgressStats(req.user.id, materialId, totalCards);
+
+    return this.spacedRepetitionService.getProgressStats(
+      req.user.id,
+      materialId,
+      totalCards,
+    );
   }
 
   /**
@@ -223,6 +247,7 @@ export class StudyController {
     if (!req.user) {
       throw new UnauthorizedException('User not found');
     }
+
     return this.spacedRepetitionService.recordReview(
       req.user.id,
       materialId,
@@ -244,6 +269,7 @@ export class StudyController {
       throw new UnauthorizedException('User not found');
     }
     await this.spacedRepetitionService.resetMaterial(req.user.id, materialId);
+
     return { success: true };
   }
 }

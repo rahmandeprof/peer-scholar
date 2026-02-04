@@ -1,12 +1,13 @@
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 import { FlagReason } from '../entities/material-flag.entity';
 
-export class FlagMaterialDto {
-    @IsEnum(FlagReason)
-    reason: FlagReason;
+import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 
-    @IsOptional()
-    @IsString()
-    @MaxLength(500)
-    description?: string;
+export class FlagMaterialDto {
+  @IsEnum(FlagReason)
+  reason: FlagReason;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  description?: string;
 }

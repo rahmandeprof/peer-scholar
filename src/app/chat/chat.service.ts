@@ -1,3 +1,4 @@
+import { InjectQueue } from '@nestjs/bull';
 import {
   BadRequestException,
   Injectable,
@@ -8,20 +9,19 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { InjectQueue } from '@nestjs/bull';
 
+import { DocumentSegment } from '../academic/entities/document-segment.entity';
 import {
   AccessScope,
+  FlashcardItem,
+  isActivelyProcessing,
   Material,
   MaterialStatus,
   MaterialType,
   ProcessingStatus,
   ProcessingVersion,
   QuizQuestion as EntityQuizQuestion,
-  FlashcardItem,
-  isActivelyProcessing,
 } from '../academic/entities/material.entity';
-import { DocumentSegment } from '../academic/entities/document-segment.entity';
 import { MaterialChunk } from '../academic/entities/material-chunk.entity';
 import { Comment } from './entities/comment.entity';
 import { Conversation } from './entities/conversation.entity';
@@ -31,18 +31,21 @@ import { User } from '@/app/users/entities/user.entity';
 
 import { ContextActionDto, ContextActionType } from './dto/context-action.dto';
 
-import { StorageService } from '@/app/common/services/storage.service';
 import { ConversionService } from '@/app/common/services/conversion.service';
+import { StorageService } from '@/app/common/services/storage.service';
+import { SegmentSelectorService } from '@/app/document-processing/services/segment-selector.service';
 import { UsersService } from '@/app/users/users.service';
 
 import { REPUTATION_REWARDS } from '@/app/common/constants/reputation.constants';
+import {
+  FlashcardGenerator,
+  QuizDifficulty,
+  QuizGenerator,
+} from '@/app/quiz-engine';
 
-import { QuizGenerator, FlashcardGenerator, QuizDifficulty } from '@/app/quiz-engine';
-import { SegmentSelectorService } from '@/app/document-processing/services/segment-selector.service';
-
+import { Queue } from 'bull';
 import OpenAI from 'openai';
 import { Repository } from 'typeorm';
-import { Queue } from 'bull';
 
 @Injectable()
 export class ChatService {
@@ -82,8 +85,11 @@ export class ChatService {
     }
 
     // Configurable AI models with sensible defaults
-    this.chatModel = this.configService.get<string>('OPENAI_CHAT_MODEL') ?? 'gpt-3.5-turbo';
-    this.generationModel = this.configService.get<string>('OPENAI_GENERATION_MODEL') ?? 'gpt-4o-mini';
+    this.chatModel =
+      this.configService.get<string>('OPENAI_CHAT_MODEL') ?? 'gpt-3.5-turbo';
+    this.generationModel =
+      this.configService.get<string>('OPENAI_GENERATION_MODEL') ??
+      'gpt-4o-mini';
   }
 
   // Extract text from file (pdf, docx, txt)
@@ -113,6 +119,7 @@ export class ChatService {
 
     try {
       const uploadResult = await this.storageService.uploadFile(file);
+
       url = uploadResult.url;
     } catch (error) {
       this.logger.error('Failed to upload file to storage', error);
@@ -147,6 +154,7 @@ export class ChatService {
           mimetype: 'application/pdf',
         };
         const pdfUpload = await this.storageService.uploadFile(pdfFile);
+
         pdfUrl = pdfUpload.url;
 
         // Extract text from the GENERATED PDF (reliable)
@@ -208,6 +216,7 @@ export class ChatService {
 
     // Admin bypass - admins can delete any material
     const isAdmin = user.role === 'admin';
+
     if (material.uploader.id !== user.id && !isAdmin) {
       throw new NotFoundException('You can only delete your own materials');
     }
@@ -223,6 +232,7 @@ export class ChatService {
     // If these fail, files become orphaned but DB is consistent
     if (fileUrl) {
       const publicId = this.extractPublicIdFromUrl(fileUrl);
+
       if (publicId) {
         this.storageService.deleteFile(publicId).catch((err) => {
           this.logger.warn(`Failed to delete storage file ${publicId}:`, err);
@@ -232,6 +242,7 @@ export class ChatService {
 
     if (pdfUrl && pdfUrl !== fileUrl) {
       const publicId = this.extractPublicIdFromUrl(pdfUrl);
+
       if (publicId) {
         this.storageService.deleteFile(publicId).catch((err) => {
           this.logger.warn(`Failed to delete PDF file ${publicId}:`, err);
@@ -412,9 +423,13 @@ export class ChatService {
     if (segments.length > 0) {
       // Large document: use hierarchical summarization
       if (segments.length > 30) {
-        this.logger.debug(`Using hierarchical summarization for ${segments.length} segments`);
+        this.logger.debug(
+          `Using hierarchical summarization for ${segments.length} segments`,
+        );
+
         return this.hierarchicalSummarize(material, segments);
       }
+
       // Standard: use first ~6000 tokens
       return this.summarizeSegments(material, segments);
     }
@@ -423,6 +438,7 @@ export class ChatService {
     if (material.content) {
       this.logger.debug('Using legacy content fallback for summary');
       const legacyContent = material.content.substring(0, 24000); // ~6000 tokens
+
       return this.summarizeAndCache(material, legacyContent);
     }
 
@@ -478,18 +494,22 @@ export class ChatService {
       if (chunkText.trim()) chunkTexts.push(chunkText);
     }
 
-    this.logger.debug(`Summarizing ${chunkTexts.length} chunks for hierarchical summary`);
+    this.logger.debug(
+      `Summarizing ${chunkTexts.length} chunks for hierarchical summary`,
+    );
 
     // Summarize each chunk in parallel
     const chunkSummaries = await Promise.all(
-      chunkTexts.map(chunk => this.summarizeText(chunk, 200)),
+      chunkTexts.map((chunk) => this.summarizeText(chunk, 200)),
     );
 
     // Filter out empty summaries
-    const validSummaries = chunkSummaries.filter(s => s && s.trim());
+    const validSummaries = chunkSummaries.filter((s) => s && s.trim());
 
     if (validSummaries.length === 0) {
-      throw new InternalServerErrorException('Failed to generate summary from chunks');
+      throw new InternalServerErrorException(
+        'Failed to generate summary from chunks',
+      );
     }
 
     // Create final summary from chunk summaries
@@ -511,7 +531,10 @@ export class ChatService {
   /**
    * Helper: Summarize content and cache result
    */
-  private async summarizeAndCache(material: Material, content: string): Promise<string> {
+  private async summarizeAndCache(
+    material: Material,
+    content: string,
+  ): Promise<string> {
     if (!content.trim()) {
       throw new BadRequestException('No content available to summarize');
     }
@@ -529,7 +552,10 @@ export class ChatService {
   /**
    * Helper: Core text summarization (no caching)
    */
-  private async summarizeText(content: string, maxTokens: number): Promise<string> {
+  private async summarizeText(
+    content: string,
+    maxTokens: number,
+  ): Promise<string> {
     if (!this.openai) return '';
 
     try {
@@ -549,7 +575,9 @@ export class ChatService {
       return response.choices[0].message.content ?? '';
     } catch (e) {
       this.logger.error('Failed to generate summary', e);
-      throw new InternalServerErrorException('Failed to generate summary. Please try again.');
+      throw new InternalServerErrorException(
+        'Failed to generate summary. Please try again.',
+      );
     }
   }
 
@@ -565,7 +593,8 @@ export class ChatService {
       return material.keyPoints;
     }
 
-    if (!this.openai) throw new InternalServerErrorException('AI service is not configured');
+    if (!this.openai)
+      throw new InternalServerErrorException('AI service is not configured');
 
     // Try to use segments first
     const segments = await this.segmentRepo.find({
@@ -578,6 +607,7 @@ export class ChatService {
 
     if (segments.length > 0) {
       let tokenCount = 0;
+
       for (const segment of segments) {
         if (tokenCount + segment.tokenCount > 6000) break;
         contentForKeyPoints += segment.text + '\n\n';
@@ -653,23 +683,31 @@ export class ChatService {
     if (!material) throw new NotFoundException('Material not found');
 
     // Check if material is still being processed (legacy status check)
-    if (material.status === MaterialStatus.PROCESSING || material.status === MaterialStatus.PENDING) {
+    if (
+      material.status === MaterialStatus.PROCESSING ||
+      material.status === MaterialStatus.PENDING
+    ) {
       throw new BadRequestException(
         'PROCESSING: This material is still being analyzed. Please wait a moment and try again.',
       );
     }
 
     // Check processing status for segment-based materials
-    if (material.processingStatus === ProcessingStatus.EXTRACTING ||
+    if (
+      material.processingStatus === ProcessingStatus.EXTRACTING ||
       material.processingStatus === ProcessingStatus.CLEANING ||
-      material.processingStatus === ProcessingStatus.SEGMENTING) {
+      material.processingStatus === ProcessingStatus.SEGMENTING
+    ) {
       throw new BadRequestException(
         'PROCESSING: This material is still being segmented. Please wait a moment and try again.',
       );
     }
 
     // Check if material processing failed
-    if (material.status === MaterialStatus.FAILED || material.processingStatus === ProcessingStatus.FAILED) {
+    if (
+      material.status === MaterialStatus.FAILED ||
+      material.processingStatus === ProcessingStatus.FAILED
+    ) {
       throw new BadRequestException(
         'UNSUPPORTED: This document could not be processed. It may be a scanned image, password-protected, or in an unsupported format.',
       );
@@ -679,31 +717,50 @@ export class ChatService {
     // - No page range was requested (full doc quiz)
     // - Not explicitly regenerating
     // - Quiz exists and was generated for current material version
-    const cacheValid = material.quiz &&
+    const cacheValid =
+      material.quiz &&
       material.quiz.length > 0 &&
       material.quizGeneratedVersion === material.materialVersion;
 
     if (!pageStart && !pageEnd && !regenerate && cacheValid) {
-      this.logger.log(`[CACHE-HIT] Quiz cache hit for material ${materialId}, returning ${material.quiz?.length ?? 0} cached questions`);
+      this.logger.log(
+        `[CACHE-HIT] Quiz cache hit for material ${materialId}, returning ${material.quiz?.length ?? 0} cached questions`,
+      );
+
       return material.quiz;
     }
 
     // Log cache miss reason
-    const missReason = pageStart || pageEnd ? 'page-range-specified' :
-      regenerate ? 'regenerate-requested' :
-        !material.quiz ? 'no-cached-quiz' :
-          material.quiz.length === 0 ? 'empty-cached-quiz' :
-            'version-mismatch';
-    this.logger.log(`[CACHE-MISS] Quiz cache miss for material ${materialId}, reason: ${missReason}`);
+    const missReason =
+      pageStart || pageEnd
+        ? 'page-range-specified'
+        : regenerate
+          ? 'regenerate-requested'
+          : !material.quiz
+            ? 'no-cached-quiz'
+            : material.quiz.length === 0
+              ? 'empty-cached-quiz'
+              : 'version-mismatch';
+
+    this.logger.log(
+      `[CACHE-MISS] Quiz cache miss for material ${materialId}, reason: ${missReason}`,
+    );
 
     // Try to use segments first (new architecture)
-    const segmentCount = await this.segmentRepo.count({ where: { materialId } });
+    const segmentCount = await this.segmentRepo.count({
+      where: { materialId },
+    });
 
     // Lazy upgrade: If v1 document with no segments, trigger upgrade
-    if (material.processingVersion === ProcessingVersion.V1 && segmentCount === 0) {
+    if (
+      material.processingVersion === ProcessingVersion.V1 &&
+      segmentCount === 0
+    ) {
       // Queue background upgrade
       await this.materialsQueue.add('upgrade-to-v2', { materialId });
-      this.logger.log(`[LAZY-UPGRADE] Triggered upgrade for v1 material ${materialId}`);
+      this.logger.log(
+        `[LAZY-UPGRADE] Triggered upgrade for v1 material ${materialId}`,
+      );
 
       // Return upgrading status - frontend should poll for completion
       return {
@@ -715,12 +772,15 @@ export class ChatService {
 
     if (segmentCount > 0) {
       // Use segment-based generation
-      const { segments } = await this.segmentSelector.selectSegments(materialId, {
-        pageStart,
-        pageEnd,
-        maxTokens: 8000,
-        maxSegments: 20,
-      });
+      const { segments } = await this.segmentSelector.selectSegments(
+        materialId,
+        {
+          pageStart,
+          pageEnd,
+          maxTokens: 8000,
+          maxSegments: 20,
+        },
+      );
 
       if (segments.length === 0) {
         throw new BadRequestException(
@@ -736,7 +796,9 @@ export class ChatService {
       );
 
       if (!result.success || !result.data) {
-        this.logger.error(`Quiz generation from segments failed: ${result.error}`);
+        this.logger.error(
+          `Quiz generation from segments failed: ${result.error}`,
+        );
         throw new UnprocessableEntityException(
           result.error || 'Failed to generate quiz. Please try again.',
         );
@@ -759,7 +821,7 @@ export class ChatService {
 
     if (!materialContent || materialContent.trim().length < 50) {
       throw new BadRequestException(
-        'This material doesn\'t have enough content for quiz generation. It may need to be reprocessed.',
+        "This material doesn't have enough content for quiz generation. It may need to be reprocessed.",
       );
     }
 
@@ -769,7 +831,10 @@ export class ChatService {
 
     if (pageStart || pageEnd) {
       const startChar = pageStart ? (pageStart - 1) * CHARS_PER_PAGE : 0;
-      const endChar = pageEnd ? pageEnd * CHARS_PER_PAGE : materialContent.length;
+      const endChar = pageEnd
+        ? pageEnd * CHARS_PER_PAGE
+        : materialContent.length;
+
       textSegment = materialContent.substring(startChar, endChar);
     }
 
@@ -801,7 +866,12 @@ export class ChatService {
     return quiz;
   }
 
-  async generateFlashcards(materialId: string, cardCount?: number, pageStart?: number, pageEnd?: number) {
+  async generateFlashcards(
+    materialId: string,
+    cardCount?: number,
+    pageStart?: number,
+    pageEnd?: number,
+  ) {
     const material = await this.materialRepo.findOne({
       where: { id: materialId },
     });
@@ -809,23 +879,31 @@ export class ChatService {
     if (!material) throw new NotFoundException('Material not found');
 
     // Check if material is still being processed (legacy status check)
-    if (material.status === MaterialStatus.PROCESSING || material.status === MaterialStatus.PENDING) {
+    if (
+      material.status === MaterialStatus.PROCESSING ||
+      material.status === MaterialStatus.PENDING
+    ) {
       throw new BadRequestException(
         'PROCESSING: This material is still being analyzed. Please wait a moment and try again.',
       );
     }
 
     // Check processing status for segment-based materials
-    if (material.processingStatus === ProcessingStatus.EXTRACTING ||
+    if (
+      material.processingStatus === ProcessingStatus.EXTRACTING ||
       material.processingStatus === ProcessingStatus.CLEANING ||
-      material.processingStatus === ProcessingStatus.SEGMENTING) {
+      material.processingStatus === ProcessingStatus.SEGMENTING
+    ) {
       throw new BadRequestException(
         'PROCESSING: This material is still being segmented. Please wait a moment and try again.',
       );
     }
 
     // Check if material processing failed
-    if (material.status === MaterialStatus.FAILED || material.processingStatus === ProcessingStatus.FAILED) {
+    if (
+      material.status === MaterialStatus.FAILED ||
+      material.processingStatus === ProcessingStatus.FAILED
+    ) {
       throw new BadRequestException(
         'UNSUPPORTED: This document could not be processed. It may be a scanned image, password-protected, or in an unsupported format.',
       );
@@ -834,30 +912,48 @@ export class ChatService {
     // Return cached flashcards if:
     // - No page range specified (full doc flashcards)
     // - Flashcards exist and were generated for current material version
-    const cacheValid = material.flashcards &&
+    const cacheValid =
+      material.flashcards &&
       material.flashcards.length > 0 &&
       material.flashcardGeneratedVersion === material.materialVersion;
 
     if (!pageStart && !pageEnd && cacheValid) {
-      this.logger.log(`[CACHE-HIT] Flashcard cache hit for material ${materialId}, returning ${material.flashcards?.length ?? 0} cached cards`);
+      this.logger.log(
+        `[CACHE-HIT] Flashcard cache hit for material ${materialId}, returning ${material.flashcards?.length ?? 0} cached cards`,
+      );
+
       return material.flashcards;
     }
 
     // Log cache miss reason
-    const missReason = pageStart || pageEnd ? 'page-range-specified' :
-      !material.flashcards ? 'no-cached-flashcards' :
-        material.flashcards.length === 0 ? 'empty-cached-flashcards' :
-          'version-mismatch';
-    this.logger.log(`[CACHE-MISS] Flashcard cache miss for material ${materialId}, reason: ${missReason}`);
+    const missReason =
+      pageStart || pageEnd
+        ? 'page-range-specified'
+        : !material.flashcards
+          ? 'no-cached-flashcards'
+          : material.flashcards.length === 0
+            ? 'empty-cached-flashcards'
+            : 'version-mismatch';
+
+    this.logger.log(
+      `[CACHE-MISS] Flashcard cache miss for material ${materialId}, reason: ${missReason}`,
+    );
 
     // Try to use segments first (new architecture)
-    const segmentCount = await this.segmentRepo.count({ where: { materialId } });
+    const segmentCount = await this.segmentRepo.count({
+      where: { materialId },
+    });
 
     // Lazy upgrade: If v1 document with no segments, trigger upgrade
-    if (material.processingVersion === ProcessingVersion.V1 && segmentCount === 0) {
+    if (
+      material.processingVersion === ProcessingVersion.V1 &&
+      segmentCount === 0
+    ) {
       // Queue background upgrade
       await this.materialsQueue.add('upgrade-to-v2', { materialId });
-      this.logger.log(`[LAZY-UPGRADE] Triggered flashcard upgrade for v1 material ${materialId}`);
+      this.logger.log(
+        `[LAZY-UPGRADE] Triggered flashcard upgrade for v1 material ${materialId}`,
+      );
 
       // Return upgrading status - frontend should poll for completion
       return {
@@ -869,12 +965,15 @@ export class ChatService {
 
     if (segmentCount > 0) {
       // Use segment-based generation
-      const { segments } = await this.segmentSelector.selectSegments(materialId, {
-        maxTokens: 8000,
-        maxSegments: 20,
-        pageStart,
-        pageEnd,
-      });
+      const { segments } = await this.segmentSelector.selectSegments(
+        materialId,
+        {
+          maxTokens: 8000,
+          maxSegments: 20,
+          pageStart,
+          pageEnd,
+        },
+      );
 
       if (segments.length === 0) {
         throw new BadRequestException(
@@ -889,7 +988,9 @@ export class ChatService {
       );
 
       if (!result.success || !result.data) {
-        this.logger.error(`Flashcard generation from segments failed: ${result.error}`);
+        this.logger.error(
+          `Flashcard generation from segments failed: ${result.error}`,
+        );
         throw new UnprocessableEntityException(
           result.error || 'Failed to generate flashcards. Please try again.',
         );
@@ -912,7 +1013,7 @@ export class ChatService {
 
     if (!materialContent || materialContent.trim().length < 50) {
       throw new BadRequestException(
-        'This material doesn\'t have enough content for flashcard generation. It may need to be reprocessed.',
+        "This material doesn't have enough content for flashcard generation. It may need to be reprocessed.",
       );
     }
 
@@ -1072,7 +1173,8 @@ export class ChatService {
       .join('\n');
 
     // 4. Call OpenAI
-    if (!this.openai) throw new InternalServerErrorException('AI service is not configured');
+    if (!this.openai)
+      throw new InternalServerErrorException('AI service is not configured');
 
     const system = `You are a helpful student assistant. Use the provided context to answer the student's question. 
     If a FOCUSED SOURCE is provided, prioritize it above all else.
@@ -1136,6 +1238,7 @@ export class ChatService {
    */
   async materialExists(id: string): Promise<boolean> {
     const count = await this.materialRepo.count({ where: { id } });
+
     return count > 0;
   }
 
@@ -1205,7 +1308,8 @@ export class ChatService {
   }
 
   async performContextAction(dto: ContextActionDto) {
-    if (!this.openai) throw new InternalServerErrorException('AI service is not configured');
+    if (!this.openai)
+      throw new InternalServerErrorException('AI service is not configured');
 
     let systemPrompt = '';
     let userPrompt = '';
@@ -1278,7 +1382,9 @@ Return JSON schema:
       return { result: content };
     } catch (error) {
       this.logger.error('Failed to perform context action', error);
-      throw new InternalServerErrorException('Failed to perform context action');
+      throw new InternalServerErrorException(
+        'Failed to perform context action',
+      );
     }
   }
 }
