@@ -32,13 +32,6 @@ import { WeeklyLeaderboard } from './WeeklyLeaderboard';
 import { Plus } from 'lucide-react';
 import { useExitOnBack } from '../hooks/useExitOnBack';
 
-interface Course {
-  id: string;
-  code: string;
-  title: string;
-  level: number;
-}
-
 interface PartnerStats {
   id: string;
   firstName: string;
@@ -64,8 +57,6 @@ export function AcademicControlCenter() {
   }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [, setCourses] = useState<Course[]>([]);
   const [partners, setPartners] = useState<PartnerStats[]>([]);
   const [recentMaterials, setRecentMaterials] = useState<RecentMaterial[]>([]);
   const [streak, setStreak] = useState(0);
