@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { Material } from '../types/academic';
 import {
@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { BorderSpinner, MaterialViewSkeleton } from './Skeleton';
 import api from '../lib/api';
-import { accumulateReadingTime } from '../lib/offlineReadingTracker';
+import { useReadingSession } from '../hooks/useReadingSession';
 import { getDisplayName } from '../lib/displayName';
 import { addToViewingHistory } from '../lib/viewingHistory';
 import { useTheme } from '../contexts/ThemeContext';
@@ -112,11 +112,14 @@ export const MaterialView = () => {
 
   // Reading time tracking for weekly goals
   const [readingSessionId, setReadingSessionId] = useState<string | null>(null);
-  const readingSecondsRef = useRef(0);
-  const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
-    null,
-  );
-  const sessionStartTimeRef = useRef<number>(0); // Track when session started for accurate cleanup
+  const [initialSeconds, setInitialSeconds] = useState(0);
+
+  // Use the extracted reading session hook for heartbeat/cleanup
+  useReadingSession({
+    sessionId: readingSessionId,
+    materialId: id,
+    initialSeconds,
+  });
 
   // Continue reading from last position
   const [lastReadPage, setLastReadPage] = useState(1);
@@ -237,9 +240,7 @@ export const MaterialView = () => {
         // Process session
         if (sessionRes.data.id) {
           setReadingSessionId(sessionRes.data.id);
-          readingSecondsRef.current = sessionRes.data.durationSeconds || 0;
-          sessionStartTimeRef.current =
-            Date.now() - readingSecondsRef.current * 1000;
+          setInitialSeconds(sessionRes.data.durationSeconds || 0);
         }
       } catch {
         // ...
@@ -291,137 +292,6 @@ export const MaterialView = () => {
       void autoCachePdf();
     }
   }, [material]);
-
-  // Reading time heartbeat - sends every 30 seconds while viewing
-  // Pauses when tab is hidden (user switches tabs or minimizes)
-  useEffect(() => {
-    if (!readingSessionId || !sessionStartTimeRef.current) return;
-
-    // Track if we're paused due to visibility
-    let isPaused = false;
-    let pausedAt = 0;
-    let totalPausedTime = 0;
-
-    // Use the ref for consistent timing across the session
-    const getElapsedSeconds = () => {
-      const totalElapsed = Date.now() - sessionStartTimeRef.current;
-      // Subtract time spent paused
-      const activeTime =
-        totalElapsed - totalPausedTime - (isPaused ? Date.now() - pausedAt : 0);
-      return Math.floor(Math.max(0, activeTime) / 1000);
-    };
-
-    const startHeartbeat = () => {
-      if (heartbeatIntervalRef.current) {
-        clearInterval(heartbeatIntervalRef.current);
-      }
-
-      heartbeatIntervalRef.current = setInterval(() => {
-        if (isPaused) return; // Skip if paused
-
-        const elapsedSeconds = getElapsedSeconds();
-        readingSecondsRef.current = elapsedSeconds;
-
-        // Send heartbeat to backend (or accumulate locally if offline)
-        if (navigator.onLine) {
-          api
-            .post('/study/reading/heartbeat', {
-              sessionId: readingSessionId,
-              seconds: elapsedSeconds,
-            })
-            .catch(console.error);
-        }
-        // Always accumulate locally as fallback (will sync when online)
-        accumulateReadingTime(id || '', 30);
-      }, 30000); // Every 30 seconds
-    };
-
-    // Handle visibility change (tab switch, minimize, etc.)
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        // Tab became hidden - pause timing
-        isPaused = true;
-        pausedAt = Date.now();
-        // Stop heartbeat to save resources
-        if (heartbeatIntervalRef.current) {
-          clearInterval(heartbeatIntervalRef.current);
-          heartbeatIntervalRef.current = null;
-        }
-      } else {
-        // Tab became visible - resume timing
-        if (isPaused) {
-          totalPausedTime += Date.now() - pausedAt;
-          isPaused = false;
-          pausedAt = 0;
-          // Restart heartbeat
-          startHeartbeat();
-        }
-      }
-    };
-
-    // Start initial heartbeat
-    startHeartbeat();
-
-    // Add visibility change listener
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    // Use sendBeacon for reliable delivery on page unload
-    const sendEndRequest = () => {
-      const elapsedSeconds = getElapsedSeconds();
-      // Only send if there's meaningful time (> 5 seconds)
-      if (elapsedSeconds >= 5) {
-        // Always accumulate locally first as safety net
-        accumulateReadingTime(id || '', elapsedSeconds);
-
-        if (navigator.onLine) {
-          // Get auth token and API base URL for sendBeacon
-          const token = localStorage.getItem('token');
-          const apiBaseUrl =
-            (import.meta.env.VITE_API_URL as string | undefined) ??
-            'https://peerscholar.onrender.com/v1';
-          const endpointUrl = `${apiBaseUrl.replace(/\/+$/, '').replace(/\/v1$/, '')}/v1/study/reading/end`;
-
-          // Include token in body since sendBeacon can't set headers
-          const data = JSON.stringify({
-            sessionId: readingSessionId,
-            seconds: elapsedSeconds,
-            _token: token, // Backend will extract this
-          });
-
-          // Use sendBeacon for reliability - it survives page navigation
-          const sent = navigator.sendBeacon(
-            endpointUrl,
-            new Blob([data], { type: 'application/json' }),
-          );
-          if (!sent) {
-            // Fallback to regular fetch (may not complete on navigation)
-            api
-              .post('/study/reading/end', {
-                sessionId: readingSessionId,
-                seconds: elapsedSeconds,
-              })
-              .catch(console.error);
-          }
-        }
-        // If offline, the local accumulation will be synced when back online
-      }
-    };
-
-    // Handle page close/refresh
-    const handleBeforeUnload = () => sendEndRequest();
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    // Cleanup on unmount
-    return () => {
-      if (heartbeatIntervalRef.current) {
-        clearInterval(heartbeatIntervalRef.current);
-      }
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      // Send end request on React unmount (navigation within app)
-      sendEndRequest();
-    };
-  }, [readingSessionId]);
 
   // Background Pre-fetching for Quiz
   useEffect(() => {
