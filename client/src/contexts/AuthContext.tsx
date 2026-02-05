@@ -90,17 +90,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const fetchedUser = (res.data as any).data || res.data;
           setUser(fetchedUser);
           localStorage.setItem('user', JSON.stringify(fetchedUser));
-        } catch (error) {
-          console.error('Token invalid or expired', error);
-          // Only clear if we failed to verify
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          setToken(null);
-          setUser(null);
-          // Only show toast if user was previously logged in (had cached user data)
-          // Don't show on fresh page load
-          if (storedUser) {
-            toast.error('Session expired. Please log in again.');
+        } catch (error: unknown) {
+          // Only logout on explicit 401 (unauthorized), not on network errors
+          const isUnauthorized =
+            error instanceof Error &&
+            'response' in error &&
+            (error as { response?: { status?: number } }).response?.status ===
+              401;
+
+          if (isUnauthorized) {
+            console.error('Token invalid or expired', error);
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setToken(null);
+            setUser(null);
+            if (storedUser) {
+              toast.error('Session expired. Please log in again.');
+            }
+          } else {
+            // Network error or server error - keep user logged in with cached data
+            console.warn(
+              'Failed to refresh user profile, keeping cached session',
+              error,
+            );
           }
         }
       }
