@@ -15,6 +15,11 @@ interface ReportModalProps {
 // These must match the FlagReason enum in the backend
 const FLAG_REASONS = [
   {
+    value: 'copyright_infringement',
+    label: 'Copyright Infringement',
+    description: 'Contains copyrighted material without permission',
+  },
+  {
     value: 'wrong_content',
     label: 'Wrong Content',
     description: 'Document is incorrect or misleading',

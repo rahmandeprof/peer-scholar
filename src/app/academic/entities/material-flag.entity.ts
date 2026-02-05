@@ -5,6 +5,7 @@ import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 
 export enum FlagReason {
+  COPYRIGHT_INFRINGEMENT = 'copyright_infringement',
   WRONG_CONTENT = 'wrong_content',
   LOW_QUALITY = 'low_quality',
   DUPLICATE = 'duplicate',
