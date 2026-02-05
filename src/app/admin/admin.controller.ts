@@ -3,11 +3,13 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Logger,
   NotFoundException,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -1471,6 +1473,201 @@ export class AdminController {
         existing: existingDepts,
       },
       message: `Created ${createdDepts.length} departments, ${existingDepts.length} already existed`,
+    };
+  }
+
+  // ==================== School CRUD ====================
+
+  @Patch('schools/:id')
+  async updateSchool(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() body: { name?: string; country?: string },
+  ) {
+    const school = await this.schoolRepo.findOne({ where: { id } });
+
+    if (!school) throw new NotFoundException('School not found');
+
+    if (body.name) school.name = body.name;
+    if (body.country) school.country = body.country;
+
+    await this.schoolRepo.save(school);
+    this.logger.log(`Updated school: ${school.name}`);
+
+    return { success: true, school };
+  }
+
+  @Delete('schools/:id')
+  async deleteSchool(@Param('id', new ParseUUIDPipe()) id: string) {
+    const school = await this.schoolRepo.findOne({
+      where: { id },
+      relations: ['faculties'],
+    });
+
+    if (!school) throw new NotFoundException('School not found');
+
+    if (school.faculties?.length > 0) {
+      throw new BadRequestException(
+        `Cannot delete school with ${school.faculties.length} faculties. Delete faculties first.`,
+      );
+    }
+
+    await this.schoolRepo.remove(school);
+    this.logger.log(`Deleted school: ${school.name}`);
+
+    return { success: true, message: `School "${school.name}" deleted` };
+  }
+
+  // ==================== Faculty CRUD ====================
+
+  @Post('faculties')
+  async createFaculty(@Body() body: { name: string; schoolId: string }) {
+    const { name, schoolId } = body;
+
+    if (!name || !schoolId) {
+      throw new BadRequestException('name and schoolId are required');
+    }
+
+    const school = await this.schoolRepo.findOne({ where: { id: schoolId } });
+
+    if (!school) throw new NotFoundException('School not found');
+
+    const existing = await this.facultyRepo.findOne({
+      where: { name, school: { id: schoolId } },
+    });
+
+    if (existing) {
+      throw new BadRequestException(
+        'Faculty with this name already exists in this school',
+      );
+    }
+
+    const faculty = this.facultyRepo.create({ name, school });
+
+    await this.facultyRepo.save(faculty);
+    this.logger.log(`Created faculty: ${name} in ${school.name}`);
+
+    return { success: true, faculty };
+  }
+
+  @Patch('faculties/:id')
+  async updateFaculty(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() body: { name?: string },
+  ) {
+    const faculty = await this.facultyRepo.findOne({ where: { id } });
+
+    if (!faculty) throw new NotFoundException('Faculty not found');
+
+    if (body.name) faculty.name = body.name;
+
+    await this.facultyRepo.save(faculty);
+    this.logger.log(`Updated faculty: ${faculty.name}`);
+
+    return { success: true, faculty };
+  }
+
+  @Delete('faculties/:id')
+  async deleteFaculty(@Param('id', new ParseUUIDPipe()) id: string) {
+    const faculty = await this.facultyRepo.findOne({
+      where: { id },
+      relations: ['departments'],
+    });
+
+    if (!faculty) throw new NotFoundException('Faculty not found');
+
+    if (faculty.departments?.length > 0) {
+      throw new BadRequestException(
+        `Cannot delete faculty with ${faculty.departments.length} departments. Delete departments first.`,
+      );
+    }
+
+    await this.facultyRepo.remove(faculty);
+    this.logger.log(`Deleted faculty: ${faculty.name}`);
+
+    return { success: true, message: `Faculty "${faculty.name}" deleted` };
+  }
+
+  @Get('faculties/:id/departments')
+  async getFacultyDepartments(@Param('id', new ParseUUIDPipe()) id: string) {
+    const faculty = await this.facultyRepo.findOne({
+      where: { id },
+      relations: ['departments'],
+    });
+
+    if (!faculty) throw new NotFoundException('Faculty not found');
+
+    return {
+      faculty: { id: faculty.id, name: faculty.name },
+      departments: faculty.departments.map((d) => ({
+        id: d.id,
+        name: d.name,
+      })),
+    };
+  }
+
+  // ==================== Department CRUD ====================
+
+  @Post('departments')
+  async createDepartment(@Body() body: { name: string; facultyId: string }) {
+    const { name, facultyId } = body;
+
+    if (!name || !facultyId) {
+      throw new BadRequestException('name and facultyId are required');
+    }
+
+    const faculty = await this.facultyRepo.findOne({
+      where: { id: facultyId },
+    });
+
+    if (!faculty) throw new NotFoundException('Faculty not found');
+
+    const existing = await this.departmentRepo.findOne({
+      where: { name, faculty: { id: facultyId } },
+    });
+
+    if (existing) {
+      throw new BadRequestException(
+        'Department with this name already exists in this faculty',
+      );
+    }
+
+    const department = this.departmentRepo.create({ name, faculty });
+
+    await this.departmentRepo.save(department);
+    this.logger.log(`Created department: ${name} in ${faculty.name}`);
+
+    return { success: true, department };
+  }
+
+  @Patch('departments/:id')
+  async updateDepartment(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() body: { name?: string },
+  ) {
+    const department = await this.departmentRepo.findOne({ where: { id } });
+
+    if (!department) throw new NotFoundException('Department not found');
+
+    if (body.name) department.name = body.name;
+
+    await this.departmentRepo.save(department);
+    this.logger.log(`Updated department: ${department.name}`);
+
+    return { success: true, department };
+  }
+
+  @Delete('departments/:id')
+  async deleteDepartment(@Param('id', new ParseUUIDPipe()) id: string) {
+    const department = await this.departmentRepo.findOne({ where: { id } });
+
+    if (!department) throw new NotFoundException('Department not found');
+
+    await this.departmentRepo.remove(department);
+    this.logger.log(`Deleted department: ${department.name}`);
+
+    return {
+      success: true,
+      message: `Department "${department.name}" deleted`,
     };
   }
 }
