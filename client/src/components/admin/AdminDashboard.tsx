@@ -2716,7 +2716,7 @@ export function AdminDashboard() {
                                         setNewFacultyName(e.target.value)
                                       }
                                       placeholder='Faculty name'
-                                      className='flex-1 px-2 py-1 text-sm border rounded'
+                                      className='flex-1 px-2 py-1 text-sm border rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
                                     />
                                     <button
                                       onClick={() =>
@@ -2777,7 +2777,7 @@ export function AdminDashboard() {
                                                       name: e.target.value,
                                                     })
                                                   }
-                                                  className='px-2 py-1 text-sm border rounded'
+                                                  className='px-2 py-1 text-sm border rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
                                                 />
                                                 <button
                                                   onClick={handleUpdateFaculty}
@@ -2867,7 +2867,7 @@ export function AdminDashboard() {
                                                         )
                                                       }
                                                       placeholder='Department name'
-                                                      className='flex-1 px-2 py-1 text-sm border rounded'
+                                                      className='flex-1 px-2 py-1 text-sm border rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
                                                     />
                                                     <button
                                                       onClick={() =>
