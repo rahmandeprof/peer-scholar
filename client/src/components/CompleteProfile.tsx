@@ -3,8 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import api from '../lib/api';
-import { GraduationCap, Building, School, AlertTriangle } from 'lucide-react';
+import {
+  GraduationCap,
+  Building,
+  School,
+  AlertTriangle,
+  HelpCircle,
+} from 'lucide-react';
 import { BorderSpinner } from './Skeleton';
+import { FeedbackModal } from './FeedbackModal';
 
 interface SchoolData {
   id: string;
@@ -27,6 +34,7 @@ export default function CompleteProfile() {
   const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     schoolId: '',
@@ -278,6 +286,16 @@ export default function CompleteProfile() {
                 </option>
               ))}
             </select>
+
+            {/* Can't find faculty/department link */}
+            <button
+              type='button'
+              onClick={() => setFeedbackOpen(true)}
+              className='text-xs text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1 mt-1'
+            >
+              <HelpCircle className='w-3 h-3' />
+              Can't find your faculty or department?
+            </button>
           </div>
 
           {/* Level */}
@@ -351,6 +369,12 @@ export default function CompleteProfile() {
           </button>
         </form>
       </div>
+
+      {/* Feedback Modal for missing faculty/department */}
+      <FeedbackModal
+        isOpen={feedbackOpen}
+        onClose={() => setFeedbackOpen(false)}
+      />
     </div>
   );
 }

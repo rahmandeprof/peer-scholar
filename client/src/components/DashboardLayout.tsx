@@ -60,7 +60,7 @@ export function DashboardLayout() {
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { user, logout } = useAuth();
-  const { toggleTheme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -267,6 +267,19 @@ export function DashboardLayout() {
               Admin Dashboard
             </button>
           )}
+
+          {/* Dark Mode Toggle */}
+          <button
+            onClick={toggleTheme}
+            className='w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors mb-2'
+          >
+            {theme === 'dark' ? (
+              <Sun className='w-4 h-4 mr-2' />
+            ) : (
+              <Moon className='w-4 h-4 mr-2' />
+            )}
+            {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          </button>
 
           <button
             onClick={() => setLogoutConfirmOpen(true)}
