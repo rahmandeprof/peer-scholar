@@ -9,17 +9,13 @@ import {
   Patch,
   Post,
   Req,
-  UploadedFile,
   UseGuards,
-  UseInterceptors,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { FileInterceptor } from '@nestjs/platform-express';
 import { Throttle } from '@nestjs/throttler';
 
 import { RateLimitGuard } from '@/app/auth/guards/rate-limit.guard';
 
-import { MaterialType } from '../academic/entities/material.entity';
 import { User } from '@/app/users/entities/user.entity';
 
 import { ContextActionDto } from './dto/context-action.dto';
@@ -39,29 +35,6 @@ interface RequestWithUser extends Request {
 @UseGuards(AuthGuard('jwt'))
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
-
-  /**
-   * @deprecated Use POST /materials instead. This endpoint will be removed in v2.
-   * Maintained for backward compatibility.
-   */
-  @Post('upload')
-  @UseInterceptors(FileInterceptor('file'))
-  uploadFile(
-    @UploadedFile() file: Express.Multer.File,
-    @Body()
-    body: {
-      title: string;
-      category: MaterialType;
-      department?: string;
-      yearLevel?: number;
-      isPublic?: string;
-      courseCode?: string;
-      topic?: string;
-    },
-    @Req() req: RequestWithUser,
-  ) {
-    return this.chatService.saveMaterial(req.user, file, body);
-  }
 
   @Post('message')
   @UseGuards(RateLimitGuard)
