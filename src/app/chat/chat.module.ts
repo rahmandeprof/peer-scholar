@@ -18,6 +18,8 @@ import { QuizResult } from './entities/quiz-result.entity';
 import { ChatController } from './chat.controller';
 
 import { ChatService } from './chat.service';
+import { FlashcardService } from './flashcard.service';
+import { QuizService } from './quiz.service';
 
 @Module({
   imports: [
@@ -39,7 +41,7 @@ import { ChatService } from './chat.service';
     DocumentProcessingModule,
   ],
   controllers: [ChatController],
-  providers: [ChatService],
+  providers: [ChatService, QuizService, FlashcardService],
   exports: [ChatService],
 })
 export class ChatModule {}

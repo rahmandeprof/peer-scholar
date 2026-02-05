@@ -5,7 +5,6 @@ import {
   InternalServerErrorException,
   Logger,
   NotFoundException,
-  UnprocessableEntityException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -13,35 +12,30 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DocumentSegment } from '../academic/entities/document-segment.entity';
 import {
   AccessScope,
-  FlashcardItem,
   isActivelyProcessing,
   Material,
   MaterialStatus,
   MaterialType,
   ProcessingStatus,
   ProcessingVersion,
-  QuizQuestion as EntityQuizQuestion,
 } from '../academic/entities/material.entity';
 import { MaterialChunk } from '../academic/entities/material-chunk.entity';
 import { Comment } from './entities/comment.entity';
 import { Conversation } from './entities/conversation.entity';
 import { Message, MessageRole } from './entities/message.entity';
-import { QuizResult } from './entities/quiz-result.entity';
 import { User } from '@/app/users/entities/user.entity';
 
 import { ContextActionDto, ContextActionType } from './dto/context-action.dto';
 
+import { FlashcardService } from './flashcard.service';
+import { QuizService } from './quiz.service';
 import { ConversionService } from '@/app/common/services/conversion.service';
 import { StorageService } from '@/app/common/services/storage.service';
 import { SegmentSelectorService } from '@/app/document-processing/services/segment-selector.service';
 import { UsersService } from '@/app/users/users.service';
 
 import { REPUTATION_REWARDS } from '@/app/common/constants/reputation.constants';
-import {
-  FlashcardGenerator,
-  QuizDifficulty,
-  QuizGenerator,
-} from '@/app/quiz-engine';
+import { QuizDifficulty } from '@/app/quiz-engine';
 
 import { Queue } from 'bull';
 import OpenAI from 'openai';
@@ -63,16 +57,15 @@ export class ChatService {
     private readonly conversationRepo: Repository<Conversation>,
     @InjectRepository(Message)
     private readonly messageRepo: Repository<Message>,
-    @InjectRepository(QuizResult)
-    private readonly quizResultRepo: Repository<QuizResult>,
+    // QuizResult repo removed - moved to QuizService
     @InjectRepository(Comment)
     private readonly commentRepo: Repository<Comment>,
     private readonly usersService: UsersService,
     private readonly storageService: StorageService,
     private readonly conversionService: ConversionService,
     private readonly configService: ConfigService,
-    private readonly quizGenerator: QuizGenerator,
-    private readonly flashcardGenerator: FlashcardGenerator,
+    private readonly quizService: QuizService,
+    private readonly flashcardService: FlashcardService,
     private readonly segmentSelector: SegmentSelectorService,
     @InjectRepository(DocumentSegment)
     private readonly segmentRepo: Repository<DocumentSegment>,
@@ -676,194 +669,14 @@ export class ChatService {
     difficulty?: QuizDifficulty,
     questionCount?: number,
   ) {
-    const material = await this.materialRepo.findOne({
-      where: { id: materialId },
-    });
-
-    if (!material) throw new NotFoundException('Material not found');
-
-    // Check if material is still being processed (legacy status check)
-    if (
-      material.status === MaterialStatus.PROCESSING ||
-      material.status === MaterialStatus.PENDING
-    ) {
-      throw new BadRequestException(
-        'PROCESSING: This material is still being analyzed. Please wait a moment and try again.',
-      );
-    }
-
-    // Check processing status for segment-based materials
-    if (
-      material.processingStatus === ProcessingStatus.EXTRACTING ||
-      material.processingStatus === ProcessingStatus.CLEANING ||
-      material.processingStatus === ProcessingStatus.SEGMENTING
-    ) {
-      throw new BadRequestException(
-        'PROCESSING: This material is still being segmented. Please wait a moment and try again.',
-      );
-    }
-
-    // Check if material processing failed
-    if (
-      material.status === MaterialStatus.FAILED ||
-      material.processingStatus === ProcessingStatus.FAILED
-    ) {
-      throw new BadRequestException(
-        'UNSUPPORTED: This document could not be processed. It may be a scanned image, password-protected, or in an unsupported format.',
-      );
-    }
-
-    // Return cached quiz if:
-    // - No page range was requested (full doc quiz)
-    // - Not explicitly regenerating
-    // - Quiz exists and was generated for current material version
-    const cacheValid =
-      material.quiz &&
-      material.quiz.length > 0 &&
-      material.quizGeneratedVersion === material.materialVersion;
-
-    if (!pageStart && !pageEnd && !regenerate && cacheValid) {
-      this.logger.log(
-        `[CACHE-HIT] Quiz cache hit for material ${materialId}, returning ${material.quiz?.length ?? 0} cached questions`,
-      );
-
-      return material.quiz;
-    }
-
-    // Log cache miss reason
-    const missReason =
-      pageStart || pageEnd
-        ? 'page-range-specified'
-        : regenerate
-          ? 'regenerate-requested'
-          : !material.quiz
-            ? 'no-cached-quiz'
-            : material.quiz.length === 0
-              ? 'empty-cached-quiz'
-              : 'version-mismatch';
-
-    this.logger.log(
-      `[CACHE-MISS] Quiz cache miss for material ${materialId}, reason: ${missReason}`,
+    return this.quizService.generateQuiz(
+      materialId,
+      pageStart,
+      pageEnd,
+      regenerate,
+      difficulty,
+      questionCount,
     );
-
-    // Try to use segments first (new architecture)
-    const segmentCount = await this.segmentRepo.count({
-      where: { materialId },
-    });
-
-    // Lazy upgrade: If v1 document with no segments, trigger upgrade
-    if (
-      material.processingVersion === ProcessingVersion.V1 &&
-      segmentCount === 0
-    ) {
-      // Queue background upgrade
-      await this.materialsQueue.add('upgrade-to-v2', { materialId });
-      this.logger.log(
-        `[LAZY-UPGRADE] Triggered upgrade for v1 material ${materialId}`,
-      );
-
-      // Return upgrading status - frontend should poll for completion
-      return {
-        status: 'upgrading',
-        message: 'Preparing this material for smart study...',
-        materialId,
-      };
-    }
-
-    if (segmentCount > 0) {
-      // Use segment-based generation
-      const { segments } = await this.segmentSelector.selectSegments(
-        materialId,
-        {
-          pageStart,
-          pageEnd,
-          maxTokens: 8000,
-          maxSegments: 20,
-        },
-      );
-
-      if (segments.length === 0) {
-        throw new BadRequestException(
-          'No content segments found for the specified page range.',
-        );
-      }
-
-      const result = await this.quizGenerator.generateFromSegments(
-        segments,
-        material.title,
-        difficulty || QuizDifficulty.INTERMEDIATE,
-        questionCount || 5,
-      );
-
-      if (!result.success || !result.data) {
-        this.logger.error(
-          `Quiz generation from segments failed: ${result.error}`,
-        );
-        throw new UnprocessableEntityException(
-          result.error || 'Failed to generate quiz. Please try again.',
-        );
-      }
-
-      const quiz = result.data.questions;
-
-      // Cache the result ONLY if it's a full quiz (no page range specified)
-      if (!pageStart && !pageEnd && quiz.length > 0) {
-        material.quiz = quiz as EntityQuizQuestion[];
-        material.quizGeneratedVersion = material.materialVersion;
-        await this.materialRepo.save(material);
-      }
-
-      return quiz;
-    }
-
-    // Fallback: Use legacy content-based generation for materials without segments
-    const materialContent = material.content;
-
-    if (!materialContent || materialContent.trim().length < 50) {
-      throw new BadRequestException(
-        "This material doesn't have enough content for quiz generation. It may need to be reprocessed.",
-      );
-    }
-
-    // Build text segment for legacy generation
-    const CHARS_PER_PAGE = 3000;
-    let textSegment = materialContent;
-
-    if (pageStart || pageEnd) {
-      const startChar = pageStart ? (pageStart - 1) * CHARS_PER_PAGE : 0;
-      const endChar = pageEnd
-        ? pageEnd * CHARS_PER_PAGE
-        : materialContent.length;
-
-      textSegment = materialContent.substring(startChar, endChar);
-    }
-
-    // Use legacy QuizGenerator method
-    const result = await this.quizGenerator.generate({
-      topic: material.title,
-      difficulty: difficulty || QuizDifficulty.INTERMEDIATE,
-      questionCount: questionCount || 5,
-      textSegment,
-      materialId: material.id,
-    });
-
-    if (!result.success || !result.data) {
-      this.logger.error(`Quiz generation failed: ${result.error}`);
-      throw new UnprocessableEntityException(
-        result.error || 'Failed to generate quiz. Please try again.',
-      );
-    }
-
-    const quiz = result.data.questions;
-
-    // Cache the result ONLY if it's a full quiz (no page range specified)
-    if (!pageStart && !pageEnd && quiz.length > 0) {
-      material.quiz = quiz as EntityQuizQuestion[];
-      material.quizGeneratedVersion = material.materialVersion;
-      await this.materialRepo.save(material);
-    }
-
-    return quiz;
   }
 
   async generateFlashcards(
@@ -872,176 +685,12 @@ export class ChatService {
     pageStart?: number,
     pageEnd?: number,
   ) {
-    const material = await this.materialRepo.findOne({
-      where: { id: materialId },
-    });
-
-    if (!material) throw new NotFoundException('Material not found');
-
-    // Check if material is still being processed (legacy status check)
-    if (
-      material.status === MaterialStatus.PROCESSING ||
-      material.status === MaterialStatus.PENDING
-    ) {
-      throw new BadRequestException(
-        'PROCESSING: This material is still being analyzed. Please wait a moment and try again.',
-      );
-    }
-
-    // Check processing status for segment-based materials
-    if (
-      material.processingStatus === ProcessingStatus.EXTRACTING ||
-      material.processingStatus === ProcessingStatus.CLEANING ||
-      material.processingStatus === ProcessingStatus.SEGMENTING
-    ) {
-      throw new BadRequestException(
-        'PROCESSING: This material is still being segmented. Please wait a moment and try again.',
-      );
-    }
-
-    // Check if material processing failed
-    if (
-      material.status === MaterialStatus.FAILED ||
-      material.processingStatus === ProcessingStatus.FAILED
-    ) {
-      throw new BadRequestException(
-        'UNSUPPORTED: This document could not be processed. It may be a scanned image, password-protected, or in an unsupported format.',
-      );
-    }
-
-    // Return cached flashcards if:
-    // - No page range specified (full doc flashcards)
-    // - Flashcards exist and were generated for current material version
-    const cacheValid =
-      material.flashcards &&
-      material.flashcards.length > 0 &&
-      material.flashcardGeneratedVersion === material.materialVersion;
-
-    if (!pageStart && !pageEnd && cacheValid) {
-      this.logger.log(
-        `[CACHE-HIT] Flashcard cache hit for material ${materialId}, returning ${material.flashcards?.length ?? 0} cached cards`,
-      );
-
-      return material.flashcards;
-    }
-
-    // Log cache miss reason
-    const missReason =
-      pageStart || pageEnd
-        ? 'page-range-specified'
-        : !material.flashcards
-          ? 'no-cached-flashcards'
-          : material.flashcards.length === 0
-            ? 'empty-cached-flashcards'
-            : 'version-mismatch';
-
-    this.logger.log(
-      `[CACHE-MISS] Flashcard cache miss for material ${materialId}, reason: ${missReason}`,
+    return this.flashcardService.generateFlashcards(
+      materialId,
+      cardCount,
+      pageStart,
+      pageEnd,
     );
-
-    // Try to use segments first (new architecture)
-    const segmentCount = await this.segmentRepo.count({
-      where: { materialId },
-    });
-
-    // Lazy upgrade: If v1 document with no segments, trigger upgrade
-    if (
-      material.processingVersion === ProcessingVersion.V1 &&
-      segmentCount === 0
-    ) {
-      // Queue background upgrade
-      await this.materialsQueue.add('upgrade-to-v2', { materialId });
-      this.logger.log(
-        `[LAZY-UPGRADE] Triggered flashcard upgrade for v1 material ${materialId}`,
-      );
-
-      // Return upgrading status - frontend should poll for completion
-      return {
-        status: 'upgrading',
-        message: 'Preparing this material for smart study...',
-        materialId,
-      };
-    }
-
-    if (segmentCount > 0) {
-      // Use segment-based generation
-      const { segments } = await this.segmentSelector.selectSegments(
-        materialId,
-        {
-          maxTokens: 8000,
-          maxSegments: 20,
-          pageStart,
-          pageEnd,
-        },
-      );
-
-      if (segments.length === 0) {
-        throw new BadRequestException(
-          'No content segments found for flashcard generation.',
-        );
-      }
-
-      const result = await this.flashcardGenerator.generateFromSegments(
-        segments,
-        material.title,
-        cardCount || 10,
-      );
-
-      if (!result.success || !result.data) {
-        this.logger.error(
-          `Flashcard generation from segments failed: ${result.error}`,
-        );
-        throw new UnprocessableEntityException(
-          result.error || 'Failed to generate flashcards. Please try again.',
-        );
-      }
-
-      const flashcards = result.data;
-
-      // Cache the result if it's a full flashcard set (no page range)
-      if (!pageStart && !pageEnd && flashcards.length > 0) {
-        material.flashcards = flashcards as FlashcardItem[];
-        material.flashcardGeneratedVersion = material.materialVersion;
-        await this.materialRepo.save(material);
-      }
-
-      return flashcards;
-    }
-
-    // Fallback: Use legacy content-based generation for materials without segments
-    const materialContent = material.content;
-
-    if (!materialContent || materialContent.trim().length < 50) {
-      throw new BadRequestException(
-        "This material doesn't have enough content for flashcard generation. It may need to be reprocessed.",
-      );
-    }
-
-    // Use legacy FlashcardGenerator method
-    const result = await this.flashcardGenerator.generate({
-      topic: material.title,
-      cardCount: cardCount || 10,
-      textSegment: materialContent,
-      materialId: material.id,
-    });
-
-    if (!result.success || !result.data) {
-      this.logger.error(`Flashcard generation failed: ${result.error}`);
-      throw new UnprocessableEntityException(
-        result.error || 'Failed to generate flashcards. Please try again.',
-      );
-    }
-
-    const flashcards = result.data;
-
-    // Cache the result if full document
-    if (!pageStart && !pageEnd && flashcards.length > 0) {
-      material.flashcards = flashcards as FlashcardItem[];
-      material.flashcardGeneratedVersion = material.materialVersion;
-      await this.materialRepo.save(material);
-    }
-
-    return flashcards;
   }
 
   async saveQuizResult(
@@ -1050,32 +699,16 @@ export class ChatService {
     score: number,
     totalQuestions: number,
   ) {
-    const material = await this.materialRepo.findOne({
-      where: { id: materialId },
-    });
-
-    if (!material) throw new NotFoundException('Material not found');
-
-    const result = this.quizResultRepo.create({
+    return this.quizService.saveQuizResult(
       user,
-      material,
+      materialId,
       score,
       totalQuestions,
-    });
-
-    this.logger.log(
-      `Saving quiz result for user ${user.id}, material ${materialId}, score ${String(score)}/${String(totalQuestions)}`,
     );
-
-    return this.quizResultRepo.save(result);
   }
 
   getQuizHistory(user: User) {
-    return this.quizResultRepo.find({
-      where: { user: { id: user.id } },
-      relations: ['material'],
-      order: { createdAt: 'DESC' },
-    });
+    return this.quizService.getQuizHistory(user);
   }
 
   private async generateResponse(
