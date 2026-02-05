@@ -47,11 +47,18 @@ const MAX_ARRAY_ITEMS_TO_LOG = 3;
 
 @Injectable()
 export class RequestLoggingInterceptor implements NestInterceptor {
+  private readonly isProduction = process.env.NODE_ENV === 'production';
+
   constructor(private readonly logger: WinstonLoggerService) {
     this.logger.setContext(RequestLoggingInterceptor.name);
   }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    // Skip request logging entirely in production to reduce log noise
+    if (this.isProduction) {
+      return next.handle();
+    }
+
     if (context.getType() === 'http') {
       // Do something that is only important in the context of regular HTTP requests (REST)
       const req = context.switchToHttp().getRequest();
