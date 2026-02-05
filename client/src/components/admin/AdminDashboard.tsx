@@ -27,6 +27,9 @@ import {
   Flame,
   Copy,
   Building,
+  Pencil,
+  Plus,
+  ChevronDown,
 } from 'lucide-react';
 import { BorderSpinner } from '../Skeleton';
 import api from '../../lib/api';
@@ -187,15 +190,17 @@ export function AdminDashboard() {
   const [queueLastUpdated, setQueueLastUpdated] = useState<Date | null>(null);
 
   // Failed jobs debugging state
-  const [failedJobs, setFailedJobs] = useState<{
-    id: string;
-    name: string;
-    data: { materialId?: string };
-    failedReason: string;
-    stacktrace: string[];
-    attemptsMade: number;
-    timestamp: number;
-  }[]>([]);
+  const [failedJobs, setFailedJobs] = useState<
+    {
+      id: string;
+      name: string;
+      data: { materialId?: string };
+      failedReason: string;
+      stacktrace: string[];
+      attemptsMade: number;
+      timestamp: number;
+    }[]
+  >([]);
   const [failedJobsLoading, setFailedJobsLoading] = useState(false);
   const [showFailedJobs, setShowFailedJobs] = useState(false);
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
@@ -232,16 +237,27 @@ export function AdminDashboard() {
   const [leaderboardsLoading, setLeaderboardsLoading] = useState(false);
 
   // Materials Visibility state
-  const [allMaterials, setAllMaterials] = useState<{
-    id: string;
-    title: string;
-    scope: string;
-    type: string;
-    status: string;
-    createdAt: string;
-    uploader: { id: string; firstName: string; lastName: string; email: string } | null;
-    course: { id: string; title: string; department: { id: string; name: string } | null } | null;
-  }[]>([]);
+  const [allMaterials, setAllMaterials] = useState<
+    {
+      id: string;
+      title: string;
+      scope: string;
+      type: string;
+      status: string;
+      createdAt: string;
+      uploader: {
+        id: string;
+        firstName: string;
+        lastName: string;
+        email: string;
+      } | null;
+      course: {
+        id: string;
+        title: string;
+        department: { id: string; name: string } | null;
+      } | null;
+    }[]
+  >([]);
   const [materialsPage, setMaterialsPage] = useState(1);
   const [materialsTotalPages, setMaterialsTotalPages] = useState(1);
   const [materialsLoading, setMaterialsLoading] = useState(false);
@@ -252,14 +268,16 @@ export function AdminDashboard() {
 
   // University seeding state
   const [showUniversities, setShowUniversities] = useState(false);
-  const [schools, setSchools] = useState<{
-    id: string;
-    name: string;
-    country: string;
-    facultyCount: number;
-    userCount: number;
-    materialCount: number;
-  }[]>([]);
+  const [schools, setSchools] = useState<
+    {
+      id: string;
+      name: string;
+      country: string;
+      facultyCount: number;
+      userCount: number;
+      materialCount: number;
+    }[]
+  >([]);
   const [schoolsLoading, setSchoolsLoading] = useState(false);
   const [seedForm, setSeedForm] = useState({
     schoolName: '',
@@ -268,6 +286,45 @@ export function AdminDashboard() {
     departments: '',
   });
   const [seeding, setSeeding] = useState(false);
+
+  // University CRUD state
+  const [expandedSchoolId, setExpandedSchoolId] = useState<string | null>(null);
+  const [faculties, setFaculties] = useState<
+    {
+      id: string;
+      name: string;
+      departmentCount?: number;
+    }[]
+  >([]);
+  const [facultiesLoading, setFacultiesLoading] = useState(false);
+  const [expandedFacultyId, setExpandedFacultyId] = useState<string | null>(
+    null,
+  );
+  const [departments, setDepartments] = useState<
+    {
+      id: string;
+      name: string;
+    }[]
+  >([]);
+  const [departmentsLoading, setDepartmentsLoading] = useState(false);
+  const [editingSchool, setEditingSchool] = useState<{
+    id: string;
+    name: string;
+    country: string;
+  } | null>(null);
+  const [editingFaculty, setEditingFaculty] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [editingDepartment, setEditingDepartment] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [addingFaculty, setAddingFaculty] = useState<string | null>(null); // schoolId
+  const [newFacultyName, setNewFacultyName] = useState('');
+  const [addingDepartment, setAddingDepartment] = useState<string | null>(null); // facultyId
+  const [newDepartmentName, setNewDepartmentName] = useState('');
+  const [savingEntity, setSavingEntity] = useState(false);
 
   // Check admin access
   useEffect(() => {
@@ -314,7 +371,11 @@ export function AdminDashboard() {
   const fetchOverview = async () => {
     try {
       const res = await api.get('/admin/overview');
-      const { stats: statsData, stuckCount: stuckData, queueStatus: queueData } = res.data;
+      const {
+        stats: statsData,
+        stuckCount: stuckData,
+        queueStatus: queueData,
+      } = res.data;
 
       // Set stats
       setStats(statsData);
@@ -386,12 +447,12 @@ export function AdminDashboard() {
     try {
       const res = await api.get('/admin/quiz-stats');
       // Update stats with quiz count
-      setStats(prev => ({
+      setStats((prev) => ({
         ...prev!,
         quizzes: { taken: res.data.total },
       }));
       // Update logs with recent quizzes
-      setLogs(prev => ({
+      setLogs((prev) => ({
         ...prev!,
         recentQuizzes: res.data.recentQuizzes,
       }));
@@ -551,8 +612,8 @@ export function AdminDashboard() {
   };
 
   const toggleMaterialSelection = (id: string) => {
-    setSelectedMaterialIds(prev =>
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    setSelectedMaterialIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
   };
 
@@ -560,7 +621,7 @@ export function AdminDashboard() {
     if (selectedMaterialIds.length === allMaterials.length) {
       setSelectedMaterialIds([]);
     } else {
-      setSelectedMaterialIds(allMaterials.map(m => m.id));
+      setSelectedMaterialIds(allMaterials.map((m) => m.id));
     }
   };
 
@@ -582,7 +643,11 @@ export function AdminDashboard() {
       .map((d) => d.trim())
       .filter((d) => d.length > 0);
 
-    if (!seedForm.schoolName || !seedForm.facultyName || departments.length === 0) {
+    if (
+      !seedForm.schoolName ||
+      !seedForm.facultyName ||
+      departments.length === 0
+    ) {
       toast.error('Please fill all fields');
       return;
     }
@@ -596,12 +661,199 @@ export function AdminDashboard() {
         departments,
       });
       toast.success(res.data.message);
-      setSeedForm({ schoolName: '', country: 'Nigeria', facultyName: '', departments: '' });
+      setSeedForm({
+        schoolName: '',
+        country: 'Nigeria',
+        facultyName: '',
+        departments: '',
+      });
       fetchSchools();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to seed data');
     } finally {
       setSeeding(false);
+    }
+  };
+
+  // Fetch faculties for a school
+  const fetchFaculties = async (schoolId: string) => {
+    setFacultiesLoading(true);
+    try {
+      const res = await api.get(`/admin/schools/${schoolId}/faculties`);
+      setFaculties(res.data.faculties || []);
+    } catch (err) {
+      toast.error('Failed to fetch faculties');
+    } finally {
+      setFacultiesLoading(false);
+    }
+  };
+
+  // Fetch departments for a faculty
+  const fetchDepartments = async (facultyId: string) => {
+    setDepartmentsLoading(true);
+    try {
+      const res = await api.get(`/admin/faculties/${facultyId}/departments`);
+      setDepartments(res.data.departments || []);
+    } catch (err) {
+      toast.error('Failed to fetch departments');
+    } finally {
+      setDepartmentsLoading(false);
+    }
+  };
+
+  // Toggle school expansion
+  const toggleSchoolExpand = (schoolId: string) => {
+    if (expandedSchoolId === schoolId) {
+      setExpandedSchoolId(null);
+      setFaculties([]);
+      setExpandedFacultyId(null);
+      setDepartments([]);
+    } else {
+      setExpandedSchoolId(schoolId);
+      setExpandedFacultyId(null);
+      setDepartments([]);
+      fetchFaculties(schoolId);
+    }
+  };
+
+  // Toggle faculty expansion
+  const toggleFacultyExpand = (facultyId: string) => {
+    if (expandedFacultyId === facultyId) {
+      setExpandedFacultyId(null);
+      setDepartments([]);
+    } else {
+      setExpandedFacultyId(facultyId);
+      fetchDepartments(facultyId);
+    }
+  };
+
+  // Update school
+  const handleUpdateSchool = async () => {
+    if (!editingSchool) return;
+    setSavingEntity(true);
+    try {
+      await api.patch(`/admin/schools/${editingSchool.id}`, {
+        name: editingSchool.name,
+        country: editingSchool.country,
+      });
+      toast.success('School updated');
+      setEditingSchool(null);
+      fetchSchools();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to update school');
+    } finally {
+      setSavingEntity(false);
+    }
+  };
+
+  // Delete school
+  const handleDeleteSchool = async (schoolId: string) => {
+    if (!confirm('Are you sure? This will delete the school.')) return;
+    try {
+      await api.delete(`/admin/schools/${schoolId}`);
+      toast.success('School deleted');
+      fetchSchools();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to delete school');
+    }
+  };
+
+  // Create faculty
+  const handleCreateFaculty = async (schoolId: string) => {
+    if (!newFacultyName.trim()) return;
+    setSavingEntity(true);
+    try {
+      await api.post('/admin/faculties', { name: newFacultyName, schoolId });
+      toast.success('Faculty created');
+      setNewFacultyName('');
+      setAddingFaculty(null);
+      fetchFaculties(schoolId);
+      fetchSchools();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to create faculty');
+    } finally {
+      setSavingEntity(false);
+    }
+  };
+
+  // Update faculty
+  const handleUpdateFaculty = async () => {
+    if (!editingFaculty) return;
+    setSavingEntity(true);
+    try {
+      await api.patch(`/admin/faculties/${editingFaculty.id}`, {
+        name: editingFaculty.name,
+      });
+      toast.success('Faculty updated');
+      setEditingFaculty(null);
+      if (expandedSchoolId) fetchFaculties(expandedSchoolId);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to update faculty');
+    } finally {
+      setSavingEntity(false);
+    }
+  };
+
+  // Delete faculty
+  const handleDeleteFaculty = async (facultyId: string) => {
+    if (!confirm('Are you sure? This will delete the faculty.')) return;
+    try {
+      await api.delete(`/admin/faculties/${facultyId}`);
+      toast.success('Faculty deleted');
+      if (expandedSchoolId) fetchFaculties(expandedSchoolId);
+      fetchSchools();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to delete faculty');
+    }
+  };
+
+  // Create department
+  const handleCreateDepartment = async (facultyId: string) => {
+    if (!newDepartmentName.trim()) return;
+    setSavingEntity(true);
+    try {
+      await api.post('/admin/departments', {
+        name: newDepartmentName,
+        facultyId,
+      });
+      toast.success('Department created');
+      setNewDepartmentName('');
+      setAddingDepartment(null);
+      fetchDepartments(facultyId);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to create department');
+    } finally {
+      setSavingEntity(false);
+    }
+  };
+
+  // Update department
+  const handleUpdateDepartment = async () => {
+    if (!editingDepartment) return;
+    setSavingEntity(true);
+    try {
+      await api.patch(`/admin/departments/${editingDepartment.id}`, {
+        name: editingDepartment.name,
+      });
+      toast.success('Department updated');
+      setEditingDepartment(null);
+      if (expandedFacultyId) fetchDepartments(expandedFacultyId);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to update department');
+    } finally {
+      setSavingEntity(false);
+    }
+  };
+
+  // Delete department
+  const handleDeleteDepartment = async (departmentId: string) => {
+    if (!confirm('Are you sure? This will delete the department.')) return;
+    try {
+      await api.delete(`/admin/departments/${departmentId}`);
+      toast.success('Department deleted');
+      if (expandedFacultyId) fetchDepartments(expandedFacultyId);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to delete department');
     }
   };
 
@@ -1103,7 +1355,9 @@ export function AdminDashboard() {
                   disabled={failedJobsLoading}
                   className='p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors'
                 >
-                  <RefreshCw className={`w-3 h-3 text-gray-400 ${failedJobsLoading ? 'animate-spin' : ''}`} />
+                  <RefreshCw
+                    className={`w-3 h-3 text-gray-400 ${failedJobsLoading ? 'animate-spin' : ''}`}
+                  />
                 </button>
               </div>
 
@@ -1112,7 +1366,9 @@ export function AdminDashboard() {
                   <BorderSpinner size='sm' />
                 </div>
               ) : failedJobs.length === 0 ? (
-                <p className='text-sm text-gray-500 text-center py-4'>No failed jobs found</p>
+                <p className='text-sm text-gray-500 text-center py-4'>
+                  No failed jobs found
+                </p>
               ) : (
                 <div className='space-y-2 max-h-[400px] overflow-y-auto'>
                   {failedJobs.map((job) => (
@@ -1121,11 +1377,17 @@ export function AdminDashboard() {
                       className='border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden'
                     >
                       <button
-                        onClick={() => setExpandedJobId(expandedJobId === job.id ? null : job.id)}
+                        onClick={() =>
+                          setExpandedJobId(
+                            expandedJobId === job.id ? null : job.id,
+                          )
+                        }
                         className='w-full px-3 py-2 flex items-center justify-between bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors'
                       >
                         <div className='flex items-center gap-3 text-left'>
-                          <span className='text-xs font-mono text-gray-500'>#{job.id}</span>
+                          <span className='text-xs font-mono text-gray-500'>
+                            #{job.id}
+                          </span>
                           <span className='text-sm text-gray-700 dark:text-gray-300 truncate max-w-[200px]'>
                             {job.failedReason || 'Unknown error'}
                           </span>
@@ -1142,7 +1404,9 @@ export function AdminDashboard() {
                       {expandedJobId === job.id && (
                         <div className='px-3 py-2 bg-white dark:bg-gray-900 text-xs space-y-2'>
                           <div className='flex items-center justify-between mb-2'>
-                            <span className='text-gray-500 font-medium'>Job Details</span>
+                            <span className='text-gray-500 font-medium'>
+                              Job Details
+                            </span>
                             <button
                               onClick={() => {
                                 const logText = `Job ID: ${job.id}\nMaterial ID: ${job.data?.materialId || 'N/A'}\nAttempts: ${job.attemptsMade}\n\nError:\n${job.failedReason}\n\n${job.stacktrace && job.stacktrace.length > 0 ? `Stack Trace:\n${job.stacktrace.join('\n')}` : ''}`;
@@ -1170,7 +1434,9 @@ export function AdminDashboard() {
                           </div>
                           {job.stacktrace && job.stacktrace.length > 0 && (
                             <div>
-                              <span className='text-gray-500'>Stack Trace:</span>
+                              <span className='text-gray-500'>
+                                Stack Trace:
+                              </span>
                               <pre className='mt-1 p-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded overflow-x-auto text-[10px] max-h-[150px] overflow-y-auto'>
                                 {job.stacktrace.join('\n')}
                               </pre>
@@ -1385,8 +1651,9 @@ export function AdminDashboard() {
               {feedbacks.map((feedback) => (
                 <div
                   key={feedback.id}
-                  className={`p-3 border-b border-gray-100 dark:border-gray-800 last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${!feedback.isRead ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
-                    }`}
+                  className={`p-3 border-b border-gray-100 dark:border-gray-800 last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${
+                    !feedback.isRead ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
+                  }`}
                   onClick={() => handleToggleFeedbackRead(feedback.id)}
                   title={
                     feedback.isRead
@@ -1400,10 +1667,11 @@ export function AdminDashboard() {
                         <span className='w-2 h-2 bg-blue-500 rounded-full' />
                       )}
                       <span
-                        className={`text-sm font-medium ${!feedback.isRead
-                          ? 'text-gray-900 dark:text-white'
-                          : 'text-gray-500 dark:text-gray-400'
-                          }`}
+                        className={`text-sm font-medium ${
+                          !feedback.isRead
+                            ? 'text-gray-900 dark:text-white'
+                            : 'text-gray-500 dark:text-gray-400'
+                        }`}
                       >
                         {feedback.userName || 'Anonymous'}
                       </span>
@@ -1413,10 +1681,11 @@ export function AdminDashboard() {
                     </span>
                   </div>
                   <p
-                    className={`text-sm mb-2 whitespace-pre-wrap ${!feedback.isRead
-                      ? 'text-gray-700 dark:text-gray-300'
-                      : 'text-gray-500 dark:text-gray-500'
-                      }`}
+                    className={`text-sm mb-2 whitespace-pre-wrap ${
+                      !feedback.isRead
+                        ? 'text-gray-700 dark:text-gray-300'
+                        : 'text-gray-500 dark:text-gray-500'
+                    }`}
                   >
                     {feedback.message}
                   </p>
@@ -1564,12 +1833,13 @@ export function AdminDashboard() {
                           {m.title}
                         </span>
                         <span
-                          className={`ml-2 px-2 py-0.5 rounded text-xs font-medium ${m.processingStatus === 'COMPLETED'
-                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                            : m.processingStatus === 'FAILED'
-                              ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                              : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                            }`}
+                          className={`ml-2 px-2 py-0.5 rounded text-xs font-medium ${
+                            m.processingStatus === 'COMPLETED'
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                              : m.processingStatus === 'FAILED'
+                                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                          }`}
                         >
                           {m.processingStatus}
                         </span>
@@ -1746,10 +2016,11 @@ export function AdminDashboard() {
                   <div
                     key={material.id}
                     onClick={() => handleSelectMaterial(material)}
-                    className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${selectedMaterial?.id === material.id
-                      ? 'bg-primary-50 dark:bg-primary-900/20'
-                      : ''
-                      }`}
+                    className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${
+                      selectedMaterial?.id === material.id
+                        ? 'bg-primary-50 dark:bg-primary-900/20'
+                        : ''
+                    }`}
                   >
                     <div className='flex items-start justify-between'>
                       <div className='flex-1 min-w-0'>
@@ -2054,7 +2325,9 @@ export function AdminDashboard() {
                   </select>
                   <button
                     onClick={handleBulkVisibilityUpdate}
-                    disabled={updatingVisibility || selectedMaterialIds.length === 0}
+                    disabled={
+                      updatingVisibility || selectedMaterialIds.length === 0
+                    }
                     className='px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50'
                   >
                     {updatingVisibility ? 'Updating...' : 'Set Visibility'}
@@ -2069,20 +2342,33 @@ export function AdminDashboard() {
                         <th className='p-2 text-left'>
                           <input
                             type='checkbox'
-                            checked={selectedMaterialIds.length === allMaterials.length}
+                            checked={
+                              selectedMaterialIds.length === allMaterials.length
+                            }
                             onChange={selectAllMaterials}
                             className='rounded'
                           />
                         </th>
-                        <th className='p-2 text-left text-gray-700 dark:text-gray-300'>Title</th>
-                        <th className='p-2 text-left text-gray-700 dark:text-gray-300'>Scope</th>
-                        <th className='p-2 text-left text-gray-700 dark:text-gray-300'>Uploader</th>
-                        <th className='p-2 text-left text-gray-700 dark:text-gray-300'>Course</th>
+                        <th className='p-2 text-left text-gray-700 dark:text-gray-300'>
+                          Title
+                        </th>
+                        <th className='p-2 text-left text-gray-700 dark:text-gray-300'>
+                          Scope
+                        </th>
+                        <th className='p-2 text-left text-gray-700 dark:text-gray-300'>
+                          Uploader
+                        </th>
+                        <th className='p-2 text-left text-gray-700 dark:text-gray-300'>
+                          Course
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {allMaterials.map((m) => (
-                        <tr key={m.id} className='border-t border-gray-100 dark:border-gray-800'>
+                        <tr
+                          key={m.id}
+                          className='border-t border-gray-100 dark:border-gray-800'
+                        >
                           <td className='p-2'>
                             <input
                               type='checkbox'
@@ -2091,21 +2377,33 @@ export function AdminDashboard() {
                               className='rounded'
                             />
                           </td>
-                          <td className='p-2 text-gray-900 dark:text-white max-w-xs truncate' title={m.title}>
+                          <td
+                            className='p-2 text-gray-900 dark:text-white max-w-xs truncate'
+                            title={m.title}
+                          >
                             {m.title}
                           </td>
                           <td className='p-2'>
-                            <span className={`px-2 py-0.5 rounded text-xs ${m.scope === 'public' ? 'bg-green-100 text-green-800' :
-                              m.scope === 'department' ? 'bg-blue-100 text-blue-800' :
-                                m.scope === 'faculty' ? 'bg-purple-100 text-purple-800' :
-                                  m.scope === 'course' ? 'bg-yellow-100 text-yellow-800' :
-                                    'bg-gray-100 text-gray-800'
-                              }`}>
+                            <span
+                              className={`px-2 py-0.5 rounded text-xs ${
+                                m.scope === 'public'
+                                  ? 'bg-green-100 text-green-800'
+                                  : m.scope === 'department'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : m.scope === 'faculty'
+                                      ? 'bg-purple-100 text-purple-800'
+                                      : m.scope === 'course'
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : 'bg-gray-100 text-gray-800'
+                              }`}
+                            >
                               {m.scope || 'private'}
                             </span>
                           </td>
                           <td className='p-2 text-gray-600 dark:text-gray-400'>
-                            {m.uploader ? `${m.uploader.firstName} ${m.uploader.lastName}` : '-'}
+                            {m.uploader
+                              ? `${m.uploader.firstName} ${m.uploader.lastName}`
+                              : '-'}
                           </td>
                           <td className='p-2 text-gray-600 dark:text-gray-400'>
                             {m.course?.title || '-'}
@@ -2138,7 +2436,9 @@ export function AdminDashboard() {
                 </div>
               </div>
             ) : (
-              <p className='text-sm text-gray-500 text-center'>No materials found</p>
+              <p className='text-sm text-gray-500 text-center'>
+                No materials found
+              </p>
             )}
           </div>
         )}
@@ -2157,54 +2457,84 @@ export function AdminDashboard() {
                 <Building className='w-5 h-5 text-indigo-600 dark:text-indigo-400' />
               </div>
               <div className='text-left'>
-                <h3 className='font-semibold text-gray-900 dark:text-white'>Universities</h3>
-                <p className='text-xs text-gray-500 dark:text-gray-400'>Manage schools, faculties & departments</p>
+                <h3 className='font-semibold text-gray-900 dark:text-white'>
+                  Universities
+                </h3>
+                <p className='text-xs text-gray-500 dark:text-gray-400'>
+                  Manage schools, faculties & departments
+                </p>
               </div>
             </div>
-            <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform ${showUniversities ? 'rotate-90' : ''}`} />
+            <ChevronRight
+              className={`w-5 h-5 text-gray-400 transition-transform ${showUniversities ? 'rotate-90' : ''}`}
+            />
           </button>
 
           {showUniversities && (
             <div className='mt-4 space-y-4'>
               {/* Seeding Form */}
               <div className='p-4 bg-gray-50 dark:bg-gray-800 rounded-lg'>
-                <h4 className='text-sm font-semibold text-gray-900 dark:text-white mb-3'>Quick Add University Data</h4>
+                <h4 className='text-sm font-semibold text-gray-900 dark:text-white mb-3'>
+                  Quick Add University Data
+                </h4>
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
                   <div>
-                    <label className='block text-xs text-gray-500 dark:text-gray-400 mb-1'>University Name</label>
+                    <label className='block text-xs text-gray-500 dark:text-gray-400 mb-1'>
+                      University Name
+                    </label>
                     <input
                       type='text'
                       value={seedForm.schoolName}
-                      onChange={(e) => setSeedForm({ ...seedForm, schoolName: e.target.value })}
+                      onChange={(e) =>
+                        setSeedForm({ ...seedForm, schoolName: e.target.value })
+                      }
                       placeholder='e.g. Usmanu Danfodiyo University'
                       className='w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
                     />
                   </div>
                   <div>
-                    <label className='block text-xs text-gray-500 dark:text-gray-400 mb-1'>Country</label>
+                    <label className='block text-xs text-gray-500 dark:text-gray-400 mb-1'>
+                      Country
+                    </label>
                     <input
                       type='text'
                       value={seedForm.country}
-                      onChange={(e) => setSeedForm({ ...seedForm, country: e.target.value })}
+                      onChange={(e) =>
+                        setSeedForm({ ...seedForm, country: e.target.value })
+                      }
                       placeholder='Nigeria'
                       className='w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
                     />
                   </div>
                   <div>
-                    <label className='block text-xs text-gray-500 dark:text-gray-400 mb-1'>Faculty Name</label>
+                    <label className='block text-xs text-gray-500 dark:text-gray-400 mb-1'>
+                      Faculty Name
+                    </label>
                     <input
                       type='text'
                       value={seedForm.facultyName}
-                      onChange={(e) => setSeedForm({ ...seedForm, facultyName: e.target.value })}
+                      onChange={(e) =>
+                        setSeedForm({
+                          ...seedForm,
+                          facultyName: e.target.value,
+                        })
+                      }
                       placeholder='e.g. Faculty of Science'
                       className='w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
                     />
                   </div>
                   <div>
-                    <label className='block text-xs text-gray-500 dark:text-gray-400 mb-1'>Departments (one per line)</label>
+                    <label className='block text-xs text-gray-500 dark:text-gray-400 mb-1'>
+                      Departments (one per line)
+                    </label>
                     <textarea
                       value={seedForm.departments}
-                      onChange={(e) => setSeedForm({ ...seedForm, departments: e.target.value })}
+                      onChange={(e) =>
+                        setSeedForm({
+                          ...seedForm,
+                          departments: e.target.value,
+                        })
+                      }
                       placeholder={'Physics\nChemistry\nMathematics\nBiology'}
                       rows={4}
                       className='w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
@@ -2216,7 +2546,11 @@ export function AdminDashboard() {
                   disabled={seeding}
                   className='mt-3 px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2'
                 >
-                  {seeding ? <BorderSpinner size='xs' /> : <Upload className='w-4 h-4' />}
+                  {seeding ? (
+                    <BorderSpinner size='xs' />
+                  ) : (
+                    <Upload className='w-4 h-4' />
+                  )}
                   Add University Data
                 </button>
               </div>
@@ -2224,13 +2558,17 @@ export function AdminDashboard() {
               {/* Schools List */}
               <div>
                 <div className='flex items-center justify-between mb-2'>
-                  <h4 className='text-sm font-semibold text-gray-900 dark:text-white'>Universities ({schools.length})</h4>
+                  <h4 className='text-sm font-semibold text-gray-900 dark:text-white'>
+                    Universities ({schools.length})
+                  </h4>
                   <button
                     onClick={fetchSchools}
                     disabled={schoolsLoading}
                     className='p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded'
                   >
-                    <RefreshCw className={`w-4 h-4 text-gray-400 ${schoolsLoading ? 'animate-spin' : ''}`} />
+                    <RefreshCw
+                      className={`w-4 h-4 text-gray-400 ${schoolsLoading ? 'animate-spin' : ''}`}
+                    />
                   </button>
                 </div>
 
@@ -2239,23 +2577,427 @@ export function AdminDashboard() {
                     <BorderSpinner size='sm' />
                   </div>
                 ) : schools.length === 0 ? (
-                  <p className='text-sm text-gray-500 text-center py-4'>No universities found</p>
+                  <p className='text-sm text-gray-500 text-center py-4'>
+                    No universities found
+                  </p>
                 ) : (
                   <div className='space-y-2'>
                     {schools.map((school) => (
                       <div
                         key={school.id}
-                        className='flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg'
+                        className='border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden'
                       >
-                        <div>
-                          <p className='font-medium text-gray-900 dark:text-white'>{school.name}</p>
-                          <p className='text-xs text-gray-500 dark:text-gray-400'>{school.country}</p>
+                        {/* School Row */}
+                        <div className='flex items-center justify-between p-3 bg-white dark:bg-gray-900'>
+                          <button
+                            onClick={() => toggleSchoolExpand(school.id)}
+                            className='flex items-center gap-2 flex-1 text-left'
+                          >
+                            <ChevronDown
+                              className={`w-4 h-4 text-gray-400 transition-transform ${expandedSchoolId === school.id ? '' : '-rotate-90'}`}
+                            />
+                            <div>
+                              {editingSchool?.id === school.id ? (
+                                <div
+                                  className='flex items-center gap-2'
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <input
+                                    type='text'
+                                    value={editingSchool.name}
+                                    onChange={(e) =>
+                                      setEditingSchool({
+                                        ...editingSchool,
+                                        name: e.target.value,
+                                      })
+                                    }
+                                    className='px-2 py-1 text-sm border rounded'
+                                  />
+                                  <input
+                                    type='text'
+                                    value={editingSchool.country}
+                                    onChange={(e) =>
+                                      setEditingSchool({
+                                        ...editingSchool,
+                                        country: e.target.value,
+                                      })
+                                    }
+                                    className='px-2 py-1 text-sm border rounded w-24'
+                                  />
+                                  <button
+                                    onClick={handleUpdateSchool}
+                                    disabled={savingEntity}
+                                    className='px-2 py-1 bg-green-600 text-white text-xs rounded'
+                                  >
+                                    Save
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingSchool(null)}
+                                    className='px-2 py-1 bg-gray-400 text-white text-xs rounded'
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <>
+                                  <p className='font-medium text-gray-900 dark:text-white'>
+                                    {school.name}
+                                  </p>
+                                  <p className='text-xs text-gray-500 dark:text-gray-400'>
+                                    {school.country}
+                                  </p>
+                                </>
+                              )}
+                            </div>
+                          </button>
+                          <div className='flex items-center gap-3'>
+                            <div className='flex items-center gap-4 text-xs text-gray-500'>
+                              <span>{school.facultyCount} fac</span>
+                              <span>{school.userCount} users</span>
+                            </div>
+                            {!editingSchool && (
+                              <>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingSchool({
+                                      id: school.id,
+                                      name: school.name,
+                                      country: school.country,
+                                    });
+                                  }}
+                                  className='p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded'
+                                >
+                                  <Pencil className='w-4 h-4 text-gray-400' />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteSchool(school.id);
+                                  }}
+                                  className='p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded'
+                                >
+                                  <Trash2 className='w-4 h-4 text-red-400' />
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </div>
-                        <div className='flex items-center gap-4 text-xs text-gray-500'>
-                          <span>{school.facultyCount} faculties</span>
-                          <span>{school.userCount} users</span>
-                          <span>{school.materialCount} materials</span>
-                        </div>
+
+                        {/* Faculties */}
+                        {expandedSchoolId === school.id && (
+                          <div className='border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-4 py-2'>
+                            {facultiesLoading ? (
+                              <div className='flex justify-center py-2'>
+                                <BorderSpinner size='xs' />
+                              </div>
+                            ) : (
+                              <>
+                                <div className='flex items-center justify-between mb-2'>
+                                  <span className='text-xs font-medium text-gray-600 dark:text-gray-300'>
+                                    Faculties ({faculties.length})
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      setAddingFaculty(school.id);
+                                      setNewFacultyName('');
+                                    }}
+                                    className='text-xs text-indigo-600 hover:underline flex items-center gap-1'
+                                  >
+                                    <Plus className='w-3 h-3' /> Add Faculty
+                                  </button>
+                                </div>
+                                {addingFaculty === school.id && (
+                                  <div className='flex items-center gap-2 mb-2 p-2 bg-white dark:bg-gray-700 rounded'>
+                                    <input
+                                      type='text'
+                                      value={newFacultyName}
+                                      onChange={(e) =>
+                                        setNewFacultyName(e.target.value)
+                                      }
+                                      placeholder='Faculty name'
+                                      className='flex-1 px-2 py-1 text-sm border rounded'
+                                    />
+                                    <button
+                                      onClick={() =>
+                                        handleCreateFaculty(school.id)
+                                      }
+                                      disabled={savingEntity}
+                                      className='px-2 py-1 bg-indigo-600 text-white text-xs rounded'
+                                    >
+                                      {savingEntity ? (
+                                        <BorderSpinner size='xs' />
+                                      ) : (
+                                        'Add'
+                                      )}
+                                    </button>
+                                    <button
+                                      onClick={() => setAddingFaculty(null)}
+                                      className='text-gray-400 text-xs'
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                )}
+                                {faculties.length === 0 && !addingFaculty ? (
+                                  <p className='text-xs text-gray-500 py-2'>
+                                    No faculties
+                                  </p>
+                                ) : (
+                                  <div className='space-y-1'>
+                                    {faculties.map((fac) => (
+                                      <div
+                                        key={fac.id}
+                                        className='border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700'
+                                      >
+                                        {/* Faculty Row */}
+                                        <div className='flex items-center justify-between p-2'>
+                                          <button
+                                            onClick={() =>
+                                              toggleFacultyExpand(fac.id)
+                                            }
+                                            className='flex items-center gap-2 flex-1 text-left'
+                                          >
+                                            <ChevronDown
+                                              className={`w-3 h-3 text-gray-400 transition-transform ${expandedFacultyId === fac.id ? '' : '-rotate-90'}`}
+                                            />
+                                            {editingFaculty?.id === fac.id ? (
+                                              <div
+                                                className='flex items-center gap-2'
+                                                onClick={(e) =>
+                                                  e.stopPropagation()
+                                                }
+                                              >
+                                                <input
+                                                  type='text'
+                                                  value={editingFaculty.name}
+                                                  onChange={(e) =>
+                                                    setEditingFaculty({
+                                                      ...editingFaculty,
+                                                      name: e.target.value,
+                                                    })
+                                                  }
+                                                  className='px-2 py-1 text-sm border rounded'
+                                                />
+                                                <button
+                                                  onClick={handleUpdateFaculty}
+                                                  disabled={savingEntity}
+                                                  className='px-2 py-1 bg-green-600 text-white text-xs rounded'
+                                                >
+                                                  Save
+                                                </button>
+                                                <button
+                                                  onClick={() =>
+                                                    setEditingFaculty(null)
+                                                  }
+                                                  className='text-gray-400 text-xs'
+                                                >
+                                                  Cancel
+                                                </button>
+                                              </div>
+                                            ) : (
+                                              <span className='text-sm text-gray-700 dark:text-gray-200'>
+                                                {fac.name}
+                                              </span>
+                                            )}
+                                          </button>
+                                          {!editingFaculty && (
+                                            <div className='flex items-center gap-1'>
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setEditingFaculty({
+                                                    id: fac.id,
+                                                    name: fac.name,
+                                                  });
+                                                }}
+                                                className='p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded'
+                                              >
+                                                <Pencil className='w-3 h-3 text-gray-400' />
+                                              </button>
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleDeleteFaculty(fac.id);
+                                                }}
+                                                className='p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded'
+                                              >
+                                                <Trash2 className='w-3 h-3 text-red-400' />
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        {/* Departments */}
+                                        {expandedFacultyId === fac.id && (
+                                          <div className='border-t border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 px-3 py-2'>
+                                            {departmentsLoading ? (
+                                              <div className='flex justify-center py-1'>
+                                                <BorderSpinner size='xs' />
+                                              </div>
+                                            ) : (
+                                              <>
+                                                <div className='flex items-center justify-between mb-1'>
+                                                  <span className='text-xs text-gray-500'>
+                                                    Departments (
+                                                    {departments.length})
+                                                  </span>
+                                                  <button
+                                                    onClick={() => {
+                                                      setAddingDepartment(
+                                                        fac.id,
+                                                      );
+                                                      setNewDepartmentName('');
+                                                    }}
+                                                    className='text-xs text-indigo-600 hover:underline flex items-center gap-1'
+                                                  >
+                                                    <Plus className='w-3 h-3' />{' '}
+                                                    Add
+                                                  </button>
+                                                </div>
+                                                {addingDepartment ===
+                                                  fac.id && (
+                                                  <div className='flex items-center gap-2 mb-2 p-2 bg-white dark:bg-gray-700 rounded'>
+                                                    <input
+                                                      type='text'
+                                                      value={newDepartmentName}
+                                                      onChange={(e) =>
+                                                        setNewDepartmentName(
+                                                          e.target.value,
+                                                        )
+                                                      }
+                                                      placeholder='Department name'
+                                                      className='flex-1 px-2 py-1 text-sm border rounded'
+                                                    />
+                                                    <button
+                                                      onClick={() =>
+                                                        handleCreateDepartment(
+                                                          fac.id,
+                                                        )
+                                                      }
+                                                      disabled={savingEntity}
+                                                      className='px-2 py-1 bg-indigo-600 text-white text-xs rounded'
+                                                    >
+                                                      {savingEntity ? (
+                                                        <BorderSpinner size='xs' />
+                                                      ) : (
+                                                        'Add'
+                                                      )}
+                                                    </button>
+                                                    <button
+                                                      onClick={() =>
+                                                        setAddingDepartment(
+                                                          null,
+                                                        )
+                                                      }
+                                                      className='text-gray-400 text-xs'
+                                                    >
+                                                      Cancel
+                                                    </button>
+                                                  </div>
+                                                )}
+                                                {departments.length === 0 &&
+                                                !addingDepartment ? (
+                                                  <p className='text-xs text-gray-500'>
+                                                    No departments
+                                                  </p>
+                                                ) : (
+                                                  <div className='space-y-1'>
+                                                    {departments.map((dept) => (
+                                                      <div
+                                                        key={dept.id}
+                                                        className='flex items-center justify-between p-2 bg-white dark:bg-gray-700 rounded'
+                                                      >
+                                                        {editingDepartment?.id ===
+                                                        dept.id ? (
+                                                          <div className='flex items-center gap-2 flex-1'>
+                                                            <input
+                                                              type='text'
+                                                              value={
+                                                                editingDepartment.name
+                                                              }
+                                                              onChange={(e) =>
+                                                                setEditingDepartment(
+                                                                  {
+                                                                    ...editingDepartment,
+                                                                    name: e
+                                                                      .target
+                                                                      .value,
+                                                                  },
+                                                                )
+                                                              }
+                                                              className='flex-1 px-2 py-1 text-sm border rounded'
+                                                            />
+                                                            <button
+                                                              onClick={
+                                                                handleUpdateDepartment
+                                                              }
+                                                              disabled={
+                                                                savingEntity
+                                                              }
+                                                              className='px-2 py-1 bg-green-600 text-white text-xs rounded'
+                                                            >
+                                                              Save
+                                                            </button>
+                                                            <button
+                                                              onClick={() =>
+                                                                setEditingDepartment(
+                                                                  null,
+                                                                )
+                                                              }
+                                                              className='text-gray-400 text-xs'
+                                                            >
+                                                              Cancel
+                                                            </button>
+                                                          </div>
+                                                        ) : (
+                                                          <>
+                                                            <span className='text-sm text-gray-600 dark:text-gray-300'>
+                                                              {dept.name}
+                                                            </span>
+                                                            <div className='flex items-center gap-1'>
+                                                              <button
+                                                                onClick={() =>
+                                                                  setEditingDepartment(
+                                                                    {
+                                                                      id: dept.id,
+                                                                      name: dept.name,
+                                                                    },
+                                                                  )
+                                                                }
+                                                                className='p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded'
+                                                              >
+                                                                <Pencil className='w-3 h-3 text-gray-400' />
+                                                              </button>
+                                                              <button
+                                                                onClick={() =>
+                                                                  handleDeleteDepartment(
+                                                                    dept.id,
+                                                                  )
+                                                                }
+                                                                className='p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded'
+                                                              >
+                                                                <Trash2 className='w-3 h-3 text-red-400' />
+                                                              </button>
+                                                            </div>
+                                                          </>
+                                                        )}
+                                                      </div>
+                                                    ))}
+                                                  </div>
+                                                )}
+                                              </>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
