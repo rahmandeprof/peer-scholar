@@ -12,10 +12,12 @@ import {
 } from 'lucide-react';
 import { BorderSpinner } from './Skeleton';
 import api from '../lib/api';
+import { getRecentlyOpened, syncViewingHistory } from '../lib/viewingHistory';
 import {
-  getRecentlyOpened,
-  syncViewingHistory,
-} from '../lib/viewingHistory';
+  getFromCacheStale,
+  saveToCache,
+  CACHE_KEYS,
+} from '../lib/offlineStorage';
 import { useAuth } from '../contexts/AuthContext';
 import { StudySessionModal } from './StudySessionModal';
 import { MaterialCard } from './MaterialCard';
@@ -91,65 +93,65 @@ export function AcademicControlCenter() {
   useExitOnBack(true);
 
   useEffect(() => {
-    const fetchData = async () => {
+    // Helper to apply dashboard data to state
+    const applyDashboardData = (
+      streakData: { currentStreak?: number; stage?: string },
+      weeklyRes: { totalSeconds: number; goalSeconds: number },
+      activityRes: { lastReadMaterial?: RecentMaterial; lastReadPage?: number },
+      partnersData: PartnerStats[],
+      collectionsData: { id: string; title: string; materials?: unknown[] }[],
+      favCount: number,
+    ) => {
+      setStreak(streakData.currentStreak || 0);
+      setStage(streakData.stage || 'Novice');
+
+      setWeeklyStats({
+        current: weeklyRes.totalSeconds,
+        goal: weeklyRes.goalSeconds,
+        percent:
+          weeklyRes.goalSeconds > 0
+            ? (weeklyRes.totalSeconds / weeklyRes.goalSeconds) * 100
+            : 0,
+      });
+
+      // Get viewing history from localStorage (shows last 3 opened)
+      const localHistory = getRecentlyOpened(3);
+
+      if (localHistory.length > 0) {
+        // Use localStorage history for "Recently Opened"
+        setRecentMaterials(
+          localHistory.map((m) => ({
+            ...m,
+            viewedAt: m.viewedAt,
+          })),
+        );
+      } else if (activityRes.lastReadMaterial) {
+        // Fallback to backend's last read material if no local history
+        setRecentMaterials([
+          {
+            ...activityRes.lastReadMaterial,
+            viewedAt: new Date().toISOString(),
+          },
+        ]);
+      }
+      setLastReadPage(activityRes.lastReadPage || 1);
+
+      setPartners(partnersData);
+      setCollections(
+        collectionsData.map((col) => ({
+          ...col,
+          count: (col.materials as unknown[])?.length || 0,
+        })),
+      );
+      setFavoritesCount(favCount);
+    };
+
+    const fetchData = async (isBackground = false) => {
       try {
-        // Use batched endpoint for dashboard initialization (streak + weekly + activity)
-        const dashboardRes = await api.get('/study/dashboard/init');
-        const { streak: streakData, weeklyStats: weeklyRes, recentActivity: activityRes } = dashboardRes.data;
-
-        setStreak(streakData.currentStreak || 0);
-        setStage(streakData.stage || 'Novice');
-
-        setWeeklyStats({
-          current: weeklyRes.totalSeconds,
-          goal: weeklyRes.goalSeconds,
-          percent:
-            weeklyRes.goalSeconds > 0
-              ? (weeklyRes.totalSeconds / weeklyRes.goalSeconds) * 100
-              : 0,
-        });
-
-        if (activityRes.lastReadMaterial) {
-          // Get viewing history from localStorage (shows last 3 opened)
-          const localHistory = getRecentlyOpened(3);
-
-          if (localHistory.length > 0) {
-            // Use localStorage history for "Recently Opened"
-            setRecentMaterials(
-              localHistory.map((m) => ({
-                ...m,
-                viewedAt: m.viewedAt,
-              })),
-            );
-          } else {
-            // Fallback to backend's last read material if no local history
-            setRecentMaterials([
-              {
-                ...activityRes.lastReadMaterial,
-                viewedAt: new Date().toISOString(),
-              },
-            ]);
-          }
-          setLastReadPage(activityRes.lastReadPage || 1);
-        } else {
-          // No backend activity, check localStorage
-          const localHistory = getRecentlyOpened(3);
-          if (localHistory.length > 0) {
-            setRecentMaterials(
-              localHistory.map((m) => ({
-                ...m,
-                viewedAt: m.viewedAt,
-              })),
-            );
-          }
-        }
-
-        // Fetch remaining data in parallel for faster load
-        const [coursesRes, partnerRes, collectionsRes, favoritesRes] =
+        // Fetch all data in parallel
+        const [dashboardRes, partnerRes, collectionsRes, favoritesRes] =
           await Promise.all([
-            user?.department?.id
-              ? api.get(`/academic/departments/${user.department.id}/courses`)
-              : Promise.resolve({ data: [] }),
+            api.get('/study/dashboard/init'),
             api.get('/users/partner').catch(() => ({ data: [] })),
             api.get('/academic/collections').catch(() => ({ data: [] })),
             api
@@ -157,31 +159,98 @@ export function AcademicControlCenter() {
               .catch(() => ({ data: { count: 0 } })),
           ]);
 
-        // Process courses
-        setCourses(coursesRes.data.slice(0, 4));
+        const {
+          streak: streakData,
+          weeklyStats: weeklyRes,
+          recentActivity: activityRes,
+        } = dashboardRes.data;
+        const partnersData = Array.isArray(partnerRes.data)
+          ? partnerRes.data
+          : [];
+        const collectionsData = collectionsRes.data || [];
+        const favCount = favoritesRes.data?.count ?? 0;
 
-        // Process partners
-        setPartners(Array.isArray(partnerRes.data) ? partnerRes.data : []);
-
-        // Process collections
-        setCollections(
-          collectionsRes.data.map((col: any) => ({
-            ...col,
-            count: col.materials?.length || 0,
-          })),
+        // Apply to UI
+        applyDashboardData(
+          streakData,
+          weeklyRes,
+          activityRes,
+          partnersData,
+          collectionsData,
+          favCount,
         );
 
-        // Process favorites count
-        setFavoritesCount(favoritesRes.data?.count ?? 0);
+        // Save to cache for next load (5 minute TTL for freshness)
+        saveToCache(
+          CACHE_KEYS.DASHBOARD_DATA,
+          {
+            streakData,
+            weeklyRes,
+            activityRes,
+            partnersData,
+            collectionsData,
+            favCount,
+            cachedAt: Date.now(),
+          },
+          5 * 60 * 1000, // 5 minutes
+        ).catch(console.error);
       } catch (error) {
-        console.error('Failed to fetch dashboard data', error);
+        if (!isBackground) {
+          console.error('Failed to fetch dashboard data', error);
+        }
       } finally {
-        setLoading(false);
+        if (!isBackground) {
+          setLoading(false);
+        }
       }
     };
 
+    const initDashboard = async () => {
+      // Step 1: Try to load cached data for instant render
+      try {
+        const cached = await getFromCacheStale<{
+          streakData: { currentStreak?: number; stage?: string };
+          weeklyRes: { totalSeconds: number; goalSeconds: number };
+          activityRes: {
+            lastReadMaterial?: RecentMaterial;
+            lastReadPage?: number;
+          };
+          partnersData: PartnerStats[];
+          collectionsData: {
+            id: string;
+            title: string;
+            materials?: unknown[];
+          }[];
+          favCount: number;
+          cachedAt: number;
+        }>(CACHE_KEYS.DASHBOARD_DATA);
+
+        if (cached) {
+          // Apply cached data immediately - no loading spinner!
+          applyDashboardData(
+            cached.streakData,
+            cached.weeklyRes,
+            cached.activityRes,
+            cached.partnersData,
+            cached.collectionsData,
+            cached.favCount,
+          );
+          setLoading(false);
+
+          // Step 2: Fetch fresh data in background
+          fetchData(true);
+          return;
+        }
+      } catch {
+        // Cache read failed, fall through to normal fetch
+      }
+
+      // No cache available - do normal fetch with loading spinner
+      fetchData(false);
+    };
+
     if (user) {
-      fetchData();
+      initDashboard();
     }
   }, [user]);
 
@@ -509,8 +578,9 @@ export function AcademicControlCenter() {
                         strokeDashoffset={
                           2 * Math.PI * 40 * (1 - percent / 100)
                         }
-                        className={`transition-all duration-1000 ease-out ${percent >= 100 ? 'text-green-500' : 'text-primary-600'
-                          }`}
+                        className={`transition-all duration-1000 ease-out ${
+                          percent >= 100 ? 'text-green-500' : 'text-primary-600'
+                        }`}
                         strokeLinecap='round'
                       />
                     </svg>

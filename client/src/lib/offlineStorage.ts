@@ -17,6 +17,7 @@ export const CACHE_KEYS = {
   FAVORITE_MATERIALS: 'favorite_materials',
   COURSES: 'courses',
   DEPARTMENT_INFO: 'department_info',
+  DASHBOARD_DATA: 'dashboard_data',
 } as const;
 
 export type CacheKey = (typeof CACHE_KEYS)[keyof typeof CACHE_KEYS];
