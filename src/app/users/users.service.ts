@@ -449,12 +449,18 @@ export class UsersService {
       user.school = dto.school;
     }
 
-    // Handle faculty - legacy string field
+    // Handle faculty - set both FK and legacy string field
+    if (dto.facultyId) {
+      user.facultyId = dto.facultyId;
+    }
     if (dto.faculty) {
       user.faculty = dto.faculty;
     }
 
-    // Handle department - legacy string field
+    // Handle department - set both FK and legacy string field
+    if (dto.departmentId) {
+      user.departmentId = dto.departmentId;
+    }
     if (dto.department) {
       user.department = dto.department;
     }

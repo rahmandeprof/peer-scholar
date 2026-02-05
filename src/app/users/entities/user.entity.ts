@@ -1,3 +1,5 @@
+import { Department } from '../../academic/entities/department.entity';
+import { Faculty } from '../../academic/entities/faculty.entity';
 import { School } from '../../academic/entities/school.entity';
 import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
 
@@ -64,6 +66,22 @@ export class User extends IDAndTimestamp {
   @ManyToOne(() => School, { nullable: true })
   @JoinColumn({ name: 'school_id' })
   schoolEntity: School | null;
+
+  // Foreign key relation to Faculty
+  @Column({ name: 'faculty_id', type: 'uuid', nullable: true })
+  facultyId: string | null;
+
+  @ManyToOne(() => Faculty, { nullable: true })
+  @JoinColumn({ name: 'faculty_id' })
+  facultyEntity: Faculty | null;
+
+  // Foreign key relation to Department
+  @Column({ name: 'department_id', type: 'uuid', nullable: true })
+  departmentId: string | null;
+
+  @ManyToOne(() => Department, { nullable: true })
+  @JoinColumn({ name: 'department_id' })
+  departmentEntity: Department | null;
 
   @Column({ name: 'current_streak', type: 'int', default: 0 })
   currentStreak: number;
