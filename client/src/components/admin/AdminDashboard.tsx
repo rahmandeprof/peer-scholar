@@ -89,7 +89,7 @@ export function AdminDashboard() {
 
   // Stats state
   const [stats, setStats] = useState<{
-    users: { total: number };
+    users: { total: number; active?: number };
     materials: {
       total: number;
       ready: number;
@@ -183,7 +183,21 @@ export function AdminDashboard() {
   } | null>(null);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
-  // Queue management state
+  // Active Users state (Online list)
+  const [activeUsers, setActiveUsers] = useState<
+    {
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      lastSeen: string;
+      role: string;
+    }[]
+  >([]);
+  const [showActiveUsers, setShowActiveUsers] = useState(false);
+  const [activeUsersLoading, setActiveUsersLoading] = useState(false);
+
+  // Queue management state (existing)
   const [clearingCompleted, setClearingCompleted] = useState(false);
   const [clearingFailed, setClearingFailed] = useState(false);
   const [retryingFailed, setRetryingFailed] = useState(false);
@@ -561,6 +575,18 @@ export function AdminDashboard() {
       );
     } finally {
       setBackfilling(false);
+    }
+  };
+
+  const fetchActiveUsers = async () => {
+    setActiveUsersLoading(true);
+    try {
+      const res = await api.get('/admin/users/active');
+      setActiveUsers(res.data.users || []);
+    } catch (err) {
+      toast.error('Failed to fetch active users');
+    } finally {
+      setActiveUsersLoading(false);
     }
   };
 
@@ -1175,9 +1201,27 @@ export function AdminDashboard() {
                   <p className='text-2xl font-bold text-gray-900 dark:text-white'>
                     {stats.users.total}
                   </p>
-                  <p className='text-xs text-gray-500 dark:text-gray-400'>
-                    Total Users
-                  </p>
+                  <div className='flex flex-col'>
+                    <p className='text-xs text-gray-500 dark:text-gray-400'>
+                      Total Users
+                    </p>
+                    {stats.users.active !== undefined && (
+                      <div className='flex items-center gap-2 mt-1'>
+                        <span className='text-[10px] text-green-600 dark:text-green-400 font-medium'>
+                          {stats.users.active} active (24h)
+                        </span>
+                        <button
+                          onClick={() => {
+                            setShowActiveUsers(!showActiveUsers);
+                            if (!showActiveUsers) fetchActiveUsers();
+                          }}
+                          className='text-[10px] text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium underline'
+                        >
+                          {showActiveUsers ? 'Hide List' : 'View Online'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1226,6 +1270,83 @@ export function AdminDashboard() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Active Users List (Who Is Online) */}
+        {showActiveUsers && (
+          <div className='bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden'>
+            <div className='p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between'>
+              <div className='flex items-center gap-2'>
+                <div className='relative'>
+                  <Users className='w-4 h-4 text-green-600 dark:text-green-400' />
+                  <span className='absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse border border-white dark:border-gray-900' />
+                </div>
+                <h3 className='font-semibold text-gray-900 dark:text-white text-sm'>
+                  Online Users (Last 15m)
+                </h3>
+              </div>
+              <button
+                onClick={fetchActiveUsers}
+                className='p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors'
+                title='Refresh list'
+              >
+                <RefreshCw
+                  className={`w-3 h-3 text-gray-400 ${activeUsersLoading ? 'animate-spin' : ''}`}
+                />
+              </button>
+            </div>
+
+            {activeUsersLoading && activeUsers.length === 0 ? (
+              <div className='p-8 text-center'>
+                <BorderSpinner size='sm' className='mx-auto text-gray-400' />
+              </div>
+            ) : activeUsers.length === 0 ? (
+              <div className='p-8 text-center text-gray-500 text-sm'>
+                No users active in the last 15 minutes
+              </div>
+            ) : (
+              <div className='max-h-64 overflow-y-auto'>
+                <table className='w-full text-left text-sm'>
+                  <thead className='bg-gray-50 dark:bg-gray-800/50 text-xs uppercase text-gray-500 sticky top-0'>
+                    <tr>
+                      <th className='px-4 py-2 font-medium'>User</th>
+                      <th className='px-4 py-2 font-medium'>Role</th>
+                      <th className='px-4 py-2 font-medium'>Last Seen</th>
+                    </tr>
+                  </thead>
+                  <tbody className='divide-y divide-gray-100 dark:divide-gray-800'>
+                    {activeUsers.map((u) => (
+                      <tr
+                        key={u.id}
+                        className='hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors'
+                      >
+                        <td className='px-4 py-2'>
+                          <div className='font-medium text-gray-900 dark:text-white'>
+                            {u.firstName} {u.lastName}
+                          </div>
+                          <div className='text-xs text-gray-500'>{u.email}</div>
+                        </td>
+                        <td className='px-4 py-2'>
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                              u.role === 'admin'
+                                ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+                            }`}
+                          >
+                            {u.role}
+                          </span>
+                        </td>
+                        <td className='px-4 py-2 text-gray-500 text-xs font-mono'>
+                          {new Date(u.lastSeen).toLocaleTimeString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 

@@ -39,7 +39,7 @@ import { Role } from '@/app/auth/decorators';
 import { Queue } from 'bull';
 import { Paginate, PaginateQuery } from 'nestjs-paginate';
 import OpenAI from 'openai';
-import { IsNull, Repository } from 'typeorm';
+import { IsNull, MoreThan, Repository } from 'typeorm';
 
 @Controller('admin')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -359,10 +359,15 @@ export class AdminController {
   async getOverview() {
     this.logger.log('Admin requested overview (batched)');
 
+    const twentyFourHoursAgo = new Date();
+
+    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+
     // Fetch all data in parallel
     const [
       // Stats
       totalUsers,
+      activeUsers,
       totalMaterials,
       materialsReady,
       materialsProcessing,
@@ -376,6 +381,9 @@ export class AdminController {
     ] = await Promise.all([
       // Stats queries
       this.userRepo.count(),
+      this.userRepo.count({
+        where: { lastSeen: MoreThan(twentyFourHoursAgo) },
+      }),
       this.materialRepo.count(),
       this.materialRepo.count({ where: { status: MaterialStatus.READY } }),
       this.materialRepo.count({
@@ -420,7 +428,7 @@ export class AdminController {
 
     return {
       stats: {
-        users: { total: totalUsers },
+        users: { total: totalUsers, active: activeUsers },
         materials: {
           total: totalMaterials,
           ready: materialsReady,
@@ -440,12 +448,34 @@ export class AdminController {
   /**
    * Get dashboard stats
    */
+  @Get('users/active')
+  async getActiveUsers() {
+    this.logger.log('Fetching currently active users');
+    const fifteenMinutesAgo = new Date();
+
+    fifteenMinutesAgo.setMinutes(fifteenMinutesAgo.getMinutes() - 15);
+
+    const activeUsers = await this.userRepo.find({
+      where: { lastSeen: MoreThan(fifteenMinutesAgo) },
+      select: ['id', 'firstName', 'lastName', 'email', 'lastSeen', 'role'],
+      order: { lastSeen: 'DESC' },
+      take: 50,
+    });
+
+    return { users: activeUsers };
+  }
+
   @Get('stats')
   async getStats() {
     this.logger.log('Admin requested stats');
 
+    const twentyFourHoursAgo = new Date();
+
+    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+
     const [
       totalUsers,
+      activeUsers,
       totalMaterials,
       materialsReady,
       materialsProcessing,
@@ -454,6 +484,9 @@ export class AdminController {
       materialsMissingSummary,
     ] = await Promise.all([
       this.userRepo.count(),
+      this.userRepo.count({
+        where: { lastSeen: MoreThan(twentyFourHoursAgo) },
+      }),
       this.materialRepo.count(),
       this.materialRepo.count({ where: { status: MaterialStatus.READY } }),
       this.materialRepo.count({
@@ -472,7 +505,7 @@ export class AdminController {
     ]);
 
     return {
-      users: { total: totalUsers },
+      users: { total: totalUsers, active: activeUsers },
       materials: {
         total: totalMaterials,
         ready: materialsReady,
