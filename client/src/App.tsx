@@ -134,7 +134,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // We allow access to /complete-profile even if incomplete (obviously)
   // But we block everything else if incomplete
   const isProfileComplete =
-    user?.department && user?.faculty && user?.yearOfStudy;
+    user?.school && user?.department && user?.faculty && user?.yearOfStudy;
 
   if (
     !isProfileComplete &&
