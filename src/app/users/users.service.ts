@@ -753,6 +753,10 @@ export class UsersService {
     };
   }
 
+  async updateLastSeen(userId: string) {
+    await this.userRepository.update(userId, { lastSeen: new Date() });
+  }
+
   /**
    * Get leaderboard data for admin dashboard
    * Returns top 10 users in various categories

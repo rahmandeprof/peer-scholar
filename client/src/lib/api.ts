@@ -45,29 +45,33 @@ api.interceptors.response.use(
 
       if (status === 403) {
         // Dispatch custom event for forbidden access (e.g., non-admin trying admin routes)
-        window.dispatchEvent(new CustomEvent('auth:forbidden', {
-          detail: { message: (error.response.data as { message?: string })?.message || 'Access denied' }
-        }));
+        window.dispatchEvent(
+          new CustomEvent('auth:forbidden', {
+            detail: {
+              message:
+                (error.response.data as { message?: string })?.message ||
+                'Access denied',
+            },
+          }),
+        );
       }
 
       const data = error.response.data as {
-        message?: string;
+        message?: string | string[];
         errors?: unknown;
       };
 
-      // Error logging removed for production
-      // Errors are returned to caller for handling
+      // Create a better error object that preserves the response
+      const message = Array.isArray(data.message)
+        ? data.message.join(', ')
+        : (data.message ?? 'An error occurred');
 
-      // Return structured error
-      return Promise.reject(
-        new Error(
-          JSON.stringify({
-            message: data.message ?? 'An error occurred',
-            status,
-            errors: data.errors,
-          }),
-        ),
-      );
+      const customError = new Error(message);
+      // Attach response data to the error object for consumers to use
+      (customError as any).response = error.response;
+      (customError as any).status = status;
+
+      return Promise.reject(customError);
     } else if (error.request) {
       // Request made but no response
       return Promise.reject(

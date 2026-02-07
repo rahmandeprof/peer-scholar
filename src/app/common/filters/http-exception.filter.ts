@@ -29,10 +29,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       if (typeof exceptionResponse === 'object') {
         const responseObj = exceptionResponse as Record<string, unknown>;
 
-        message =
-          typeof responseObj.message === 'string'
-            ? responseObj.message
-            : message;
+        if (typeof responseObj.message === 'string') {
+          message = responseObj.message;
+        } else if (Array.isArray(responseObj.message)) {
+          message = responseObj.message.join(', ');
+        }
         errors = responseObj.errors as Record<string, unknown> | undefined;
       } else {
         message = exceptionResponse;

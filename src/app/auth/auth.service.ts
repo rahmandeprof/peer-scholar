@@ -86,6 +86,8 @@ export class AuthService {
     // Update streak on login and get fresh values
     const streak = await this.usersService.updateStreak(user.id);
 
+    await this.usersService.updateLastSeen(user.id);
+
     const payload = {
       email: user.email,
       sub: user.id,
