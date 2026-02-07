@@ -21,6 +21,7 @@ import { UsersModule } from '@/app/users/users.module';
 import { DatabaseModule } from '@/database/database.module';
 import { MailModule } from '@/mail/mail.module';
 
+import { LastSeenInterceptor } from '@/app/auth/interceptors/last-seen.interceptor';
 import { ErrorsInterceptor } from '@/interceptor/error.interceptor';
 import { RequestLoggingInterceptor } from '@/interceptor/request-logging.interceptor';
 
@@ -99,6 +100,10 @@ import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
     {
       provide: APP_INTERCEPTOR,
       useClass: ErrorsInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LastSeenInterceptor,
     },
   ],
 })
