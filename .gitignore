@@ -40,3 +40,4 @@ lerna-debug.log*
 .env.backup
 *.sqlite
 *.sqlite3
+*.tsbuildinfo
