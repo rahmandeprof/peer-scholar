@@ -224,4 +224,37 @@ export class EmailService {
       this.logger.error(`Failed to send forgot password email to ${to}`, error);
     }
   }
+
+  async sendLoginAlertDirect(
+    adminEmail: string,
+    userName: string,
+    userEmail: string,
+    loginTime: Date,
+  ) {
+    try {
+      await this.transporter.sendMail({
+        from: this.getFromAddress(),
+        to: adminEmail,
+        subject: `🔔 Login Alert: ${userName} just logged in`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h2 style="color: #F59E0B;">🔔 Login Alert</h2>
+            <p>A tracked user has just logged in to PeerToLearn.</p>
+            <div style="padding: 15px; background-color: #f9fafb; border-radius: 5px; margin: 15px 0;">
+              <p style="margin: 5px 0;"><strong>User:</strong> ${userName}</p>
+              <p style="margin: 5px 0;"><strong>Email:</strong> ${userEmail}</p>
+              <p style="margin: 5px 0;"><strong>Time:</strong> ${loginTime.toLocaleString()}</p>
+            </div>
+            <p style="color: #666; font-size: 12px;">This is an automated login tracking notification.</p>
+          </div>
+        `,
+      });
+      this.logger.log(`Login alert sent to ${adminEmail} for user ${userEmail}`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to send login alert to ${adminEmail}`,
+        error,
+      );
+    }
+  }
 }

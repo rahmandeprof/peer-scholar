@@ -2,7 +2,7 @@
  * DocumentProcessor - BullMQ worker for document text extraction and segmentation
  * Handles the full pipeline: extract → clean → segment → store
  */
-import { OnQueueError, OnQueueFailed, Process, Processor } from '@nestjs/bull';
+import { OnQueueError, OnQueueFailed, Process, Processor, InjectQueue } from '@nestjs/bull';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -20,7 +20,7 @@ import { PdfImageService } from '../services/pdf-image.service';
 import { SegmenterService, TextSegment } from '../services/segmenter.service';
 
 import axios from 'axios';
-import { Job } from 'bull';
+import { Job, Queue } from 'bull';
 import { Repository } from 'typeorm';
 
 export const DOCUMENT_PROCESSING_QUEUE = 'document-processing';
@@ -45,12 +45,13 @@ export class DocumentProcessor {
     private readonly materialRepo: Repository<Material>,
     @InjectRepository(DocumentSegment)
     private readonly segmentRepo: Repository<DocumentSegment>,
+    @InjectQueue('materials') private readonly materialsQueue: Queue, // Inject materials queue
     private readonly extractorService: ExtractorService,
     private readonly cleanerService: CleanerService,
     private readonly segmenterService: SegmenterService,
     private readonly ocrService: OcrService,
     private readonly pdfImageService: PdfImageService,
-  ) {}
+  ) { }
 
   @Process('process-document')
   async processDocument(job: Job<DocumentProcessingJobData>): Promise<void> {
@@ -135,8 +136,8 @@ export class DocumentProcessor {
       // Clean text (OCR text gets additional cleaning)
       const cleanedText = isOcr
         ? this.ocrService.cleanOcrText(
-            this.cleanerService.clean(extractionResult.text),
-          )
+          this.cleanerService.clean(extractionResult.text),
+        )
         : this.cleanerService.clean(extractionResult.text);
 
       await job.progress(70);
@@ -178,6 +179,12 @@ export class DocumentProcessor {
       this.logger.log(
         `Document processing completed for ${materialId}: ${segments.length} segments created`,
       );
+
+      // Trigger Enrichment (Material Processor)
+      // Now that text is extracted and segmented, we pass it to the next stage
+      await this.materialsQueue.add('process-material', {
+        materialId,
+      });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);

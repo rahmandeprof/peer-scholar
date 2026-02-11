@@ -8,7 +8,7 @@ import { User } from '@/app/users/entities/user.entity';
 import { PushService } from '@/app/notifications/push.service';
 import { UsersService } from '@/app/users/users.service';
 
-import { LessThan, Not, Repository } from 'typeorm';
+import { In, LessThan, Not, Repository } from 'typeorm';
 
 @Injectable()
 export class StudyProcessor {
@@ -21,16 +21,42 @@ export class StudyProcessor {
     private readonly userRepo: Repository<User>,
     @InjectRepository(StudyStreak)
     private readonly streakRepo: Repository<StudyStreak>,
-  ) {}
+  ) { }
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-  handleDailyStreakCheck() {
+  async handleDailyStreakCheck() {
     this.logger.debug('Running daily streak check...');
-    // Logic to reset streaks or notify users
-    // For now, we just log it as the logic in UsersService.updateStreak handles logic on access.
-    // If we need to reset streaks for inactive users, we would do it here.
-    // Example: await this.usersService.resetInactiveStreaks();
-    this.logger.debug('Daily streak check completed');
+
+    try {
+      // Find streaks that are active but user has been inactive for 2+ days
+      // and has no freezes to cover the gap
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      yesterday.setHours(0, 0, 0, 0);
+
+      const brokenStreaks = await this.streakRepo.find({
+        where: {
+          currentStreak: Not(0),
+          lastActivityDate: LessThan(yesterday),
+          streakFreezes: 0,
+        },
+      });
+
+      let resetCount = 0;
+
+      for (const streak of brokenStreaks) {
+        streak.currentStreak = 0;
+        await this.streakRepo.save(streak);
+        await this.userRepo.update(streak.userId, { currentStreak: 0 });
+        resetCount++;
+      }
+
+      this.logger.debug(
+        `Daily streak check: reset ${resetCount} broken streaks`,
+      );
+    } catch (error) {
+      this.logger.error('Failed to run daily streak check', error);
+    }
   }
 
   // Run at 9 PM daily to warn users about potential streak loss
@@ -52,13 +78,22 @@ export class StudyProcessor {
         },
       });
 
+      if (activeStreaks.length === 0) {
+        this.logger.debug('Streak warning: no active streaks need warning');
+        return;
+      }
+
+      // Batch-fetch all users instead of querying one-by-one (N+1 fix)
+      const userIds = activeStreaks.map((s) => s.userId);
+      const users = await this.userRepo.find({
+        where: { id: In(userIds) },
+      });
+      const userMap = new Map(users.map((u) => [u.id, u]));
+
       let notificationsSent = 0;
 
       for (const streak of activeStreaks) {
-        // Get the user for this streak
-        const user = await this.userRepo.findOne({
-          where: { id: streak.userId },
-        });
+        const user = userMap.get(streak.userId);
 
         if (user?.pushSubscription) {
           const sent = await this.pushService.sendStreakWarningNotification(

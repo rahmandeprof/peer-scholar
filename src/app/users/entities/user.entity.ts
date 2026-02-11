@@ -92,6 +92,7 @@ export class User extends IDAndTimestamp {
   @Column({ name: 'last_study_date', type: 'date', nullable: true })
   lastStudyDate: Date;
 
+  @Exclude()
   @Column({ name: 'google_id', nullable: true, unique: true })
   googleId: string;
 
@@ -120,12 +121,15 @@ export class User extends IDAndTimestamp {
   @Column({ name: 'last_profile_update', type: 'timestamp', nullable: true })
   lastProfileUpdate: Date | null;
 
+  @Exclude()
   @Column({ name: 'verification_token', type: String, nullable: true })
   verificationToken: string | null;
 
+  @Exclude()
   @Column({ name: 'reset_password_token', type: 'varchar', nullable: true })
   resetPasswordToken: string | null;
 
+  @Exclude()
   @Column({ name: 'reset_password_expires', type: 'timestamp', nullable: true })
   resetPasswordExpires: Date | null;
 
@@ -169,6 +173,7 @@ export class User extends IDAndTimestamp {
   preferences: Record<string, any>;
 
   // Web push notification subscription
+  @Exclude()
   @Column({ name: 'push_subscription', type: 'json', nullable: true })
   pushSubscription: {
     endpoint: string;

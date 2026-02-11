@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
+import { ClassSerializerInterceptor, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_INTERCEPTOR, Reflector } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
 
@@ -105,6 +105,14 @@ import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
       provide: APP_INTERCEPTOR,
       useClass: LastSeenInterceptor,
     },
+    {
+      provide: APP_INTERCEPTOR,
+      useFactory: (reflector: Reflector) =>
+        new ClassSerializerInterceptor(reflector, {
+          excludeExtraneousValues: false,
+        }),
+      inject: [Reflector],
+    },
   ],
 })
-export class AppModule {}
+export class AppModule { }

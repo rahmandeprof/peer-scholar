@@ -60,196 +60,29 @@ export class MaterialProcessor {
 
     this.logger.debug(`Start processing material: ${materialId}`);
 
+    this.logger.debug(`Start enrichment (MaterialProcessor) for: ${materialId}`);
+
     try {
       const material = await this.materialRepo.findOneBy({ id: materialId });
 
       if (!material) {
         this.logger.error(`Material not found: ${materialId}`);
-
         return;
       }
 
-      material.status = MaterialStatus.PROCESSING;
-      material.processingStatus = ProcessingStatus.EXTRACTING; // Fix: Update processingStatus for frontend
-      await this.materialRepo.save(material);
-
-      // 1. Download file with timeout to prevent hanging on large files
-      const response = await axios.get(fileUrl, {
-        responseType: 'arraybuffer',
-        timeout: 120000, // 2 minutes timeout for download
-        maxContentLength: 50 * 1024 * 1024, // 50MB max file size
-        maxBodyLength: 50 * 1024 * 1024,
-      });
-      const buffer = Buffer.from(response.data);
-
-      // Log file size for debugging
-      const fileSizeMB = (buffer.length / (1024 * 1024)).toFixed(2);
-
-      this.logger.log(
-        `[DOWNLOAD] Material ${materialId}: ${fileSizeMB}MB downloaded`,
-      );
-
-      // 2. Extract text
-      let text = '';
-
-      this.logger.log(`[TEXT-EXTRACT] Material: ${materialId}`);
-      this.logger.log(`[TEXT-EXTRACT] FileType: "${material.fileType}"`);
-      this.logger.log(`[TEXT-EXTRACT] Title: "${material.title}"`);
-      this.logger.log(`[TEXT-EXTRACT] Buffer size: ${buffer.length} bytes`);
-
-      if (
-        material.fileType === 'application/pdf' ||
-        material.fileType?.includes('pdf')
-      ) {
-        this.logger.log(`[TEXT-EXTRACT] Matched: PDF`);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const candidate = (pdfLib as any).default ?? pdfLib;
-
-        const pdfParseFn =
-          typeof candidate === 'function'
-            ? candidate
-            : (candidate.PDFParse ?? candidate);
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let data: any;
-
-        try {
-          // Try function call first
-
-          data = await pdfParseFn(buffer);
-        } catch (err) {
-          if (
-            err instanceof Error &&
-            err.message.includes(
-              "Class constructors cannot be invoked without 'new'",
-            )
-          ) {
-            const instance = new pdfParseFn(buffer);
-
-            // Check if instance is a promise or has data
-            if (instance instanceof Promise) {
-              data = await instance;
-            } else {
-              data = instance;
-            }
-          } else {
-            this.logger.error(`[TEXT-EXTRACT] PDF parse error:`, err);
-            throw err;
-          }
-        }
-
-        text = data.text;
-        this.logger.log(
-          `[TEXT-EXTRACT] PDF extracted ${text?.length ?? 0} chars`,
-        );
-      } else if (
-        material.fileType ===
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-        material.fileType?.includes('wordprocessingml') ||
-        material.title?.toLowerCase().endsWith('.docx')
-      ) {
-        this.logger.log(`[TEXT-EXTRACT] Matched: DOCX`);
-        const result = await mammoth.extractRawText({ buffer });
-
-        text = result.value;
-        this.logger.log(
-          `[TEXT-EXTRACT] DOCX extracted ${text?.length ?? 0} chars`,
-        );
-      } else if (material.fileType === 'text/plain') {
-        this.logger.log(`[TEXT-EXTRACT] Matched: Plain text`);
-        text = buffer.toString('utf-8');
-        this.logger.log(
-          `[TEXT-EXTRACT] TXT extracted ${text?.length ?? 0} chars`,
-        );
-      } else if (
-        material.fileType ===
-          'application/vnd.openxmlformats-officedocument.presentationml.presentation' ||
-        material.fileType?.includes('presentationml') ||
-        material.title?.toLowerCase().endsWith('.pptx')
-      ) {
-        this.logger.log(`[TEXT-EXTRACT] Matched: PPTX`);
-        text = await this.extractTextFromPPTX(buffer);
-        this.logger.log(
-          `[TEXT-EXTRACT] PPTX extracted ${text?.length ?? 0} chars`,
-        );
-      } else if (material.fileType?.startsWith('image/')) {
-        // Direct OCR for images
-        this.logger.log(`[TEXT-EXTRACT] Matched: Image - using OCR`);
-        text = await this.extractTextViaOCR(material.fileUrl, true);
-        this.logger.log(
-          `[TEXT-EXTRACT] Image OCR extracted ${text?.length ?? 0} chars`,
-        );
-      } else if (
-        material.fileType?.includes('msword') ||
-        material.title?.toLowerCase().endsWith('.doc')
-      ) {
-        // Legacy .doc files
-        this.logger.log(
-          `[TEXT-EXTRACT] Matched: Legacy DOC - attempting officeparser`,
-        );
-        try {
-          const officeparser = await import('officeparser');
-
-          text = (await officeparser.parseOfficeAsync(buffer)) || '';
-          this.logger.log(
-            `[TEXT-EXTRACT] DOC extracted ${text?.length ?? 0} chars`,
-          );
-        } catch (e) {
-          this.logger.warn(`[TEXT-EXTRACT] DOC extraction failed:`, e);
-        }
-      } else if (
-        material.fileType?.includes('ms-powerpoint') ||
-        material.title?.toLowerCase().endsWith('.ppt')
-      ) {
-        // Legacy .ppt files
-        this.logger.log(
-          `[TEXT-EXTRACT] Matched: Legacy PPT - attempting officeparser`,
-        );
-        try {
-          const officeparser = await import('officeparser');
-
-          text = (await officeparser.parseOfficeAsync(buffer)) || '';
-          this.logger.log(
-            `[TEXT-EXTRACT] PPT extracted ${text?.length ?? 0} chars`,
-          );
-        } catch (e) {
-          this.logger.warn(`[TEXT-EXTRACT] PPT extraction failed:`, e);
-        }
-      } else {
-        this.logger.warn(
-          `[TEXT-EXTRACT] NO MATCH for fileType: "${material.fileType}"`,
-        );
+      // If content is missing, something went wrong in the previous step
+      if (!material.content) {
+        this.logger.warn(`Material ${materialId} has no content. Skipping enrichment.`);
+        return;
       }
 
-      // Log text preview
-      if (text && text.length > 0) {
-        const preview = text.substring(0, 200).replace(/\n/g, ' ').trim();
+      let text = material.content;
 
-        this.logger.log(`[TEXT-EXTRACT] Preview: "${preview}..."`);
-      }
+      // 3. Clean and chunk Text (only if we have meaningful text)
+      // Note: DocumentProcessor already cleaned it, but we might do extra checks here or skip
+      // if we trust DocumentProcessor. 
+      // For now, let's assume text is ready.
 
-      // Fallback to OCR if text is empty or too short (likely scanned PDF or image-only PPT)
-      if (!text || text.trim().length < 50) {
-        this.logger.warn(
-          `[TEXT-EXTRACT] Low content (${text?.trim().length ?? 0} chars). Attempting OCR fallback...`,
-        );
-        const ocrText = await this.extractTextViaOCR(material.fileUrl);
-
-        if (ocrText) {
-          text = ocrText;
-          this.logger.log(
-            `[TEXT-EXTRACT] OCR fallback extracted ${text?.length ?? 0} chars`,
-          );
-        }
-      }
-
-      if (!text) {
-        this.logger.warn(
-          `[TEXT-EXTRACT] FINAL: No text extracted from material: ${materialId}`,
-        );
-        text =
-          'This document appears to be a scanned image or contains no extractable text. AI features like summary and chat may be limited.';
-      }
 
       // 3. Clean and chunk Text (only if we have meaningful text)
       material.processingStatus = ProcessingStatus.CLEANING;

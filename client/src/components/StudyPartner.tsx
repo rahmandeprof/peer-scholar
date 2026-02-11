@@ -60,6 +60,10 @@ export function StudyPartner() {
 
   useEffect(() => {
     void fetchData();
+
+    // Refresh partner data every 60s for fresh online status
+    const interval = setInterval(fetchData, 60_000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {

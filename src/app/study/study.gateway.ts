@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -40,11 +40,13 @@ import { Repository } from 'typeorm';
     credentials: true,
   },
 })
-export class StudyGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class StudyGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit {
   @WebSocketServer()
   server: Server;
 
   private readonly logger = new Logger(StudyGateway.name);
+  private lastSeenCache = new Map<string, number>();
+  private readonly THROTTLE_MS = 60_000; // 1 minute
 
   constructor(
     @InjectRepository(User)
@@ -54,7 +56,17 @@ export class StudyGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly configService: ConfigService,
     private readonly challengeCache: ChallengeCacheService,
     private readonly pushService: PushService,
-  ) {}
+  ) { }
+
+  onModuleInit() {
+    // Clean up stale entries every 10 minutes
+    setInterval(() => {
+      const cutoff = Date.now() - this.THROTTLE_MS;
+      for (const [key, time] of this.lastSeenCache) {
+        if (time < cutoff) this.lastSeenCache.delete(key);
+      }
+    }, 10 * 60_000);
+  }
 
   async handleConnection(client: Socket) {
     try {
@@ -78,6 +90,9 @@ export class StudyGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Store user ID on socket for later use
       client.data.userId = payload.sub;
       this.logger.log(`Client connected: ${payload.sub}`);
+
+      // Update lastSeen on connection
+      this.throttledUpdateLastSeen(payload.sub);
     } catch (error) {
       this.logger.warn(`Connection rejected: Invalid token`);
       client.disconnect();
@@ -87,6 +102,8 @@ export class StudyGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleDisconnect(client: Socket) {
     if (client.data.userId) {
       this.logger.log(`Client disconnected: ${client.data.userId}`);
+      // Update lastSeen on disconnect for accurate "last active" time
+      this.throttledUpdateLastSeen(client.data.userId);
     }
   }
 
@@ -96,7 +113,7 @@ export class StudyGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     client.join(`user_${userId}`);
-    this.updateLastSeen(userId);
+    this.throttledUpdateLastSeen(userId);
   }
 
   @SubscribeMessage('invite_user')
@@ -267,14 +284,18 @@ export class StudyGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('update_status')
   async handleUpdateStatus(@MessageBody() userId: string) {
-    await this.updateLastSeen(userId);
+    this.throttledUpdateLastSeen(userId);
   }
 
-  private async updateLastSeen(userId: string) {
-    try {
-      await this.userRepo.update(userId, { lastSeen: new Date() });
-    } catch (e) {
-      this.logger.error(`Failed to update lastSeen for ${userId}`, e);
+  private throttledUpdateLastSeen(userId: string) {
+    const now = Date.now();
+    const lastUpdate = this.lastSeenCache.get(userId) ?? 0;
+
+    if (now - lastUpdate > this.THROTTLE_MS) {
+      this.lastSeenCache.set(userId, now);
+      this.userRepo.update(userId, { lastSeen: new Date() }).catch((e) => {
+        this.logger.error(`Failed to update lastSeen for ${userId}`, e);
+      });
     }
   }
 }

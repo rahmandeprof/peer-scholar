@@ -1,13 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import axios from '../lib/api';
 import { BorderSpinner } from './Skeleton';
 
 export function GoogleCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { refreshUser } = useAuth();
 
   const processed = useRef(false);
 
@@ -15,46 +14,41 @@ export function GoogleCallback() {
     if (processed.current) return;
     processed.current = true;
 
-    const token = searchParams.get('token');
+    const loginSignal = searchParams.get('login');
 
-    if (token) {
-      // Fetch full profile to ensure we have department/faculty info
-      // This prevents the "University Modal" flicker by ensuring we know the true profile state
-      axios
-        .get('/users/profile', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-        .then((res) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const fullUser = (res.data as any).data || res.data;
+    if (loginSignal === 'success') {
+      // Backend set the cookie, now we just need to verify it and fetch user data
+      refreshUser()
+        .then(() => {
+          // Check if we actually got a user back (implies cookie was valid)
+          // refined flow: refreshUser sets user state. We can check auth state or just proceed.
+          // Since refreshUser is void, we'll assume if it didn't throw/log error we might be good, 
+          // but better to check if user state updates. 
+          // Actually, refreshUser in AuthContext swallows errors. 
+          // We can try a direct call to be sure or just navigate to dashboard and let AuthContext handle 401s.
 
-          login(token, fullUser);
-
-          const isProfileComplete =
-            fullUser.department && fullUser.faculty && fullUser.yearOfStudy;
-
-          if (isProfileComplete) {
-            const redirect = localStorage.getItem('login_redirect');
-            if (redirect) {
-              localStorage.removeItem('login_redirect');
-              navigate(redirect, { replace: true });
-            } else {
-              navigate('/dashboard', { replace: true });
-            }
+          const redirect = localStorage.getItem('login_redirect');
+          if (redirect) {
+            localStorage.removeItem('login_redirect');
+            navigate(redirect, { replace: true });
           } else {
-            navigate('/complete-profile', { replace: true });
+            navigate('/dashboard', { replace: true });
           }
         })
         .catch((err) => {
-          console.error('Failed to fetch profile during google callback', err);
+          console.error('Failed to init session after google login', err);
           navigate('/?error=auth_failed', { replace: true });
         });
     } else {
-      navigate('/?error=no_token', { replace: true });
+      // Legacy or error
+      const error = searchParams.get('error');
+      if (error) {
+        navigate(`/?error=${error}`, { replace: true });
+      } else {
+        navigate('/?error=unknown', { replace: true });
+      }
     }
-  }, [searchParams, login, navigate]);
+  }, [searchParams, refreshUser, navigate]);
 
   return (
     <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950'>

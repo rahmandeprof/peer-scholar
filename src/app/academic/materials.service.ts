@@ -55,6 +55,7 @@ export class MaterialsService {
     private courseRepo: Repository<Course>,
     private configService: ConfigService,
     @InjectQueue('materials') private materialsQueue: Queue,
+    @InjectQueue('document-processing') private documentQueue: Queue,
     private usersService: UsersService,
     private conversionService: ConversionService,
     private r2Service: R2Service,
@@ -145,10 +146,13 @@ export class MaterialsService {
 
     const savedMaterial = await this.materialRepo.save(material);
 
-    // Queue background processing for text extraction and segmentation
-    await this.materialsQueue.add('process-material', {
+    // Queue background processing: Start with Document Processor (Extraction/OCR)
+    // This removes the blocking operation from the main server response
+    await this.documentQueue.add('process-document', {
       materialId: savedMaterial.id,
       fileUrl: savedMaterial.fileUrl,
+      mimeType: savedMaterial.fileType,
+      filename: savedMaterial.title,
     });
 
     // Reward user for uploading
@@ -1301,13 +1305,13 @@ export class MaterialsService {
       },
       course: m.course
         ? {
-            id: m.course.id,
-            title: m.course.title,
-            department: {
-              id: m.course.department.id,
-              name: m.course.department.name,
-            },
-          }
+          id: m.course.id,
+          title: m.course.title,
+          department: {
+            id: m.course.department.id,
+            name: m.course.department.name,
+          },
+        }
         : null,
     }));
 

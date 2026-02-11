@@ -26,7 +26,11 @@ async function bootstrap() {
   app.set('query parser', 'extended');
 
   // Enable gzip compression for all responses
+  // Enable gzip compression for all responses
   app.use(compression());
+
+  // Parse cookies
+  app.use(require('cookie-parser')());
 
   const config: ConfigService<EnvironmentVariables, true> =
     app.get(ConfigService);

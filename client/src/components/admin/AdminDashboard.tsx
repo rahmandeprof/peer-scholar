@@ -1071,6 +1071,15 @@ export function AdminDashboard() {
     };
   }, []);
 
+  // Auto-refresh active users list when panel is open
+  useEffect(() => {
+    if (!showActiveUsers) return;
+
+    const interval = setInterval(fetchActiveUsers, 30_000);
+
+    return () => clearInterval(interval);
+  }, [showActiveUsers]);
+
   // Refresh all dashboard data
   const refreshAll = async () => {
     setLoading(true);
@@ -1329,11 +1338,10 @@ export function AdminDashboard() {
                         </td>
                         <td className='px-4 py-2'>
                           <span
-                            className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                              u.role === 'admin'
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${u.role === 'admin'
                                 ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
                                 : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
-                            }`}
+                              }`}
                           >
                             {u.role}
                           </span>
@@ -1772,9 +1780,8 @@ export function AdminDashboard() {
               {feedbacks.map((feedback) => (
                 <div
                   key={feedback.id}
-                  className={`p-3 border-b border-gray-100 dark:border-gray-800 last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${
-                    !feedback.isRead ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
-                  }`}
+                  className={`p-3 border-b border-gray-100 dark:border-gray-800 last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${!feedback.isRead ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
+                    }`}
                   onClick={() => handleToggleFeedbackRead(feedback.id)}
                   title={
                     feedback.isRead
@@ -1788,11 +1795,10 @@ export function AdminDashboard() {
                         <span className='w-2 h-2 bg-blue-500 rounded-full' />
                       )}
                       <span
-                        className={`text-sm font-medium ${
-                          !feedback.isRead
+                        className={`text-sm font-medium ${!feedback.isRead
                             ? 'text-gray-900 dark:text-white'
                             : 'text-gray-500 dark:text-gray-400'
-                        }`}
+                          }`}
                       >
                         {feedback.userName || 'Anonymous'}
                       </span>
@@ -1802,11 +1808,10 @@ export function AdminDashboard() {
                     </span>
                   </div>
                   <p
-                    className={`text-sm mb-2 whitespace-pre-wrap ${
-                      !feedback.isRead
+                    className={`text-sm mb-2 whitespace-pre-wrap ${!feedback.isRead
                         ? 'text-gray-700 dark:text-gray-300'
                         : 'text-gray-500 dark:text-gray-500'
-                    }`}
+                      }`}
                   >
                     {feedback.message}
                   </p>
@@ -1954,13 +1959,12 @@ export function AdminDashboard() {
                           {m.title}
                         </span>
                         <span
-                          className={`ml-2 px-2 py-0.5 rounded text-xs font-medium ${
-                            m.processingStatus === 'COMPLETED'
+                          className={`ml-2 px-2 py-0.5 rounded text-xs font-medium ${m.processingStatus === 'COMPLETED'
                               ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                               : m.processingStatus === 'FAILED'
                                 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                                 : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                          }`}
+                            }`}
                         >
                           {m.processingStatus}
                         </span>
@@ -2137,11 +2141,10 @@ export function AdminDashboard() {
                   <div
                     key={material.id}
                     onClick={() => handleSelectMaterial(material)}
-                    className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${
-                      selectedMaterial?.id === material.id
+                    className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${selectedMaterial?.id === material.id
                         ? 'bg-primary-50 dark:bg-primary-900/20'
                         : ''
-                    }`}
+                      }`}
                   >
                     <div className='flex items-start justify-between'>
                       <div className='flex-1 min-w-0'>
@@ -2506,8 +2509,7 @@ export function AdminDashboard() {
                           </td>
                           <td className='p-2'>
                             <span
-                              className={`px-2 py-0.5 rounded text-xs ${
-                                m.scope === 'public'
+                              className={`px-2 py-0.5 rounded text-xs ${m.scope === 'public'
                                   ? 'bg-green-100 text-green-800'
                                   : m.scope === 'department'
                                     ? 'bg-blue-100 text-blue-800'
@@ -2516,7 +2518,7 @@ export function AdminDashboard() {
                                       : m.scope === 'course'
                                         ? 'bg-yellow-100 text-yellow-800'
                                         : 'bg-gray-100 text-gray-800'
-                              }`}
+                                }`}
                             >
                               {m.scope || 'private'}
                             </span>
@@ -2978,47 +2980,47 @@ export function AdminDashboard() {
                                                 </div>
                                                 {addingDepartment ===
                                                   fac.id && (
-                                                  <div className='flex items-center gap-2 mb-2 p-2 bg-white dark:bg-gray-700 rounded'>
-                                                    <input
-                                                      type='text'
-                                                      value={newDepartmentName}
-                                                      onChange={(e) =>
-                                                        setNewDepartmentName(
-                                                          e.target.value,
-                                                        )
-                                                      }
-                                                      placeholder='Department name'
-                                                      className='flex-1 px-2 py-1 text-sm border rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
-                                                    />
-                                                    <button
-                                                      onClick={() =>
-                                                        handleCreateDepartment(
-                                                          fac.id,
-                                                        )
-                                                      }
-                                                      disabled={savingEntity}
-                                                      className='px-2 py-1 bg-indigo-600 text-white text-xs rounded'
-                                                    >
-                                                      {savingEntity ? (
-                                                        <BorderSpinner size='xs' />
-                                                      ) : (
-                                                        'Add'
-                                                      )}
-                                                    </button>
-                                                    <button
-                                                      onClick={() =>
-                                                        setAddingDepartment(
-                                                          null,
-                                                        )
-                                                      }
-                                                      className='text-gray-400 text-xs'
-                                                    >
-                                                      Cancel
-                                                    </button>
-                                                  </div>
-                                                )}
+                                                    <div className='flex items-center gap-2 mb-2 p-2 bg-white dark:bg-gray-700 rounded'>
+                                                      <input
+                                                        type='text'
+                                                        value={newDepartmentName}
+                                                        onChange={(e) =>
+                                                          setNewDepartmentName(
+                                                            e.target.value,
+                                                          )
+                                                        }
+                                                        placeholder='Department name'
+                                                        className='flex-1 px-2 py-1 text-sm border rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
+                                                      />
+                                                      <button
+                                                        onClick={() =>
+                                                          handleCreateDepartment(
+                                                            fac.id,
+                                                          )
+                                                        }
+                                                        disabled={savingEntity}
+                                                        className='px-2 py-1 bg-indigo-600 text-white text-xs rounded'
+                                                      >
+                                                        {savingEntity ? (
+                                                          <BorderSpinner size='xs' />
+                                                        ) : (
+                                                          'Add'
+                                                        )}
+                                                      </button>
+                                                      <button
+                                                        onClick={() =>
+                                                          setAddingDepartment(
+                                                            null,
+                                                          )
+                                                        }
+                                                        className='text-gray-400 text-xs'
+                                                      >
+                                                        Cancel
+                                                      </button>
+                                                    </div>
+                                                  )}
                                                 {departments.length === 0 &&
-                                                !addingDepartment ? (
+                                                  !addingDepartment ? (
                                                   <p className='text-xs text-gray-500'>
                                                     No departments
                                                   </p>
@@ -3030,7 +3032,7 @@ export function AdminDashboard() {
                                                         className='flex items-center justify-between p-2 bg-white dark:bg-gray-700 rounded'
                                                       >
                                                         {editingDepartment?.id ===
-                                                        dept.id ? (
+                                                          dept.id ? (
                                                           <div className='flex items-center gap-2 flex-1'>
                                                             <input
                                                               type='text'

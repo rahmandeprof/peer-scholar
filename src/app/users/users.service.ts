@@ -32,7 +32,7 @@ import { PaginationService } from '@/pagination/pagination.service';
 import { SuccessResponse } from '@/utils/response';
 
 import { FilterOperator, PaginateQuery } from 'nestjs-paginate';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 
 @Injectable()
 export class UsersService {
@@ -248,30 +248,35 @@ export class UsersService {
 
     if (requests.length === 0) return [];
 
-    const partnersData = await Promise.all(
-      requests.map(async (req) => {
-        const partner = req.sender.id === userId ? req.receiver : req.sender;
-
-        const partnerStreak = await this.streakRepository.findOne({
-          where: { userId: partner.id },
-        });
-
-        const userEffectiveStreak = await this.calculateEffectiveStreak(userId);
-        const partnerEffectiveStreak =
-          this.calculateEffectiveStreakFromEntity(partnerStreak);
-
-        return {
-          id: partner.id,
-          firstName: partner.firstName,
-          lastName: partner.lastName,
-          email: partner.email,
-          image: partner.image,
-          currentStreak: partnerEffectiveStreak,
-          lastActivity: partnerStreak?.lastActivityDate,
-          combinedStreak: Math.min(userEffectiveStreak, partnerEffectiveStreak),
-        };
-      }),
+    const partnerIds = requests.map((req) =>
+      req.sender.id === userId ? req.receiver.id : req.sender.id,
     );
+
+    const streaks = await this.streakRepository.find({
+      where: { userId: In(partnerIds) },
+    });
+
+    const streakMap = new Map(streaks.map((s) => [s.userId, s]));
+    const userEffectiveStreak = await this.calculateEffectiveStreak(userId);
+
+    const partnersData = requests.map((req) => {
+      const partner = req.sender.id === userId ? req.receiver : req.sender;
+      const partnerStreak = streakMap.get(partner.id) || null;
+      const partnerEffectiveStreak =
+        this.calculateEffectiveStreakFromEntity(partnerStreak);
+
+      return {
+        id: partner.id,
+        firstName: partner.firstName,
+        lastName: partner.lastName,
+        email: partner.email,
+        image: partner.image,
+        currentStreak: partnerEffectiveStreak,
+        lastActivity: partnerStreak?.lastActivityDate,
+        combinedStreak: Math.min(userEffectiveStreak, partnerEffectiveStreak),
+        lastSeen: partner.lastSeen,
+      };
+    });
 
     return partnersData;
   }
@@ -336,6 +341,14 @@ export class UsersService {
     // Transform user to include full department/faculty objects
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const responseUser: any = Object.assign({}, user);
+
+    // Strip sensitive fields (Object.assign loses class prototype, so @Exclude won't apply)
+    delete responseUser.password;
+    delete responseUser.verificationToken;
+    delete responseUser.resetPasswordToken;
+    delete responseUser.resetPasswordExpires;
+    delete responseUser.googleId;
+    delete responseUser.pushSubscription;
 
     if (user.department) {
       const dept = await this.departmentRepo.findOne({
@@ -491,7 +504,7 @@ export class UsersService {
     const d2 = new Date(date2.getFullYear(), date2.getMonth(), date2.getDate());
     const diffTime = Math.abs(d1.getTime() - d2.getTime());
 
-    return Math.round(diffTime / (1000 * 3600 * 24));
+    return Math.floor(diffTime / (1000 * 3600 * 24));
   }
 
   private calculateEffectiveStreakFromEntity(
@@ -502,11 +515,17 @@ export class UsersService {
 
     const diffDays = this.getDiffDays(new Date(), streak.lastActivityDate);
 
-    // If last activity was today (0) or yesterday (1), streak is valid.
-    // If > 1, streak is broken, so effective streak is 0.
-    if (diffDays > 1) return 0;
+    // If last activity was today (0) or yesterday (1), streak is valid
+    if (diffDays <= 1) return streak.currentStreak;
 
-    return streak.currentStreak;
+    // Gap of 2+ days: check if streak freezes can cover missed days
+    const missedDays = diffDays - 1;
+    if (streak.streakFreezes >= missedDays) {
+      return streak.currentStreak;
+    }
+
+    // No freezes to cover the gap — streak is broken
+    return 0;
   }
 
   async calculateEffectiveStreak(userId: string): Promise<number> {
@@ -558,9 +577,10 @@ export class UsersService {
         }
       } else {
         // Gap of 2+ days - streak would break
-        if (streak.streakFreezes > 0) {
-          // Use a freeze to preserve the streak
-          streak.streakFreezes -= 1;
+        const missedDays = diffDays - 1;
+        if (streak.streakFreezes >= missedDays) {
+          // Use freezes to cover each missed day
+          streak.streakFreezes -= missedDays;
           streak.currentStreak += 1; // Continue the streak
           streak.weeklyActiveDays += 1;
 
@@ -568,8 +588,9 @@ export class UsersService {
             streak.longestStreak = streak.currentStreak;
           }
         } else {
-          // No freezes available - streak breaks
+          // Not enough freezes - streak breaks
           streak.currentStreak = 1;
+          streak.streakFreezes = 0; // Deplete any remaining freezes
           streak.weeklyActiveDays += 1;
         }
       }
@@ -910,10 +931,10 @@ export class UsersService {
       viewedAt: h.viewedAt,
       uploader: h.material.uploader
         ? {
-            id: h.material.uploader.id,
-            firstName: h.material.uploader.firstName,
-            lastName: h.material.uploader.lastName,
-          }
+          id: h.material.uploader.id,
+          firstName: h.material.uploader.firstName,
+          lastName: h.material.uploader.lastName,
+        }
         : undefined,
     }));
   }

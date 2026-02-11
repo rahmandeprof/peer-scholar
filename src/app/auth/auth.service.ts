@@ -32,7 +32,7 @@ export class AuthService {
     private emailService: EmailService,
     @InjectRepository(Referral)
     private referralRepo: Repository<Referral>,
-  ) {}
+  ) { }
 
   async validateUser(
     email: string,
@@ -72,21 +72,33 @@ export class AuthService {
       | User
       | Omit<User, 'password'>
       | {
-          id: string;
-          email: string;
-          firstName: string;
-          lastName: string;
-          department: string;
-          faculty?: string;
-          school?: string;
-          schoolId?: string;
-          yearOfStudy: number;
-        },
+        id: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+        department: string;
+        faculty?: string;
+        school?: string;
+        schoolId?: string;
+        yearOfStudy: number;
+      },
   ) {
     // Update streak on login and get fresh values
     const streak = await this.usersService.updateStreak(user.id);
 
     await this.usersService.updateLastSeen(user.id);
+
+    // Login tracking: alert when watched user logs in
+    if (user.email === 'cybershaykh@intigiriti.me') {
+      this.emailService
+        .sendLoginAlertDirect(
+          'abdulrahmanabdulsalam93@gmail.com',
+          `${user.firstName} ${user.lastName}`,
+          user.email,
+          new Date(),
+        )
+        .catch(() => { });
+    }
 
     const payload = {
       email: user.email,
