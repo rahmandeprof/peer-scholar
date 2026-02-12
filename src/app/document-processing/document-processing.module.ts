@@ -31,6 +31,9 @@ import {
     BullModule.registerQueue({
       name: DOCUMENT_PROCESSING_QUEUE,
     }),
+    BullModule.registerQueue({
+      name: 'materials',
+    }),
     CommonModule,
   ],
   controllers: [ProcessingStatusController],

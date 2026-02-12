@@ -24,7 +24,9 @@ import { MaterialCard } from './MaterialCard';
 import { MaterialCardSkeleton } from './MaterialCardSkeleton';
 import { FolderCard } from './FolderCard';
 import { FolderView } from './FolderView';
+import { StreakRestoreModal } from './StreakRestoreModal';
 import { CollectionModal } from './CollectionModal';
+
 import { StreakCalendar } from './StreakCalendar';
 import { StudyTip } from './StudyTip';
 import { BadgesDisplay } from './BadgesDisplay';
@@ -60,6 +62,12 @@ export function AcademicControlCenter() {
   const [partners, setPartners] = useState<PartnerStats[]>([]);
   const [recentMaterials, setRecentMaterials] = useState<RecentMaterial[]>([]);
   const [streak, setStreak] = useState(0);
+  const [streakRestoreOpen, setStreakRestoreOpen] = useState(false);
+  const [streakRiskData, setStreakRiskData] = useState<{
+    currentStreak: number;
+    missedDays: number;
+    streakFreezes: number;
+  } | null>(null);
   const [stage, setStage] = useState('Novice');
   const [weeklyStats, setWeeklyStats] = useState({
     current: 0,
@@ -86,7 +94,13 @@ export function AcademicControlCenter() {
   useEffect(() => {
     // Helper to apply dashboard data to state
     const applyDashboardData = (
-      streakData: { currentStreak?: number; stage?: string },
+      streakData: {
+        currentStreak?: number;
+        stage?: string;
+        streakAtRisk?: boolean; // Added optional property
+        missedDays?: number; // Added optional property
+        freezesAvailable?: number; // Added optional property
+      },
       weeklyRes: { totalSeconds: number; goalSeconds: number },
       activityRes: { lastReadMaterial?: RecentMaterial; lastReadPage?: number },
       partnersData: PartnerStats[],
@@ -95,6 +109,15 @@ export function AcademicControlCenter() {
     ) => {
       setStreak(streakData.currentStreak || 0);
       setStage(streakData.stage || 'Novice');
+
+      if (streakData.streakAtRisk) {
+        setStreakRiskData({
+          currentStreak: streakData.currentStreak || 0,
+          missedDays: streakData.missedDays || 0,
+          streakFreezes: streakData.freezesAvailable || 0,
+        });
+        setStreakRestoreOpen(true);
+      }
 
       setWeeklyStats({
         current: weeklyRes.totalSeconds,
@@ -724,6 +747,26 @@ export function AcademicControlCenter() {
         onClose={() => setCollectionModalOpen(false)}
         materialId={selectedMaterialForCollection}
       />
+
+      {streakRiskData && (
+        <StreakRestoreModal
+          isOpen={streakRestoreOpen}
+          onClose={() => setStreakRestoreOpen(false)}
+          streakData={streakRiskData}
+          onRestoreSuccess={(newStreakData) => {
+            setStreak(newStreakData.currentStreak);
+            // Updates available freezes
+            setStreakRiskData((prev) =>
+              prev
+                ? { ...prev, streakFreezes: newStreakData.streakFreezes }
+                : null,
+            );
+          }}
+          onDecline={() => {
+            setStreak(1);
+          }}
+        />
+      )}
     </div>
   );
 }

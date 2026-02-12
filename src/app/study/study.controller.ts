@@ -105,6 +105,26 @@ export class StudyController {
   }
 
   @UseGuards(AuthGuard('jwt'))
+  @Post('streak/restore')
+  restoreStreak(@Req() req: RequestWithUser) {
+    if (!req.user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return this.studyService.restoreStreak(req.user.id);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('streak/decline')
+  declineStreak(@Req() req: RequestWithUser) {
+    if (!req.user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return this.studyService.declineRestore(req.user.id);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @Get('stats/weekly')
   getWeeklyStats(@Req() req: RequestWithUser) {
     if (!req.user) {

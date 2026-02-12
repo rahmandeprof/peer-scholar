@@ -180,6 +180,14 @@ export class StudyService {
     return this.usersService.getInsights(userId);
   }
 
+  restoreStreak(userId: string) {
+    return this.usersService.restoreStreak(userId);
+  }
+
+  declineRestore(userId: string) {
+    return this.usersService.declineRestore(userId);
+  }
+
   /**
    * Get all dashboard initialization data in one call
    * Combines streak, weekly stats, and recent activity for faster dashboard load

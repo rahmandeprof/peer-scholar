@@ -32,7 +32,7 @@ import { PaginationService } from '@/pagination/pagination.service';
 import { SuccessResponse } from '@/utils/response';
 
 import { FilterOperator, PaginateQuery } from 'nestjs-paginate';
-import { Repository, In } from 'typeorm';
+import { In, Repository } from 'typeorm';
 
 @Injectable()
 export class UsersService {
@@ -520,6 +520,7 @@ export class UsersService {
 
     // Gap of 2+ days: check if streak freezes can cover missed days
     const missedDays = diffDays - 1;
+
     if (streak.streakFreezes >= missedDays) {
       return streak.currentStreak;
     }
@@ -566,7 +567,7 @@ export class UsersService {
       const diffDays = this.getDiffDays(now, streak.lastActivityDate);
 
       if (diffDays === 0) {
-        // Same day, do nothing to streak, but we're still active this day
+        // Same day, do nothing to streak
       } else if (diffDays === 1) {
         // Consecutive day - increment streak and weekly counter
         streak.currentStreak += 1;
@@ -578,21 +579,46 @@ export class UsersService {
       } else {
         // Gap of 2+ days - streak would break
         const missedDays = diffDays - 1;
-        if (streak.streakFreezes >= missedDays) {
-          // Use freezes to cover each missed day
-          streak.streakFreezes -= missedDays;
-          streak.currentStreak += 1; // Continue the streak
-          streak.weeklyActiveDays += 1;
 
-          if (streak.currentStreak > streak.longestStreak) {
-            streak.longestStreak = streak.currentStreak;
-          }
-        } else {
-          // Not enough freezes - streak breaks
-          streak.currentStreak = 1;
-          streak.streakFreezes = 0; // Deplete any remaining freezes
-          streak.weeklyActiveDays += 1;
+        if (streak.streakFreezes >= missedDays) {
+          // Freezes available — DON'T auto-consume.
+          // Save weekly award changes but don't touch streak or lastActivityDate.
+          await this.streakRepository.save(streak);
+
+          return {
+            currentStreak: streak.currentStreak,
+            longestStreak: streak.longestStreak,
+            streakFreezes: streak.streakFreezes,
+            weeklyActiveDays: streak.weeklyActiveDays,
+            streakAtRisk: true,
+            missedDays,
+            freezesAvailable: streak.streakFreezes,
+          };
         }
+        // Not enough freezes - streak breaks immediately
+        const previousStreak = streak.currentStreak;
+
+        streak.currentStreak = 1;
+        streak.streakFreezes = 0;
+        streak.weeklyActiveDays = 1;
+
+        streak.lastActivityDate = now;
+        await this.streakRepository.save(streak);
+
+        await this.userRepository.update(userId, {
+          currentStreak: streak.currentStreak,
+          longestStreak: streak.longestStreak,
+          lastStudyDate: now,
+        });
+
+        return {
+          currentStreak: streak.currentStreak,
+          longestStreak: streak.longestStreak,
+          streakFreezes: streak.streakFreezes,
+          weeklyActiveDays: streak.weeklyActiveDays,
+          streakBroken: true,
+          previousStreak,
+        };
       }
     } else {
       // First activity ever
@@ -617,6 +643,90 @@ export class UsersService {
       longestStreak: streak.longestStreak,
       streakFreezes: streak.streakFreezes,
       weeklyActiveDays: streak.weeklyActiveDays,
+    };
+  }
+
+  /**
+   * Restore streak by consuming freezes. Called when user accepts the restore prompt.
+   */
+  async restoreStreak(userId: string) {
+    const streak = await this.streakRepository.findOne({ where: { userId } });
+
+    if (!streak || !streak.lastActivityDate) {
+      return { success: false, message: 'No streak to restore' };
+    }
+
+    const now = new Date();
+    const diffDays = this.getDiffDays(now, streak.lastActivityDate);
+
+    if (diffDays <= 1) {
+      return { success: false, message: 'Streak is not at risk' };
+    }
+
+    const missedDays = diffDays - 1;
+
+    if (streak.streakFreezes < missedDays) {
+      return { success: false, message: 'Not enough freezes' };
+    }
+
+    // Consume freezes and restore the streak
+    streak.streakFreezes -= missedDays;
+    streak.currentStreak += 1;
+    streak.weeklyActiveDays += 1;
+    streak.lastActivityDate = now;
+
+    if (streak.currentStreak > streak.longestStreak) {
+      streak.longestStreak = streak.currentStreak;
+    }
+
+    await this.streakRepository.save(streak);
+
+    await this.userRepository.update(userId, {
+      currentStreak: streak.currentStreak,
+      longestStreak: streak.longestStreak,
+      lastStudyDate: now,
+    });
+
+    return {
+      success: true,
+      currentStreak: streak.currentStreak,
+      longestStreak: streak.longestStreak,
+      streakFreezes: streak.streakFreezes,
+      freezesUsed: missedDays,
+    };
+  }
+
+  /**
+   * Decline streak restore. Breaks the streak and starts fresh.
+   */
+  async declineRestore(userId: string) {
+    const streak = await this.streakRepository.findOne({ where: { userId } });
+
+    if (!streak) {
+      return { success: false, message: 'No streak found' };
+    }
+
+    const now = new Date();
+    const previousStreak = streak.currentStreak;
+
+    streak.currentStreak = 1;
+    streak.streakFreezes = 0;
+    streak.weeklyActiveDays = 1;
+    streak.lastActivityDate = now;
+
+    await this.streakRepository.save(streak);
+
+    await this.userRepository.update(userId, {
+      currentStreak: streak.currentStreak,
+      longestStreak: streak.longestStreak,
+      lastStudyDate: now,
+    });
+
+    return {
+      success: true,
+      currentStreak: 1,
+      longestStreak: streak.longestStreak,
+      previousStreak,
     };
   }
 
@@ -653,14 +763,38 @@ export class UsersService {
     const streak = await this.streakRepository.findOne({ where: { userId } });
     const effectiveStreak = this.calculateEffectiveStreakFromEntity(streak);
 
-    return {
+    const result: any = {
       currentStreak: effectiveStreak,
       longestStreak: streak?.longestStreak ?? 0,
       lastActivity: streak?.lastActivityDate,
       stage: this.getStage(effectiveStreak),
       streakFreezes: streak?.streakFreezes ?? 0,
       weeklyActiveDays: streak?.weeklyActiveDays ?? 0,
+      streakAtRisk: false,
+      missedDays: 0,
+      freezesAvailable: streak?.streakFreezes ?? 0,
     };
+
+    // Calculate risk status
+    if (streak && streak.lastActivityDate) {
+      const diffDays = this.getDiffDays(new Date(), streak.lastActivityDate);
+
+      if (diffDays > 1) {
+        const missedDays = diffDays - 1;
+
+        // If we have enough freezes, it's at risk (pending restore)
+        // If not enough freezes, effectiveStreak is likely 0, so no need to flag 'at risk'—it's broken.
+        if (streak.streakFreezes >= missedDays) {
+          result.streakAtRisk = true;
+          result.missedDays = missedDays;
+          // Show the POTENTIAL streak if restored (= current stored streak)
+          // The effectiveStreak would perform the calc and return currentStreak because freezes cover it
+          // So result.currentStreak is already the high number.
+        }
+      }
+    }
+
+    return result;
   }
   async increaseReputation(userId: string, amount: number) {
     const user = await this.getOne(userId);
@@ -931,10 +1065,10 @@ export class UsersService {
       viewedAt: h.viewedAt,
       uploader: h.material.uploader
         ? {
-          id: h.material.uploader.id,
-          firstName: h.material.uploader.firstName,
-          lastName: h.material.uploader.lastName,
-        }
+            id: h.material.uploader.id,
+            firstName: h.material.uploader.firstName,
+            lastName: h.material.uploader.lastName,
+          }
         : undefined,
     }));
   }
