@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer';
 import {
   IsEmail,
   IsNotEmpty,
@@ -9,19 +10,23 @@ import {
 export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
+  @Transform(({ value }) => value?.trim())
   firstName!: string;
 
   @IsString()
   @IsNotEmpty()
+  @Transform(({ value }) => value?.trim())
   lastName!: string;
 
   @IsEmail()
   @IsNotEmpty()
+  @Transform(({ value }) => value?.toLowerCase().trim())
   email!: string;
 
   @IsString()
   @IsNotEmpty()
   @MinLength(6)
+  @Transform(({ value }) => value?.trim())
   password!: string;
 
   @IsString()
