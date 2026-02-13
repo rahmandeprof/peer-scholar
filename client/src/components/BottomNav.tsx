@@ -3,21 +3,27 @@ import { LayoutDashboard, BookOpen, Users, User, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { UserProfile } from './UserProfile';
 import { UploadModal } from './UploadModal';
+import { ConfirmationModal } from './ConfirmationModal';
 import { usePartnerRequests } from '../hooks/usePartnerRequests';
+import { useAuth } from '../contexts/AuthContext';
 
 export function BottomNav() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const { pendingCount } = usePartnerRequests();
+  const { logout } = useAuth();
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex flex-col items-center justify-center flex-1 h-full space-y-0.5 transition-all duration-200 active:scale-95 ${isActive
-      ? 'text-primary-600 dark:text-primary-400'
-      : 'text-gray-500 dark:text-gray-400'
+    `flex flex-col items-center justify-center flex-1 h-full space-y-0.5 transition-all duration-200 active:scale-95 ${
+      isActive
+        ? 'text-primary-600 dark:text-primary-400'
+        : 'text-gray-500 dark:text-gray-400'
     }`;
 
   const navLinkInner = (isActive: boolean) =>
-    `flex flex-col items-center justify-center px-3 py-1.5 rounded-2xl transition-colors ${isActive ? 'bg-primary-100 dark:bg-primary-900/40' : ''
+    `flex flex-col items-center justify-center px-3 py-1.5 rounded-2xl transition-colors ${
+      isActive ? 'bg-primary-100 dark:bg-primary-900/40' : ''
     }`;
 
   return (
@@ -82,13 +88,30 @@ export function BottomNav() {
       </div>
 
       {/* Modals */}
-      {profileOpen && <UserProfile onClose={() => setProfileOpen(false)} />}
+      {/* Modals */}
+      {profileOpen && (
+        <UserProfile
+          onClose={() => setProfileOpen(false)}
+          onLogout={() => {
+            setProfileOpen(false);
+            setLogoutConfirmOpen(true);
+          }}
+        />
+      )}
       <UploadModal
         isOpen={uploadOpen}
         onClose={() => setUploadOpen(false)}
         onUploadComplete={() => setUploadOpen(false)}
       />
+      <ConfirmationModal
+        isOpen={logoutConfirmOpen}
+        onClose={() => setLogoutConfirmOpen(false)}
+        onConfirm={logout}
+        title='Sign Out'
+        message='Are you sure you want to sign out? You will need to log in again to access your account.'
+        confirmText='Sign Out'
+        isDangerous={true}
+      />
     </>
   );
 }
-
