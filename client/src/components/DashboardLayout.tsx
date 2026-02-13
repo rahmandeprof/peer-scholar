@@ -448,6 +448,10 @@ export function DashboardLayout() {
           <UserProfile
             onClose={() => setProfileOpen(false)}
             onFeedbackOpen={() => setFeedbackModalOpen(true)}
+            onLogout={() => {
+              setProfileOpen(false);
+              setLogoutConfirmOpen(true);
+            }}
           />
         </Suspense>
       )}

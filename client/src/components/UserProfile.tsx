@@ -27,6 +27,7 @@ import {
   Moon,
   Sun,
   BookOpen,
+  LogOut,
 } from 'lucide-react';
 import { useNetwork } from '../contexts/NetworkContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -38,9 +39,14 @@ import { useModalBack } from '../hooks/useModalBack';
 interface UserProfileProps {
   onClose: () => void;
   onFeedbackOpen?: () => void;
+  onLogout?: () => void;
 }
 
-export function UserProfile({ onClose, onFeedbackOpen }: UserProfileProps) {
+export function UserProfile({
+  onClose,
+  onFeedbackOpen,
+  onLogout,
+}: UserProfileProps) {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
 
@@ -65,7 +71,9 @@ export function UserProfile({ onClose, onFeedbackOpen }: UserProfileProps) {
       user?.department?.name ?? (user?.department as unknown as string) ?? '',
     yearOfStudy: user?.yearOfStudy ?? 1,
     username: user?.username ?? user?.email?.split('@')[0] ?? '',
-    displayNamePreference: (user as any)?.displayNamePreference ?? 'fullname' as 'username' | 'fullname',
+    displayNamePreference:
+      (user as any)?.displayNamePreference ??
+      ('fullname' as 'username' | 'fullname'),
     showOnLeaderboard: (user as any)?.showOnLeaderboard ?? true,
   });
 
@@ -107,7 +115,8 @@ export function UserProfile({ onClose, onFeedbackOpen }: UserProfileProps) {
           user.department?.name ?? (user.department as unknown as string) ?? '',
         yearOfStudy: user.yearOfStudy ?? 1,
         username: user.username ?? user.email?.split('@')[0] ?? '',
-        displayNamePreference: (user as any)?.displayNamePreference ?? 'fullname',
+        displayNamePreference:
+          (user as any)?.displayNamePreference ?? 'fullname',
         showOnLeaderboard: (user as any)?.showOnLeaderboard ?? true,
       });
     }
@@ -140,7 +149,8 @@ export function UserProfile({ onClose, onFeedbackOpen }: UserProfileProps) {
           user.department?.name ?? (user.department as unknown as string) ?? '',
         yearOfStudy: user.yearOfStudy ?? 1,
         username: user.username ?? user.email?.split('@')[0] ?? '',
-        displayNamePreference: (user as any)?.displayNamePreference ?? 'fullname',
+        displayNamePreference:
+          (user as any)?.displayNamePreference ?? 'fullname',
         showOnLeaderboard: (user as any)?.showOnLeaderboard ?? true,
       });
     }
@@ -201,10 +211,11 @@ export function UserProfile({ onClose, onFeedbackOpen }: UserProfileProps) {
         <div className='flex border-b border-gray-100 dark:border-gray-800'>
           <button
             onClick={() => setActiveTab('profile')}
-            className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === 'profile'
-              ? 'text-primary-600 dark:text-primary-400'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
+            className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
+              activeTab === 'profile'
+                ? 'text-primary-600 dark:text-primary-400'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
           >
             Profile Details
             {activeTab === 'profile' && (
@@ -213,10 +224,11 @@ export function UserProfile({ onClose, onFeedbackOpen }: UserProfileProps) {
           </button>
           <button
             onClick={() => setActiveTab('quizzes')}
-            className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === 'quizzes'
-              ? 'text-primary-600 dark:text-primary-400'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
+            className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
+              activeTab === 'quizzes'
+                ? 'text-primary-600 dark:text-primary-400'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
           >
             Quiz History
             {activeTab === 'quizzes' && (
@@ -225,10 +237,11 @@ export function UserProfile({ onClose, onFeedbackOpen }: UserProfileProps) {
           </button>
           <button
             onClick={() => setActiveTab('data')}
-            className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === 'data'
-              ? 'text-primary-600 dark:text-primary-400'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
+            className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
+              activeTab === 'data'
+                ? 'text-primary-600 dark:text-primary-400'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
           >
             Data Usage
             {activeTab === 'data' && (
@@ -602,14 +615,22 @@ export function UserProfile({ onClose, onFeedbackOpen }: UserProfileProps) {
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        displayNamePreference: e.target.value as 'username' | 'fullname',
+                        displayNamePreference: e.target.value as
+                          | 'username'
+                          | 'fullname',
                       })
                     }
                     disabled={!isEditing}
                     className='px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed max-w-[120px] truncate flex-shrink-0'
                   >
-                    <option value='fullname'>{formData.firstName?.slice(0, 8)}{formData.firstName?.length > 8 ? '...' : ''}</option>
-                    <option value='username'>@{formData.username?.slice(0, 10)}{formData.username?.length > 10 ? '...' : ''}</option>
+                    <option value='fullname'>
+                      {formData.firstName?.slice(0, 8)}
+                      {formData.firstName?.length > 8 ? '...' : ''}
+                    </option>
+                    <option value='username'>
+                      @{formData.username?.slice(0, 10)}
+                      {formData.username?.length > 10 ? '...' : ''}
+                    </option>
                   </select>
                 </div>
 
@@ -626,17 +647,31 @@ export function UserProfile({ onClose, onFeedbackOpen }: UserProfileProps) {
                   <div className='flex items-center gap-2'>
                     <button
                       type='button'
-                      onClick={() => isEditing && setFormData({ ...formData, showOnLeaderboard: !formData.showOnLeaderboard })}
+                      onClick={() =>
+                        isEditing &&
+                        setFormData({
+                          ...formData,
+                          showOnLeaderboard: !formData.showOnLeaderboard,
+                        })
+                      }
                       disabled={!isEditing}
-                      title={formData.showOnLeaderboard
-                        ? 'Others can see your ranking'
-                        : 'Your study time is tracked but hidden from others'}
-                      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${formData.showOnLeaderboard ? 'bg-purple-600' : 'bg-gray-200 dark:bg-gray-700'
-                        }`}
+                      title={
+                        formData.showOnLeaderboard
+                          ? 'Others can see your ranking'
+                          : 'Your study time is tracked but hidden from others'
+                      }
+                      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                        formData.showOnLeaderboard
+                          ? 'bg-purple-600'
+                          : 'bg-gray-200 dark:bg-gray-700'
+                      }`}
                     >
                       <span
-                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${formData.showOnLeaderboard ? 'translate-x-5' : 'translate-x-0'
-                          }`}
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          formData.showOnLeaderboard
+                            ? 'translate-x-5'
+                            : 'translate-x-0'
+                        }`}
                       />
                     </button>
                   </div>
@@ -796,6 +831,20 @@ export function UserProfile({ onClose, onFeedbackOpen }: UserProfileProps) {
                   </div>
                   <ChevronRight className='w-4 h-4 text-gray-400' />
                 </button>
+
+                <div className='pt-4 border-t border-gray-100 dark:border-gray-800 mt-2'>
+                  <button
+                    type='button'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onLogout?.();
+                    }}
+                    className='w-full flex items-center justify-center p-3 bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 font-medium rounded-xl hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors'
+                  >
+                    <LogOut className='w-5 h-5 mr-2' />
+                    Sign Out
+                  </button>
+                </div>
               </div>
 
               <div>
