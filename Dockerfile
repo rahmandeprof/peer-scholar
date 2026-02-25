@@ -9,21 +9,20 @@ ENV NODE_ENV = ${NODE_ENV}
 
 # Copy package files
 COPY package*.json ./
-COPY yarn.lock ./
 
 # Copy source files needed for build
 COPY tsconfig.build.json ./
 COPY tsconfig.json ./
 COPY nest-cli.json ./
 
-# Install dependencies (prepare script will skip husky if .husky doesn't exist)
-RUN yarn --network-timeout 1000000
+# Install dependencies
+RUN npm ci
 
 # Copy all source code
 COPY . .
 
 # Build the application
-RUN yarn build
+RUN npm run build
 
 
 # PRODUCTION
@@ -33,10 +32,9 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-COPY yarn.lock ./
 
-# Install only production dependencies (clear cache to prevent corruption)
-RUN yarn cache clean && yarn --network-timeout 1000000 --production
+# Install only production dependencies
+RUN npm ci --omit=dev
 
 # Install LibreOffice for document conversion and poppler for OCR PDF rendering
 RUN apk add --no-cache libreoffice poppler-utils
