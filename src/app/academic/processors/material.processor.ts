@@ -22,9 +22,7 @@ import { QuizDifficulty, QuizGenerator } from '@/app/quiz-engine';
 import axios from 'axios';
 import { Job } from 'bull';
 import * as JSZip from 'jszip';
-import * as mammoth from 'mammoth';
 import OpenAI from 'openai';
-import * as pdfLib from 'pdf-parse';
 import { Repository } from 'typeorm';
 import { parseStringPromise } from 'xml2js';
 
@@ -60,29 +58,34 @@ export class MaterialProcessor {
 
     this.logger.debug(`Start processing material: ${materialId}`);
 
-    this.logger.debug(`Start enrichment (MaterialProcessor) for: ${materialId}`);
+    this.logger.debug(
+      `Start enrichment (MaterialProcessor) for: ${materialId}`,
+    );
 
     try {
       const material = await this.materialRepo.findOneBy({ id: materialId });
 
       if (!material) {
         this.logger.error(`Material not found: ${materialId}`);
+
         return;
       }
 
       // If content is missing, something went wrong in the previous step
       if (!material.content) {
-        this.logger.warn(`Material ${materialId} has no content. Skipping enrichment.`);
+        this.logger.warn(
+          `Material ${materialId} has no content. Skipping enrichment.`,
+        );
+
         return;
       }
 
-      let text = material.content;
+      const text = material.content;
 
       // 3. Clean and chunk Text (only if we have meaningful text)
       // Note: DocumentProcessor already cleaned it, but we might do extra checks here or skip
-      // if we trust DocumentProcessor. 
+      // if we trust DocumentProcessor.
       // For now, let's assume text is ready.
-
 
       // 3. Clean and chunk Text (only if we have meaningful text)
       material.processingStatus = ProcessingStatus.CLEANING;

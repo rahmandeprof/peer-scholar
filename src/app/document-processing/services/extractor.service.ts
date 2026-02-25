@@ -79,13 +79,8 @@ export class ExtractorService {
    * Extract from PDF with page-level information
    */
   private async extractFromPdf(buffer: Buffer): Promise<ExtractionResult> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const candidate = (pdfLib as any).default ?? pdfLib;
-    const pdfParseFn =
-      typeof candidate === 'function'
-        ? candidate
-        : (candidate.PDFParse ?? candidate);
-
+    // pdf-parse v1 exports a single function as default or module itself
+    const pdfParseFn = (pdfLib as any).default ?? pdfLib;
     const data = await pdfParseFn(buffer);
 
     // pdf-parse doesn't give us per-page text directly,
