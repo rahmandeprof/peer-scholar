@@ -16,7 +16,7 @@ COPY tsconfig.json ./
 COPY nest-cli.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # Copy all source code
 COPY . .
@@ -34,7 +34,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install only production dependencies
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --legacy-peer-deps
 
 # Install LibreOffice for document conversion and poppler for OCR PDF rendering
 RUN apk add --no-cache libreoffice poppler-utils
