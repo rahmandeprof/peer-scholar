@@ -2,7 +2,13 @@
  * DocumentProcessor - BullMQ worker for document text extraction and segmentation
  * Handles the full pipeline: extract → clean → segment → store
  */
-import { OnQueueError, OnQueueFailed, Process, Processor, InjectQueue } from '@nestjs/bull';
+import {
+  InjectQueue,
+  OnQueueError,
+  OnQueueFailed,
+  Process,
+  Processor,
+} from '@nestjs/bull';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -51,7 +57,7 @@ export class DocumentProcessor {
     private readonly segmenterService: SegmenterService,
     private readonly ocrService: OcrService,
     private readonly pdfImageService: PdfImageService,
-  ) { }
+  ) {}
 
   @Process('process-document')
   async processDocument(job: Job<DocumentProcessingJobData>): Promise<void> {
@@ -136,8 +142,8 @@ export class DocumentProcessor {
       // Clean text (OCR text gets additional cleaning)
       const cleanedText = isOcr
         ? this.ocrService.cleanOcrText(
-          this.cleanerService.clean(extractionResult.text),
-        )
+            this.cleanerService.clean(extractionResult.text),
+          )
         : this.cleanerService.clean(extractionResult.text);
 
       await job.progress(70);

@@ -1305,13 +1305,13 @@ export class MaterialsService {
       },
       course: m.course
         ? {
-          id: m.course.id,
-          title: m.course.title,
-          department: {
-            id: m.course.department.id,
-            name: m.course.department.name,
-          },
-        }
+            id: m.course.id,
+            title: m.course.title,
+            department: {
+              id: m.course.department.id,
+              name: m.course.department.name,
+            },
+          }
         : null,
     }));
 

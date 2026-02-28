@@ -40,7 +40,9 @@ import { Repository } from 'typeorm';
     credentials: true,
   },
 })
-export class StudyGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit {
+export class StudyGateway
+  implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit
+{
   @WebSocketServer()
   server: Server;
 
@@ -56,12 +58,13 @@ export class StudyGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     private readonly configService: ConfigService,
     private readonly challengeCache: ChallengeCacheService,
     private readonly pushService: PushService,
-  ) { }
+  ) {}
 
   onModuleInit() {
     // Clean up stale entries every 10 minutes
     setInterval(() => {
       const cutoff = Date.now() - this.THROTTLE_MS;
+
       for (const [key, time] of this.lastSeenCache) {
         if (time < cutoff) this.lastSeenCache.delete(key);
       }

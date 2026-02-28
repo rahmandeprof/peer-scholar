@@ -27,7 +27,7 @@ import { Paginate, PaginateQuery } from 'nestjs-paginate';
 @Controller('users')
 @UseGuards(AuthGuard('jwt'))
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+  constructor(private readonly usersService: UsersService) {}
 
   @Post()
   create(@Body() createUserDto: CreateUserDto) {
@@ -164,10 +164,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  findOne(
-    @Param('id') id: string,
-    @Req() req: AuthenticatedRequest,
-  ) {
+  findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     if (req.user.id !== id && req.user.role !== 'admin') {
       throw new ForbiddenException('Cannot view other users');
     }

@@ -115,4 +115,4 @@ import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

@@ -15,12 +15,13 @@ export class LastSeenInterceptor implements NestInterceptor, OnModuleInit {
   private lastSeenCache = new Map<string, number>();
   private readonly THROTTLE_MS = 60_000; // 1 minute
 
-  constructor(private readonly usersService: UsersService) { }
+  constructor(private readonly usersService: UsersService) {}
 
   onModuleInit() {
     // Clean up stale entries every 10 minutes
     setInterval(() => {
       const cutoff = Date.now() - this.THROTTLE_MS;
+
       for (const [key, time] of this.lastSeenCache) {
         if (time < cutoff) this.lastSeenCache.delete(key);
       }
@@ -39,8 +40,9 @@ export class LastSeenInterceptor implements NestInterceptor, OnModuleInit {
       const lastUpdate = this.lastSeenCache.get(user.id) ?? 0;
 
       if (now - lastUpdate > this.THROTTLE_MS) {
-        this.lastSeenCache.set(user.id, now);
-        this.usersService.updateLastSeen(user.id).catch(() => { });
+        this.usersService.updateLastSeen(user.id).catch(() => {
+          // ignore error
+        });
       }
     }
 

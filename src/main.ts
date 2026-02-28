@@ -16,6 +16,7 @@ import './instrument';
 import { CLIENT_URL_REGEX, PREVIEW_CLIENT_URL_REGEX } from '@/utils/constants';
 
 import compression from 'compression';
+import cookieParser from 'cookie-parser';
 
 import { GlobalExceptionFilter } from './app/common/filters/http-exception.filter';
 import { validationExceptionFactory } from './utils/validation';
@@ -30,7 +31,7 @@ async function bootstrap() {
   app.use(compression());
 
   // Parse cookies
-  app.use(require('cookie-parser')());
+  app.use(cookieParser());
 
   const config: ConfigService<EnvironmentVariables, true> =
     app.get(ConfigService);

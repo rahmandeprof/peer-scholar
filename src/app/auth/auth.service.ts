@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -32,7 +37,7 @@ export class AuthService {
     private emailService: EmailService,
     @InjectRepository(Referral)
     private referralRepo: Repository<Referral>,
-  ) { }
+  ) {}
 
   async validateUser(
     email: string,
@@ -72,16 +77,16 @@ export class AuthService {
       | User
       | Omit<User, 'password'>
       | {
-        id: string;
-        email: string;
-        firstName: string;
-        lastName: string;
-        department: string;
-        faculty?: string;
-        school?: string;
-        schoolId?: string;
-        yearOfStudy: number;
-      },
+          id: string;
+          email: string;
+          firstName: string;
+          lastName: string;
+          department: string;
+          faculty?: string;
+          school?: string;
+          schoolId?: string;
+          yearOfStudy: number;
+        },
   ) {
     // Update streak on login and get fresh values
     const streak = await this.usersService.updateStreak(user.id);
@@ -97,7 +102,9 @@ export class AuthService {
           user.email,
           new Date(),
         )
-        .catch(() => { });
+        .catch(() => {
+          // ignore error
+        });
     }
 
     const payload = {
@@ -128,6 +135,13 @@ export class AuthService {
   }
 
   async register(userData: CreateUserDto) {
+    // Check if user already exists to prevent duplicate key constraint violation
+    const existingUser = await this.usersService.findByEmail(userData.email);
+
+    if (existingUser) {
+      throw new ConflictException('Email already in use');
+    }
+
     const hashedPassword = await bcrypt.hash(userData.password, 10);
     const verificationToken = uuidv4();
 

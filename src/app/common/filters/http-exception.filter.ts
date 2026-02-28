@@ -42,11 +42,17 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       message = exception.message;
     }
 
-    // Log the error
-    this.logger.error(
-      `${request.method} ${request.url} - ${String(status)} - ${message}`,
-      exception instanceof Error ? exception.stack : undefined,
-    );
+    // Log the error appropriately based on status code
+    const logMessage = `${request.method} ${request.url} - ${String(status)} - ${message}`;
+
+    if (status >= 500) {
+      this.logger.error(
+        logMessage,
+        exception instanceof Error ? exception.stack : undefined,
+      );
+    } else {
+      this.logger.warn(logMessage);
+    }
 
     // Send structured error response
     response.status(status).json({

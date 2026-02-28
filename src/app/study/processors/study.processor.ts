@@ -21,7 +21,7 @@ export class StudyProcessor {
     private readonly userRepo: Repository<User>,
     @InjectRepository(StudyStreak)
     private readonly streakRepo: Repository<StudyStreak>,
-  ) { }
+  ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleDailyStreakCheck() {
@@ -31,6 +31,7 @@ export class StudyProcessor {
       // Find streaks that are active but user has been inactive for 2+ days
       // and has no freezes to cover the gap
       const yesterday = new Date();
+
       yesterday.setDate(yesterday.getDate() - 1);
       yesterday.setHours(0, 0, 0, 0);
 
@@ -80,6 +81,7 @@ export class StudyProcessor {
 
       if (activeStreaks.length === 0) {
         this.logger.debug('Streak warning: no active streaks need warning');
+
         return;
       }
 

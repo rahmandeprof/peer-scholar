@@ -249,12 +249,11 @@ export class EmailService {
           </div>
         `,
       });
-      this.logger.log(`Login alert sent to ${adminEmail} for user ${userEmail}`);
-    } catch (error) {
-      this.logger.error(
-        `Failed to send login alert to ${adminEmail}`,
-        error,
+      this.logger.log(
+        `Login alert sent to ${adminEmail} for user ${userEmail}`,
       );
+    } catch (error) {
+      this.logger.error(`Failed to send login alert to ${adminEmail}`, error);
     }
   }
 }

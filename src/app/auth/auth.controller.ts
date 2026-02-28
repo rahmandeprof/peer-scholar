@@ -37,7 +37,7 @@ interface GoogleAuthRequest extends Request {
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) { }
+  constructor(private authService: AuthService) {}
 
   @Post('login')
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 attempts per minute
@@ -91,7 +91,7 @@ export class AuthController {
   @Get('google')
   @UseGuards(AuthGuard('google'))
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  async googleAuth() { }
+  async googleAuth() {}
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
@@ -104,6 +104,7 @@ export class AuthController {
 
     if (typeof data === 'string') {
       res.redirect(`${clientUrl}/login?error=auth_failed`);
+
       return;
     }
 
@@ -112,7 +113,10 @@ export class AuthController {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production', // true in prod
       sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'lax', // Lax permits redirect navigation
-      domain: process.env.NODE_ENV === 'production' ? '.peertoscholar.com' : undefined, // Adjust domain as needed
+      domain:
+        process.env.NODE_ENV === 'production'
+          ? '.peertoscholar.com'
+          : undefined, // Adjust domain as needed
       path: '/',
       maxAge: 24 * 60 * 60 * 1000, // 1 day matches typical JWT expiry
     });
