@@ -52,6 +52,12 @@ export class AuthService {
   } | null> {
     const user = await this.usersService.findByEmail(email);
 
+    if (user && !user.password && user.googleId) {
+      throw new BadRequestException(
+        'This account was created with Google. Please sign in with Google.',
+      );
+    }
+
     if (user?.password && (await bcrypt.compare(pass, user.password))) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...result } = user;

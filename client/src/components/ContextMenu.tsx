@@ -51,41 +51,57 @@ export function ContextMenu({ onClose }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+
     const handleSelection = () => {
-      const selection = window.getSelection();
-      if (!selection || selection.isCollapsed) {
-        if (!result) setPosition(null); // Only hide if no result is showing
-        return;
-      }
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        const selection = window.getSelection();
+        if (!selection || selection.isCollapsed) {
+          if (!result) setPosition(null); // Only hide if no result is showing
+          return;
+        }
 
-      const text = selection.toString().trim();
-      if (!text) return;
+        const text = selection.toString().trim();
+        if (!text) return;
 
-      const range = selection.getRangeAt(0);
-      const rect = range.getBoundingClientRect();
+        // If the selection text actually changed, clear old result so buttons show up!
+        setSelectedText((prev) => {
+          if (prev !== text) {
+            setResult(null);
+            setQuizData(null);
+          }
+          return text;
+        });
 
-      setSelectedText(text);
-      // Position above the selection
-      setPosition({
-        x: rect.left + rect.width / 2,
-        y: rect.top - 10 + window.scrollY,
-      });
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        // Position above the selection
+        setPosition({
+          x: rect.left + rect.width / 2,
+          y: rect.top - 10 + window.scrollY,
+        });
+      }, 100);
     };
 
     // Listen for mouseup to detect selection end
     document.addEventListener('mouseup', handleSelection);
     // Also listen for keyup (shift+arrow selection)
     document.addEventListener('keyup', handleSelection);
+    // Listen for mobile touch selection end
+    document.addEventListener('touchend', handleSelection);
 
     return () => {
+      clearTimeout(timeoutId);
       document.removeEventListener('mouseup', handleSelection);
       document.removeEventListener('keyup', handleSelection);
+      document.removeEventListener('touchend', handleSelection);
     };
   }, [result]);
 
   // Close when clicking outside
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setPosition(null);
         setResult(null);
@@ -95,11 +111,19 @@ export function ContextMenu({ onClose }: ContextMenuProps) {
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
   }, [onClose]);
+
+  const requestRef = useRef<number>(0);
 
   const handleAction = async (action: ActionType) => {
     if (!selectedText) return;
+
+    const currentRequest = ++requestRef.current;
 
     setLoading(true);
     try {
@@ -107,6 +131,9 @@ export function ContextMenu({ onClose }: ContextMenuProps) {
         text: selectedText,
         action,
       });
+
+      // If a new request was made or the menu was closed, ignore this stale response
+      if (currentRequest !== requestRef.current) return;
 
       if (action === 'quiz') {
         try {
@@ -135,10 +162,13 @@ export function ContextMenu({ onClose }: ContextMenuProps) {
         setResult({ type: action, content: '' }); // Content handled by quizData
       }
     } catch (error) {
+      if (currentRequest !== requestRef.current) return;
       console.error('Context action failed', error);
       // Optionally show error toast
     } finally {
-      setLoading(false);
+      if (currentRequest === requestRef.current) {
+        setLoading(false);
+      }
     }
   };
 

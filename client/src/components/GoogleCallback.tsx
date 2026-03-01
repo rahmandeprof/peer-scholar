@@ -2,11 +2,12 @@ import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { BorderSpinner } from './Skeleton';
+import api from '../lib/api';
 
 export function GoogleCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { refreshUser } = useAuth();
+  const { refreshUser, login } = useAuth();
 
   const processed = useRef(false);
 
@@ -17,22 +18,24 @@ export function GoogleCallback() {
     const loginSignal = searchParams.get('login');
 
     if (loginSignal === 'success') {
-      // Backend set the cookie, now we just need to verify it and fetch user data
-      refreshUser()
-        .then(() => {
-          // Check if we actually got a user back (implies cookie was valid)
-          // refined flow: refreshUser sets user state. We can check auth state or just proceed.
-          // Since refreshUser is void, we'll assume if it didn't throw/log error we might be good, 
-          // but better to check if user state updates. 
-          // Actually, refreshUser in AuthContext swallows errors. 
-          // We can try a direct call to be sure or just navigate to dashboard and let AuthContext handle 401s.
+      // Fetch the token and user data from the new session endpoint
+      api
+        .get('/auth/session')
+        .then((res) => {
+          const { access_token, user } = res.data;
+
+          if (access_token && user) {
+            login(access_token, user);
+          } else {
+            throw new Error('Missing token or user data in session response');
+          }
 
           const redirect = localStorage.getItem('login_redirect');
           if (redirect) {
             localStorage.removeItem('login_redirect');
             navigate(redirect, { replace: true });
           } else {
-            navigate('/dashboard', { replace: true });
+            // Replaced manual navigation with login()'s internal replaceState
           }
         })
         .catch((err) => {

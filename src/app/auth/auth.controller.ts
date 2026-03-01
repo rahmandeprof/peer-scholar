@@ -88,6 +88,17 @@ export class AuthController {
     return req.user;
   }
 
+  @UseGuards(AuthGuard('jwt'))
+  @Get('session')
+  getSession(@Req() req: Request) {
+    // Explicitly expose the token from the HttpOnly cookie back to the
+    // frontend so it can be saved in localStorage to match the existing architecture.
+    return {
+      access_token: req.cookies?.Authentication,
+      user: req.user,
+    };
+  }
+
   @Get('google')
   @UseGuards(AuthGuard('google'))
   // eslint-disable-next-line @typescript-eslint/no-empty-function
