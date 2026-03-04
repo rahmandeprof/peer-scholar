@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Sparkles,
   Brain,
@@ -33,9 +34,7 @@ interface SelectionData {
 }
 
 interface SelectionToolbarProps {
-  /** Called when user taps "Add Note" — parent should open note modal */
   onAddNote?: (selection: SelectionData) => void;
-  /** Called when user taps "Tag PQ" — parent should open PQ modal */
   onTagPq?: (selection: SelectionData) => void;
 }
 
@@ -45,9 +44,7 @@ export function SelectionToolbar({
   onAddNote,
   onTagPq,
 }: SelectionToolbarProps) {
-  const [position, setPosition] = useState<{ x: number; y: number } | null>(
-    null,
-  );
+  const [isOpen, setIsOpen] = useState(false);
   const [selectedText, setSelectedText] = useState('');
   const [selectionData, setSelectionData] = useState<SelectionData | null>(
     null,
@@ -70,9 +67,7 @@ export function SelectionToolbar({
     showExplanation: false,
   });
 
-  const menuRef = useRef<HTMLDivElement>(null);
   const requestRef = useRef<number>(0);
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   /* ── Selection detection ── */
   useEffect(() => {
@@ -81,14 +76,12 @@ export function SelectionToolbar({
     const handleSelectionChange = () => {
       clearTimeout(debounceId);
 
-      // Longer delay on mobile to let native handles settle
-      const delay = isMobile ? 350 : 100;
-
       debounceId = setTimeout(() => {
         const selection = window.getSelection();
         if (!selection || selection.isCollapsed) {
-          if (!result) {
-            setPosition(null);
+          // Don't auto-close if we're showing results
+          if (!result && !loading) {
+            setIsOpen(false);
             setSelectionData(null);
           }
           return;
@@ -97,19 +90,16 @@ export function SelectionToolbar({
         const text = selection.toString().trim();
         if (!text || text.length < 3) return;
 
-        // If selection text changed, clear old result
-        setSelectedText((prev) => {
-          if (prev !== text) {
-            setResult(null);
-            setQuizData(null);
-          }
-          return text;
-        });
+        // If new text selected, clear old result
+        if (text !== selectedText) {
+          setResult(null);
+          setQuizData(null);
+        }
+        setSelectedText(text);
 
         const range = selection.getRangeAt(0);
         const rect = range.getBoundingClientRect();
 
-        // Context extraction for annotations
         const contextBefore =
           range.startContainer.textContent?.substring(
             Math.max(0, range.startOffset - 50),
@@ -125,18 +115,14 @@ export function SelectionToolbar({
           ) || '';
 
         setSelectionData({ text, rect, contextBefore, contextAfter });
+        setIsOpen(true);
 
-        // Desktop: position above selection
-        setPosition({
-          x: rect.left + rect.width / 2,
-          y: rect.top - 10 + window.scrollY,
-        });
-      }, delay);
+        // Dismiss the three-dots menu when selection toolbar opens
+        window.dispatchEvent(new CustomEvent('dismiss-material-menu'));
+      }, 350);
     };
 
-    // selectionchange fires reliably on both mobile and desktop
     document.addEventListener('selectionchange', handleSelectionChange);
-    // Also listen for mouseup/touchend as backup triggers
     document.addEventListener('mouseup', handleSelectionChange);
     document.addEventListener('touchend', handleSelectionChange);
 
@@ -146,26 +132,22 @@ export function SelectionToolbar({
       document.removeEventListener('mouseup', handleSelectionChange);
       document.removeEventListener('touchend', handleSelectionChange);
     };
-  }, [result, isMobile]);
+  }, [result, loading, selectedText]);
 
-  /* ── Close on outside click (desktop only, mobile uses explicit close) ── */
+  /* ── Listen for dismiss event from three-dots menu ── */
   useEffect(() => {
-    if (isMobile) return; // Don't auto-close on mobile — native selection handles fire touch events
-
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        dismissMenu();
-      }
+    const handleDismiss = () => {
+      dismissMenu();
     };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isMobile]);
+    window.addEventListener('dismiss-selection-toolbar', handleDismiss);
+    return () =>
+      window.removeEventListener('dismiss-selection-toolbar', handleDismiss);
+  }, []);
 
   /* ── Handlers ── */
 
   const dismissMenu = useCallback(() => {
-    setPosition(null);
+    setIsOpen(false);
     setResult(null);
     setQuizData(null);
     setSelectionData(null);
@@ -198,8 +180,7 @@ export function SelectionToolbar({
             showExplanation: false,
           });
           setResult({ type: action, content: '' });
-        } catch (e) {
-          console.error('Failed to parse quiz', e);
+        } catch {
           setResult({
             type: action,
             content:
@@ -245,13 +226,11 @@ export function SelectionToolbar({
     }
   };
 
-  if (!position && !selectionData) return null;
-  // On mobile, show if we have selection data (position is only used for desktop)
-  if (!isMobile && !position) return null;
+  if (!isOpen) return null;
 
-  /* ───────── Result / Quiz panel ───────── */
+  /* ───────── Result / Quiz Panel ───────── */
   const resultPanel = result ? (
-    <div className='w-full p-4 pb-8 md:pb-4'>
+    <div className='p-4 pb-6'>
       <div className='flex justify-between items-start mb-2'>
         <h3 className='font-semibold text-gray-900 dark:text-white flex items-center capitalize'>
           {result.type === 'simplify' && (
@@ -270,14 +249,14 @@ export function SelectionToolbar({
         </h3>
         <button
           onClick={dismissMenu}
-          className='text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2'
+          className='text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1'
         >
           <X className='w-5 h-5' />
         </button>
       </div>
 
       {result.type === 'quiz' && quizData ? (
-        <div className='animate-in fade-in slide-in-from-bottom-2 duration-300 max-h-[60vh] overflow-y-auto'>
+        <div className='animate-in fade-in slide-in-from-bottom-2 duration-300 max-h-[50vh] overflow-y-auto'>
           <div className='mb-3'>
             <span className='text-xs font-medium text-gray-500 uppercase tracking-wider'>
               Question {quizState.currentQuestion + 1} of {quizData.length}
@@ -294,8 +273,7 @@ export function SelectionToolbar({
                 option === quizData[quizState.currentQuestion].correctAnswer;
 
               let btnClass =
-                'w-full text-left text-sm p-3 md:p-2 rounded-md border transition-colors ';
-
+                'w-full text-left text-sm p-3 rounded-lg border transition-colors ';
               if (quizState.selectedOption) {
                 if (isSelected) {
                   btnClass += quizState.isCorrect
@@ -336,7 +314,7 @@ export function SelectionToolbar({
           </div>
 
           {quizState.showExplanation && (
-            <div className='mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md text-xs text-blue-700 dark:text-blue-300 flex items-start'>
+            <div className='mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-xs text-blue-700 dark:text-blue-300 flex items-start'>
               <AlertCircle className='w-3 h-3 mr-1.5 mt-0.5 flex-shrink-0' />
               {quizData[quizState.currentQuestion].explanation}
             </div>
@@ -345,7 +323,7 @@ export function SelectionToolbar({
           {quizState.selectedOption && (
             <button
               onClick={nextQuestion}
-              className='w-full py-3 md:py-1.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-medium rounded-md hover:opacity-90 transition-opacity'
+              className='w-full py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-medium rounded-lg hover:opacity-90 transition-opacity'
             >
               {quizState.currentQuestion < quizData.length - 1
                 ? 'Next Question'
@@ -361,131 +339,110 @@ export function SelectionToolbar({
     </div>
   ) : null;
 
-  /* ───────── Action buttons ───────── */
+  /* ───────── Action Buttons (3x2 grid) ───────── */
   const actionButtons = (
-    <>
-      {/* Annotation actions */}
-      {(onAddNote || onTagPq) && (
-        <>
-          <div className='flex flex-row p-2 md:p-1 space-x-1'>
-            {onAddNote && selectionData && (
-              <button
-                onClick={() => onAddNote(selectionData)}
-                disabled={loading}
-                className='flex items-center justify-center md:justify-start px-3 py-3 md:py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors flex-1 md:flex-none'
-              >
-                <PenLine className='w-4 h-4 mr-2 text-blue-500' />
-                Add Note
-              </button>
-            )}
-            {onTagPq && selectionData && (
-              <button
-                onClick={() => onTagPq(selectionData)}
-                disabled={loading}
-                className='flex items-center justify-center md:justify-start px-3 py-3 md:py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors flex-1 md:flex-none'
-              >
-                <Tag className='w-4 h-4 mr-2 text-yellow-500' />
-                Tag PQ
-              </button>
-            )}
-          </div>
-          <div className='border-t border-gray-200 dark:border-gray-700 mx-2' />
-        </>
+    <div className='p-3'>
+      {/* Selected text preview */}
+      {selectedText && (
+        <div className='mb-3 px-1'>
+          <p className='text-xs text-gray-500 dark:text-gray-400 italic line-clamp-1'>
+            &ldquo;{selectedText}&rdquo;
+          </p>
+        </div>
       )}
 
-      {/* AI actions */}
-      <div className='grid grid-cols-2 md:flex md:flex-row p-2 md:p-1 gap-1 md:gap-0 md:space-x-1'>
+      <div className='grid grid-cols-3 gap-2'>
+        {onAddNote && selectionData && (
+          <button
+            onClick={() => onAddNote(selectionData)}
+            disabled={loading}
+            className='flex flex-col items-center justify-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400 text-xs font-medium min-h-[64px] active:scale-95 transition-transform'
+          >
+            <PenLine className='w-5 h-5 mb-1.5' />
+            Add Note
+          </button>
+        )}
+        {onTagPq && selectionData && (
+          <button
+            onClick={() => onTagPq(selectionData)}
+            disabled={loading}
+            className='flex flex-col items-center justify-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl text-yellow-600 dark:text-yellow-400 text-xs font-medium min-h-[64px] active:scale-95 transition-transform'
+          >
+            <Tag className='w-5 h-5 mb-1.5' />
+            Tag PQ
+          </button>
+        )}
         <button
           onClick={() => handleAction('simplify')}
           disabled={loading}
-          className='flex items-center justify-center md:justify-start px-3 py-3 md:py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors'
+          className='flex flex-col items-center justify-center p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl text-amber-600 dark:text-amber-400 text-xs font-medium min-h-[64px] active:scale-95 transition-transform'
         >
           {loading ? (
             <BorderSpinner size='sm' />
           ) : (
-            <Sparkles className='w-4 h-4 mr-2 text-yellow-500' />
+            <Sparkles className='w-5 h-5 mb-1.5' />
           )}
           Simplify
         </button>
         <button
           onClick={() => handleAction('mnemonic')}
           disabled={loading}
-          className='flex items-center justify-center md:justify-start px-3 py-3 md:py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors'
+          className='flex flex-col items-center justify-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl text-purple-600 dark:text-purple-400 text-xs font-medium min-h-[64px] active:scale-95 transition-transform'
         >
           {loading ? (
             <BorderSpinner size='sm' />
           ) : (
-            <Brain className='w-4 h-4 mr-2 text-purple-500' />
+            <Brain className='w-5 h-5 mb-1.5' />
           )}
           Mnemonic
         </button>
         <button
           onClick={() => handleAction('keywords')}
           disabled={loading}
-          className='flex items-center justify-center md:justify-start px-3 py-3 md:py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors'
+          className='flex flex-col items-center justify-center p-3 bg-sky-50 dark:bg-sky-900/20 rounded-xl text-sky-600 dark:text-sky-400 text-xs font-medium min-h-[64px] active:scale-95 transition-transform'
         >
           {loading ? (
             <BorderSpinner size='sm' />
           ) : (
-            <Key className='w-4 h-4 mr-2 text-blue-500' />
+            <Key className='w-5 h-5 mb-1.5' />
           )}
           Keywords
         </button>
         <button
           onClick={() => handleAction('quiz')}
           disabled={loading}
-          className='flex items-center justify-center md:justify-start px-3 py-3 md:py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors'
+          className='flex flex-col items-center justify-center p-3 bg-green-50 dark:bg-green-900/20 rounded-xl text-green-600 dark:text-green-400 text-xs font-medium min-h-[64px] active:scale-95 transition-transform'
         >
           {loading ? (
             <BorderSpinner size='sm' />
           ) : (
-            <Clipboard className='w-4 h-4 mr-2 text-green-500' />
+            <Clipboard className='w-5 h-5 mb-1.5' />
           )}
           Quiz Me
         </button>
       </div>
-    </>
+    </div>
   );
 
-  /* ───────── Render ───────── */
-  return (
-    <div
-      ref={menuRef}
-      className={`
-        fixed z-50 bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 transition-all duration-200
-        ${
-          isMobile
-            ? 'w-full bottom-0 left-0 right-0 rounded-t-2xl animate-slide-up'
-            : 'rounded-lg'
-        }
-      `}
-      style={
-        !isMobile && position
-          ? {
-              left: position.x,
-              top: position.y,
-              transform: 'translate(-50%, -100%)',
-            }
-          : undefined
-      }
-    >
-      <style>{`
-        @keyframes slideUp {
-          from { transform: translateY(100%); }
-          to { transform: translateY(0); }
-        }
-        .animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
-      `}</style>
+  /* ───────── Render via Portal (bypasses any parent transforms/z-index) ───────── */
+  return createPortal(
+    <>
+      {/* Backdrop */}
+      <div className='fixed inset-0 z-[90] bg-black/20' onClick={dismissMenu} />
 
-      {/* Arrow — desktop only */}
-      {!isMobile && (
-        <div className='absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 rotate-45 w-3 h-3 bg-white dark:bg-gray-800 border-r border-b border-gray-200 dark:border-gray-700' />
-      )}
+      {/* Bottom Sheet */}
+      <div className='fixed bottom-0 left-0 right-0 z-[100] bg-white dark:bg-gray-800 rounded-t-2xl shadow-2xl border-t border-gray-200 dark:border-gray-700 animate-slide-up pb-[env(safe-area-inset-bottom)]'>
+        <style>{`
+          @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+          }
+          .animate-slide-up { animation: slideUp 0.25s ease-out forwards; }
+        `}</style>
 
-      {/* Mobile drag handle + close */}
-      {isMobile && (
-        <div className='w-full flex items-center justify-between px-4 pt-3 pb-1'>
-          <div className='w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full' />
+        {/* Drag handle + close */}
+        <div className='flex items-center justify-between px-4 pt-3 pb-1'>
+          <div className='w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full' />
           <button
             onClick={dismissMenu}
             className='p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors'
@@ -493,21 +450,10 @@ export function SelectionToolbar({
             <X className='w-4 h-4 text-gray-400' />
           </button>
         </div>
-      )}
 
-      {/* Mobile selected text preview */}
-      {isMobile && selectedText && !result && (
-        <div className='px-4 pb-2'>
-          <p className='text-xs text-gray-500 dark:text-gray-400 italic line-clamp-1'>
-            "{selectedText}"
-          </p>
-        </div>
-      )}
-
-      {result ? resultPanel : actionButtons}
-
-      {/* Mobile safe area padding */}
-      {isMobile && <div className='h-4' />}
-    </div>
+        {result ? resultPanel : actionButtons}
+      </div>
+    </>,
+    document.body,
   );
 }
