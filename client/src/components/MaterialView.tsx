@@ -491,7 +491,7 @@ export const MaterialView = () => {
               className='hidden md:flex px-3 py-1.5 bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 rounded-full hover:bg-teal-200 dark:hover:bg-teal-900/50 transition-colors items-center font-medium text-sm'
             >
               <MessageSquare className='w-4 h-4 mr-1.5' />
-              Notes
+              Public Notes
             </button>
 
             <button
@@ -638,7 +638,7 @@ export const MaterialView = () => {
                         className='flex flex-col items-center justify-center p-3 bg-teal-50 dark:bg-teal-900/20 rounded-xl text-teal-600 dark:text-teal-400 text-xs font-medium min-h-[64px] active:scale-95 transition-transform'
                       >
                         <MessageSquare className='w-5 h-5 mb-1.5' />
-                        Notes
+                        Public Notes
                       </button>
                       <button
                         onClick={() => {

@@ -13,7 +13,7 @@ export function Jotter({ materialId, isOpen, onClose }: JotterProps) {
   const [content, setContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const nodeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -49,21 +49,6 @@ export function Jotter({ materialId, isOpen, onClose }: JotterProps) {
     if (content && materialId) {
       localStorage.setItem(`jotter_${materialId}`, content);
     }
-  }, [content, materialId]);
-
-  // Auto-save to Backend (Debounce 5s)
-  useEffect(() => {
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-
-    if (content && materialId) {
-      saveTimeoutRef.current = setTimeout(() => {
-        saveNote();
-      }, 5000);
-    }
-
-    return () => {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    };
   }, [content, materialId]);
 
   const saveNote = async () => {
