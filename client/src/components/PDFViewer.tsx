@@ -209,8 +209,8 @@ export function PDFViewer({
   return (
     <div className='flex flex-col h-full bg-gray-100 dark:bg-gray-900'>
       {/* Toolbar */}
-      <div className='flex items-center justify-between px-2 py-1 md:px-4 md:py-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm z-10'>
-        <div className='flex items-center space-x-2'>
+      <div className='flex items-center justify-between px-2 py-1 md:px-4 md:py-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm z-10 gap-x-2 overflow-x-auto no-scrollbar'>
+        <div className='flex items-center space-x-1 shrink-0'>
           <button
             onClick={() => setPageNumber((prev) => Math.max(prev - 1, 1))}
             disabled={pageNumber <= 1}
@@ -274,7 +274,7 @@ export function PDFViewer({
           </button>
         </div>
 
-        <div className='hidden md:flex items-center space-x-2'>
+        <div className='flex items-center space-x-1 shrink-0 ml-auto pl-2 border-l border-gray-200 dark:border-gray-700'>
           <button
             onClick={() => setScale((prev) => Math.max(prev - 0.1, 0.5))}
             className='p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -306,10 +306,10 @@ export function PDFViewer({
       {numPages > 0 && (
         <div className='relative h-1.5 bg-gray-200 dark:bg-gray-700'>
           <div
-            className='absolute h-full bg-gradient-to-r from-primary-500 to-primary-600 transition-all duration-300 ease-out'
+            className='absolute h-full bg-gradient-to-r from-primary-500 to-primary-600 transition-all duration-300 ease-out z-10'
             style={{ width: `${(pageNumber / numPages) * 100}%` }}
           />
-          <div className='absolute right-2 -top-5 text-xs text-gray-500 dark:text-gray-400 font-medium hidden md:block'>
+          <div className='absolute right-2 -top-6 text-xs text-gray-500 dark:text-gray-400 font-medium z-10 bg-white/80 dark:bg-gray-800/80 px-1 rounded backdrop-blur-sm'>
             {Math.round((pageNumber / numPages) * 100)}% read
           </div>
         </div>
