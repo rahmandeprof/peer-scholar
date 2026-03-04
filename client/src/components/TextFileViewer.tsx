@@ -55,7 +55,10 @@ export function TextFileViewer({
       const rangeKey = `${highlightRange.start}-${highlightRange.end}`;
       // Only scroll if this is a different range than before
       if (rangeKey !== lastScrolledRangeRef.current) {
-        highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        highlightRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
         lastScrolledRangeRef.current = rangeKey;
       }
     }
@@ -99,7 +102,7 @@ export function TextFileViewer({
         {before}
         <span
           ref={highlightRef}
-          className="bg-yellow-200 dark:bg-yellow-700/80 text-gray-900 dark:text-white px-0.5 rounded transition-colors duration-150"
+          className='bg-yellow-200 dark:bg-yellow-700/80 text-gray-900 dark:text-white px-0.5 rounded transition-colors duration-150'
         >
           {highlighted}
         </span>
@@ -156,11 +159,11 @@ export function TextFileViewer({
   }
 
   return (
-    <div className='h-full overflow-auto p-8 bg-white dark:bg-gray-900'>
+    <div className='h-full overflow-auto p-8 bg-white dark:bg-gray-900 select-none'>
       {materialId ? (
         <AnnotationManager materialId={materialId}>
           <pre
-            className='whitespace-pre-wrap text-gray-800 dark:text-gray-200 transition-all duration-300'
+            className='whitespace-pre-wrap text-gray-800 dark:text-gray-200 transition-all duration-300 select-text'
             style={{
               fontFamily: 'var(--reader-font-family)',
               fontSize: 'var(--reader-font-size)',
@@ -172,7 +175,7 @@ export function TextFileViewer({
         </AnnotationManager>
       ) : (
         <pre
-          className='whitespace-pre-wrap text-gray-800 dark:text-gray-200 transition-all duration-300'
+          className='whitespace-pre-wrap text-gray-800 dark:text-gray-200 transition-all duration-300 select-text'
           style={{
             fontFamily: 'var(--reader-font-family)',
             fontSize: 'var(--reader-font-size)',
@@ -185,4 +188,3 @@ export function TextFileViewer({
     </div>
   );
 }
-

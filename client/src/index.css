@@ -8,6 +8,7 @@
   html,
   body {
     @apply overflow-x-hidden;
+    overscroll-behavior-y: none;
   }
 
   body {
@@ -36,6 +37,11 @@
   button,
   a {
     touch-action: manipulation;
+  }
+
+  /* Fix for PDF Text Layer oversliding selection */
+  .react-pdf__Page__textContent {
+    @apply select-text !important;
   }
 }
 

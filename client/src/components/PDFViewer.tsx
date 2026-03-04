@@ -317,7 +317,7 @@ export function PDFViewer({
 
       {/* Document - with swipe gesture support */}
       <div
-        className='flex-1 overflow-auto flex justify-center p-4'
+        className='flex-1 overflow-auto flex justify-center p-4 select-none'
         ref={containerRef}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
