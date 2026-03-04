@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useToast } from '../contexts/ToastContext';
 import api from '../lib/api';
 import { X, Check, Tag, MessageSquare, PenLine } from 'lucide-react';
+import { SelectionToolbar } from './SelectionToolbar';
 
 interface Annotation {
   id: string;
@@ -30,14 +31,14 @@ export function AnnotationManager({
   children,
 }: AnnotationManagerProps) {
   const toast = useToast();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [annotations, setAnnotations] = useState<Annotation[]>([]);
+
   const [selection, setSelection] = useState<{
     text: string;
     rect: DOMRect;
     contextBefore: string;
     contextAfter: string;
   } | null>(null);
+  const [annotations, setAnnotations] = useState<Annotation[]>([]);
 
   // Modal states
   const [showPqModal, setShowPqModal] = useState(false);
@@ -63,45 +64,36 @@ export function AnnotationManager({
     }
   };
 
-  const handleMouseUp = () => {
-    setTimeout(() => {
-      const windowSelection = window.getSelection();
-      if (!windowSelection || windowSelection.isCollapsed) {
-        setSelection(null);
-        return;
-      }
-
-      const text = windowSelection.toString().trim();
-      if (!text || text.length < 3) return; // Minimum 3 characters
-
-      const range = windowSelection.getRangeAt(0);
-      const rect = range.getBoundingClientRect();
-
-      // Context extraction (simple approximation)
-      const contextBefore =
-        range.startContainer.textContent?.substring(
-          Math.max(0, range.startOffset - 50),
-          range.startOffset,
-        ) || '';
-      const contextAfter =
-        range.endContainer.textContent?.substring(
-          range.endOffset,
-          Math.min(range.endContainer.textContent.length, range.endOffset + 50),
-        ) || '';
-
-      setSelection({
-        text,
-        rect,
-        contextBefore,
-        contextAfter,
-      });
-    }, 100);
-  };
-
   const resetSelection = () => {
     setSelection(null);
     window.getSelection()?.removeAllRanges();
   };
+
+  const handleAddNote = useCallback(
+    (sel: {
+      text: string;
+      rect: DOMRect;
+      contextBefore: string;
+      contextAfter: string;
+    }) => {
+      setSelection(sel);
+      setShowNoteModal(true);
+    },
+    [],
+  );
+
+  const handleTagPq = useCallback(
+    (sel: {
+      text: string;
+      rect: DOMRect;
+      contextBefore: string;
+      contextAfter: string;
+    }) => {
+      setSelection(sel);
+      setShowPqModal(true);
+    },
+    [],
+  );
 
   const handleSavePq = async () => {
     if (!selection || !year) return;
@@ -159,12 +151,7 @@ export function AnnotationManager({
   const pqs = visibleAnnotations.filter((a) => a.type === 'pq');
 
   return (
-    <div
-      ref={containerRef}
-      onMouseUp={handleMouseUp}
-      onTouchEnd={handleMouseUp}
-      className='relative'
-    >
+    <div className='relative'>
       {children}
 
       {/* Annotations Panel */}
@@ -236,43 +223,9 @@ export function AnnotationManager({
         </div>
       )}
 
-      {/* Floating Tooltip with dual options */}
-      {selection && !showPqModal && !showNoteModal && (
-        <div
-          className='fixed z-50 bg-gray-900 text-white px-2 py-2 rounded-lg shadow-xl flex items-center space-x-1 animate-in fade-in zoom-in duration-200'
-          style={{
-            top: Math.max(10, selection.rect.top - 45),
-            left: Math.max(
-              10,
-              selection.rect.left + selection.rect.width / 2 - 80,
-            ),
-          }}
-        >
-          <button
-            onClick={() => setShowNoteModal(true)}
-            className='flex items-center text-xs font-medium px-2 py-1 rounded hover:bg-gray-800 transition-colors'
-            title='Add a note explaining this text'
-          >
-            <PenLine className='w-3.5 h-3.5 mr-1' />
-            Add Note
-          </button>
-          <div className='w-px h-4 bg-gray-700'></div>
-          <button
-            onClick={() => setShowPqModal(true)}
-            className='flex items-center text-xs font-medium px-2 py-1 rounded hover:bg-gray-800 transition-colors'
-            title='Tag as past question'
-          >
-            <Tag className='w-3.5 h-3.5 mr-1' />
-            Tag PQ
-          </button>
-          <div className='w-px h-4 bg-gray-700'></div>
-          <button
-            onClick={resetSelection}
-            className='text-gray-400 hover:text-white p-1'
-          >
-            <X className='w-3.5 h-3.5' />
-          </button>
-        </div>
+      {/* Unified Selection Toolbar (AI actions + annotations) */}
+      {!showPqModal && !showNoteModal && (
+        <SelectionToolbar onAddNote={handleAddNote} onTagPq={handleTagPq} />
       )}
 
       {/* Note Modal */}

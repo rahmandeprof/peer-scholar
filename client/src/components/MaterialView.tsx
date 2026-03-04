@@ -24,7 +24,6 @@ import { addToViewingHistory } from '../lib/viewingHistory';
 import { useTheme } from '../contexts/ThemeContext';
 import { TextFileViewer } from './TextFileViewer';
 import { PDFViewer } from './PDFViewer';
-import { ContextMenu } from './ContextMenu';
 import { CompactTimer as StudyTimer } from './CompactTimer';
 import { TextSettings } from './TextSettings';
 import { SessionEndModal } from './SessionEndModal';
@@ -36,6 +35,7 @@ import { useToast } from '../contexts/ToastContext';
 import { FeatureSpotlightModal } from './FeatureSpotlightModal';
 import { ReportModal } from './ReportModal';
 import { CollectionModal } from './CollectionModal';
+import { useAutoHideHeader } from '../hooks/useAutoHideHeader';
 import { SaveOfflineButton } from './SaveOfflineButton';
 import {
   saveMaterialOffline,
@@ -105,6 +105,7 @@ export const MaterialView = () => {
 
   const [userRating, setUserRating] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const { headerVisible, scrollRef, showHeader } = useAutoHideHeader();
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
   const [publicNotesOpen, setPublicNotesOpen] = useState(false);
   const [helpfulLinksOpen, setHelpfulLinksOpen] = useState(false);
@@ -400,7 +401,12 @@ export const MaterialView = () => {
     <ReaderSettingsProvider>
       <div className='flex flex-col h-full bg-white dark:bg-gray-900 overflow-hidden relative'>
         {/* Header */}
-        <div className='absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm gap-4'>
+        <div
+          className='absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm gap-4 transition-transform duration-300 ease-in-out'
+          style={{
+            transform: headerVisible ? 'translateY(0)' : 'translateY(-100%)',
+          }}
+        >
           {/* Left: Back + Title */}
           <div className='flex items-center space-x-3 flex-1 min-w-0'>
             <button
@@ -510,7 +516,10 @@ export const MaterialView = () => {
             {/* Dropdown Menu */}
             <div className='relative'>
               <button
-                onClick={() => setMenuOpen(!menuOpen)}
+                onClick={() => {
+                  setMenuOpen(!menuOpen);
+                  if (!menuOpen) showHeader();
+                }}
                 className={`p-2 rounded-full transition-colors ${menuOpen ? 'bg-gray-100 dark:bg-gray-700' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`}
               >
                 <MoreVertical className='w-5 h-5 text-gray-600 dark:text-gray-300' />
@@ -847,7 +856,11 @@ export const MaterialView = () => {
         </div>
 
         {/* Main Content Area (Flex Row) */}
-        <div className='flex-1 flex overflow-hidden relative pt-[60px]'>
+        <div
+          ref={scrollRef}
+          className='flex-1 flex overflow-hidden relative transition-[padding-top] duration-300 ease-in-out'
+          style={{ paddingTop: headerVisible ? 60 : 0 }}
+        >
           {/* Content Viewer */}
           <div className='flex-1 bg-gray-100 dark:bg-gray-900 overflow-hidden relative flex flex-col'>
             {material.status === 'failed' ? (
@@ -914,7 +927,6 @@ export const MaterialView = () => {
                 </div>
               </div>
             )}
-            <ContextMenu />
           </div>
 
           {/* Right Side: AI Sidebar */}

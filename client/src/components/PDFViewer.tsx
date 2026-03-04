@@ -209,7 +209,7 @@ export function PDFViewer({
   return (
     <div className='flex flex-col h-full bg-gray-100 dark:bg-gray-900'>
       {/* Toolbar */}
-      <div className='flex items-center justify-between px-4 py-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm z-10'>
+      <div className='flex items-center justify-between px-2 py-1 md:px-4 md:py-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm z-10'>
         <div className='flex items-center space-x-2'>
           <button
             onClick={() => setPageNumber((prev) => Math.max(prev - 1, 1))}
@@ -274,7 +274,7 @@ export function PDFViewer({
           </button>
         </div>
 
-        <div className='flex items-center space-x-2'>
+        <div className='hidden md:flex items-center space-x-2'>
           <button
             onClick={() => setScale((prev) => Math.max(prev - 0.1, 0.5))}
             className='p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -309,7 +309,7 @@ export function PDFViewer({
             className='absolute h-full bg-gradient-to-r from-primary-500 to-primary-600 transition-all duration-300 ease-out'
             style={{ width: `${(pageNumber / numPages) * 100}%` }}
           />
-          <div className='absolute right-2 -top-5 text-xs text-gray-500 dark:text-gray-400 font-medium'>
+          <div className='absolute right-2 -top-5 text-xs text-gray-500 dark:text-gray-400 font-medium hidden md:block'>
             {Math.round((pageNumber / numPages) * 100)}% read
           </div>
         </div>
