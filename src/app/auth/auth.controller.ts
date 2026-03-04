@@ -88,17 +88,6 @@ export class AuthController {
     return req.user;
   }
 
-  @UseGuards(AuthGuard('jwt'))
-  @Get('session')
-  getSession(@Req() req: Request) {
-    // Explicitly expose the token from the HttpOnly cookie back to the
-    // frontend so it can be saved in localStorage to match the existing architecture.
-    return {
-      access_token: req.cookies?.Authentication,
-      user: req.user,
-    };
-  }
-
   @Get('google')
   @UseGuards(AuthGuard('google'))
   // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -119,25 +108,13 @@ export class AuthController {
       return;
     }
 
-    // Set HTTP-only cookie
-    res.cookie('Authentication', data.access_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // true in prod
-      sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'lax', // Lax permits redirect navigation
-      domain:
-        process.env.NODE_ENV === 'production'
-          ? '.peertoscholar.com'
-          : undefined, // Adjust domain as needed
-      path: '/',
-      maxAge: 24 * 60 * 60 * 1000, // 1 day matches typical JWT expiry
-    });
+    // Pass token and user data directly in the redirect URL
+    // This is necessary because frontend and backend are on different domains,
+    // so HttpOnly cookies set here won't be sent back by the browser.
+    const userData = encodeURIComponent(JSON.stringify(data.user));
 
-    // Pass user object for immediate UI update (optional, but convenient)
-    // Non-sensitive user data can still go in URL or be fetched by frontend immediately
-    // Ideally we fetch from /auth/me, but keeping user params for now to match frontend expectation partially
-    // BUT fixing the security flaw means NO TOKEN in URL.
-
-    // We will redirect to a clean callback that will trigger a /profile fetch
-    res.redirect(`${clientUrl}/auth/callback?login=success`);
+    res.redirect(
+      `${clientUrl}/auth/callback?token=${data.access_token}&user=${userData}`,
+    );
   }
 }

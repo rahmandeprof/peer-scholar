@@ -2,12 +2,11 @@ import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { BorderSpinner } from './Skeleton';
-import api from '../lib/api';
 
 export function GoogleCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { refreshUser, login } = useAuth();
+  const { login } = useAuth();
 
   const processed = useRef(false);
 
@@ -15,33 +14,24 @@ export function GoogleCallback() {
     if (processed.current) return;
     processed.current = true;
 
-    const loginSignal = searchParams.get('login');
+    const token = searchParams.get('token');
+    const userParam = searchParams.get('user');
 
-    if (loginSignal === 'success') {
-      // Fetch the token and user data from the new session endpoint
-      api
-        .get('/auth/session')
-        .then((res) => {
-          const { access_token, user } = res.data;
+    if (token && userParam) {
+      try {
+        const user = JSON.parse(decodeURIComponent(userParam));
+        login(token, user);
 
-          if (access_token && user) {
-            login(access_token, user);
-          } else {
-            throw new Error('Missing token or user data in session response');
-          }
-
-          const redirect = localStorage.getItem('login_redirect');
-          if (redirect) {
-            localStorage.removeItem('login_redirect');
-            navigate(redirect, { replace: true });
-          } else {
-            // Replaced manual navigation with login()'s internal replaceState
-          }
-        })
-        .catch((err) => {
-          console.error('Failed to init session after google login', err);
-          navigate('/?error=auth_failed', { replace: true });
-        });
+        // Handle redirect
+        const redirect = localStorage.getItem('login_redirect');
+        if (redirect) {
+          localStorage.removeItem('login_redirect');
+          navigate(redirect, { replace: true });
+        }
+      } catch (err) {
+        console.error('Failed to parse auth callback data', err);
+        navigate('/?error=auth_failed', { replace: true });
+      }
     } else {
       // Legacy or error
       const error = searchParams.get('error');
@@ -51,7 +41,7 @@ export function GoogleCallback() {
         navigate('/?error=unknown', { replace: true });
       }
     }
-  }, [searchParams, refreshUser, navigate]);
+  }, [searchParams, login, navigate]);
 
   return (
     <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950'>
