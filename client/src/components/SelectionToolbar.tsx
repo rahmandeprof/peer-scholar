@@ -73,19 +73,18 @@ export function SelectionToolbar({
   useEffect(() => {
     let debounceId: ReturnType<typeof setTimeout>;
 
-    const handleSelectionChange = () => {
+    /**
+     * Read the current selection and show the toolbar.
+     * Only called on mouseup / touchend — never during drag.
+     */
+    const handlePointerUp = () => {
       clearTimeout(debounceId);
 
+      // Delay slightly to let the browser finalize the selection range
+      // (especially important on mobile where touchend can fire early)
       debounceId = setTimeout(() => {
         const selection = window.getSelection();
-        if (!selection || selection.isCollapsed) {
-          // Don't auto-close if we're showing results
-          if (!result && !loading) {
-            setIsOpen(false);
-            setSelectionData(null);
-          }
-          return;
-        }
+        if (!selection || selection.isCollapsed) return;
 
         const text = selection.toString().trim();
         if (!text || text.length < 3) return;
@@ -119,18 +118,32 @@ export function SelectionToolbar({
 
         // Dismiss the three-dots menu when selection toolbar opens
         window.dispatchEvent(new CustomEvent('dismiss-material-menu'));
-      }, 350);
+      }, 200);
     };
 
-    document.addEventListener('selectionchange', handleSelectionChange);
-    document.addEventListener('mouseup', handleSelectionChange);
-    document.addEventListener('touchend', handleSelectionChange);
+    /**
+     * Only used for dismissal: if the user clicks elsewhere and the
+     * selection collapses, close the toolbar (unless showing results).
+     */
+    const handleSelectionClear = () => {
+      const selection = window.getSelection();
+      if (!selection || selection.isCollapsed) {
+        if (!result && !loading) {
+          setIsOpen(false);
+          setSelectionData(null);
+        }
+      }
+    };
+
+    document.addEventListener('mouseup', handlePointerUp);
+    document.addEventListener('touchend', handlePointerUp);
+    document.addEventListener('selectionchange', handleSelectionClear);
 
     return () => {
       clearTimeout(debounceId);
-      document.removeEventListener('selectionchange', handleSelectionChange);
-      document.removeEventListener('mouseup', handleSelectionChange);
-      document.removeEventListener('touchend', handleSelectionChange);
+      document.removeEventListener('mouseup', handlePointerUp);
+      document.removeEventListener('touchend', handlePointerUp);
+      document.removeEventListener('selectionchange', handleSelectionClear);
     };
   }, [result, loading, selectedText]);
 
