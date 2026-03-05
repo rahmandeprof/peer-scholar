@@ -124,7 +124,7 @@ export function Jotter({ materialId, isOpen, onClose }: JotterProps) {
 
   if (isMobile) {
     return (
-      <div className='fixed bottom-0 left-0 right-0 h-[40vh] z-[60] animate-slide-up'>
+      <div className='fixed bottom-16 left-0 right-0 h-[40vh] z-[60] animate-slide-up pb-[env(safe-area-inset-bottom)]'>
         {contentElement}
       </div>
     );
