@@ -436,7 +436,7 @@ export function SelectionToolbar({
         </div>
       )}
 
-      <div className='grid grid-cols-3 gap-2'>
+      <div className='grid grid-cols-2 gap-2'>
         {onAddNote && selectionData && (
           <button
             onClick={() => onAddNote(selectionData)}
@@ -539,7 +539,7 @@ export function SelectionToolbar({
         </div>
       )}
 
-      {/* Full Bottom Sheet (Stage 2) */}
+      {/* Full Actions Sidebar (Stage 2) */}
       {isOpen && (
         <>
           {/* Backdrop */}
@@ -548,23 +548,25 @@ export function SelectionToolbar({
             onClick={dismissMenu}
           />
 
-          {/* Bottom Sheet - stop mouseup/touchend from reaching document listener */}
+          {/* Right Sidebar - stop mouseup/touchend from reaching document listener */}
           <div
-            className='fixed bottom-0 left-0 right-0 z-[100] bg-white dark:bg-gray-800 rounded-t-2xl shadow-2xl border-t border-gray-200 dark:border-gray-700 animate-slide-up pb-[env(safe-area-inset-bottom)]'
+            className='fixed top-0 bottom-0 right-0 w-72 max-w-[85vw] z-[100] bg-white dark:bg-gray-800 shadow-2xl border-l border-gray-200 dark:border-gray-700 animate-slide-left pb-[env(safe-area-inset-bottom)] flex flex-col'
             onMouseUp={(e) => e.stopPropagation()}
             onTouchEnd={(e) => e.stopPropagation()}
           >
             <style>{`
-              @keyframes slideUp {
-                from { transform: translateY(100%); }
-                to { transform: translateY(0); }
+              @keyframes slideLeft {
+                from { transform: translateX(100%); }
+                to { transform: translateX(0); }
               }
-              .animate-slide-up { animation: slideUp 0.25s ease-out forwards; }
+              .animate-slide-left { animation: slideLeft 0.25s ease-out forwards; }
             `}</style>
 
-            {/* Drag handle + close */}
-            <div className='flex items-center justify-between px-4 pt-3 pb-1'>
-              <div className='w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full' />
+            {/* Header + close */}
+            <div className='flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700'>
+              <span className='font-semibold text-gray-900 dark:text-white text-sm'>
+                Actions
+              </span>
               <button
                 onClick={dismissMenu}
                 className='p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors'
@@ -573,7 +575,9 @@ export function SelectionToolbar({
               </button>
             </div>
 
-            {result ? resultPanel : actionButtons}
+            <div className='flex-1 overflow-y-auto no-scrollbar'>
+              {result ? resultPanel : actionButtons}
+            </div>
           </div>
         </>
       )}
