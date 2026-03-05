@@ -159,7 +159,7 @@ export function TextFileViewer({
   }
 
   return (
-    <div className='h-full overflow-auto p-8 bg-white dark:bg-gray-900 select-none'>
+    <div className='h-full overflow-auto p-8 bg-white dark:bg-gray-900'>
       {materialId ? (
         <AnnotationManager materialId={materialId}>
           <pre
