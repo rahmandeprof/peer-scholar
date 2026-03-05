@@ -54,12 +54,7 @@ export function AnnotationManager({
 
   // Ref for public note highlights
   const contentRef = useRef<HTMLDivElement>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { refetchHighlights } = usePublicNoteHighlights(
-    contentRef,
-    materialId,
-    pageNumber,
-  );
+  usePublicNoteHighlights(contentRef, materialId, pageNumber);
 
   useEffect(() => {
     fetchAnnotations();
