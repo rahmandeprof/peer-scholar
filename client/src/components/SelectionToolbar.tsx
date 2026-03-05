@@ -70,64 +70,128 @@ export function SelectionToolbar({
   const requestRef = useRef<number>(0);
 
   /* ── Selection detection ── */
+  const isOpenRef = useRef(false);
+  isOpenRef.current = isOpen;
+
   useEffect(() => {
-    let debounceId: ReturnType<typeof setTimeout>;
+    let pointerDebounceId: ReturnType<typeof setTimeout>;
+    let selectionDebounceId: ReturnType<typeof setTimeout>;
 
     /**
-     * Read the current selection and show the toolbar.
-     * Only called on mouseup / touchend — never during drag.
+     * Extract selection data and show the toolbar.
+     */
+    const showToolbarFromSelection = () => {
+      const selection = window.getSelection();
+      if (!selection || selection.isCollapsed) return;
+
+      const text = selection.toString().trim();
+      if (!text || text.length < 3) return;
+
+      // If new text selected, clear old result
+      if (text !== selectedText) {
+        setResult(null);
+        setQuizData(null);
+      }
+      setSelectedText(text);
+
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+
+      const contextBefore =
+        range.startContainer.textContent?.substring(
+          Math.max(0, range.startOffset - 50),
+          range.startOffset,
+        ) || '';
+      const contextAfter =
+        range.endContainer.textContent?.substring(
+          range.endOffset,
+          Math.min(
+            range.endContainer.textContent?.length || 0,
+            range.endOffset + 50,
+          ),
+        ) || '';
+
+      setSelectionData({ text, rect, contextBefore, contextAfter });
+      setIsOpen(true);
+
+      // Dismiss the three-dots menu when selection toolbar opens
+      window.dispatchEvent(new CustomEvent('dismiss-material-menu'));
+    };
+
+    /**
+     * Fast path: mouseup / touchend.
+     * Works on desktop and for the initial long-press on mobile.
      */
     const handlePointerUp = () => {
-      clearTimeout(debounceId);
+      clearTimeout(pointerDebounceId);
+      pointerDebounceId = setTimeout(showToolbarFromSelection, 200);
+    };
 
-      // Delay slightly to let the browser finalize the selection range
-      // (especially important on mobile where touchend can fire early)
-      debounceId = setTimeout(() => {
-        const selection = window.getSelection();
-        if (!selection || selection.isCollapsed) return;
+    /**
+     * Slow path: selectionchange with debounce.
+     * On real mobile, dragging selection handles fires selectionchange
+     * rapidly but no touchend. Once the user stops dragging, no more
+     * events fire for 600ms → debounce expires → show toolbar.
+     */
+    const handleSelectionChange = () => {
+      clearTimeout(selectionDebounceId);
 
-        const text = selection.toString().trim();
-        if (!text || text.length < 3) return;
+      const selection = window.getSelection();
 
-        // If new text selected, clear old result
-        if (text !== selectedText) {
-          setResult(null);
-          setQuizData(null);
+      // If selection was cleared and toolbar is not showing results, dismiss
+      if (!selection || selection.isCollapsed) {
+        if (isOpenRef.current && !result && !loading) {
+          // Don't dismiss immediately — wait a tick to avoid dismissing
+          // when the user taps inside the toolbar (which clears selection)
+          selectionDebounceId = setTimeout(() => {
+            // Re-check: if still no selection, dismiss
+            const s = window.getSelection();
+            if (!s || s.isCollapsed) {
+              if (!result && !loading) {
+                setIsOpen(false);
+                setSelectionData(null);
+              }
+            }
+          }, 300);
         }
-        setSelectedText(text);
+        return;
+      }
 
-        const range = selection.getRangeAt(0);
-        const rect = range.getBoundingClientRect();
+      // If toolbar is already open, don't re-trigger (user is adjusting
+      // an existing selection — the toolbar is already visible)
+      if (isOpenRef.current) return;
 
-        const contextBefore =
-          range.startContainer.textContent?.substring(
-            Math.max(0, range.startOffset - 50),
-            range.startOffset,
-          ) || '';
-        const contextAfter =
-          range.endContainer.textContent?.substring(
-            range.endOffset,
-            Math.min(
-              range.endContainer.textContent?.length || 0,
-              range.endOffset + 50,
-            ),
-          ) || '';
+      // Selection is active and toolbar is not open → debounce to show
+      selectionDebounceId = setTimeout(showToolbarFromSelection, 600);
+    };
 
-        setSelectionData({ text, rect, contextBefore, contextAfter });
-        setIsOpen(true);
-
-        // Dismiss the three-dots menu when selection toolbar opens
-        window.dispatchEvent(new CustomEvent('dismiss-material-menu'));
-      }, 200);
+    /**
+     * Suppress the native browser context menu ("Search Google", "Copy", etc.)
+     * within material viewers so our custom toolbar takes priority.
+     */
+    const handleContextMenu = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const isInViewer =
+        target.closest('.react-pdf__Page__textContent') ||
+        target.closest('.text-file-content') ||
+        target.closest('[data-annotation-container]');
+      if (isInViewer) {
+        e.preventDefault();
+      }
     };
 
     document.addEventListener('mouseup', handlePointerUp);
     document.addEventListener('touchend', handlePointerUp);
+    document.addEventListener('selectionchange', handleSelectionChange);
+    document.addEventListener('contextmenu', handleContextMenu);
 
     return () => {
-      clearTimeout(debounceId);
+      clearTimeout(pointerDebounceId);
+      clearTimeout(selectionDebounceId);
       document.removeEventListener('mouseup', handlePointerUp);
       document.removeEventListener('touchend', handlePointerUp);
+      document.removeEventListener('selectionchange', handleSelectionChange);
+      document.removeEventListener('contextmenu', handleContextMenu);
     };
   }, [result, loading, selectedText]);
 

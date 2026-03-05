@@ -42,6 +42,7 @@
   /* Fix for PDF Text Layer oversliding selection */
   .react-pdf__Page__textContent {
     @apply select-text !important;
+    -webkit-touch-callout: none !important;
   }
 }
 
