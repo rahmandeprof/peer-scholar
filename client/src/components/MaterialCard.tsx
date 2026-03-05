@@ -169,10 +169,10 @@ export const MaterialCard = memo(function MaterialCard({
         <OfflineBadge materialId={material.id} />
 
         <div className='p-6 flex-grow'>
-          <div className='flex items-start justify-between mb-4'>
-            <div className='flex-1 min-w-0 mr-4'>
+          <div className='flex items-start justify-between gap-2 mb-2'>
+            <div className='flex-1 min-w-0'>
               <h3
-                className='text-lg font-bold text-gray-900 dark:text-gray-100 line-clamp-2 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors'
+                className='text-lg font-bold text-gray-900 dark:text-gray-100 line-clamp-2 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors break-words'
                 title={material.title}
               >
                 {material.title}
@@ -186,261 +186,258 @@ export const MaterialCard = memo(function MaterialCard({
                 </p>
               )}
             </div>
-            <div className='flex items-center gap-2 flex-wrap justify-end flex-shrink-0'>
-              <span className='inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 border border-primary-100 dark:border-primary-800'>
-                {material.type}
-              </span>
+            {/* Menu Button - stays in title row */}
+            <div className='relative flex-shrink-0' ref={menuRef}>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setMenuOpen(!menuOpen);
+                }}
+                className='p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors'
+              >
+                <MoreVertical className='w-5 h-5' />
+              </button>
 
-              {/* Processing Status Badge */}
-              {material.status === 'processing' ||
-              material.status === 'pending' ||
-              material.processingStatus?.toLowerCase() === 'extracting' ||
-              material.processingStatus?.toLowerCase() === 'cleaning' ||
-              material.processingStatus?.toLowerCase() === 'segmenting' ||
-              material.processingStatus?.toLowerCase() === 'pending' ||
-              material.processingStatus?.toLowerCase() === 'ocr_extracting' ? (
-                isStaleProcessing(material) ? (
-                  // Stale/stuck processing badge
-                  <span
-                    className='inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border border-orange-100 dark:border-orange-800 cursor-help'
-                    title='This upload may be stuck. Try uploading again or contact support.'
-                  >
-                    <AlertCircle className='w-3 h-3' />
-                    Stale
-                  </span>
-                ) : (
-                  // Normal processing badge
-                  <span className='inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-100 dark:border-amber-800'>
-                    <BorderSpinner size='xs' />
-                    {material.processingStatus?.toLowerCase() === 'extracting'
-                      ? 'Extracting'
-                      : material.processingStatus?.toLowerCase() ===
-                          'segmenting'
-                        ? 'Segmenting'
-                        : material.processingStatus?.toLowerCase() ===
-                            'cleaning'
-                          ? 'Cleaning'
-                          : material.processingStatus?.toLowerCase() ===
-                              'ocr_extracting'
-                            ? 'OCR Processing'
-                            : 'Processing'}
-                  </span>
-                )
-              ) : material.status === 'failed' ||
-                material.processingStatus?.toLowerCase() === 'failed' ? (
-                <span
-                  className='inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 border border-red-100 dark:border-red-800 cursor-help'
-                  title={
-                    material.failureReason ||
-                    'Processing failed. Try uploading again.'
-                  }
-                >
-                  <AlertCircle className='w-3 h-3' />
-                  Failed
-                </span>
-              ) : material.processingStatus?.toLowerCase() === 'completed' ? (
-                <span className='inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 border border-green-100 dark:border-green-800'>
-                  <CheckCircle className='w-3 h-3' />
-                  Ready
-                </span>
-              ) : null}
+              {/* Dropdown Menu - Rendered via Portal to escape stacking context */}
+              {menuOpen &&
+                createPortal(
+                  (() => {
+                    // Calculate position with viewport boundary check
+                    const rect = menuRef.current?.getBoundingClientRect();
+                    const dropdownHeight = 200; // max-h-[200px]
+                    const spaceBelow = rect
+                      ? window.innerHeight - rect.bottom
+                      : 0;
+                    const shouldFlipUp = spaceBelow < dropdownHeight + 16;
 
-              {/* OCR Quality Badge */}
-              {material.isOcrProcessed && (
-                <span
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${
-                    (material.ocrConfidence ?? 0) >= 80
-                      ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-100 dark:border-blue-800'
-                      : (material.ocrConfidence ?? 0) >= 50
-                        ? 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-100 dark:border-yellow-800'
-                        : 'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border-orange-100 dark:border-orange-800'
-                  }`}
-                  title={`Scanned document - OCR confidence: ${(material.ocrConfidence ?? 0).toFixed(0)}%`}
-                >
-                  <Scan className='w-3 h-3' />
-                  {(material.ocrConfidence ?? 0) >= 80
-                    ? 'Scanned'
-                    : (material.ocrConfidence ?? 0) >= 50
-                      ? 'Scanned (Fair)'
-                      : 'Scanned (Low)'}
-                </span>
-              )}
+                    const top = rect
+                      ? shouldFlipUp
+                        ? Math.max(8, rect.top - dropdownHeight - 8)
+                        : rect.bottom + 8
+                      : 0;
+                    const left = rect
+                      ? Math.min(rect.right - 192, window.innerWidth - 200)
+                      : 0;
 
-              {/* Versions Badge */}
-              {material.versions && material.versions.length > 0 && (
-                <div className='relative group/versions'>
-                  <span className='inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 border border-green-100 dark:border-green-800 cursor-pointer'>
-                    {material.versions.length + 1} Versions
-                  </span>
+                    return (
+                      <div
+                        ref={dropdownRef}
+                        className='fixed w-48 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 py-1 animate-pop-in max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent'
+                        style={{
+                          overscrollBehavior: 'contain',
+                          zIndex: 9999,
+                          top,
+                          left,
+                        }}
+                        onWheel={(e) => {
+                          e.stopPropagation();
+                          const el = e.currentTarget;
+                          const isAtTop = el.scrollTop === 0;
+                          const isAtBottom =
+                            el.scrollTop + el.clientHeight >=
+                            el.scrollHeight - 1;
 
-                  {/* Versions Dropdown */}
-                  <div className='absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-30 py-1 hidden group-hover/versions:block'>
-                    <div className='px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700'>
-                      Select Version
-                    </div>
-                    <Link
-                      to={`/materials/${material.id}`}
-                      className='block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                    >
-                      Latest (Current)
-                    </Link>
-                    {material.versions.map((version) => (
-                      <Link
-                        key={version.id}
-                        to={`/ materials / ${version.id} `}
-                        className='block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                          // Prevent scroll from leaking to parent when at boundaries
+                          if (
+                            (isAtTop && e.deltaY < 0) ||
+                            (isAtBottom && e.deltaY > 0)
+                          ) {
+                            e.preventDefault();
+                          }
+                        }}
+                        onTouchMove={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        {version.title}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Menu Button */}
-              <div className='relative' ref={menuRef}>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setMenuOpen(!menuOpen);
-                  }}
-                  className='p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors'
-                >
-                  <MoreVertical className='w-5 h-5' />
-                </button>
-
-                {/* Dropdown Menu - Rendered via Portal to escape stacking context */}
-                {menuOpen &&
-                  createPortal(
-                    (() => {
-                      // Calculate position with viewport boundary check
-                      const rect = menuRef.current?.getBoundingClientRect();
-                      const dropdownHeight = 200; // max-h-[200px]
-                      const spaceBelow = rect
-                        ? window.innerHeight - rect.bottom
-                        : 0;
-                      const shouldFlipUp = spaceBelow < dropdownHeight + 16;
-
-                      const top = rect
-                        ? shouldFlipUp
-                          ? Math.max(8, rect.top - dropdownHeight - 8)
-                          : rect.bottom + 8
-                        : 0;
-                      const left = rect
-                        ? Math.min(rect.right - 192, window.innerWidth - 200)
-                        : 0;
-
-                      return (
-                        <div
-                          ref={dropdownRef}
-                          className='fixed w-48 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 py-1 animate-pop-in max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent'
-                          style={{
-                            overscrollBehavior: 'contain',
-                            zIndex: 9999,
-                            top,
-                            left,
-                          }}
-                          onWheel={(e) => {
+                        <button
+                          onClick={(e) => {
                             e.stopPropagation();
-                            const el = e.currentTarget;
-                            const isAtTop = el.scrollTop === 0;
-                            const isAtBottom =
-                              el.scrollTop + el.clientHeight >=
-                              el.scrollHeight - 1;
-
-                            // Prevent scroll from leaking to parent when at boundaries
-                            if (
-                              (isAtTop && e.deltaY < 0) ||
-                              (isAtBottom && e.deltaY > 0)
-                            ) {
-                              e.preventDefault();
-                            }
+                            handleDownload();
                           }}
-                          onTouchMove={(e) => e.stopPropagation()}
-                          onClick={(e) => e.stopPropagation()}
+                          className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
                         >
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDownload();
-                            }}
-                            className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
-                          >
-                            <Download className='w-4 h-4 mr-2' />
-                            Download
-                          </button>
+                          <Download className='w-4 h-4 mr-2' />
+                          Download
+                        </button>
 
-                          {/* New: Add to Collection */}
+                        {/* New: Add to Collection */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMenuOpen(false);
+                            if (onAddToCollection)
+                              onAddToCollection(material.id);
+                          }}
+                          className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
+                        >
+                          <FolderIcon className='w-4 h-4 mr-2' />
+                          Add to Collection
+                        </button>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleShare();
+                          }}
+                          className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
+                        >
+                          <Share2 className='w-4 h-4 mr-2' />
+                          Share
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSummarize();
+                          }}
+                          className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
+                        >
+                          <SummarizeIcon className='w-4 h-4 mr-2' />
+                          Summarize
+                        </button>
+
+                        {/* Remove from Favorites - only shown when handler is provided */}
+                        {onRemoveFromFavorites && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               setMenuOpen(false);
-                              if (onAddToCollection)
-                                onAddToCollection(material.id);
+                              onRemoveFromFavorites(material.id);
                             }}
-                            className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
+                            className='w-full px-4 py-2 text-left text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 flex items-center'
                           >
-                            <FolderIcon className='w-4 h-4 mr-2' />
-                            Add to Collection
+                            <HeartOff className='w-4 h-4 mr-2' />
+                            Remove from Favorites
                           </button>
+                        )}
 
+                        {(isOwner || isAdmin) && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleShare();
+                              setMenuOpen(false);
+                              setDeleteModalOpen(true);
                             }}
-                            className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
+                            className='w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center border-t border-gray-100 dark:border-gray-700'
                           >
-                            <Share2 className='w-4 h-4 mr-2' />
-                            Share
+                            <Trash2 className='w-4 h-4 mr-2' />
+                            Delete
                           </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSummarize();
-                            }}
-                            className='w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center'
-                          >
-                            <SummarizeIcon className='w-4 h-4 mr-2' />
-                            Summarize
-                          </button>
-
-                          {/* Remove from Favorites - only shown when handler is provided */}
-                          {onRemoveFromFavorites && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setMenuOpen(false);
-                                onRemoveFromFavorites(material.id);
-                              }}
-                              className='w-full px-4 py-2 text-left text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 flex items-center'
-                            >
-                              <HeartOff className='w-4 h-4 mr-2' />
-                              Remove from Favorites
-                            </button>
-                          )}
-
-                          {(isOwner || isAdmin) && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setMenuOpen(false);
-                                setDeleteModalOpen(true);
-                              }}
-                              className='w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center border-t border-gray-100 dark:border-gray-700'
-                            >
-                              <Trash2 className='w-4 h-4 mr-2' />
-                              Delete
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })(),
-                    document.body,
-                  )}
-              </div>
+                        )}
+                      </div>
+                    );
+                  })(),
+                  document.body,
+                )}
             </div>
+          </div>
+
+          {/* Badges row - separate from title, wraps naturally */}
+          <div className='flex items-center gap-1.5 flex-wrap mt-2'>
+            <span className='inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 border border-primary-100 dark:border-primary-800'>
+              {material.type}
+            </span>
+
+            {/* Processing Status Badge */}
+            {material.status === 'processing' ||
+            material.status === 'pending' ||
+            material.processingStatus?.toLowerCase() === 'extracting' ||
+            material.processingStatus?.toLowerCase() === 'cleaning' ||
+            material.processingStatus?.toLowerCase() === 'segmenting' ||
+            material.processingStatus?.toLowerCase() === 'pending' ||
+            material.processingStatus?.toLowerCase() === 'ocr_extracting' ? (
+              isStaleProcessing(material) ? (
+                <span
+                  className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border border-orange-100 dark:border-orange-800 cursor-help'
+                  title='This upload may be stuck. Try uploading again or contact support.'
+                >
+                  <AlertCircle className='w-3 h-3' />
+                  Stale
+                </span>
+              ) : (
+                <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-100 dark:border-amber-800'>
+                  <BorderSpinner size='xs' />
+                  {material.processingStatus?.toLowerCase() === 'extracting'
+                    ? 'Extracting'
+                    : material.processingStatus?.toLowerCase() === 'segmenting'
+                      ? 'Segmenting'
+                      : material.processingStatus?.toLowerCase() === 'cleaning'
+                        ? 'Cleaning'
+                        : material.processingStatus?.toLowerCase() ===
+                            'ocr_extracting'
+                          ? 'OCR Processing'
+                          : 'Processing'}
+                </span>
+              )
+            ) : material.status === 'failed' ||
+              material.processingStatus?.toLowerCase() === 'failed' ? (
+              <span
+                className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 border border-red-100 dark:border-red-800 cursor-help'
+                title={
+                  material.failureReason ||
+                  'Processing failed. Try uploading again.'
+                }
+              >
+                <AlertCircle className='w-3 h-3' />
+                Failed
+              </span>
+            ) : material.processingStatus?.toLowerCase() === 'completed' ? (
+              <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 border border-green-100 dark:border-green-800'>
+                <CheckCircle className='w-3 h-3' />
+                Ready
+              </span>
+            ) : null}
+
+            {/* OCR Quality Badge */}
+            {material.isOcrProcessed && (
+              <span
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${
+                  (material.ocrConfidence ?? 0) >= 80
+                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-100 dark:border-blue-800'
+                    : (material.ocrConfidence ?? 0) >= 50
+                      ? 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-100 dark:border-yellow-800'
+                      : 'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border-orange-100 dark:border-orange-800'
+                }`}
+                title={`Scanned document - OCR confidence: ${(material.ocrConfidence ?? 0).toFixed(0)}%`}
+              >
+                <Scan className='w-3 h-3' />
+                {(material.ocrConfidence ?? 0) >= 80
+                  ? 'Scanned'
+                  : (material.ocrConfidence ?? 0) >= 50
+                    ? 'Scanned (Fair)'
+                    : 'Scanned (Low)'}
+              </span>
+            )}
+
+            {/* Versions Badge */}
+            {material.versions && material.versions.length > 0 && (
+              <div className='relative group/versions'>
+                <span className='inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 border border-green-100 dark:border-green-800 cursor-pointer'>
+                  {material.versions.length + 1} Versions
+                </span>
+
+                {/* Versions Dropdown */}
+                <div className='absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-30 py-1 hidden group-hover/versions:block'>
+                  <div className='px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700'>
+                    Select Version
+                  </div>
+                  <Link
+                    to={`/materials/${material.id}`}
+                    className='block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  >
+                    Latest (Current)
+                  </Link>
+                  {material.versions.map((version) => (
+                    <Link
+                      key={version.id}
+                      to={`/materials/${version.id}`}
+                      className='block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    >
+                      {version.title}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <div className='bg-gray-50/50 dark:bg-gray-700/30 px-6 py-4 border-t border-gray-100 dark:border-gray-700/50'>
