@@ -121,23 +121,14 @@ export function SelectionToolbar({
 
       const selection = window.getSelection();
 
-      // If selection was cleared, dismiss bubble and (if no results) sheet
+      // If selection was cleared, dismiss bubble but NEVER the sheet
       if (!selection || selection.isCollapsed) {
         if (showBubbleRef.current) {
           setShowBubble(false);
           setBubbleRect(null);
         }
-        if (isOpenRef.current && !result && !loading) {
-          selectionDebounceId = setTimeout(() => {
-            const s = window.getSelection();
-            if (!s || s.isCollapsed) {
-              if (!result && !loading) {
-                setIsOpen(false);
-                setSelectionData(null);
-              }
-            }
-          }, 300);
-        }
+        // We removed the isOpenRef auto-dismiss here. Once the full sheet
+        // is open, it should only close via explicit user action (X or backdrop).
         return;
       }
 
