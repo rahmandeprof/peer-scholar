@@ -44,7 +44,10 @@ export function SelectionToolbar({
   onAddNote,
   onTagPq,
 }: SelectionToolbarProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  // Two-stage flow: bubble → sheet
+  const [showBubble, setShowBubble] = useState(false);
+  const [bubbleRect, setBubbleRect] = useState<DOMRect | null>(null);
+  const [isOpen, setIsOpen] = useState(false); // bottom sheet open
   const [selectedText, setSelectedText] = useState('');
   const [selectionData, setSelectionData] = useState<SelectionData | null>(
     null,
@@ -72,50 +75,28 @@ export function SelectionToolbar({
   /* ── Selection detection ── */
   const isOpenRef = useRef(false);
   isOpenRef.current = isOpen;
+  const showBubbleRef = useRef(false);
+  showBubbleRef.current = showBubble;
 
   useEffect(() => {
     let pointerDebounceId: ReturnType<typeof setTimeout>;
     let selectionDebounceId: ReturnType<typeof setTimeout>;
 
     /**
-     * Extract selection data and show the toolbar.
+     * Show the floating bubble near the selected text.
      */
-    const showToolbarFromSelection = () => {
+    const showBubbleFromSelection = () => {
       const selection = window.getSelection();
       if (!selection || selection.isCollapsed) return;
 
       const text = selection.toString().trim();
       if (!text || text.length < 3) return;
 
-      // If new text selected, clear old result
-      if (text !== selectedText) {
-        setResult(null);
-        setQuizData(null);
-      }
-      setSelectedText(text);
-
       const range = selection.getRangeAt(0);
       const rect = range.getBoundingClientRect();
 
-      const contextBefore =
-        range.startContainer.textContent?.substring(
-          Math.max(0, range.startOffset - 50),
-          range.startOffset,
-        ) || '';
-      const contextAfter =
-        range.endContainer.textContent?.substring(
-          range.endOffset,
-          Math.min(
-            range.endContainer.textContent?.length || 0,
-            range.endOffset + 50,
-          ),
-        ) || '';
-
-      setSelectionData({ text, rect, contextBefore, contextAfter });
-      setIsOpen(true);
-
-      // Dismiss the three-dots menu when selection toolbar opens
-      window.dispatchEvent(new CustomEvent('dismiss-material-menu'));
+      setBubbleRect(rect);
+      setShowBubble(true);
     };
 
     /**
@@ -123,28 +104,31 @@ export function SelectionToolbar({
      * Works on desktop and for the initial long-press on mobile.
      */
     const handlePointerUp = () => {
+      // Don't show bubble if the bottom sheet is already open
+      if (isOpenRef.current) return;
       clearTimeout(pointerDebounceId);
-      pointerDebounceId = setTimeout(showToolbarFromSelection, 200);
+      pointerDebounceId = setTimeout(showBubbleFromSelection, 200);
     };
 
     /**
      * Slow path: selectionchange with debounce.
      * On real mobile, dragging selection handles fires selectionchange
      * rapidly but no touchend. Once the user stops dragging, no more
-     * events fire for 600ms → debounce expires → show toolbar.
+     * events fire for 600ms → debounce expires → show bubble.
      */
     const handleSelectionChange = () => {
       clearTimeout(selectionDebounceId);
 
       const selection = window.getSelection();
 
-      // If selection was cleared and toolbar is not showing results, dismiss
+      // If selection was cleared, dismiss bubble and (if no results) sheet
       if (!selection || selection.isCollapsed) {
+        if (showBubbleRef.current) {
+          setShowBubble(false);
+          setBubbleRect(null);
+        }
         if (isOpenRef.current && !result && !loading) {
-          // Don't dismiss immediately — wait a tick to avoid dismissing
-          // when the user taps inside the toolbar (which clears selection)
           selectionDebounceId = setTimeout(() => {
-            // Re-check: if still no selection, dismiss
             const s = window.getSelection();
             if (!s || s.isCollapsed) {
               if (!result && !loading) {
@@ -157,17 +141,27 @@ export function SelectionToolbar({
         return;
       }
 
-      // If toolbar is already open, don't re-trigger (user is adjusting
-      // an existing selection — the toolbar is already visible)
+      // If sheet is open, don't interfere
       if (isOpenRef.current) return;
 
-      // Selection is active and toolbar is not open → debounce to show
-      selectionDebounceId = setTimeout(showToolbarFromSelection, 600);
+      // If bubble is showing, reposition it as user adjusts selection
+      if (showBubbleRef.current) {
+        selectionDebounceId = setTimeout(() => {
+          const s = window.getSelection();
+          if (s && !s.isCollapsed) {
+            const r = s.getRangeAt(0);
+            setBubbleRect(r.getBoundingClientRect());
+          }
+        }, 300);
+        return;
+      }
+
+      // No bubble, no sheet — debounce to show new bubble
+      selectionDebounceId = setTimeout(showBubbleFromSelection, 600);
     };
 
     /**
-     * Suppress the native browser context menu ("Search Google", "Copy", etc.)
-     * within material viewers so our custom toolbar takes priority.
+     * Suppress native context menu within material viewers.
      */
     const handleContextMenu = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
@@ -193,7 +187,44 @@ export function SelectionToolbar({
       document.removeEventListener('selectionchange', handleSelectionChange);
       document.removeEventListener('contextmenu', handleContextMenu);
     };
-  }, [result, loading, selectedText]);
+  }, [result, loading, showBubble, isOpen]);
+
+  /**
+   * Open the full bottom sheet — reads fresh selection from the DOM.
+   */
+  const openSheet = useCallback(() => {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed) return;
+
+    const text = selection.toString().trim();
+    if (!text || text.length < 3) return;
+
+    const range = selection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+
+    const contextBefore =
+      range.startContainer.textContent?.substring(
+        Math.max(0, range.startOffset - 50),
+        range.startOffset,
+      ) || '';
+    const contextAfter =
+      range.endContainer.textContent?.substring(
+        range.endOffset,
+        Math.min(
+          range.endContainer.textContent?.length || 0,
+          range.endOffset + 50,
+        ),
+      ) || '';
+
+    setSelectedText(text);
+    setSelectionData({ text, rect, contextBefore, contextAfter });
+    setResult(null);
+    setQuizData(null);
+    setShowBubble(false);
+    setIsOpen(true);
+
+    window.dispatchEvent(new CustomEvent('dismiss-material-menu'));
+  }, []);
 
   /* ── Listen for dismiss event from three-dots menu ── */
   useEffect(() => {
@@ -209,6 +240,8 @@ export function SelectionToolbar({
 
   const dismissMenu = useCallback(() => {
     setIsOpen(false);
+    setShowBubble(false);
+    setBubbleRect(null);
     setResult(null);
     setQuizData(null);
     setSelectionData(null);
@@ -287,7 +320,7 @@ export function SelectionToolbar({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen && !showBubble) return null;
 
   /* ───────── Result / Quiz Panel ───────── */
   const resultPanel = result ? (
@@ -488,36 +521,71 @@ export function SelectionToolbar({
   /* ───────── Render via Portal (bypasses any parent transforms/z-index) ───────── */
   return createPortal(
     <>
-      {/* Backdrop */}
-      <div className='fixed inset-0 z-[90] bg-black/20' onClick={dismissMenu} />
-
-      {/* Bottom Sheet - stop mouseup/touchend from reaching document listener */}
-      <div
-        className='fixed bottom-0 left-0 right-0 z-[100] bg-white dark:bg-gray-800 rounded-t-2xl shadow-2xl border-t border-gray-200 dark:border-gray-700 animate-slide-up pb-[env(safe-area-inset-bottom)]'
-        onMouseUp={(e) => e.stopPropagation()}
-        onTouchEnd={(e) => e.stopPropagation()}
-      >
-        <style>{`
-          @keyframes slideUp {
-            from { transform: translateY(100%); }
-            to { transform: translateY(0); }
-          }
-          .animate-slide-up { animation: slideUp 0.25s ease-out forwards; }
-        `}</style>
-
-        {/* Drag handle + close */}
-        <div className='flex items-center justify-between px-4 pt-3 pb-1'>
-          <div className='w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full' />
+      {/* Floating Bubble (Stage 1) */}
+      {showBubble && !isOpen && bubbleRect && (
+        <div
+          className='fixed z-[100] animate-pop-in cursor-pointer'
+          style={{
+            // Position above the selection
+            top: `${Math.max(16, bubbleRect.top - 48)}px`,
+            // Center horizontally relative to selection, keep on screen
+            left: `${Math.max(16, Math.min(window.innerWidth - 120, bubbleRect.left + bubbleRect.width / 2 - 60))}px`,
+          }}
+          onMouseUp={(e) => e.stopPropagation()}
+          onTouchEnd={(e) => e.stopPropagation()}
+        >
           <button
-            onClick={dismissMenu}
-            className='p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors'
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              openSheet();
+            }}
+            className='flex items-center gap-1.5 px-3 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full shadow-2xl border border-gray-700 dark:border-gray-200 font-medium text-sm hover:scale-105 transition-transform'
           >
-            <X className='w-4 h-4 text-gray-400' />
+            <Sparkles className='w-4 h-4 text-yellow-400 dark:text-yellow-600' />
+            Actions
           </button>
         </div>
+      )}
 
-        {result ? resultPanel : actionButtons}
-      </div>
+      {/* Full Bottom Sheet (Stage 2) */}
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className='fixed inset-0 z-[90] bg-black/20'
+            onClick={dismissMenu}
+          />
+
+          {/* Bottom Sheet - stop mouseup/touchend from reaching document listener */}
+          <div
+            className='fixed bottom-0 left-0 right-0 z-[100] bg-white dark:bg-gray-800 rounded-t-2xl shadow-2xl border-t border-gray-200 dark:border-gray-700 animate-slide-up pb-[env(safe-area-inset-bottom)]'
+            onMouseUp={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
+          >
+            <style>{`
+              @keyframes slideUp {
+                from { transform: translateY(100%); }
+                to { transform: translateY(0); }
+              }
+              .animate-slide-up { animation: slideUp 0.25s ease-out forwards; }
+            `}</style>
+
+            {/* Drag handle + close */}
+            <div className='flex items-center justify-between px-4 pt-3 pb-1'>
+              <div className='w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full' />
+              <button
+                onClick={dismissMenu}
+                className='p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors'
+              >
+                <X className='w-4 h-4 text-gray-400' />
+              </button>
+            </div>
+
+            {result ? resultPanel : actionButtons}
+          </div>
+        </>
+      )}
     </>,
     document.body,
   );
