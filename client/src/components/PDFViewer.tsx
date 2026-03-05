@@ -6,6 +6,7 @@ import 'react-pdf/dist/Page/TextLayer.css';
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, X } from 'lucide-react';
 import { AnnotationManager } from './AnnotationManager';
 import { BookmarksDropdown } from './BookmarksDropdown';
+import { useConstrainedSelection } from '../hooks/useConstrainedSelection';
 
 // Configure worker - use CDN for reliable production loading
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -95,6 +96,9 @@ export function PDFViewer({
 
   const [containerWidth, setContainerWidth] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Constrain text selection to stay within the PDF text layer
+  useConstrainedSelection(containerRef);
 
   useEffect(() => {
     if (!containerRef.current) return;
