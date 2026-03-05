@@ -121,29 +121,13 @@ export function SelectionToolbar({
       }, 200);
     };
 
-    /**
-     * Only used for dismissal: if the user clicks elsewhere and the
-     * selection collapses, close the toolbar (unless showing results).
-     */
-    const handleSelectionClear = () => {
-      const selection = window.getSelection();
-      if (!selection || selection.isCollapsed) {
-        if (!result && !loading) {
-          setIsOpen(false);
-          setSelectionData(null);
-        }
-      }
-    };
-
     document.addEventListener('mouseup', handlePointerUp);
     document.addEventListener('touchend', handlePointerUp);
-    document.addEventListener('selectionchange', handleSelectionClear);
 
     return () => {
       clearTimeout(debounceId);
       document.removeEventListener('mouseup', handlePointerUp);
       document.removeEventListener('touchend', handlePointerUp);
-      document.removeEventListener('selectionchange', handleSelectionClear);
     };
   }, [result, loading, selectedText]);
 
@@ -443,8 +427,12 @@ export function SelectionToolbar({
       {/* Backdrop */}
       <div className='fixed inset-0 z-[90] bg-black/20' onClick={dismissMenu} />
 
-      {/* Bottom Sheet */}
-      <div className='fixed bottom-0 left-0 right-0 z-[100] bg-white dark:bg-gray-800 rounded-t-2xl shadow-2xl border-t border-gray-200 dark:border-gray-700 animate-slide-up pb-[env(safe-area-inset-bottom)]'>
+      {/* Bottom Sheet - stop mouseup/touchend from reaching document listener */}
+      <div
+        className='fixed bottom-0 left-0 right-0 z-[100] bg-white dark:bg-gray-800 rounded-t-2xl shadow-2xl border-t border-gray-200 dark:border-gray-700 animate-slide-up pb-[env(safe-area-inset-bottom)]'
+        onMouseUp={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
+      >
         <style>{`
           @keyframes slideUp {
             from { transform: translateY(100%); }
