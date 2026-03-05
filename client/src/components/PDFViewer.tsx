@@ -306,18 +306,15 @@ export function PDFViewer({
       {numPages > 0 && (
         <div className='relative h-1.5 bg-gray-200 dark:bg-gray-700'>
           <div
-            className='absolute h-full bg-gradient-to-r from-primary-500 to-primary-600 transition-all duration-300 ease-out z-10'
+            className='absolute h-full bg-gradient-to-r from-primary-500 to-primary-600 transition-all duration-300 ease-out'
             style={{ width: `${(pageNumber / numPages) * 100}%` }}
           />
-          <div className='absolute right-2 -top-6 text-xs text-gray-500 dark:text-gray-400 font-medium z-10 bg-white/80 dark:bg-gray-800/80 px-1 rounded backdrop-blur-sm'>
-            {Math.round((pageNumber / numPages) * 100)}% read
-          </div>
         </div>
       )}
 
       {/* Document - with swipe gesture support */}
       <div
-        className='flex-1 overflow-auto flex justify-center p-4 select-none'
+        className='flex-1 overflow-auto flex justify-center p-1 md:p-4 select-none'
         ref={containerRef}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}

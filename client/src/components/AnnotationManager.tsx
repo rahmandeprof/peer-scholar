@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useToast } from '../contexts/ToastContext';
 import api from '../lib/api';
 import { X, Check, Tag, MessageSquare, PenLine } from 'lucide-react';
 import { SelectionToolbar } from './SelectionToolbar';
+import { usePublicNoteHighlights } from '../hooks/usePublicNoteHighlights';
 
 interface Annotation {
   id: string;
@@ -50,6 +51,15 @@ export function AnnotationManager({
 
   // Note form state
   const [noteContent, setNoteContent] = useState('');
+
+  // Ref for public note highlights
+  const contentRef = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { refetchHighlights } = usePublicNoteHighlights(
+    contentRef,
+    materialId,
+    pageNumber,
+  );
 
   useEffect(() => {
     fetchAnnotations();
@@ -151,7 +161,7 @@ export function AnnotationManager({
   const pqs = visibleAnnotations.filter((a) => a.type === 'pq');
 
   return (
-    <div className='relative'>
+    <div className='relative' ref={contentRef}>
       {children}
 
       {/* Annotations Panel */}
