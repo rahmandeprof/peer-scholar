@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   Logger,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -56,6 +57,10 @@ export class AuthService {
       throw new BadRequestException(
         'This account was created with Google. Please sign in with Google.',
       );
+    }
+
+    if (user && !user.isVerified) {
+      throw new UnauthorizedException('Please verify your email to log in.');
     }
 
     if (user?.password && (await bcrypt.compare(pass, user.password))) {
@@ -196,7 +201,11 @@ export class AuthService {
       verificationToken,
     );
 
-    return this.login(newUser);
+    return {
+      success: true,
+      message:
+        'Registration successful. Please check your email to verify your account.',
+    };
   }
 
   async verifyEmail(token: string) {
@@ -240,8 +249,16 @@ export class AuthService {
     return { success: true, message: 'Email verified successfully' };
   }
 
-  async resendVerification(userId: string) {
-    const user = await this.usersService.getOne(userId);
+  async resendVerification(email: string) {
+    const user = await this.usersService.findByEmail(email);
+
+    if (!user) {
+      return {
+        success: true,
+        message:
+          'If your email is registered, a verification link has been sent.',
+      };
+    }
 
     if (user.isVerified) {
       throw new BadRequestException('Email already verified');

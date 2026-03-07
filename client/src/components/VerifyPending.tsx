@@ -14,7 +14,7 @@ export function VerifyPending() {
   const handleResend = async () => {
     setResending(true);
     try {
-      await api.post('/auth/resend-verification');
+      await api.post('/auth/resend-verification', { email: user?.email });
       toast.success('Verification email sent! Check your inbox.');
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to send email');

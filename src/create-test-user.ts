@@ -19,18 +19,12 @@ async function bootstrap() {
       yearOfStudy: 3,
     } as any);
 
-    console.log('\n✅ Test user created successfully!');
+    console.log(
+      '\n✅ Test user created successfully! Please check the database and verify the email.',
+    );
     console.log('\n📧 Login Credentials:');
     console.log('Email: test@peerscholar.com');
     console.log('Password: Test123!@#');
-    console.log('\nUser Details:', {
-      id: testUser.user.id,
-      name: `${testUser.user.firstName} ${testUser.user.lastName}`,
-      email: testUser.user.email,
-      department: testUser.user.department,
-      year: testUser.user.yearOfStudy,
-    });
-    console.log('\n🔑 Access Token:', testUser.access_token);
   } catch (err: any) {
     if (err?.message?.includes('duplicate') || err?.code === '23505') {
       console.log('\n⚠️  Test user already exists!');

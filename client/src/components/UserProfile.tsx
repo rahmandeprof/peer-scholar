@@ -560,7 +560,9 @@ export function UserProfile({
                     type='button'
                     onClick={async () => {
                       try {
-                        await api.post('/auth/resend-verification');
+                        await api.post('/auth/resend-verification', {
+                          email: user?.email,
+                        });
                         toast.success('Verification email sent!');
                       } catch (err) {
                         toast.error('Failed to send verification email');

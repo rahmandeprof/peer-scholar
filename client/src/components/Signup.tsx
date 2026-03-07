@@ -155,7 +155,10 @@ export function Signup({ onSwitch }: SignupProps) {
         yearOfStudy: formData.yearOfStudy,
         referralCode: referralCode || undefined,
       });
-      login(res.data.access_token, res.data.user);
+      toast.success(
+        'Registration successful. Please check your email to verify your account.',
+      );
+      onSwitch();
     } catch (err: any) {
       let errorMessage = 'Registration failed. Please try again.';
 

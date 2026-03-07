@@ -26,6 +26,9 @@ async function bootstrap() {
 
   app.set('query parser', 'extended');
 
+  // Trust proxy for proper IP resolution in rate limiting
+  app.set('trust proxy', 1);
+
   // Enable gzip compression for all responses
   // Enable gzip compression for all responses
   app.use(compression());

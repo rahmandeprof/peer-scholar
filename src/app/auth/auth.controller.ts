@@ -77,9 +77,9 @@ export class AuthController {
   }
 
   @Post('resend-verification')
-  @UseGuards(AuthGuard('jwt'))
-  resendVerification(@Req() req: AuthenticatedRequest) {
-    return this.authService.resendVerification(req.user.id);
+  @Throttle({ default: { limit: 3, ttl: 300000 } }) // 3 per 5 minutes
+  resendVerification(@Body('email') email: string) {
+    return this.authService.resendVerification(email);
   }
 
   @UseGuards(AuthGuard('jwt'))

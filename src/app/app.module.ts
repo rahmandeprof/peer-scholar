@@ -1,8 +1,8 @@
 import { ClassSerializerInterceptor, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_INTERCEPTOR, Reflector } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR, Reflector } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { AcademicModule } from '@/app/academic/academic.module';
 import { AdminModule } from '@/app/admin/admin.module';
@@ -66,7 +66,7 @@ import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
     ThrottlerModule.forRoot({
       throttlers: [
         {
-          name: 'global',
+          name: 'default',
           ttl: 60000, // 1 minute
           limit: 100, // 100 requests per minute
         },
@@ -96,6 +96,10 @@ import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
     {
       provide: APP_INTERCEPTOR,
       useClass: RequestLoggingInterceptor,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
     {
       provide: APP_INTERCEPTOR,

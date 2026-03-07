@@ -88,7 +88,27 @@ export function Login({ onSwitch }: LoginProps) {
           />
         </div>
 
-        <div className='flex items-center justify-end'>
+        <div className='flex items-center justify-between'>
+          <button
+            type='button'
+            onClick={async () => {
+              if (!email) {
+                toast.warning('Please enter your email to resend verification');
+                return;
+              }
+              try {
+                await api.post('/auth/resend-verification', { email });
+                toast.success('Verification email sent! Check your inbox.');
+              } catch (err: any) {
+                toast.error(
+                  err.response?.data?.message || 'Failed to send email',
+                );
+              }
+            }}
+            className='text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 block py-1'
+          >
+            Resend Verification?
+          </button>
           <Link
             to='/forgot-password'
             className='text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 block py-1'
