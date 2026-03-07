@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import api from '../lib/api';
 import { ArrowRight } from 'lucide-react';
@@ -41,7 +40,6 @@ export function Signup({ onSwitch }: SignupProps) {
     yearOfStudy: 1,
   });
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
   const toast = useToast();
 
   // Dynamic data from API
@@ -140,7 +138,7 @@ export function Signup({ onSwitch }: SignupProps) {
         (d) => d.id === formData.departmentId,
       );
 
-      const res = await api.post('/auth/register', {
+      await api.post('/auth/register', {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
