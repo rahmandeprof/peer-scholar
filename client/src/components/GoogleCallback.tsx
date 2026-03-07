@@ -27,6 +27,9 @@ export function GoogleCallback() {
         if (redirect) {
           localStorage.removeItem('login_redirect');
           navigate(redirect, { replace: true });
+        } else {
+          // If no redirect is stored, go to dashboard by default
+          navigate('/dashboard', { replace: true });
         }
       } catch (err) {
         console.error('Failed to parse auth callback data', err);
