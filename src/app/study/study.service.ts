@@ -425,6 +425,9 @@ export class StudyService {
       true,
     );
 
+    // Ensure streak is updated for offline reading syncs
+    await this.usersService.updateStreak(userId);
+
     return {
       success: true,
       sessionId: session.id,

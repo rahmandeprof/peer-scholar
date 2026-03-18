@@ -156,21 +156,8 @@ export function PastQuestionsPanel({
     if (annotation.pageNumber && onJumpToPage) {
       onJumpToPage(annotation.pageNumber);
       onClose(); // Close immediately for responsive feel
-      
-      // Wait for page render, then highlight
-      setTimeout(() => {
-        const success = temporaryHighlight(annotation.selectedText);
-        if (!success) {
-          toast.error('Could not locate exact text on page');
-        }
-      }, 500);
     } else {
-      const success = temporaryHighlight(annotation.selectedText);
-      if (success) {
-        onClose();
-      } else {
-        toast.error('Could not locate exact text on page');
-      }
+      onClose();
     }
   };
 
