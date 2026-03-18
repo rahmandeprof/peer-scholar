@@ -24,11 +24,11 @@ export class PageBookmark {
   materialId: string;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'userId' })
+  @JoinColumn({ name: 'user_id' })
   user: User;
 
   @ManyToOne(() => Material, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'materialId' })
+  @JoinColumn({ name: 'material_id' })
   material: Material;
 
   @Column()

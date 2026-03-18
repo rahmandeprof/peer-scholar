@@ -5,7 +5,6 @@ import {
   Tag,
   MessageSquare,
   Trash2,
-  Navigation,
   FileText,
 } from 'lucide-react';
 import api from '../lib/api';
@@ -91,9 +90,9 @@ export function PastQuestionsPanel({
     });
   };
 
-  const temporaryHighlight = (searchText: string) => {
+  const temporaryHighlight = (searchText: string): boolean => {
     const container = containerRef?.current;
-    if (!container || !searchText) return;
+    if (!container || !searchText) return false;
 
     // Clear any existing temporary highlights
     clearTemporaryHighlights();
@@ -147,20 +146,31 @@ export function PastQuestionsPanel({
         } catch {
           // surroundContents can fail if range crosses element boundaries
         }
-        break; // Only highlight first occurrence
+        return true; // Highlight attempted (or succeeded)
       }
     }
+    return false; // Not found
   };
 
   const handleNavigate = (annotation: Annotation) => {
     if (annotation.pageNumber && onJumpToPage) {
       onJumpToPage(annotation.pageNumber);
+      onClose(); // Close immediately for responsive feel
+      
       // Wait for page render, then highlight
       setTimeout(() => {
-        temporaryHighlight(annotation.selectedText);
+        const success = temporaryHighlight(annotation.selectedText);
+        if (!success) {
+          toast.error('Could not locate exact text on page');
+        }
       }, 500);
     } else {
-      temporaryHighlight(annotation.selectedText);
+      const success = temporaryHighlight(annotation.selectedText);
+      if (success) {
+        onClose();
+      } else {
+        toast.error('Could not locate exact text on page');
+      }
     }
   };
 
@@ -195,7 +205,7 @@ export function PastQuestionsPanel({
       />
 
       {/* Panel */}
-      <div className='fixed top-0 bottom-0 right-0 w-80 max-w-[90vw] z-[90] bg-white dark:bg-gray-800 shadow-2xl border-l border-gray-200 dark:border-gray-700 flex flex-col animate-slide-left'>
+      <div className='fixed top-0 bottom-0 right-0 w-80 max-w-[90vw] z-[90] bg-white dark:bg-gray-800 shadow-2xl border-l border-gray-200 dark:border-gray-700 flex flex-col animate-slide-left select-none'>
         <style>{`
           @keyframes slideLeft {
             from { transform: translateX(100%); }
@@ -304,16 +314,6 @@ export function PastQuestionsPanel({
                   </div>
 
                   <div className='flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity'>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleNavigate(ann);
-                      }}
-                      className='p-1 rounded hover:bg-white/50 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600'
-                      title='Go to location'
-                    >
-                      <Navigation className='w-3 h-3' />
-                    </button>
                     {currentUserId && ann.user.id === currentUserId && (
                       <button
                         onClick={(e) => {
@@ -321,7 +321,7 @@ export function PastQuestionsPanel({
                           handleDelete(ann.id);
                         }}
                         className='p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500'
-                        title='Delete'
+                        title='Delete Annotation'
                       >
                         <Trash2 className='w-3 h-3' />
                       </button>

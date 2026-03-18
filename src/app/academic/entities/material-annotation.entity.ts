@@ -17,13 +17,13 @@ export class MaterialAnnotation extends IDAndTimestamp {
   @Column({ name: 'selected_text', type: 'text' })
   selectedText: string;
 
-  @Column({ name: 'page_number', nullable: true })
+  @Column({ name: 'page_number', type: 'int', nullable: true })
   pageNumber: number;
 
-  @Column({ name: 'year', nullable: true, default: null })
+  @Column({ name: 'year', type: 'varchar', nullable: true, default: null })
   year: string | null; // e.g., "2023" - required for PQ, null for notes
 
-  @Column({ name: 'session', nullable: true, default: null })
+  @Column({ name: 'session', type: 'varchar', nullable: true, default: null })
   session: string | null; // e.g., "First Semester" - required for PQ, null for notes
 
   @Column({ name: 'note_content', type: 'text', nullable: true })
@@ -35,6 +35,6 @@ export class MaterialAnnotation extends IDAndTimestamp {
   @Column({ name: 'context_after', type: 'text', nullable: true })
   contextAfter: string;
 
-  @Column({ name: 'type', nullable: true, default: 'note' })
+  @Column({ name: 'type', type: 'varchar', nullable: true, default: 'note' })
   type: 'note' | 'pq'; // 'pq' = Past Question
 }
