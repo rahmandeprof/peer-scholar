@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import Draggable from 'react-draggable';
 import { X, Save, GripHorizontal } from 'lucide-react';
 import api from '../lib/api';
+import { useToast } from '../contexts/ToastContext';
 
 interface JotterProps {
   materialId: string;
@@ -10,6 +11,7 @@ interface JotterProps {
 }
 
 export function Jotter({ materialId, isOpen, onClose }: JotterProps) {
+  const toast = useToast();
   const [content, setContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -52,12 +54,15 @@ export function Jotter({ materialId, isOpen, onClose }: JotterProps) {
   }, [content, materialId]);
 
   const saveNote = async () => {
-    if (!materialId) return;
+    if (!materialId || isSaving) return;
     setIsSaving(true);
     try {
       await api.post(`/materials/${materialId}/note`, { content });
+      toast.success('Note saved!');
+      onClose();
     } catch (error) {
       console.error('Failed to save note', error);
+      toast.error('Failed to save note');
     } finally {
       setIsSaving(false);
     }
@@ -113,10 +118,11 @@ export function Jotter({ materialId, isOpen, onClose }: JotterProps) {
       <div className='p-2 border-t border-yellow-100 dark:border-gray-700 flex justify-end'>
         <button
           onClick={() => saveNote()}
-          className='flex items-center text-xs font-bold text-yellow-700 dark:text-yellow-500 hover:text-yellow-800 dark:hover:text-yellow-400 px-3 py-1 bg-yellow-200/50 dark:bg-yellow-900/20 rounded-lg'
+          disabled={isSaving}
+          className='flex items-center text-xs font-bold text-yellow-700 dark:text-yellow-500 hover:text-yellow-800 dark:hover:text-yellow-400 px-3 py-1 bg-yellow-200/50 dark:bg-yellow-900/20 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed'
         >
           <Save className='w-3 h-3 mr-1' />
-          Save
+          {isSaving ? 'Saving...' : 'Save'}
         </button>
       </div>
     </div>

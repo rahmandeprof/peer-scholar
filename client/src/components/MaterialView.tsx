@@ -15,6 +15,7 @@ import {
   Sun,
   TrendingUp,
   X,
+  Tag,
 } from 'lucide-react';
 import { BorderSpinner, MaterialViewSkeleton } from './Skeleton';
 import api from '../lib/api';
@@ -30,6 +31,7 @@ import { SessionEndModal } from './SessionEndModal';
 import { ReaderSettingsProvider } from '../contexts/ReaderSettingsContext';
 import { StarRating } from './StarRating';
 import { useSocket } from '../contexts/SocketContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Headphones, Layers } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { FeatureSpotlightModal } from './FeatureSpotlightModal';
@@ -71,6 +73,11 @@ const RecommendedMaterials = lazy(() =>
     default: m.RecommendedMaterials,
   })),
 );
+const PastQuestionsPanel = lazy(() =>
+  import('./PastQuestionsPanel').then((m) => ({
+    default: m.PastQuestionsPanel,
+  })),
+);
 
 // Loading spinner for lazy modals
 const ModalLoadingFallback = () => (
@@ -108,6 +115,8 @@ export const MaterialView = () => {
   const [publicNotesOpen, setPublicNotesOpen] = useState(false);
   const [helpfulLinksOpen, setHelpfulLinksOpen] = useState(false);
   const [recommendationsOpen, setRecommendationsOpen] = useState(false);
+  const [pastQuestionsOpen, setPastQuestionsOpen] = useState(false);
+  const { user: currentUser } = useAuth();
 
   // Reading time tracking for weekly goals
   const [readingSessionId, setReadingSessionId] = useState<string | null>(null);
@@ -660,6 +669,16 @@ export const MaterialView = () => {
                         <Sparkles className='w-5 h-5 mb-1.5' />
                         AI
                       </button>
+                      <button
+                        onClick={() => {
+                          setPastQuestionsOpen(true);
+                          setMenuOpen(false);
+                        }}
+                        className='flex flex-col items-center justify-center p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl text-amber-600 dark:text-amber-400 text-xs font-medium min-h-[64px] active:scale-95 transition-transform'
+                      >
+                        <Tag className='w-5 h-5 mb-1.5' />
+                        Past Questions
+                      </button>
                       {/* Timer spans full width for prominence */}
                       <div className='col-span-3 flex items-center justify-center p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl min-h-[64px]'>
                         <StudyTimer
@@ -734,6 +753,17 @@ export const MaterialView = () => {
                       >
                         <Link2 className='w-4 h-4 mr-3' />
                         Helpful Resources
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setPastQuestionsOpen(true);
+                          setMenuOpen(false);
+                        }}
+                        className='w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center text-sm text-gray-700 dark:text-gray-200'
+                      >
+                        <Tag className='w-4 h-4 mr-3' />
+                        Past Questions
                       </button>
 
                       <button
@@ -1028,6 +1058,19 @@ export const MaterialView = () => {
           isOpen={publicNotesOpen}
           onClose={() => setPublicNotesOpen(false)}
         />
+
+        {/* Past Questions Panel */}
+        <Suspense fallback={null}>
+          <PastQuestionsPanel
+            materialId={material?.id || ''}
+            isOpen={pastQuestionsOpen}
+            onClose={() => setPastQuestionsOpen(false)}
+            onJumpToPage={(page) => {
+              setCurrentPage(page);
+            }}
+            currentUserId={currentUser?.id}
+          />
+        </Suspense>
 
         {/* Helpful Links Sidebar */}
         {helpfulLinksOpen && (

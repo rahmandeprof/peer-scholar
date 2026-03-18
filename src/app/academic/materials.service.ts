@@ -766,11 +766,36 @@ export class MaterialsService {
     const annotation = this.annotationRepo.create({
       material,
       user,
-      ...data,
+      selectedText: data.selectedText,
+      pageNumber: data.pageNumber,
+      year: data.year || null,
+      session: data.session || null,
+      noteContent: data.noteContent,
+      contextBefore: data.contextBefore,
+      contextAfter: data.contextAfter,
       type: data.type ?? 'note',
     });
 
     return this.annotationRepo.save(annotation);
+  }
+
+  async deleteAnnotation(annotationId: string, userId: string) {
+    const annotation = await this.annotationRepo.findOne({
+      where: { id: annotationId },
+      relations: ['user'],
+    });
+
+    if (!annotation) {
+      throw new NotFoundException('Annotation not found');
+    }
+
+    if (annotation.user.id !== userId) {
+      throw new ForbiddenException('You can only delete your own annotations');
+    }
+
+    await this.annotationRepo.remove(annotation);
+
+    return { success: true };
   }
 
   async getAnnotations(materialId: string) {

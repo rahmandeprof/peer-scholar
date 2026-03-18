@@ -1,24 +1,9 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useToast } from '../contexts/ToastContext';
 import api from '../lib/api';
-import { X, Check, Tag, MessageSquare, PenLine } from 'lucide-react';
+import { X, Check, Tag, PenLine } from 'lucide-react';
 import { SelectionToolbar } from './SelectionToolbar';
-import { usePublicNoteHighlights } from '../hooks/usePublicNoteHighlights';
-
-interface Annotation {
-  id: string;
-  selectedText: string;
-  pageNumber?: number;
-  year?: string;
-  session?: string;
-  noteContent?: string;
-  user: {
-    firstName: string;
-    lastName: string;
-  };
-  type: 'note' | 'pq';
-}
 
 interface AnnotationManagerProps {
   materialId: string;
@@ -26,6 +11,14 @@ interface AnnotationManagerProps {
   children: React.ReactNode;
 }
 
+/**
+ * AnnotationManager — wraps document content and provides:
+ *  1. Selection toolbar integration (Add Note / Tag PQ)
+ *  2. Note and PQ save modals
+ *
+ * Highlights are NOT rendered persistently.
+ * Annotations are viewed/navigated via the PastQuestionsPanel (opened from three-dot menu).
+ */
 export function AnnotationManager({
   materialId,
   pageNumber,
@@ -39,11 +32,11 @@ export function AnnotationManager({
     contextBefore: string;
     contextAfter: string;
   } | null>(null);
-  const [annotations, setAnnotations] = useState<Annotation[]>([]);
 
   // Modal states
   const [showPqModal, setShowPqModal] = useState(false);
   const [showNoteModal, setShowNoteModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // PQ form state
   const [year, setYear] = useState('');
@@ -52,22 +45,7 @@ export function AnnotationManager({
   // Note form state
   const [noteContent, setNoteContent] = useState('');
 
-  // Ref for public note highlights
   const contentRef = useRef<HTMLDivElement>(null);
-  usePublicNoteHighlights(contentRef, materialId, pageNumber);
-
-  useEffect(() => {
-    fetchAnnotations();
-  }, [materialId]);
-
-  const fetchAnnotations = async () => {
-    try {
-      const res = await api.get(`/materials/${materialId}/annotations`);
-      setAnnotations(res.data);
-    } catch (err) {
-      console.error('Failed to fetch annotations', err);
-    }
-  };
 
   const resetSelection = () => {
     setSelection(null);
@@ -101,7 +79,8 @@ export function AnnotationManager({
   );
 
   const handleSavePq = async () => {
-    if (!selection || !year) return;
+    if (!selection || !year || isSaving) return;
+    setIsSaving(true);
 
     try {
       await api.post(`/materials/${materialId}/annotations`, {
@@ -118,14 +97,16 @@ export function AnnotationManager({
       setShowPqModal(false);
       setYear('');
       resetSelection();
-      fetchAnnotations();
-    } catch (err) {
+    } catch {
       toast.error('Failed to save annotation');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleSaveNote = async () => {
-    if (!selection || !noteContent.trim()) return;
+    if (!selection || !noteContent.trim() || isSaving) return;
+    setIsSaving(true);
 
     try {
       await api.post(`/materials/${materialId}/annotations`, {
@@ -141,92 +122,16 @@ export function AnnotationManager({
       setShowNoteModal(false);
       setNoteContent('');
       resetSelection();
-      fetchAnnotations();
-    } catch (err) {
+    } catch {
       toast.error('Failed to save note');
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  // Filter annotations for current page if applicable
-  const visibleAnnotations = pageNumber
-    ? annotations.filter((a) => a.pageNumber === pageNumber)
-    : annotations;
-
-  const notes = visibleAnnotations.filter((a) => a.type === 'note');
-  const pqs = visibleAnnotations.filter((a) => a.type === 'pq');
-
   return (
-    <div className='relative' ref={contentRef}>
+    <div className='relative' ref={contentRef} data-annotation-container>
       {children}
-
-      {/* Annotations Panel */}
-      {visibleAnnotations.length > 0 && (
-        <div className='absolute top-4 right-4 z-40 space-y-2 max-w-xs'>
-          {/* Past Questions */}
-          {pqs.length > 0 && (
-            <div className='bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm p-3 rounded-lg shadow-lg border border-yellow-200 dark:border-yellow-900/30'>
-              <h4 className='text-xs font-bold text-yellow-700 dark:text-yellow-500 uppercase tracking-wider mb-2 flex items-center'>
-                <Tag className='w-3 h-3 mr-1' />
-                Past Questions ({pqs.length})
-              </h4>
-              <div className='space-y-2 max-h-32 overflow-y-auto custom-scrollbar'>
-                {pqs.map((ann) => (
-                  <div
-                    key={ann.id}
-                    className='text-xs p-2 rounded bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-100 dark:border-yellow-900/50'
-                  >
-                    <p
-                      className='font-medium text-gray-800 dark:text-gray-200 line-clamp-2'
-                      title={ann.selectedText}
-                    >
-                      "{ann.selectedText}"
-                    </p>
-                    <div className='mt-1 flex justify-between items-center text-gray-500 dark:text-gray-400 text-[10px]'>
-                      <span>
-                        {ann.year} • {ann.session}
-                      </span>
-                      <span>{ann.user.firstName}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Notes */}
-          {notes.length > 0 && (
-            <div className='bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm p-3 rounded-lg shadow-lg border border-blue-200 dark:border-blue-900/30'>
-              <h4 className='text-xs font-bold text-blue-700 dark:text-blue-500 uppercase tracking-wider mb-2 flex items-center'>
-                <MessageSquare className='w-3 h-3 mr-1' />
-                Student Notes ({notes.length})
-              </h4>
-              <div className='space-y-2 max-h-40 overflow-y-auto custom-scrollbar'>
-                {notes.map((ann) => (
-                  <div
-                    key={ann.id}
-                    className='text-xs p-2 rounded bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/50'
-                  >
-                    <p
-                      className='font-medium text-gray-700 dark:text-gray-300 line-clamp-1 italic'
-                      title={ann.selectedText}
-                    >
-                      "{ann.selectedText}"
-                    </p>
-                    {ann.noteContent && (
-                      <p className='mt-1 text-gray-600 dark:text-gray-400 line-clamp-3'>
-                        {ann.noteContent}
-                      </p>
-                    )}
-                    <div className='mt-1 text-right text-gray-400 dark:text-gray-500 text-[10px]'>
-                      — {ann.user.firstName}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Unified Selection Toolbar (AI actions + annotations) */}
       {!showPqModal && !showNoteModal && (
@@ -257,7 +162,7 @@ export function AnnotationManager({
 
               <div className='mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-700'>
                 <p className='text-sm text-gray-600 dark:text-gray-300 italic line-clamp-3'>
-                  "{selection.text}"
+                  &ldquo;{selection.text}&rdquo;
                 </p>
               </div>
 
@@ -282,11 +187,11 @@ export function AnnotationManager({
 
                 <button
                   onClick={handleSaveNote}
-                  disabled={!noteContent.trim()}
+                  disabled={!noteContent.trim() || isSaving}
                   className='w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center'
                 >
                   <Check className='w-4 h-4 mr-2' />
-                  Save Note
+                  {isSaving ? 'Saving...' : 'Save Note'}
                 </button>
               </div>
             </div>
@@ -318,7 +223,7 @@ export function AnnotationManager({
 
               <div className='mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-700'>
                 <p className='text-sm text-gray-600 dark:text-gray-300 italic line-clamp-3'>
-                  "{selection.text}"
+                  &ldquo;{selection.text}&rdquo;
                 </p>
               </div>
 
@@ -353,11 +258,11 @@ export function AnnotationManager({
 
                 <button
                   onClick={handleSavePq}
-                  disabled={!year}
+                  disabled={!year || isSaving}
                   className='w-full py-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center'
                 >
                   <Check className='w-4 h-4 mr-2' />
-                  Save Tag
+                  {isSaving ? 'Saving...' : 'Save Tag'}
                 </button>
               </div>
             </div>
