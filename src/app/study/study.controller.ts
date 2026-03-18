@@ -11,6 +11,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { AuthGuard } from '@nestjs/passport';
+import { Throttle } from '@nestjs/throttler';
 
 import { StudySessionType } from './entities/study-session.entity';
 import { User } from '@/app/users/entities/user.entity';
@@ -189,6 +190,7 @@ export class StudyController {
   }
 
   @UseGuards(AuthGuard('jwt'))
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 syncs per minute (generous for offline batch)
   @Post('reading/offline-sync')
   syncOfflineReading(
     @Req() req: RequestWithUser,

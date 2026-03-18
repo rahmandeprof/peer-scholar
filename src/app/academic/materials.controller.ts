@@ -209,11 +209,13 @@ export class MaterialsController {
 
   @Delete(':id/annotations/:annotationId')
   deleteAnnotation(
+    @Param('id') _id: string,
     @Param('annotationId') annotationId: string,
     @Req() req: AuthenticatedRequest,
   ) {
     return this.materialsService.deleteAnnotation(annotationId, req.user.id);
   }
+
   @Post(':id/report')
   async reportMaterial(
     @Param('id') id: string,

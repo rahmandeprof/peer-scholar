@@ -6,7 +6,10 @@
  */
 
 const STORAGE_KEY = 'offlineReadingSessions';
-const SYNC_INTERVAL = 30000; // 30 seconds
+const DEFAULT_SYNC_INTERVAL = 60000; // 60 seconds (was 30s — too aggressive)
+const MAX_SYNC_INTERVAL = 300000; // 5 minutes max backoff
+let currentSyncInterval = DEFAULT_SYNC_INTERVAL;
+let syncTimerId: ReturnType<typeof setInterval> | null = null;
 
 interface OfflineSession {
     id: string;
@@ -133,6 +136,13 @@ export async function syncOfflineSessions(): Promise<{ synced: number; failed: n
                 // Mark as synced
                 session.synced = true;
                 synced++;
+            } else if (response.status === 429) {
+                // Rate limited — back off and stop trying remaining sessions
+                console.warn('[OfflineSync] Rate limited, backing off...');
+                currentSyncInterval = Math.min(currentSyncInterval * 2, MAX_SYNC_INTERVAL);
+                restartSyncTimer();
+                failed += unsynced.length - synced; // count remaining as failed
+                break; // Stop processing — don't hammer the server
             } else {
                 failed++;
             }
@@ -144,6 +154,12 @@ export async function syncOfflineSessions(): Promise<{ synced: number; failed: n
 
     // Update storage with synced status
     saveSessions(sessions);
+
+    // Reset backoff on successful sync
+    if (synced > 0 && failed === 0) {
+        currentSyncInterval = DEFAULT_SYNC_INTERVAL;
+        restartSyncTimer();
+    }
 
     // Clean up old synced sessions (older than 7 days)
     cleanupOldSessions();
@@ -172,12 +188,28 @@ export function getUnsyncedReadingTime(): number {
 }
 
 /**
+ * Restart the periodic sync timer with the current interval
+ */
+function restartSyncTimer(): void {
+    if (syncTimerId) {
+        clearInterval(syncTimerId);
+    }
+    syncTimerId = setInterval(() => {
+        if (navigator.onLine) {
+            syncOfflineSessions();
+        }
+    }, currentSyncInterval);
+}
+
+/**
  * Initialize sync on page load and when coming back online
  */
 export function initOfflineSync(): void {
     // Sync when coming back online
     window.addEventListener('online', () => {
         console.log('Back online, syncing reading sessions...');
+        // Reset backoff when coming back online
+        currentSyncInterval = DEFAULT_SYNC_INTERVAL;
         syncOfflineSessions().then(result => {
             if (result.synced > 0) {
                 console.log(`Synced ${result.synced} offline reading sessions`);
@@ -186,11 +218,7 @@ export function initOfflineSync(): void {
     });
 
     // Periodic sync when online
-    setInterval(() => {
-        if (navigator.onLine) {
-            syncOfflineSessions();
-        }
-    }, SYNC_INTERVAL);
+    restartSyncTimer();
 
     // Initial sync
     if (navigator.onLine) {
