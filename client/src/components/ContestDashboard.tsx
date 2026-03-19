@@ -45,7 +45,7 @@ interface MyStats {
 
 export function ContestDashboard() {
   const { user } = useAuth();
-  const { showToast, success, error: toastError } = useToast();
+  const { success, error: toastError } = useToast();
   const [contest, setContest] = useState<Contest | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [myStats, setMyStats] = useState<MyStats>({

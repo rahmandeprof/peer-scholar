@@ -27,7 +27,6 @@ interface PastQuestionsPanelProps {
   isOpen: boolean;
   onClose: () => void;
   onJumpToPage?: (page: number) => void;
-  containerRef?: React.RefObject<HTMLElement | null>;
   currentUserId?: string;
 }
 
@@ -36,7 +35,6 @@ export function PastQuestionsPanel({
   isOpen,
   onClose,
   onJumpToPage,
-  containerRef,
   currentUserId,
 }: PastQuestionsPanelProps) {
   const toast = useToast();
