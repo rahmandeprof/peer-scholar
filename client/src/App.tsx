@@ -77,6 +77,10 @@ const AdminDashboard = lazyWithRetry(
 );
 const AdminRoute = lazyWithRetry(() => import('./components/AdminRoute'));
 const NotFound = lazyWithRetry(() => import('./components/NotFound'));
+const ContestDashboard = lazyWithRetryNamed(
+  () => import('./components/ContestDashboard'),
+  'ContestDashboard',
+);
 
 // Public pages (no auth required)
 const AboutPage = lazyWithRetryNamed(
@@ -253,6 +257,7 @@ function AppContent() {
             <Route path='/dashboard' element={<AcademicControlCenter />} />
             <Route path='/department' element={<DepartmentView />} />
             <Route path='/study-partner' element={<StudyPartner />} />
+            <Route path='/contest' element={<ContestDashboard />} />
             <Route
               path='/partner'
               element={<Navigate to='/study-partner' replace />}

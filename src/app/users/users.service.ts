@@ -10,11 +10,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 
 import { Department } from '@/app/academic/entities/department.entity';
 import { Faculty } from '@/app/academic/entities/faculty.entity';
+import { Contest } from '@/app/users/entities/contest.entity';
 import {
   PartnerRequest,
   PartnerRequestStatus,
 } from '@/app/users/entities/partner-request.entity';
 import { ReadingProgress } from '@/app/users/entities/reading-progress.entity';
+import { Referral, ReferralStatus } from '@/app/users/entities/referral.entity';
 import { StudyStreak } from '@/app/users/entities/study-streak.entity';
 import { User } from '@/app/users/entities/user.entity';
 import { ViewingHistory } from '@/app/users/entities/viewing-history.entity';
@@ -51,6 +53,10 @@ export class UsersService {
     private readonly readingProgressRepo: Repository<ReadingProgress>,
     @InjectRepository(ViewingHistory)
     private readonly viewingHistoryRepo: Repository<ViewingHistory>,
+    @InjectRepository(Referral)
+    private readonly referralRepo: Repository<Referral>,
+    @InjectRepository(Contest)
+    private readonly contestRepo: Repository<Contest>,
     private readonly logger: WinstonLoggerService,
     private readonly emailService: EmailService,
     private readonly configService: ConfigService,
@@ -644,6 +650,22 @@ export class UsersService {
       streakFreezes: streak.streakFreezes,
       weeklyActiveDays: streak.weeklyActiveDays,
     };
+  }
+
+  /**
+   * Called when a user performs a meaningful action (e.g. finishes a study session)
+   * Upgrades a completed referral to qualified, meaning it counts toward the leaderboard.
+   */
+  async upgradeReferral(userId: string) {
+    const referral = await this.referralRepo.findOne({
+      where: { refereeId: userId, status: ReferralStatus.COMPLETED },
+    });
+
+    if (referral) {
+      referral.status = ReferralStatus.QUALIFIED;
+      referral.qualifiedAt = new Date();
+      await this.referralRepo.save(referral);
+    }
   }
 
   /**

@@ -1,0 +1,70 @@
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+
+import { RolesGuard } from '@/app/auth/guards/roles.guard';
+
+import { ContestsService } from './contests.service';
+
+import { Role } from '@/app/auth/decorators';
+
+import { Request } from 'express';
+
+@ApiTags('Contests')
+@ApiBearerAuth()
+@Controller('contests')
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+export class ContestsController {
+  constructor(private readonly contestsService: ContestsService) {}
+
+  @ApiOperation({ summary: 'Get the currently active referral contest' })
+  @Get('active')
+  async getActiveContest() {
+    return this.contestsService.getActiveContest();
+  }
+
+  @ApiOperation({ summary: 'Get realtime leaderboard for active contest' })
+  @Get('active/leaderboard')
+  async getLeaderboard() {
+    return this.contestsService.getLeaderboard();
+  }
+
+  @ApiOperation({
+    summary: 'Get current user rank and stats for active contest',
+  })
+  @Get('active/my-stats')
+  async getMyStats(@Req() req: Request) {
+    const userId = (req.user as any)?.id;
+
+    return this.contestsService.getMyStats(userId);
+  }
+
+  @ApiOperation({
+    summary: 'Admin: Disqualify a referral due to suspected fraud',
+  })
+  @Role('admin')
+  @Patch('admin/referrals/:id/disqualify')
+  async disqualifyReferral(
+    @Param('id') id: string,
+    @Body('reason') reason: string,
+  ) {
+    return this.contestsService.disqualifyReferral(id, reason);
+  }
+
+  @ApiOperation({
+    summary: 'Admin: Get suspicious contest participants for review',
+  })
+  @Role('admin')
+  @Get('admin/suspicious-participants')
+  async getSuspiciousParticipants() {
+    return this.contestsService.getSuspiciousParticipants();
+  }
+}

@@ -84,9 +84,8 @@ export function useReadingSession({
               seconds: elapsedSeconds,
             })
             .catch(console.error);
-        }
-        // Always accumulate locally as fallback
-        if (materialId) {
+        } else if (materialId) {
+          // Only accumulate offline when actually offline
           accumulateReadingTime(materialId, 30);
         }
       }, 30000); // Every 30 seconds
@@ -115,11 +114,6 @@ export function useReadingSession({
     const sendEndRequest = () => {
       const elapsedSeconds = getAccurateElapsedSeconds();
       if (elapsedSeconds >= 5) {
-        // Always accumulate locally first as safety net
-        if (materialId) {
-          accumulateReadingTime(materialId, elapsedSeconds);
-        }
-
         if (navigator.onLine) {
           const token = localStorage.getItem('token');
           const apiBaseUrl =
@@ -145,6 +139,9 @@ export function useReadingSession({
               })
               .catch(console.error);
           }
+        } else if (materialId) {
+          // Only accumulate locally when truly offline and beacon can't send
+          accumulateReadingTime(materialId, elapsedSeconds);
         }
       }
     };

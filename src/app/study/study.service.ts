@@ -151,8 +151,9 @@ export class StudyService {
     session.completed = true;
     await this.studySessionRepo.save(session);
 
-    // Update streak
+    // Update streak and handle referral mechanics
     await this.usersService.updateStreak(userId);
+    await this.usersService.upgradeReferral(userId);
 
     // Get total study time for badge checking
     const totalStudyTime = await this.studySessionRepo
@@ -427,6 +428,9 @@ export class StudyService {
 
     // Ensure streak is updated for offline reading syncs
     await this.usersService.updateStreak(userId);
+
+    // Upgrade referral status if they were referred and this is their first meaningful action
+    await this.usersService.upgradeReferral(userId);
 
     return {
       success: true,

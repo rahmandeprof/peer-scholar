@@ -32,6 +32,7 @@ import { School } from '@/app/academic/entities/school.entity';
 import { QuizResult } from '@/app/chat/entities/quiz-result.entity';
 import { User } from '@/app/users/entities/user.entity';
 
+import { ContestsService } from '@/app/users/contests.service';
 import { UsersService } from '@/app/users/users.service';
 
 import { Role } from '@/app/auth/decorators';
@@ -59,6 +60,7 @@ export class AdminController {
 
   constructor(
     private readonly usersService: UsersService,
+    private readonly contestsService: ContestsService,
     @InjectRepository(Material)
     private readonly materialRepo: Repository<Material>,
     @InjectRepository(DocumentSegment)
@@ -438,6 +440,7 @@ export class AdminController {
         },
         quizzes: { taken: totalQuizzesTaken },
       },
+      contests: await this.contestsService.getAdminStats(),
       stuckCount,
       queueStatus,
     };
@@ -514,6 +517,7 @@ export class AdminController {
         missingSummary: materialsMissingSummary,
       },
       quizzes: { taken: totalQuizzesTaken },
+      contests: await this.contestsService.getAdminStats(),
     };
   }
 

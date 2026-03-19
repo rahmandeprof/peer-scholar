@@ -1,17 +1,13 @@
 import { User } from './user.entity';
 import { IDAndTimestamp } from '@/database/entities/id-and-timestamp.entity';
 
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-} from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 
 export enum ReferralStatus {
   PENDING = 'pending', // Referee signed up but not verified
   COMPLETED = 'completed', // Referee verified email, points awarded
+  QUALIFIED = 'qualified', // Referee has started studying (used for leaderboard)
+  DISQUALIFIED = 'disqualified', // Admin disqualified referral (fraud, abuse)
   EXPIRED = 'expired', // Referee never verified (optional cleanup)
 }
 
@@ -41,6 +37,15 @@ export class Referral extends IDAndTimestamp {
   @Column({ name: 'points_awarded', type: 'int', default: 0 })
   pointsAwarded!: number;
 
-  @CreateDateColumn({ name: 'completed_at', nullable: true })
+  @Column({ name: 'completed_at', type: 'timestamp', nullable: true })
   completedAt?: Date;
+
+  @Column({ name: 'qualified_at', type: 'timestamp', nullable: true })
+  qualifiedAt?: Date;
+
+  @Column({ name: 'disqualified_at', type: 'timestamp', nullable: true })
+  disqualifiedAt?: Date;
+
+  @Column({ name: 'disqualification_reason', type: 'text', nullable: true })
+  disqualificationReason?: string;
 }

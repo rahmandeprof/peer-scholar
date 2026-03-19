@@ -13,6 +13,7 @@ import {
   Shield,
   Moon,
   Sun,
+  Trophy,
 } from 'lucide-react';
 import { BorderSpinner } from './Skeleton';
 import { useAuth } from '../contexts/AuthContext';
@@ -144,6 +145,10 @@ export function DashboardLayout() {
                 <NavLink to='/study-partner' className={navLinkClass}>
                   <Users className='w-5 h-5 flex-shrink-0' />
                   <span>Study Partner</span>
+                </NavLink>
+                <NavLink to='/contest' className={navLinkClass}>
+                  <Trophy className='w-5 h-5 flex-shrink-0 text-amber-500' />
+                  <span>Referral Contest</span>
                 </NavLink>
                 <button
                   onClick={() => setUploadModalOpen(true)}
@@ -333,6 +338,14 @@ export function DashboardLayout() {
                 >
                   <Users className='w-5 h-5 mr-3' />
                   Study Partner
+                </NavLink>
+                <NavLink
+                  to='/contest'
+                  className={navLinkClass}
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <Trophy className='w-5 h-5 mr-3 text-amber-500' />
+                  Referral Contest
                 </NavLink>
 
                 <div className='py-2'>
