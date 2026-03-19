@@ -1,12 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  X,
-  Tag,
-  MessageSquare,
-  Trash2,
-  FileText,
-} from 'lucide-react';
+import { X, Tag, MessageSquare, Trash2, FileText } from 'lucide-react';
 import api from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
 
@@ -72,85 +66,8 @@ export function PastQuestionsPanel({
       if (highlightTimerRef.current) {
         clearTimeout(highlightTimerRef.current);
       }
-      clearTemporaryHighlights();
     };
   }, [isOpen, fetchAnnotations]);
-
-  const clearTemporaryHighlights = () => {
-    const marks = document.querySelectorAll('mark[data-temp-highlight]');
-    marks.forEach((mark) => {
-      const parent = mark.parentNode;
-      if (parent) {
-        parent.replaceChild(
-          document.createTextNode(mark.textContent || ''),
-          mark,
-        );
-        parent.normalize();
-      }
-    });
-  };
-
-  const temporaryHighlight = (searchText: string): boolean => {
-    const container = containerRef?.current;
-    if (!container || !searchText) return false;
-
-    // Clear any existing temporary highlights
-    clearTemporaryHighlights();
-
-    const normalizedSearch = searchText.replace(/\s+/g, ' ').toLowerCase();
-    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
-      acceptNode: (node) => {
-        if (
-          node.parentElement?.tagName === 'MARK' &&
-          node.parentElement?.hasAttribute('data-temp-highlight')
-        ) {
-          return NodeFilter.FILTER_REJECT;
-        }
-        return NodeFilter.FILTER_ACCEPT;
-      },
-    });
-
-    let node: Node | null;
-    while ((node = walker.nextNode())) {
-      const content = (node as Text).textContent || '';
-      const normalizedContent = content.replace(/\s+/g, ' ').toLowerCase();
-      const idx = normalizedContent.indexOf(normalizedSearch);
-
-      if (idx !== -1) {
-        try {
-          const range = document.createRange();
-          range.setStart(node, idx);
-          range.setEnd(node, Math.min(idx + searchText.length, content.length));
-
-          const mark = document.createElement('mark');
-          mark.setAttribute('data-temp-highlight', 'true');
-          mark.style.backgroundColor = 'rgba(250, 204, 21, 0.5)';
-          mark.style.borderRadius = '2px';
-          mark.style.transition = 'background-color 0.3s ease';
-          mark.style.outline = '2px solid rgba(250, 204, 21, 0.8)';
-          mark.style.outlineOffset = '1px';
-
-          range.surroundContents(mark);
-
-          // Scroll to the highlight
-          mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-          // Auto-remove after 4 seconds with fade
-          highlightTimerRef.current = setTimeout(() => {
-            mark.style.backgroundColor = 'transparent';
-            mark.style.outline = 'none';
-            setTimeout(() => {
-              clearTemporaryHighlights();
-            }, 300);
-          }, 4000);
-        } catch {
-          // surroundContents can fail if range crosses element boundaries
-        }
-        return true; // Highlight attempted (or succeeded)
-      }
-    }
-    return false; // Not found
-  };
 
   const handleNavigate = (annotation: Annotation) => {
     if (annotation.pageNumber && onJumpToPage) {
@@ -163,9 +80,7 @@ export function PastQuestionsPanel({
 
   const handleDelete = async (annotationId: string) => {
     try {
-      await api.delete(
-        `/materials/${materialId}/annotations/${annotationId}`,
-      );
+      await api.delete(`/materials/${materialId}/annotations/${annotationId}`);
       setAnnotations((prev) => prev.filter((a) => a.id !== annotationId));
       toast.success('Annotation deleted');
     } catch {
@@ -186,10 +101,7 @@ export function PastQuestionsPanel({
   return createPortal(
     <>
       {/* Backdrop */}
-      <div
-        className='fixed inset-0 z-[80] bg-black/20'
-        onClick={onClose}
-      />
+      <div className='fixed inset-0 z-[80] bg-black/20' onClick={onClose} />
 
       {/* Panel */}
       <div className='fixed top-0 bottom-0 right-0 w-80 max-w-[90vw] z-[90] bg-white dark:bg-gray-800 shadow-2xl border-l border-gray-200 dark:border-gray-700 flex flex-col animate-slide-left select-none'>

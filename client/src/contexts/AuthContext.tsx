@@ -29,6 +29,7 @@ interface User {
   username?: string | null;
   displayNamePreference?: 'username' | 'fullname';
   showOnLeaderboard?: boolean;
+  referralCode?: string;
 }
 
 interface AuthContextType {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Trophy,
   Copy,
@@ -45,7 +45,7 @@ interface MyStats {
 
 export function ContestDashboard() {
   const { user } = useAuth();
-  const { showToast } = useToast();
+  const { showToast, success, error: toastError } = useToast();
   const [contest, setContest] = useState<Contest | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [myStats, setMyStats] = useState<MyStats>({
@@ -106,10 +106,10 @@ export function ContestDashboard() {
   const handleCopyLink = () => {
     if (user?.referralCode) {
       navigator.clipboard.writeText(referralLink);
-      showToast('success', 'Referral link copied to clipboard!');
+      success('Referral link copied to clipboard!');
       logAnalytics('referral_link_copied');
     } else {
-      showToast('error', 'Referral code not available. Please try refreshing.');
+      toastError('Referral code not available. Please try refreshing.');
     }
   };
 
