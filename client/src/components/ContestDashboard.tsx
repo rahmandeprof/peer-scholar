@@ -196,52 +196,52 @@ export function ContestDashboard() {
   return (
     <div className='max-w-6xl mx-auto p-4 md:p-8 space-y-8 animate-fade-in pb-24'>
       {/* Header Banner */}
-      <div className='relative overflow-hidden bg-gradient-to-br from-indigo-600 via-primary-600 to-purple-700 rounded-3xl p-8 md:p-12 text-white shadow-2xl'>
-        <div className='absolute top-0 right-0 p-8 opacity-20 transform translate-x-8 -translate-y-8'>
+      <div className='relative overflow-hidden bg-gradient-to-br from-indigo-600 via-primary-600 to-purple-700 rounded-2xl md:rounded-3xl p-5 sm:p-8 md:p-12 text-white shadow-2xl'>
+        <div className='absolute top-0 right-0 p-8 opacity-20 transform translate-x-8 -translate-y-8 hidden sm:block'>
           <Trophy className='w-64 h-64' />
         </div>
 
-        <div className='relative z-10 max-w-2xl'>
-          <div className='flex items-center gap-3 mb-6 flex-wrap'>
-            <div className='inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-semibold'>
+        <div className='relative z-10'>
+          <div className='flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 flex-wrap'>
+            <div className='inline-flex items-center gap-1.5 px-2.5 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-semibold'>
               <span className='w-2 h-2 rounded-full bg-green-400 animate-pulse' />
               LIVE CONTEST
             </div>
             {timeLeft && (
-              <div className='inline-flex items-center gap-2 px-3 py-1 bg-black/20 backdrop-blur-md rounded-full text-xs font-mono font-semibold'>
+              <div className='inline-flex items-center gap-1.5 px-2.5 py-1 bg-black/20 backdrop-blur-md rounded-full text-xs font-mono font-semibold'>
                 <Trophy className='w-3 h-3 text-yellow-300' />
                 {timeLeft}
               </div>
             )}
           </div>
-          <h1 className='text-4xl md:text-5xl font-extrabold mb-4 tracking-tight drop-shadow-lg text-white'>
+          <h1 className='text-2xl sm:text-4xl md:text-5xl font-extrabold mb-3 sm:mb-4 tracking-tight drop-shadow-lg text-white'>
             {contest.name}
           </h1>
-          <p className='text-lg md:text-xl text-primary-100 mb-8 max-w-lg leading-relaxed'>
+          <p className='text-sm sm:text-lg md:text-xl text-primary-100 mb-5 sm:mb-8 max-w-lg leading-relaxed'>
             Invite your peers to join and complete their first study session.
             Climb the leaderboard to win exclusive tech prizes!
           </p>
 
-          <div className='flex flex-col sm:flex-row gap-4'>
-            <div className='flex items-center bg-white/10 backdrop-blur-md border border-white/20 rounded-xl overflow-hidden p-1 min-w-[300px] shadow-inner transition-colors hover:bg-white/15'>
-              <div className='flex-1 truncate px-4 font-mono text-sm opacity-90 text-white'>
+          <div className='flex items-center gap-2 sm:gap-3'>
+            <div className='flex items-center flex-1 min-w-0 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl overflow-hidden p-1 shadow-inner'>
+              <div className='flex-1 min-w-0 truncate px-3 sm:px-4 font-mono text-xs sm:text-sm opacity-90 text-white'>
                 {referralLink}
               </div>
               <button
                 onClick={handleCopyLink}
-                className='p-3 bg-white text-primary-700 rounded-lg font-bold shadow-lg hover:bg-gray-50 hover:scale-105 transition-all flex items-center gap-2'
+                className='flex-shrink-0 p-2.5 sm:p-3 bg-white text-primary-700 rounded-lg font-bold shadow-lg hover:bg-gray-50 transition-all flex items-center gap-1.5'
               >
                 <Copy className='w-4 h-4' />
-                <span className='hidden sm:inline'>Copy</span>
+                <span className='hidden sm:inline text-sm'>Copy</span>
               </button>
             </div>
 
             <button
               onClick={handleShareLink}
-              className='p-4 bg-purple-500/80 backdrop-blur-md border border-purple-400/50 rounded-xl font-bold shadow-lg hover:bg-purple-500 hover:scale-105 transition-all flex items-center justify-center gap-2 text-white'
+              className='flex-shrink-0 p-2.5 sm:p-3 bg-purple-500/80 backdrop-blur-md border border-purple-400/50 rounded-xl font-bold shadow-lg hover:bg-purple-500 transition-all flex items-center justify-center gap-1.5 text-white'
             >
               <Share2 className='w-5 h-5' />
-              <span className='sm:hidden'>Share</span>
+              <span className='hidden sm:inline text-sm'>Share</span>
             </button>
           </div>
         </div>
