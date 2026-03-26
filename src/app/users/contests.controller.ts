@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 
 import { RolesGuard } from '@/app/auth/guards/roles.guard';
 
@@ -87,12 +88,14 @@ export class ContestsController {
   }
 
   @ApiOperation({ summary: 'Get the currently active referral contest' })
+  @SkipThrottle()
   @Get('active')
   async getActiveContest() {
     return this.contestsService.getActiveContest();
   }
 
   @ApiOperation({ summary: 'Get realtime leaderboard for active contest' })
+  @SkipThrottle()
   @Get('active/leaderboard')
   async getLeaderboard() {
     return this.contestsService.getLeaderboard();
@@ -101,6 +104,7 @@ export class ContestsController {
   @ApiOperation({
     summary: 'Get current user rank and stats for active contest',
   })
+  @SkipThrottle()
   @Get('active/my-stats')
   async getMyStats(@Req() req: Request) {
     const userId = (req.user as any)?.id;

@@ -72,10 +72,10 @@ export function ContestDashboard() {
   useEffect(() => {
     fetchDashboardData();
 
-    // Poll leaderboard every 15 seconds
+    // Poll leaderboard every 30 seconds (server caches for 15s anyway)
     const interval = setInterval(() => {
       fetchDashboardData();
-    }, 15000);
+    }, 30000);
 
     return () => clearInterval(interval);
   }, [fetchDashboardData]);
