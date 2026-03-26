@@ -5,10 +5,12 @@
 @tailwind utilities;
 
 @layer base {
-  html,
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     @apply overflow-x-hidden;
-    overscroll-behavior-y: none;
   }
 
   body {
