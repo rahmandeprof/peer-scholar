@@ -427,27 +427,36 @@ export function ContestDashboard() {
           {/* Prizes Card */}
           {contest.prizeConfig && (
             <div className='bg-gradient-to-b from-amber-50 to-white dark:from-gray-800 dark:to-gray-900 rounded-2xl shadow-xl border border-amber-200 dark:border-gray-700 overflow-hidden'>
-              <div className='p-5 border-b border-amber-100 dark:border-gray-700 flex items-center gap-2 bg-amber-100/50 dark:bg-gray-800'>
+              <div className='px-4 py-3 border-b border-amber-100 dark:border-gray-700 flex items-center gap-2 bg-amber-100/50 dark:bg-gray-800'>
                 <Trophy className='w-5 h-5 text-amber-600 dark:text-amber-400' />
                 <h3 className='font-bold text-gray-900 dark:text-white'>
                   Contest Prizes
                 </h3>
               </div>
-              <div className='p-6 space-y-4'>
+              <div className='p-4 space-y-2.5'>
                 {Object.entries(contest.prizeConfig).map(
-                  ([rankings, prize]: any, i) => (
-                    <div
-                      key={i}
-                      className='flex items-center gap-4 p-3 bg-white dark:bg-gray-800 rounded-xl border border-amber-100 dark:border-gray-700 shadow-sm'
-                    >
-                      <div className='w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400 font-bold mb-1'>
-                        {rankings}
+                  ([rankings, prize]: any, i) => {
+                    const badgeStyles = [
+                      'bg-gradient-to-br from-yellow-300 to-yellow-500 text-yellow-900',
+                      'bg-gradient-to-br from-gray-300 to-gray-400 text-gray-800',
+                      'bg-gradient-to-br from-amber-500 to-amber-700 text-white',
+                    ];
+                    return (
+                      <div
+                        key={i}
+                        className='flex items-center gap-3 px-3 py-2.5 bg-white dark:bg-gray-800 rounded-xl border border-amber-100 dark:border-gray-700 shadow-sm'
+                      >
+                        <div
+                          className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm shadow-md flex-shrink-0 ${badgeStyles[i] || badgeStyles[2]}`}
+                        >
+                          {rankings}
+                        </div>
+                        <div className='font-semibold text-gray-800 dark:text-gray-200'>
+                          {prize}
+                        </div>
                       </div>
-                      <div className='font-semibold text-gray-800 dark:text-gray-200'>
-                        {prize}
-                      </div>
-                    </div>
-                  ),
+                    );
+                  },
                 )}
               </div>
             </div>
