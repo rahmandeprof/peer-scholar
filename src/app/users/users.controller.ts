@@ -13,6 +13,8 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
+import { RolesGuard } from '@/app/auth/guards/roles.guard';
+
 import { CreateUserDto } from '@/app/users/dto/create-user.dto';
 import { UpdateAcademicProfileDto } from '@/app/users/dto/update-academic-profile.dto';
 import { UpdateTimerSettingsDto } from '@/app/users/dto/update-timer-settings.dto';
@@ -20,6 +22,7 @@ import { UpdateUserDto } from '@/app/users/dto/update-user.dto';
 
 import { UsersService } from '@/app/users/users.service';
 
+import { Role } from '@/app/auth/decorators';
 import { AuthenticatedRequest } from '@/app/common/types/request.types';
 
 import { Paginate, PaginateQuery } from 'nestjs-paginate';
@@ -223,6 +226,20 @@ export class UsersController {
   }
 
   // ===== ADMIN ENDPOINTS =====
+
+  @Get('admin/recent')
+  @Role('admin')
+  @UseGuards(RolesGuard)
+  async getRecentUsers() {
+    return this.usersService.getRecentUsers();
+  }
+
+  @Post('admin/mass-delete')
+  @Role('admin')
+  @UseGuards(RolesGuard)
+  async massDeleteUsers(@Body('userIds') userIds: string[]) {
+    return this.usersService.massDelete(userIds);
+  }
 
   @Get('admin/leaderboards')
   async getLeaderboards(@Req() req: AuthenticatedRequest) {

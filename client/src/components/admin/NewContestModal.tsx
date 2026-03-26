@@ -1,19 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Plus, Trash2, Calendar, Trophy } from 'lucide-react';
 import { BorderSpinner } from '../Skeleton';
 import api from '../../lib/api';
 import { useToast } from '../../contexts/ToastContext';
 
+export interface Contest {
+  id: string;
+  name: string;
+  description?: string;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+  prizeConfig?: Record<string, string>;
+  rules?: string;
+  status?: string;
+}
+
 interface NewContestModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  initialData?: Contest | null;
 }
 
 export function NewContestModal({
   isOpen,
   onClose,
   onSuccess,
+  initialData,
 }: NewContestModalProps) {
   const toast = useToast();
   const [loading, setLoading] = useState(false);
@@ -34,6 +48,52 @@ export function NewContestModal({
       { rank: '3rd', reward: '' },
     ],
   );
+
+  const isEditing = !!initialData;
+
+  useEffect(() => {
+    if (isOpen && initialData) {
+      setName(initialData.name);
+      setDescription(initialData.description || '');
+
+      // format for datetime-local (strip Z and milliseconds)
+      const formatLocal = (iso: string) => {
+        const d = new Date(iso);
+        return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+          .toISOString()
+          .slice(0, 16);
+      };
+
+      setStartDate(
+        initialData.startDate ? formatLocal(initialData.startDate) : '',
+      );
+      setEndDate(initialData.endDate ? formatLocal(initialData.endDate) : '');
+      setRules(initialData.rules || '');
+      setIsActive(initialData.isActive);
+
+      if (initialData.prizeConfig) {
+        const mappedPrizes = Object.entries(initialData.prizeConfig).map(
+          ([rank, reward]) => ({ rank, reward }),
+        );
+        setPrizes(mappedPrizes);
+      } else {
+        setPrizes([]);
+      }
+    } else if (isOpen) {
+      // Reset form on new open
+      setName('');
+      setDescription('');
+      setStartDate('');
+      setEndDate('');
+      setRules('');
+      setIsActive(true);
+      setPrizes([
+        { rank: '1st', reward: '' },
+        { rank: '2nd', reward: '' },
+        { rank: '3rd', reward: '' },
+      ]);
+    }
+  }, [isOpen, initialData]);
 
   if (!isOpen) return null;
 
@@ -80,7 +140,7 @@ export function NewContestModal({
 
     setLoading(true);
     try {
-      await api.post('/contests', {
+      const payload = {
         name,
         description,
         startDate: new Date(startDate).toISOString(),
@@ -89,14 +149,27 @@ export function NewContestModal({
         isActive,
         prizeConfig:
           Object.keys(prizeConfig).length > 0 ? prizeConfig : undefined,
-      });
+      };
 
-      toast.success('Contest created successfully!');
+      if (isEditing) {
+        await api.patch(`/contests/admin/${initialData.id}`, payload);
+        toast.success('Contest updated successfully!');
+      } else {
+        await api.post('/contests', payload);
+        toast.success('Contest created successfully!');
+      }
+
       onSuccess();
       onClose();
     } catch (err: any) {
-      console.error('Failed to create contest:', err);
-      toast.error(err.response?.data?.message || 'Failed to create contest');
+      console.error(
+        isEditing ? 'Failed to update contest:' : 'Failed to create contest:',
+        err,
+      );
+      toast.error(
+        err.response?.data?.message ||
+          (isEditing ? 'Failed to update contest' : 'Failed to create contest'),
+      );
     } finally {
       setLoading(false);
     }
@@ -115,10 +188,14 @@ export function NewContestModal({
             </div>
             <div>
               <h2 className='text-xl font-bold text-gray-900 dark:text-white'>
-                Create Referral Contest
+                {isEditing
+                  ? 'Edit Referral Contest'
+                  : 'Create Referral Contest'}
               </h2>
               <p className='text-sm text-gray-500 dark:text-gray-400'>
-                Launch a new competition to drive user growth
+                {isEditing
+                  ? 'Modify the details of this competition'
+                  : 'Launch a new competition to drive user growth'}
               </p>
             </div>
           </div>
@@ -306,7 +383,13 @@ export function NewContestModal({
             disabled={loading}
             className='px-5 py-2.5 bg-primary-600 text-white font-medium hover:bg-primary-700 rounded-xl transition-colors disabled:opacity-50 min-w-[120px] flex items-center justify-center'
           >
-            {loading ? <BorderSpinner size='sm' /> : 'Create Contest'}
+            {loading ? (
+              <BorderSpinner size='sm' />
+            ) : isEditing ? (
+              'Update Contest'
+            ) : (
+              'Create Contest'
+            )}
           </button>
         </div>
       </div>

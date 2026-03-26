@@ -151,6 +151,16 @@ export function AdminDashboard() {
   >([]);
   const [showReports, setShowReports] = useState(false);
   const [showContestModal, setShowContestModal] = useState(false);
+  const [editingContest, setEditingContest] = useState<any>(null);
+  const [contestsList, setContestsList] = useState<any[]>([]);
+  const [contestsLoading, setContestsLoading] = useState(false);
+
+  // Recent Signups state
+  const [recentUsers, setRecentUsers] = useState<any[]>([]);
+  const [recentUsersLoading, setRecentUsersLoading] = useState(false);
+  const [showRecentUsers, setShowRecentUsers] = useState(false);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [bulkDeletingUsers, setBulkDeletingUsers] = useState(false);
 
   // Force reprocess state
   const [forceReprocessing, setForceReprocessing] = useState(false);
@@ -599,6 +609,83 @@ export function AdminDashboard() {
       toast.error('Failed to fetch active users');
     } finally {
       setActiveUsersLoading(false);
+    }
+  };
+
+  const fetchContestsList = async () => {
+    setContestsLoading(true);
+    try {
+      const res = await api.get('/contests/admin/all');
+      setContestsList(res.data);
+    } catch (err) {
+      console.error('Failed to fetch contests list:', err);
+    } finally {
+      setContestsLoading(false);
+    }
+  };
+
+  const handleDeleteContest = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this contest?')) return;
+    try {
+      await api.delete(`/contests/admin/${id}`);
+      toast.success('Contest deleted');
+      fetchContestsList();
+      fetchStats();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to delete contest');
+    }
+  };
+
+  const fetchRecentUsers = async () => {
+    setRecentUsersLoading(true);
+    try {
+      const res = await api.get('/users/admin/recent');
+      setRecentUsers(res.data);
+    } catch (err) {
+      console.error('Failed to fetch recent users:', err);
+    } finally {
+      setRecentUsersLoading(false);
+    }
+  };
+
+  const handleToggleUserSelection = (id: string) => {
+    setSelectedUserIds((prev) =>
+      prev.includes(id)
+        ? prev.filter((userId) => userId !== id)
+        : [...prev, id],
+    );
+  };
+
+  const handleSelectAllUsers = () => {
+    if (selectedUserIds.length === recentUsers.length) {
+      setSelectedUserIds([]);
+    } else {
+      setSelectedUserIds(recentUsers.map((u) => u.id));
+    }
+  };
+
+  const handleMassDeleteUsers = async () => {
+    if (selectedUserIds.length === 0) return;
+    if (
+      !confirm(
+        `Are you sure you want to delete ${selectedUserIds.length} users permanently?`,
+      )
+    )
+      return;
+
+    setBulkDeletingUsers(true);
+    try {
+      const res = await api.post('/users/admin/mass-delete', {
+        userIds: selectedUserIds,
+      });
+      toast.success(`Deleted ${res.data.count} users securely`);
+      setSelectedUserIds([]);
+      fetchRecentUsers();
+      fetchStats();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to delete users');
+    } finally {
+      setBulkDeletingUsers(false);
     }
   };
 
@@ -1052,6 +1139,7 @@ export function AdminDashboard() {
     fetchReports();
     fetchAnalytics();
     fetchLogs();
+    fetchContestsList();
 
     // Queue status polling - pauses when tab is hidden
     let interval: ReturnType<typeof setInterval> | null = setInterval(
@@ -1352,6 +1440,248 @@ export function AdminDashboard() {
               column migration). You can still create new contests.
             </div>
           )}
+
+          {/* All Contests List */}
+          <div className='mt-6 border-t border-gray-100 dark:border-gray-800 pt-4'>
+            <div className='flex items-center justify-between mb-3'>
+              <h4 className='font-medium text-gray-900 dark:text-white text-sm'>
+                Contest Management
+              </h4>
+              <button
+                onClick={fetchContestsList}
+                className='text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400 font-medium'
+              >
+                Refresh List
+              </button>
+            </div>
+
+            {contestsLoading ? (
+              <div className='p-4 flex justify-center'>
+                <BorderSpinner size='sm' />
+              </div>
+            ) : contestsList.length === 0 ? (
+              <p className='text-sm text-gray-500 italic text-center py-2'>
+                No contests created yet.
+              </p>
+            ) : (
+              <div className='overflow-x-auto'>
+                <table className='w-full text-left text-sm whitespace-nowrap'>
+                  <thead className='text-xs uppercase text-gray-500 bg-gray-50 dark:bg-gray-800/50'>
+                    <tr>
+                      <th className='px-3 py-2'>Name</th>
+                      <th className='px-3 py-2'>Status</th>
+                      <th className='px-3 py-2'>Start Date</th>
+                      <th className='px-3 py-2'>End Date</th>
+                      <th className='px-3 py-2 text-right'>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className='divide-y divide-gray-100 dark:divide-gray-800'>
+                    {contestsList.map((c) => {
+                      const now = new Date();
+                      const start = new Date(c.startDate);
+                      const end = new Date(c.endDate);
+                      let statusText = 'Ended';
+                      let statusColor = 'bg-gray-100 text-gray-600';
+
+                      if (!c.isActive) {
+                        statusText = 'Inactive';
+                        statusColor = 'bg-gray-100 text-gray-600';
+                      } else if (now < start) {
+                        statusText = 'Upcoming';
+                        statusColor =
+                          'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+                      } else if (now > end) {
+                        statusText = 'Ended';
+                        statusColor =
+                          'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+                      } else {
+                        statusText = 'Live';
+                        statusColor =
+                          'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+                      }
+
+                      return (
+                        <tr
+                          key={c.id}
+                          className='hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors'
+                        >
+                          <td className='px-3 py-2 font-medium text-gray-900 dark:text-white truncate max-w-[200px]'>
+                            {c.name}
+                          </td>
+                          <td className='px-3 py-2'>
+                            <span
+                              className={`px-2 py-0.5 rounded text-xs ${statusColor}`}
+                            >
+                              {statusText}
+                            </span>
+                          </td>
+                          <td className='px-3 py-2 text-gray-500'>
+                            {start.toLocaleDateString()}{' '}
+                            {start.toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </td>
+                          <td className='px-3 py-2 text-gray-500'>
+                            {end.toLocaleDateString()}{' '}
+                            {end.toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </td>
+                          <td className='px-3 py-2 text-right space-x-2'>
+                            <button
+                              onClick={() => {
+                                setEditingContest(c);
+                                setShowContestModal(true);
+                              }}
+                              className='text-blue-600 hover:text-blue-800 dark:text-blue-400 font-medium'
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteContest(c.id)}
+                              className='text-red-600 hover:text-red-800 dark:text-red-400 font-medium'
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Recent Signed Up Users List */}
+        <div className='bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden'>
+          <div className='p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between'>
+            <div className='flex items-center gap-2'>
+              <div className='w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center'>
+                <Users className='w-4 h-4 text-indigo-600 dark:text-indigo-400' />
+              </div>
+              <div>
+                <h3 className='font-semibold text-gray-900 dark:text-white text-sm'>
+                  Recently Signed Up Users
+                </h3>
+                <p className='text-xs text-gray-500'>
+                  100 Latest Registrations
+                </p>
+              </div>
+            </div>
+
+            <div className='flex items-center gap-3'>
+              {selectedUserIds.length > 0 && (
+                <button
+                  onClick={handleMassDeleteUsers}
+                  disabled={bulkDeletingUsers}
+                  className='px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors'
+                >
+                  <Trash2 className='w-3.5 h-3.5' />
+                  Delete Selected ({selectedUserIds.length})
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setShowRecentUsers(!showRecentUsers);
+                  if (!showRecentUsers && recentUsers.length === 0)
+                    fetchRecentUsers();
+                }}
+                className='text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 font-medium'
+              >
+                {showRecentUsers ? 'Hide List' : 'View Users'}
+              </button>
+            </div>
+          </div>
+
+          {showRecentUsers && (
+            <div className='p-0'>
+              {recentUsersLoading && recentUsers.length === 0 ? (
+                <div className='p-8 flex justify-center'>
+                  <BorderSpinner size='sm' />
+                </div>
+              ) : recentUsers.length === 0 ? (
+                <div className='p-8 text-center text-gray-500 text-sm'>
+                  No recent users found
+                </div>
+              ) : (
+                <div className='max-h-96 overflow-y-auto'>
+                  <table className='w-full text-left text-sm whitespace-nowrap'>
+                    <thead className='bg-gray-50 dark:bg-gray-800/50 text-xs uppercase text-gray-500 sticky top-0 z-10'>
+                      <tr>
+                        <th className='px-4 py-3 w-10'>
+                          <input
+                            type='checkbox'
+                            checked={
+                              selectedUserIds.length === recentUsers.length &&
+                              recentUsers.length > 0
+                            }
+                            onChange={handleSelectAllUsers}
+                            className='rounded border-gray-300 text-indigo-600'
+                          />
+                        </th>
+                        <th className='px-4 py-3 font-medium'>
+                          User (Name & Email)
+                        </th>
+                        <th className='px-4 py-3 font-medium'>Status</th>
+                        <th className='px-4 py-3 font-medium'>Username</th>
+                        <th className='px-4 py-3 font-medium text-right'>
+                          Joined Date
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className='divide-y divide-gray-100 dark:divide-gray-800'>
+                      {recentUsers.map((u) => (
+                        <tr
+                          key={u.id}
+                          className='hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors'
+                        >
+                          <td className='px-4 py-3'>
+                            <input
+                              type='checkbox'
+                              checked={selectedUserIds.includes(u.id)}
+                              onChange={() => handleToggleUserSelection(u.id)}
+                              className='rounded border-gray-300 text-indigo-600'
+                            />
+                          </td>
+                          <td className='px-4 py-3'>
+                            <div className='font-medium text-gray-900 dark:text-white'>
+                              {u.firstName} {u.lastName}
+                            </div>
+                            <div className='text-xs text-gray-500'>
+                              {u.email}
+                            </div>
+                          </td>
+                          <td className='px-4 py-3'>
+                            {u.isVerified ? (
+                              <span className='px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'>
+                                Verified
+                              </span>
+                            ) : (
+                              <span className='px-2 py-0.5 rounded text-[10px] font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'>
+                                Pending
+                              </span>
+                            )}
+                          </td>
+                          <td className='px-4 py-3 text-gray-500 text-xs'>
+                            {u.username || (
+                              <span className='italic text-gray-400'>None</span>
+                            )}
+                          </td>
+                          <td className='px-4 py-3 text-right text-gray-500 text-xs'>
+                            {new Date(u.createdAt).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Active Users List (Who Is Online) */}
@@ -1430,6 +1760,134 @@ export function AdminDashboard() {
             )}
           </div>
         )}
+
+        {/* Recent Signed Up Users List */}
+        <div className='bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden'>
+          <div className='p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between'>
+            <div className='flex items-center gap-2'>
+              <div className='w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center'>
+                <Users className='w-4 h-4 text-indigo-600 dark:text-indigo-400' />
+              </div>
+              <div>
+                <h3 className='font-semibold text-gray-900 dark:text-white text-sm'>
+                  Recently Signed Up Users
+                </h3>
+                <p className='text-xs text-gray-500'>
+                  100 Latest Registrations
+                </p>
+              </div>
+            </div>
+
+            <div className='flex items-center gap-3'>
+              {selectedUserIds.length > 0 && (
+                <button
+                  onClick={handleMassDeleteUsers}
+                  disabled={bulkDeletingUsers}
+                  className='px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors'
+                >
+                  <Trash2 className='w-3.5 h-3.5' />
+                  Delete Selected ({selectedUserIds.length})
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setShowRecentUsers(!showRecentUsers);
+                  if (!showRecentUsers && recentUsers.length === 0)
+                    fetchRecentUsers();
+                }}
+                className='text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 font-medium'
+              >
+                {showRecentUsers ? 'Hide List' : 'View Users'}
+              </button>
+            </div>
+          </div>
+
+          {showRecentUsers && (
+            <div className='p-0'>
+              {recentUsersLoading && recentUsers.length === 0 ? (
+                <div className='p-8 flex justify-center'>
+                  <BorderSpinner size='sm' />
+                </div>
+              ) : recentUsers.length === 0 ? (
+                <div className='p-8 text-center text-gray-500 text-sm'>
+                  No recent users found
+                </div>
+              ) : (
+                <div className='max-h-96 overflow-y-auto'>
+                  <table className='w-full text-left text-sm whitespace-nowrap'>
+                    <thead className='bg-gray-50 dark:bg-gray-800/50 text-xs uppercase text-gray-500 sticky top-0 z-10'>
+                      <tr>
+                        <th className='px-4 py-3 w-10'>
+                          <input
+                            type='checkbox'
+                            checked={
+                              selectedUserIds.length === recentUsers.length &&
+                              recentUsers.length > 0
+                            }
+                            onChange={handleSelectAllUsers}
+                            className='rounded border-gray-300 text-indigo-600'
+                          />
+                        </th>
+                        <th className='px-4 py-3 font-medium'>
+                          User (Name & Email)
+                        </th>
+                        <th className='px-4 py-3 font-medium'>Status</th>
+                        <th className='px-4 py-3 font-medium'>Username</th>
+                        <th className='px-4 py-3 font-medium text-right'>
+                          Joined Date
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className='divide-y divide-gray-100 dark:divide-gray-800'>
+                      {recentUsers.map((u) => (
+                        <tr
+                          key={u.id}
+                          className='hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors'
+                        >
+                          <td className='px-4 py-3'>
+                            <input
+                              type='checkbox'
+                              checked={selectedUserIds.includes(u.id)}
+                              onChange={() => handleToggleUserSelection(u.id)}
+                              className='rounded border-gray-300 text-indigo-600'
+                            />
+                          </td>
+                          <td className='px-4 py-3'>
+                            <div className='font-medium text-gray-900 dark:text-white'>
+                              {u.firstName} {u.lastName}
+                            </div>
+                            <div className='text-xs text-gray-500'>
+                              {u.email}
+                            </div>
+                          </td>
+                          <td className='px-4 py-3'>
+                            {u.isVerified ? (
+                              <span className='px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'>
+                                Verified
+                              </span>
+                            ) : (
+                              <span className='px-2 py-0.5 rounded text-[10px] font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'>
+                                Pending
+                              </span>
+                            )}
+                          </td>
+                          <td className='px-4 py-3 text-gray-500 text-xs'>
+                            {u.username || (
+                              <span className='italic text-gray-400'>None</span>
+                            )}
+                          </td>
+                          <td className='px-4 py-3 text-right text-gray-500 text-xs'>
+                            {new Date(u.createdAt).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Queue Status & Actions Row */}
         <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
@@ -3235,8 +3693,15 @@ export function AdminDashboard() {
       {/* New Contest Modal */}
       <NewContestModal
         isOpen={showContestModal}
-        onClose={() => setShowContestModal(false)}
-        onSuccess={() => fetchStats()}
+        onClose={() => {
+          setShowContestModal(false);
+          setEditingContest(null);
+        }}
+        onSuccess={() => {
+          fetchStats();
+          fetchContestsList();
+        }}
+        initialData={editingContest}
       />
     </div>
   );
