@@ -1294,25 +1294,26 @@ export function AdminDashboard() {
           </div>
         )}
 
-        {/* Contest Referral Stats */}
-        {stats?.contests && (
-          <div className='bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4'>
-            <div className='flex items-center justify-between mb-3'>
-              <div className='flex items-center gap-2'>
-                <Trophy className='w-4 h-4 text-amber-500' />
-                <h3 className='font-semibold text-gray-900 dark:text-white text-sm'>
-                  {stats.contests.activeContest
-                    ? `Live Contest: ${stats.contests.activeContest.name}`
-                    : 'Referral Analytics (No Active Contest)'}
-                </h3>
-              </div>
-              <button
-                onClick={() => setShowContestModal(true)}
-                className='flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400 font-medium text-xs rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors'
-              >
-                <Plus className='w-3.5 h-3.5' /> Create Contest
-              </button>
+        {/* Contest Referral Stats (Always visible to ensure "Create Contest" is accessible) */}
+        <div className='bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4'>
+          <div className='flex items-center justify-between mb-3'>
+            <div className='flex items-center gap-2'>
+              <Trophy className='w-4 h-4 text-amber-500' />
+              <h3 className='font-semibold text-gray-900 dark:text-white text-sm'>
+                {stats?.contests?.activeContest
+                  ? `Live Contest: ${stats.contests.activeContest.name}`
+                  : 'Referral Analytics (No Active Contest)'}
+              </h3>
             </div>
+            <button
+              onClick={() => setShowContestModal(true)}
+              className='flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400 font-medium text-xs rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors'
+            >
+              <Plus className='w-3.5 h-3.5' /> Create Contest
+            </button>
+          </div>
+
+          {stats?.contests ? (
             <div className='grid grid-cols-2 md:grid-cols-5 gap-2 text-center'>
               <div className='p-2 bg-gray-50 dark:bg-gray-800 rounded-lg'>
                 <p className='text-lg font-bold text-gray-700 dark:text-gray-300'>
@@ -1345,8 +1346,13 @@ export function AdminDashboard() {
                 <p className='text-xs text-gray-500'>Disqualified</p>
               </div>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className='p-4 text-center text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700/50'>
+              Contest analytics are temporarily unavailable (pending missing
+              column migration). You can still create new contests.
+            </div>
+          )}
+        </div>
 
         {/* Active Users List (Who Is Online) */}
         {showActiveUsers && (
