@@ -101,10 +101,10 @@ export function ContestDashboard() {
     logAnalytics('contest_dashboard_viewed');
   }, []);
 
-  const referralLink = `${window.location.origin}/signup?ref=${user?.referralCode || ''}`;
+  const referralLink = `${window.location.origin}/signup?ref=${user?.id || ''}`;
 
   const handleCopyLink = () => {
-    if (user?.referralCode) {
+    if (user?.id) {
       navigator.clipboard.writeText(referralLink);
       success('Referral link copied to clipboard!');
       logAnalytics('referral_link_copied');
@@ -114,7 +114,7 @@ export function ContestDashboard() {
   };
 
   const handleShareLink = async () => {
-    if (!user?.referralCode) return;
+    if (!user?.id) return;
 
     const shareData = {
       title: 'Join me on PeerToLearn',

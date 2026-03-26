@@ -28,7 +28,7 @@ export default function LandingPage() {
         <div className='landing-nav-content'>
           <Link to='/' className='landing-logo'>
             <img
-              src='/logomark-blue.png'
+              src='/logo-blue.png'
               alt='PeerToLearn'
               className='landing-logo-img'
             />
@@ -329,7 +329,7 @@ export default function LandingPage() {
             <div className='landing-footer-brand'>
               <Link to='/' className='landing-logo'>
                 <img
-                  src='/logomark-blue.png'
+                  src='/logo-blue.png'
                   alt='PeerToLearn'
                   className='landing-logo-img'
                 />
