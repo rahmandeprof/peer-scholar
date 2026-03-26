@@ -36,6 +36,7 @@ import api from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { ConfirmationModal } from '../ConfirmationModal';
+import { NewContestModal } from './NewContestModal';
 
 interface FlaggedMaterial {
   id: string;
@@ -149,6 +150,7 @@ export function AdminDashboard() {
     }[]
   >([]);
   const [showReports, setShowReports] = useState(false);
+  const [showContestModal, setShowContestModal] = useState(false);
 
   // Force reprocess state
   const [forceReprocessing, setForceReprocessing] = useState(false);
@@ -1295,13 +1297,21 @@ export function AdminDashboard() {
         {/* Contest Referral Stats */}
         {stats?.contests && (
           <div className='bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4'>
-            <div className='flex items-center gap-2 mb-3'>
-              <Trophy className='w-4 h-4 text-amber-500' />
-              <h3 className='font-semibold text-gray-900 dark:text-white text-sm'>
-                {stats.contests.activeContest
-                  ? `Live Contest: ${stats.contests.activeContest.name}`
-                  : 'Referral Analytics (No Active Contest)'}
-              </h3>
+            <div className='flex items-center justify-between mb-3'>
+              <div className='flex items-center gap-2'>
+                <Trophy className='w-4 h-4 text-amber-500' />
+                <h3 className='font-semibold text-gray-900 dark:text-white text-sm'>
+                  {stats.contests.activeContest
+                    ? `Live Contest: ${stats.contests.activeContest.name}`
+                    : 'Referral Analytics (No Active Contest)'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowContestModal(true)}
+                className='flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400 font-medium text-xs rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors'
+              >
+                <Plus className='w-3.5 h-3.5' /> Create Contest
+              </button>
             </div>
             <div className='grid grid-cols-2 md:grid-cols-5 gap-2 text-center'>
               <div className='p-2 bg-gray-50 dark:bg-gray-800 rounded-lg'>
@@ -3214,6 +3224,13 @@ export function AdminDashboard() {
         message='This action cannot be undone. The material and all associated data will be permanently deleted.'
         confirmText='Delete'
         isDangerous={true}
+      />
+
+      {/* New Contest Modal */}
+      <NewContestModal
+        isOpen={showContestModal}
+        onClose={() => setShowContestModal(false)}
+        onSuccess={() => fetchStats()}
       />
     </div>
   );
