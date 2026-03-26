@@ -58,16 +58,28 @@ export function ContestDashboard() {
         setMyStats(statsRes.data);
         setLeaderboard(boardRes.data || []);
       }
+
+      // Clear any previous error on successful fetch
+      setError(null);
     } catch (err: any) {
-      // If 404, it means no active contest. We can swallow it safely.
-      if (err.response?.status !== 404) {
-        console.error('Failed to load contest data', err);
-        setError('Could not load contest data. Please try again later.');
-      }
+      // If 404, it means no active contest — not an error
+      if (err.response?.status === 404) return;
+
+      console.error('Failed to load contest data', err);
+
+      // Only show error UI on initial load (when no data is loaded yet).
+      // If user already sees the dashboard, don't nuke it with an error screen
+      // just because a background poll failed.
+      setError((prev) => {
+        if (!contest && !myStats) {
+          return 'Could not load contest data. Please try again later.';
+        }
+        return prev; // keep existing state (null) — dashboard stays visible
+      });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [contest, myStats]);
 
   useEffect(() => {
     fetchDashboardData();
