@@ -440,7 +440,11 @@ export class AdminController {
         },
         quizzes: { taken: totalQuizzesTaken },
       },
-      contests: await this.contestsService.getAdminStats(),
+      contests: await this.contestsService.getAdminStats().catch((err) => {
+        this.logger.error(`Failed to fetch contest stats: ${err.message}`);
+
+        return null;
+      }),
       stuckCount,
       queueStatus,
     };
@@ -517,7 +521,11 @@ export class AdminController {
         missingSummary: materialsMissingSummary,
       },
       quizzes: { taken: totalQuizzesTaken },
-      contests: await this.contestsService.getAdminStats(),
+      contests: await this.contestsService.getAdminStats().catch((err) => {
+        this.logger.error(`Failed to fetch contest stats: ${err.message}`);
+
+        return null;
+      }),
     };
   }
 

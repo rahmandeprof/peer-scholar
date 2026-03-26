@@ -72,7 +72,7 @@ export function NewContestModal({
 
     // Convert prizes array to Record<string, string> JSON for the backend
     const prizeConfig: Record<string, string> = {};
-    prizes.forEach((p) => {
+    prizes.forEach((p: { rank: string; reward: string }) => {
       if (p.rank && p.reward) {
         prizeConfig[p.rank] = p.reward;
       }
@@ -106,7 +106,7 @@ export function NewContestModal({
     <div className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm animate-fade-in'>
       <div
         className='bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]'
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
       >
         <div className='flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800 shrink-0'>
           <div className='flex items-center gap-3'>
@@ -141,7 +141,9 @@ export function NewContestModal({
                 <input
                   type='text'
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setName(e.target.value)
+                  }
                   placeholder='e.g., Spring 2026 Mega Referral Drive'
                   required
                   className='w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500'
@@ -154,7 +156,9 @@ export function NewContestModal({
                 </label>
                 <textarea
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                    setDescription(e.target.value)
+                  }
                   placeholder='Brief description of the contest goals and vibe'
                   rows={2}
                   className='w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500'
@@ -169,7 +173,9 @@ export function NewContestModal({
                   <input
                     type='datetime-local'
                     value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setStartDate(e.target.value)
+                    }
                     required
                     className='w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500'
                   />
@@ -181,7 +187,9 @@ export function NewContestModal({
                   <input
                     type='datetime-local'
                     value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setEndDate(e.target.value)
+                    }
                     required
                     className='w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500'
                   />
@@ -215,7 +223,7 @@ export function NewContestModal({
                       <input
                         type='text'
                         value={prize.rank}
-                        onChange={(e) =>
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                           handlePrizeChange(idx, 'rank', e.target.value)
                         }
                         placeholder='e.g. 1st, Top 5, etc.'
@@ -224,7 +232,7 @@ export function NewContestModal({
                       <input
                         type='text'
                         value={prize.reward}
-                        onChange={(e) =>
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                           handlePrizeChange(idx, 'reward', e.target.value)
                         }
                         placeholder='e.g. $500, MacBook, etc.'
@@ -251,7 +259,9 @@ export function NewContestModal({
                 </label>
                 <textarea
                   value={rules}
-                  onChange={(e) => setRules(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                    setRules(e.target.value)
+                  }
                   placeholder='1. Only verified referrals count...'
                   rows={3}
                   className='w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 font-mono text-sm'
@@ -262,7 +272,9 @@ export function NewContestModal({
                 <input
                   type='checkbox'
                   checked={isActive}
-                  onChange={(e) => setIsActive(e.target.checked)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setIsActive(e.target.checked)
+                  }
                   className='w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500'
                 />
                 <div>
