@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Patch,
+  Post,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -24,6 +25,28 @@ import { Request } from 'express';
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 export class ContestsController {
   constructor(private readonly contestsService: ContestsService) {}
+
+  @ApiOperation({ summary: 'Admin: Create a new referral contest' })
+  @Role('admin')
+  @Post()
+  async createContest(
+    @Body()
+    body: {
+      name: string;
+      description?: string;
+      startDate: string;
+      endDate: string;
+      isActive?: boolean;
+      prizeConfig?: Record<string, string>;
+      rules?: string;
+    },
+  ) {
+    return this.contestsService.createContest({
+      ...body,
+      startDate: new Date(body.startDate),
+      endDate: new Date(body.endDate),
+    });
+  }
 
   @ApiOperation({ summary: 'Get the currently active referral contest' })
   @Get('active')

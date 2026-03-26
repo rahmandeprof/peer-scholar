@@ -425,6 +425,14 @@ export function DashboardLayout() {
               <Sun className='w-5 h-5 hidden dark:block' />
               <Moon className='w-5 h-5 dark:hidden' />
             </button>
+            {/* Contest link */}
+            <button
+              onClick={() => navigate('/contest')}
+              className='p-2 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-xl transition-colors'
+              title='Referral Contest'
+            >
+              <Trophy className='w-5 h-5' />
+            </button>
             <button
               onClick={() => setUploadModalOpen(true)}
               className='p-2 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-colors shadow-lg shadow-primary-500/20'

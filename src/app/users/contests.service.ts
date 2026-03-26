@@ -22,6 +22,38 @@ export class ContestsService {
     this.logger.setContext(ContestsService.name);
   }
 
+  async createContest(data: {
+    name: string;
+    description?: string;
+    startDate: Date;
+    endDate: Date;
+    isActive?: boolean;
+    prizeConfig?: Record<string, string>;
+    rules?: string;
+  }) {
+    // Deactivate any currently active contest if the new one is active
+    if (data.isActive) {
+      await this.contestRepo.update({ isActive: true }, { isActive: false });
+      this.cacheService.delete('active_contest');
+    }
+
+    const contest = this.contestRepo.create({
+      name: data.name,
+      description: data.description,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      isActive: data.isActive ?? false,
+      prizeConfig: data.prizeConfig,
+      rules: data.rules,
+    });
+
+    const saved = await this.contestRepo.save(contest);
+
+    this.logger.log(`Contest created: ${saved.name} (${saved.id})`);
+
+    return saved;
+  }
+
   async getActiveContest() {
     const now = new Date();
 
