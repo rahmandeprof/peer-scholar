@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -46,6 +47,43 @@ export class ContestsController {
       startDate: new Date(body.startDate),
       endDate: new Date(body.endDate),
     });
+  }
+
+  @ApiOperation({ summary: 'Admin: Get all referral contests' })
+  @Role('admin')
+  @Get('admin/all')
+  async getAllContests() {
+    return this.contestsService.getAllContests();
+  }
+
+  @ApiOperation({ summary: 'Admin: Update a referral contest' })
+  @Role('admin')
+  @Patch('admin/:id')
+  async updateContest(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      name?: string;
+      description?: string;
+      startDate?: string;
+      endDate?: string;
+      isActive?: boolean;
+      prizeConfig?: Record<string, string>;
+      rules?: string;
+    },
+  ) {
+    return this.contestsService.updateContest(id, {
+      ...body,
+      startDate: body.startDate ? new Date(body.startDate) : undefined,
+      endDate: body.endDate ? new Date(body.endDate) : undefined,
+    });
+  }
+
+  @ApiOperation({ summary: 'Admin: Delete a referral contest' })
+  @Role('admin')
+  @Delete('admin/:id')
+  async deleteContest(@Param('id') id: string) {
+    return this.contestsService.deleteContest(id);
   }
 
   @ApiOperation({ summary: 'Get the currently active referral contest' })

@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  ExecutionContext,
   Get,
+  Injectable,
   Post,
   Query,
   Req,
@@ -16,10 +18,10 @@ import { GoogleOAuthUser } from './strategies/google.strategy';
 
 import { User } from '@/app/users/entities/user.entity';
 
+import { CreateUserDto } from '../users/dto/create-user.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import { CreateUserDto } from '@/app/users/dto/create-user.dto';
 
 import { AuthService } from './auth.service';
 
@@ -31,8 +33,19 @@ interface AuthenticatedRequest extends Request {
 }
 
 // Google OAuth callback request
-interface GoogleAuthRequest extends Request {
+export interface GoogleAuthRequest extends Request {
   user: GoogleOAuthUser;
+}
+
+@Injectable()
+export class GoogleOAuthGuard extends AuthGuard('google') {
+  getAuthenticateOptions(context: ExecutionContext) {
+    const req = context.switchToHttp().getRequest();
+
+    return {
+      state: req.query.state as string,
+    };
+  }
 }
 
 @Controller('auth')
@@ -89,12 +102,12 @@ export class AuthController {
   }
 
   @Get('google')
-  @UseGuards(AuthGuard('google'))
+  @UseGuards(GoogleOAuthGuard)
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   async googleAuth() {}
 
   @Get('google/callback')
-  @UseGuards(AuthGuard('google'))
+  @UseGuards(GoogleOAuthGuard)
   async googleAuthRedirect(
     @Req() req: GoogleAuthRequest,
     @Res() res: Response,

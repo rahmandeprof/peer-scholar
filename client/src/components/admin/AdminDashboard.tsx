@@ -411,10 +411,14 @@ export function AdminDashboard() {
         stats: statsData,
         stuckCount: stuckData,
         queueStatus: queueData,
+        contests: contestsData,
       } = res.data;
 
-      // Set stats
-      setStats(statsData);
+      // Set stats including the contests which came from the parent object payload
+      setStats({
+        ...statsData,
+        contests: contestsData,
+      });
       setFailedCount(statsData.materials?.failed || 0);
 
       // Set stuck count

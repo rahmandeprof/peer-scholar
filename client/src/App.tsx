@@ -155,6 +155,15 @@ function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
+  // Globally trap any referral codes from the URL into localStorage
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const ref = searchParams.get('ref');
+    if (ref) {
+      localStorage.setItem('referralCode', ref);
+    }
+  }, [location.search]);
+
   // Prevent back button from going to auth pages when authenticated (PWA fix)
   useEffect(() => {
     const handlePopState = () => {

@@ -27,7 +27,9 @@ interface SignupProps {
 export function Signup({ onSwitch }: SignupProps) {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
-  const referralCode = searchParams.get('ref');
+  // Grab from URL first, otherwise fallback to our globally trapped localStorage value
+  const referralCode =
+    searchParams.get('ref') || localStorage.getItem('referralCode');
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -378,9 +380,13 @@ export function Signup({ onSwitch }: SignupProps) {
 
         <button
           type='button'
-          onClick={() =>
-            (window.location.href = `${api.defaults.baseURL}/auth/google`)
-          }
+          onClick={() => {
+            // If we have a referral code, inject it into the OAuth state parameter so it survives the redirect
+            const stateParam = referralCode
+              ? `?state=${encodeURIComponent(JSON.stringify({ ref: referralCode }))}`
+              : '';
+            window.location.href = `${api.defaults.baseURL}/auth/google${stateParam}`;
+          }}
           className='w-full py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition-colors flex items-center justify-center'
         >
           <img

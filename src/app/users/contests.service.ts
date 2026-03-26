@@ -54,6 +54,73 @@ export class ContestsService {
     return saved;
   }
 
+  async getAllContests() {
+    return this.contestRepo.find({
+      order: {
+        startDate: 'DESC',
+      },
+      withDeleted: false,
+    });
+  }
+
+  async updateContest(
+    id: string,
+    data: {
+      name?: string;
+      description?: string;
+      startDate?: Date;
+      endDate?: Date;
+      isActive?: boolean;
+      prizeConfig?: Record<string, string>;
+      rules?: string;
+    },
+  ) {
+    const contest = await this.contestRepo.findOne({ where: { id } });
+
+    if (!contest) throw new NotFoundException('Contest not found');
+
+    // If changing active status
+    if (data.isActive !== undefined && data.isActive !== contest.isActive) {
+      if (data.isActive) {
+        await this.contestRepo.update({ isActive: true }, { isActive: false });
+      }
+      this.cacheService.delete('active_contest');
+      this.cacheService.delete('active_contest_leaderboard');
+    } else if (
+      data.startDate !== undefined ||
+      data.endDate !== undefined ||
+      data.prizeConfig !== undefined ||
+      data.rules !== undefined
+    ) {
+      // Clear cache if important fields changed
+      this.cacheService.delete('active_contest');
+      this.cacheService.delete('active_contest_leaderboard');
+    }
+
+    Object.assign(contest, data);
+    const saved = await this.contestRepo.save(contest);
+
+    this.logger.log(`Contest updated: ${saved.name} (${saved.id})`);
+
+    return saved;
+  }
+
+  async deleteContest(id: string) {
+    const contest = await this.contestRepo.findOne({ where: { id } });
+
+    if (!contest) throw new NotFoundException('Contest not found');
+
+    if (contest.isActive) {
+      this.cacheService.delete('active_contest');
+      this.cacheService.delete('active_contest_leaderboard');
+    }
+
+    await this.contestRepo.softRemove(contest);
+    this.logger.log(`Contest deleted: ${contest.name} (${contest.id})`);
+
+    return { success: true };
+  }
+
   async getActiveContest() {
     const now = new Date();
 

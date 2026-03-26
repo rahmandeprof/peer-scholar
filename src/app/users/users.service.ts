@@ -1166,4 +1166,44 @@ export class UsersService {
 
     return { success: true, message: 'Push subscription removed' };
   }
+
+  // ===== ADMIN / RECENT USERS =====
+
+  async getRecentUsers() {
+    return this.userRepository.find({
+      select: [
+        'id',
+        'email',
+        'firstName',
+        'lastName',
+        'username',
+        'isVerified',
+        'createdAt',
+        'lastSeen',
+      ],
+      order: {
+        createdAt: 'DESC',
+      },
+      take: 100, // Fetch top 100 recent signups
+    });
+  }
+
+  async massDelete(userIds: string[]) {
+    if (!userIds || userIds.length === 0) {
+      throw new BadRequestException('No user IDs provided');
+    }
+
+    const users = await this.userRepository.find({
+      where: { id: In(userIds) },
+    });
+
+    if (users.length === 0) {
+      throw new NotFoundException('No matching users found');
+    }
+
+    await this.userRepository.remove(users);
+    this.logger.log(`Mass deleted ${users.length} users`);
+
+    return { success: true, count: users.length };
+  }
 }

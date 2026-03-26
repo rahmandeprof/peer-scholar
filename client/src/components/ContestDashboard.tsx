@@ -33,40 +33,29 @@ interface LeaderboardEntry {
   lastQualifiedAt: string;
 }
 
-interface MyStats {
-  isActive: boolean;
-  qualifiedCount: number;
-  rank: number | null;
-  contestId?: string;
-  contestName?: string;
-  endDate?: string;
-  prizeConfig?: any;
-}
-
 export function ContestDashboard() {
   const { user } = useAuth();
   const { success, error: toastError } = useToast();
   const [contest, setContest] = useState<Contest | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [myStats, setMyStats] = useState<MyStats>({
-    isActive: false,
-    qualifiedCount: 0,
-    rank: null,
-  });
+  const [myStats, setMyStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [timeLeft, setTimeLeft] = useState<string>('');
 
   const fetchDashboardData = useCallback(async () => {
     try {
-      const activeRes = await api.get('/contests/active');
-      setContest(activeRes.data);
+      // First get my stats to see if there's an active contest
+      const statsRes = await api.get('/contests/my-stats');
+      setMyStats(statsRes.data);
 
-      if (activeRes.data) {
-        const [statsRes, boardRes] = await Promise.all([
-          api.get('/contests/active/my-stats'),
-          api.get('/contests/active/leaderboard'),
+      if (statsRes.data?.isActive && statsRes.data?.contestId) {
+        const [contestRes, boardRes] = await Promise.all([
+          api.get(`/contests/${statsRes.data.contestId}`),
+          api.get(`/contests/${statsRes.data.contestId}/leaderboard`),
         ]);
 
+        setContest(contestRes.data);
         setMyStats(statsRes.data);
         setLeaderboard(boardRes.data || []);
       }
@@ -91,6 +80,34 @@ export function ContestDashboard() {
 
     return () => clearInterval(interval);
   }, [fetchDashboardData]);
+
+  // Handle Countdown Timer
+  useEffect(() => {
+    if (!contest?.endDate) return;
+
+    const timer = setInterval(() => {
+      const now = new Date().getTime();
+      const end = new Date(contest.endDate).getTime();
+      const distance = end - now;
+
+      if (distance < 0) {
+        setTimeLeft('Contest Ended');
+        clearInterval(timer);
+        return;
+      }
+
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor(
+        (distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+      );
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+      setTimeLeft(`${days}d ${hours}h ${minutes}m ${seconds}s left`);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [contest?.endDate]);
 
   // Handle Referrals tracking event analytics if standard mixpanel/amplitude isn't available
   const logAnalytics = (event: string) => {
@@ -186,9 +203,17 @@ export function ContestDashboard() {
         </div>
 
         <div className='relative z-10 max-w-2xl'>
-          <div className='inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-semibold mb-6'>
-            <span className='w-2 h-2 rounded-full bg-green-400 animate-pulse' />
-            LIVE CONTEST
+          <div className='flex items-center gap-3 mb-6 flex-wrap'>
+            <div className='inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-semibold'>
+              <span className='w-2 h-2 rounded-full bg-green-400 animate-pulse' />
+              LIVE CONTEST
+            </div>
+            {timeLeft && (
+              <div className='inline-flex items-center gap-2 px-3 py-1 bg-black/20 backdrop-blur-md rounded-full text-xs font-mono font-semibold'>
+                <Trophy className='w-3 h-3 text-yellow-300' />
+                {timeLeft}
+              </div>
+            )}
           </div>
           <h1 className='text-4xl md:text-5xl font-extrabold mb-4 tracking-tight drop-shadow-lg text-white'>
             {contest.name}

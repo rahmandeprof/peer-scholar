@@ -14,6 +14,7 @@ export interface GoogleOAuthUser {
   picture: string | null;
   googleId: string;
   accessToken: string;
+  referralCode?: string;
 }
 
 @Injectable()
@@ -36,6 +37,22 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     done: VerifyCallback,
   ): Promise<void> {
     const { name, emails, photos, id } = profile;
+
+    // Parse referral code from state if provided
+    let referralCode: string | undefined;
+
+    if (req.query.state) {
+      try {
+        const stateObj = JSON.parse(req.query.state as string);
+
+        if (stateObj.ref) {
+          referralCode = stateObj.ref;
+        }
+      } catch (err) {
+        // Ignore invalid state payloads silently
+      }
+    }
+
     const user: GoogleOAuthUser = {
       email: emails && emails.length > 0 ? emails[0].value : null,
       firstName: name ? name.givenName || '' : '',
@@ -43,6 +60,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       picture: photos && photos.length > 0 ? photos[0].value : null,
       googleId: id,
       accessToken,
+      referralCode,
     };
 
     done(null, user);

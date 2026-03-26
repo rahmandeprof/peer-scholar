@@ -163,7 +163,17 @@ export class AuthService {
       try {
         const referrer = await this.usersService.getOne(userData.referralCode);
 
-        referrerId = referrer.id;
+        // Basic sybil protection: prevent referring identical email addresses
+        if (
+          referrer.email !== userData.email &&
+          referrer.id !== userData.referralCode
+        ) {
+          referrerId = referrer.id;
+        } else {
+          this.logger.warn(
+            `Blocked self-referral attempt for email: ${userData.email}`,
+          );
+        }
       } catch {
         this.logger.warn(`Invalid referral code: ${userData.referralCode}`);
       }
@@ -354,6 +364,33 @@ export class AuthService {
       };
 
       user = await this.usersService.create(userData as CreateUserDto);
+
+      // Map OAuth referral dynamically since they skip traditional pipelines
+      if (req.user.referralCode) {
+        try {
+          const referrer = await this.usersService.getOne(
+            req.user.referralCode,
+          );
+
+          if (referrer && referrer.email !== email && referrer.id !== user.id) {
+            await this.referralRepo.save({
+              referrerId: referrer.id,
+              refereeId: user.id,
+              status: ReferralStatus.COMPLETED, // Auto-verified Google emails jump to COMPLETED
+              pointsAwarded: 50,
+              completedAt: new Date(),
+            });
+            await this.usersService.increaseReputation(referrer.id, 50);
+            this.logger.log(
+              `OAuth Referral created and completed: ${referrer.id} referred ${user.id}`,
+            );
+          }
+        } catch (e) {
+          this.logger.warn(
+            `Invalid OAuth referral string provided: ${req.user.referralCode}`,
+          );
+        }
+      }
     } else if (!user.googleId) {
       // Link existing user and mark as verified
       await this.usersService.update(user.id, {
