@@ -45,17 +45,16 @@ export function ContestDashboard() {
 
   const fetchDashboardData = useCallback(async () => {
     try {
-      // First get my stats to see if there's an active contest
-      const statsRes = await api.get('/contests/my-stats');
-      setMyStats(statsRes.data);
+      const activeRes = await api.get('/contests/active');
 
-      if (statsRes.data?.isActive && statsRes.data?.contestId) {
-        const [contestRes, boardRes] = await Promise.all([
-          api.get(`/contests/${statsRes.data.contestId}`),
-          api.get(`/contests/${statsRes.data.contestId}/leaderboard`),
+      if (activeRes.data) {
+        setContest(activeRes.data);
+
+        const [statsRes, boardRes] = await Promise.all([
+          api.get('/contests/active/my-stats'),
+          api.get('/contests/active/leaderboard'),
         ]);
 
-        setContest(contestRes.data);
         setMyStats(statsRes.data);
         setLeaderboard(boardRes.data || []);
       }
