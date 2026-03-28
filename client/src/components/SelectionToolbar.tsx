@@ -10,6 +10,7 @@ import {
   AlertCircle,
   PenLine,
   Tag,
+  Trophy,
 } from 'lucide-react';
 import { BorderSpinner } from './Skeleton';
 import api from '../lib/api';
@@ -36,6 +37,7 @@ interface SelectionData {
 interface SelectionToolbarProps {
   onAddNote?: (selection: SelectionData) => void;
   onTagPq?: (selection: SelectionData) => void;
+  materialId?: string;
 }
 
 /* ───────────── Component ───────────── */
@@ -43,6 +45,7 @@ interface SelectionToolbarProps {
 export function SelectionToolbar({
   onAddNote,
   onTagPq,
+  materialId,
 }: SelectionToolbarProps) {
   // Two-stage flow: bubble → sheet
   const [showBubble, setShowBubble] = useState(false);
@@ -63,11 +66,15 @@ export function SelectionToolbar({
     selectedOption: string | null;
     isCorrect: boolean | null;
     showExplanation: boolean;
+    score: number;
+    isFinished: boolean;
   }>({
     currentQuestion: 0,
     selectedOption: null,
     isCorrect: null,
     showExplanation: false,
+    score: 0,
+    isFinished: false,
   });
 
   const requestRef = useRef<number>(0);
@@ -263,6 +270,8 @@ export function SelectionToolbar({
             selectedOption: null,
             isCorrect: null,
             showExplanation: false,
+            score: 0,
+            isFinished: false,
           });
           setResult({ type: action, content: '' });
         } catch {
@@ -294,20 +303,33 @@ export function SelectionToolbar({
       selectedOption: option,
       isCorrect,
       showExplanation: true,
+      score: prev.score + (isCorrect ? 1 : 0),
     }));
   };
 
-  const nextQuestion = () => {
+  const nextQuestion = async () => {
     if (!quizData) return;
     if (quizState.currentQuestion < quizData.length - 1) {
       setQuizState({
+        ...quizState,
         currentQuestion: quizState.currentQuestion + 1,
         selectedOption: null,
         isCorrect: null,
         showExplanation: false,
       });
     } else {
-      dismissMenu();
+      setQuizState((prev) => ({ ...prev, isFinished: true }));
+      if (materialId) {
+        try {
+          await api.post('/chat/quiz/result', {
+            materialId,
+            score: quizState.score + (quizState.isCorrect ? 1 : 0),
+            totalQuestions: quizData.length,
+          });
+        } catch (error) {
+          console.error('Failed to save inline quiz result', error);
+        }
+      }
     }
   };
 
@@ -341,81 +363,108 @@ export function SelectionToolbar({
       </div>
 
       {result.type === 'quiz' && quizData ? (
-        <div className='animate-in fade-in slide-in-from-bottom-2 duration-300 max-h-[50vh] overflow-y-auto'>
-          <div className='mb-3'>
-            <span className='text-xs font-medium text-gray-500 uppercase tracking-wider'>
-              Question {quizState.currentQuestion + 1} of {quizData.length}
-            </span>
-            <p className='text-sm font-medium text-gray-900 dark:text-gray-100 mt-1'>
-              {quizData[quizState.currentQuestion].question}
-            </p>
-          </div>
-
-          <div className='space-y-2 mb-3'>
-            {quizData[quizState.currentQuestion].options.map((option, idx) => {
-              const isSelected = quizState.selectedOption === option;
-              const isCorrectAnswer =
-                option === quizData[quizState.currentQuestion].correctAnswer;
-
-              let btnClass =
-                'w-full text-left text-sm p-3 rounded-lg border transition-colors ';
-              if (quizState.selectedOption) {
-                if (isSelected) {
-                  btnClass += quizState.isCorrect
-                    ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300'
-                    : 'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300';
-                } else if (isCorrectAnswer) {
-                  btnClass +=
-                    'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300';
-                } else {
-                  btnClass +=
-                    'border-gray-200 text-gray-400 dark:border-gray-700';
-                }
-              } else {
-                btnClass +=
-                  'border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300';
-              }
-
-              return (
-                <button
-                  key={idx}
-                  onClick={() => handleQuizOptionSelect(option)}
-                  disabled={!!quizState.selectedOption}
-                  className={btnClass}
-                >
-                  <div className='flex items-center justify-between'>
-                    <span>{option}</span>
-                    {quizState.selectedOption &&
-                      (isSelected || isCorrectAnswer) &&
-                      (isCorrectAnswer ? (
-                        <Check className='w-4 h-4' />
-                      ) : (
-                        <X className='w-4 h-4' />
-                      ))}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          {quizState.showExplanation && (
-            <div className='mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-xs text-blue-700 dark:text-blue-300 flex items-start'>
-              <AlertCircle className='w-3 h-3 mr-1.5 mt-0.5 flex-shrink-0' />
-              {quizData[quizState.currentQuestion].explanation}
+        quizState.isFinished ? (
+          <div className='animate-in fade-in slide-in-from-bottom-2 duration-300 flex flex-col items-center py-6'>
+            <div className='w-16 h-16 bg-gradient-to-br from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-full flex items-center justify-center mb-4'>
+              <Trophy className='w-8 h-8 text-yellow-500 dark:text-yellow-400' />
             </div>
-          )}
-
-          {quizState.selectedOption && (
+            <h4 className='text-lg font-bold text-gray-900 dark:text-white mb-2'>
+              Quiz Completed!
+            </h4>
+            <p className='text-sm text-gray-600 dark:text-gray-400 mb-6'>
+              You scored{' '}
+              <span className='font-bold text-purple-600 dark:text-purple-400 text-lg mx-1'>
+                {quizState.score || 0}
+              </span>{' '}
+              out of {quizData.length}
+            </p>
             <button
-              onClick={nextQuestion}
-              className='w-full py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-medium rounded-lg hover:opacity-90 transition-opacity'
+              onClick={dismissMenu}
+              className='w-full py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors font-medium text-sm'
             >
-              {quizState.currentQuestion < quizData.length - 1
-                ? 'Next Question'
-                : 'Finish Quiz'}
+              Close
             </button>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className='animate-in fade-in slide-in-from-bottom-2 duration-300 max-h-[50vh] overflow-y-auto'>
+            <div className='mb-3'>
+              <span className='text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                Question {quizState.currentQuestion + 1} of {quizData.length}
+              </span>
+              <p className='text-sm font-medium text-gray-900 dark:text-gray-100 mt-1'>
+                {quizData[quizState.currentQuestion].question}
+              </p>
+            </div>
+
+            <div className='space-y-2 mb-3'>
+              {quizData[quizState.currentQuestion].options.map(
+                (option, idx) => {
+                  const isSelected = quizState.selectedOption === option;
+                  const isCorrectAnswer =
+                    option ===
+                    quizData[quizState.currentQuestion].correctAnswer;
+
+                  let btnClass =
+                    'w-full text-left text-sm p-3 rounded-lg border transition-colors ';
+                  if (quizState.selectedOption) {
+                    if (isSelected) {
+                      btnClass += quizState.isCorrect
+                        ? 'bg-green-50 border-green-500 text-green-800 dark:bg-green-900/40 dark:border-green-600 dark:text-green-300 font-medium shadow-sm'
+                        : 'bg-red-50 border-red-400 text-red-800 dark:bg-red-900/40 dark:border-red-600 dark:text-red-300 font-medium shadow-sm';
+                    } else if (isCorrectAnswer) {
+                      btnClass +=
+                        'bg-green-50 border-green-500 text-green-800 dark:bg-green-900/40 dark:border-green-600 dark:text-green-300 font-medium shadow-sm';
+                    } else {
+                      btnClass +=
+                        'border-gray-100 text-gray-400 dark:border-gray-800 dark:text-gray-600 opacity-50';
+                    }
+                  } else {
+                    btnClass +=
+                      'border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300';
+                  }
+
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => handleQuizOptionSelect(option)}
+                      disabled={!!quizState.selectedOption}
+                      className={btnClass}
+                    >
+                      <div className='flex items-center justify-between'>
+                        <span>{option}</span>
+                        {quizState.selectedOption &&
+                          (isSelected || isCorrectAnswer) &&
+                          (isCorrectAnswer ? (
+                            <Check className='w-4 h-4' />
+                          ) : (
+                            <X className='w-4 h-4' />
+                          ))}
+                      </div>
+                    </button>
+                  );
+                },
+              )}
+            </div>
+
+            {quizState.showExplanation && (
+              <div className='mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-xs text-blue-700 dark:text-blue-300 flex items-start border border-blue-200 dark:border-blue-800'>
+                <AlertCircle className='w-3 h-3 mr-1.5 mt-0.5 flex-shrink-0' />
+                {quizData[quizState.currentQuestion].explanation}
+              </div>
+            )}
+
+            {quizState.selectedOption && (
+              <button
+                onClick={nextQuestion}
+                className='w-full py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-medium rounded-lg hover:opacity-90 transition-opacity shadow-md'
+              >
+                {quizState.currentQuestion < quizData.length - 1
+                  ? 'Next Question'
+                  : 'Finish Quiz'}
+              </button>
+            )}
+          </div>
+        )
       ) : (
         <div className='text-sm text-gray-700 dark:text-gray-300 max-h-[50vh] overflow-y-auto whitespace-pre-wrap'>
           {result.content}

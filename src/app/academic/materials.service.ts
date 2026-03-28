@@ -1220,7 +1220,7 @@ export class MaterialsService {
     // specific materials the user has already seen
     const userViewed = await this.viewingHistoryRepo
       .createQueryBuilder('history')
-      .select('history.materialId')
+      .select('history.material_id', 'materialId')
       .where('history.user.id = :userId', { userId: user.id })
       .getRawMany();
 

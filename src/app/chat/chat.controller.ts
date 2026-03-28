@@ -117,6 +117,16 @@ export class ChatController {
     return this.chatService.deleteMaterial(id, req.user);
   }
 
+  @Post('quiz/result')
+  saveQuizResult(@Body() dto: SaveQuizResultDto, @Req() req: RequestWithUser) {
+    return this.chatService.saveQuizResult(
+      req.user,
+      dto.materialId,
+      dto.score,
+      dto.totalQuestions,
+    );
+  }
+
   @Post('quiz/:id')
   @UseGuards(RateLimitGuard)
   @Throttle({ quiz: { limit: 10, ttl: 86400000 } })
@@ -167,16 +177,6 @@ export class ChatController {
   @Throttle({ keypoints: { limit: 20, ttl: 86400000 } }) // 20 per day
   getKeyPoints(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.chatService.extractKeyPoints(id);
-  }
-
-  @Post('quiz/result')
-  saveQuizResult(@Body() dto: SaveQuizResultDto, @Req() req: RequestWithUser) {
-    return this.chatService.saveQuizResult(
-      req.user,
-      dto.materialId,
-      dto.score,
-      dto.totalQuestions,
-    );
   }
 
   @Get('quiz/history')

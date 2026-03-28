@@ -135,7 +135,11 @@ export function AnnotationManager({
 
       {/* Unified Selection Toolbar (AI actions + annotations) */}
       {!showPqModal && !showNoteModal && (
-        <SelectionToolbar onAddNote={handleAddNote} onTagPq={handleTagPq} />
+        <SelectionToolbar
+          onAddNote={handleAddNote}
+          onTagPq={handleTagPq}
+          materialId={materialId}
+        />
       )}
 
       {/* Note Modal */}
