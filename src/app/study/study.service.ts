@@ -265,11 +265,11 @@ export class StudyService {
         const rawResult = await this.studySessionRepo
           .createQueryBuilder('session')
           .select(
-            "TO_CHAR(session.startTime AT TIME ZONE 'UTC', 'YYYY-MM-DD')",
+            "TO_CHAR(session.start_time AT TIME ZONE 'UTC', 'YYYY-MM-DD')",
             'date',
           )
           .addSelect(
-            'COALESCE(SUM(session.durationSeconds), 0)',
+            'COALESCE(SUM(session.duration_seconds), 0)',
             'totalSeconds',
           )
           .addSelect('COUNT(*)::int', 'sessionCount')
@@ -277,7 +277,7 @@ export class StudyService {
           .andWhere('session.startTime >= :startDate', { startDate })
           .andWhere('session.completed = true')
           .groupBy(
-            "TO_CHAR(session.startTime AT TIME ZONE 'UTC', 'YYYY-MM-DD')",
+            "TO_CHAR(session.start_time AT TIME ZONE 'UTC', 'YYYY-MM-DD')",
           )
           .orderBy('date', 'ASC')
           .getRawMany<{
