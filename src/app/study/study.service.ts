@@ -6,6 +6,7 @@ import {
   StudySessionType,
 } from './entities/study-session.entity';
 
+import { CacheService } from '@/app/cache/cache.service';
 import { BadgeService } from '@/app/users/badge.service';
 import { UsersService } from '@/app/users/users.service';
 
@@ -20,6 +21,7 @@ export class StudyService {
     private readonly studySessionRepo: Repository<StudySession>,
     private readonly usersService: UsersService,
     private readonly badgeService: BadgeService,
+    private readonly cacheService: CacheService,
   ) {}
 
   startSession(userId: string, type: StudySessionType) {
@@ -174,6 +176,12 @@ export class StudyService {
       true, // hasCompletedReading is true for reading sessions
     );
 
+    // Invalidate caches so fresh data is served on next load
+    await Promise.all([
+      this.cacheService.delete(`dashboard:init:${userId}`),
+      this.cacheService.delete(`activity:history:${userId}:30`),
+    ]);
+
     return { success: true, durationSeconds: session.durationSeconds };
   }
 
@@ -194,17 +202,23 @@ export class StudyService {
    * Combines streak, weekly stats, and recent activity for faster dashboard load
    */
   async getDashboardInit(userId: string) {
-    const [streakData, weeklyStats, activityData] = await Promise.all([
-      this.usersService.getInsights(userId),
-      this.getWeeklyStats(userId),
-      this.usersService.getActivity(userId),
-    ]);
+    return this.cacheService.getOrSet(
+      `dashboard:init:${userId}`,
+      async () => {
+        const [streakData, weeklyStats, activityData] = await Promise.all([
+          this.usersService.getInsights(userId),
+          this.getWeeklyStats(userId),
+          this.usersService.getActivity(userId),
+        ]);
 
-    return {
-      streak: streakData,
-      weeklyStats,
-      recentActivity: activityData,
-    };
+        return {
+          streak: streakData,
+          weeklyStats,
+          recentActivity: activityData,
+        };
+      },
+      60, // 60 second TTL
+    );
   }
 
   async getWeeklyStats(userId: string) {
@@ -239,53 +253,75 @@ export class StudyService {
    * Returns an array of { date: string, minutes: number, sessions: number }
    */
   async getActivityHistory(userId: string, days = 30) {
-    const startDate = new Date();
+    return this.cacheService.getOrSet(
+      `activity:history:${userId}:${days}`,
+      async () => {
+        const startDate = new Date();
 
-    startDate.setUTCDate(startDate.getUTCDate() - days);
-    startDate.setUTCHours(0, 0, 0, 0);
+        startDate.setUTCDate(startDate.getUTCDate() - days);
+        startDate.setUTCHours(0, 0, 0, 0);
 
-    const sessions = await this.studySessionRepo
-      .createQueryBuilder('session')
-      .where('session.userId = :userId', { userId })
-      .andWhere('session.startTime >= :startDate', { startDate })
-      .andWhere('session.completed = true')
-      .orderBy('session.startTime', 'ASC')
-      .getMany();
+        // Use SQL GROUP BY to aggregate on the DB side instead of loading all sessions
+        const rawResult = await this.studySessionRepo
+          .createQueryBuilder('session')
+          .select(
+            "TO_CHAR(session.startTime AT TIME ZONE 'UTC', 'YYYY-MM-DD')",
+            'date',
+          )
+          .addSelect(
+            'COALESCE(SUM(session.durationSeconds), 0)',
+            'totalSeconds',
+          )
+          .addSelect('COUNT(*)::int', 'sessionCount')
+          .where('session.userId = :userId', { userId })
+          .andWhere('session.startTime >= :startDate', { startDate })
+          .andWhere('session.completed = true')
+          .groupBy(
+            "TO_CHAR(session.startTime AT TIME ZONE 'UTC', 'YYYY-MM-DD')",
+          )
+          .orderBy('date', 'ASC')
+          .getRawMany<{
+            date: string;
+            totalSeconds: string;
+            sessionCount: number;
+          }>();
 
-    // Group sessions by date
-    const activityMap = new Map<
-      string,
-      { minutes: number; sessions: number }
-    >();
+        // Build a lookup map from the aggregated results
+        const activityMap = new Map<
+          string,
+          { minutes: number; sessions: number }
+        >();
 
-    for (const session of sessions) {
-      const dateKey = session.startTime.toISOString().split('T')[0]; // YYYY-MM-DD
-      const existing = activityMap.get(dateKey) || { minutes: 0, sessions: 0 };
+        for (const row of rawResult) {
+          activityMap.set(row.date, {
+            minutes: Math.round(parseInt(row.totalSeconds || '0') / 60),
+            sessions: row.sessionCount,
+          });
+        }
 
-      existing.minutes += Math.round((session.durationSeconds || 0) / 60);
-      existing.sessions += 1;
-      activityMap.set(dateKey, existing);
-    }
+        // Fill in all dates (including empty days) for the calendar display
+        const result: { date: string; minutes: number; sessions: number }[] =
+          [];
+        const currentDate = new Date(startDate);
+        const today = new Date();
 
-    // Convert to array with all dates (including empty ones)
-    const result: { date: string; minutes: number; sessions: number }[] = [];
-    const currentDate = new Date(startDate);
-    const today = new Date();
+        today.setUTCHours(23, 59, 59, 999);
 
-    today.setHours(23, 59, 59, 999);
+        while (currentDate <= today) {
+          const dateKey = currentDate.toISOString().split('T')[0];
+          const activity = activityMap.get(dateKey) || {
+            minutes: 0,
+            sessions: 0,
+          };
 
-    while (currentDate <= today) {
-      const dateKey = currentDate.toISOString().split('T')[0];
-      const activity = activityMap.get(dateKey) || { minutes: 0, sessions: 0 };
+          result.push({ date: dateKey, ...activity });
+          currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+        }
 
-      result.push({
-        date: dateKey,
-        ...activity,
-      });
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    return result;
+        return result;
+      },
+      120, // 2 minute TTL
+    );
   }
 
   async getWeeklyLeaderboard(userId: string, limit = 10) {

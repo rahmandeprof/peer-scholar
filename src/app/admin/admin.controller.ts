@@ -33,6 +33,7 @@ import { School } from '@/app/academic/entities/school.entity';
 import { QuizResult } from '@/app/chat/entities/quiz-result.entity';
 import { User } from '@/app/users/entities/user.entity';
 
+import { CacheService } from '@/app/cache/cache.service';
 import { ContestsService } from '@/app/users/contests.service';
 import { UsersService } from '@/app/users/users.service';
 
@@ -82,6 +83,7 @@ export class AdminController {
     @InjectQueue('materials')
     private readonly materialsQueue: Queue,
     private readonly configService: ConfigService,
+    private readonly cacheService: CacheService,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
 
@@ -363,93 +365,100 @@ export class AdminController {
   async getOverview() {
     this.logger.log('Admin requested overview (batched)');
 
-    const twentyFourHoursAgo = new Date();
+    return this.cacheService.getOrSet(
+      'admin:overview',
+      async () => {
+        const twentyFourHoursAgo = new Date();
 
-    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+        twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
 
-    // Fetch all data in parallel
-    const [
-      // Stats
-      totalUsers,
-      activeUsers,
-      totalMaterials,
-      materialsReady,
-      materialsProcessing,
-      materialsFailed,
-      totalQuizzesTaken,
-      materialsMissingSummary,
-      // Stuck count
-      stuckCount,
-      // Queue status (wrapped in try-catch)
-      queueStatusResult,
-    ] = await Promise.all([
-      // Stats queries
-      this.userRepo.count(),
-      this.userRepo.count({
-        where: { lastSeen: MoreThan(twentyFourHoursAgo) },
-      }),
-      this.materialRepo.count(),
-      this.materialRepo.count({ where: { status: MaterialStatus.READY } }),
-      this.materialRepo.count({
-        where: this.ACTIVELY_PROCESSING_WHERE,
-      }),
-      this.materialRepo.count({
-        where: { processingStatus: ProcessingStatus.FAILED },
-      }),
-      this.quizResultRepo.count(),
-      this.materialRepo.count({
-        where: {
-          summary: IsNull(),
-          processingStatus: ProcessingStatus.COMPLETED,
-        },
-      }),
-      // Stuck count
-      this.materialRepo.count({
-        where: this.ACTIVELY_PROCESSING_WHERE,
-      }),
-      // Queue status wrapped to prevent rejection from failing entire batch
-      Promise.all([
-        this.materialsQueue.getWaitingCount(),
-        this.materialsQueue.getActiveCount(),
-        this.materialsQueue.getCompletedCount(),
-        this.materialsQueue.getFailedCount(),
-        this.materialsQueue.getDelayedCount(),
-      ]).catch(() => null),
-    ]);
+        // Fetch all data in parallel
+        const [
+          // Stats
+          totalUsers,
+          activeUsers,
+          totalMaterials,
+          materialsReady,
+          materialsProcessing,
+          materialsFailed,
+          totalQuizzesTaken,
+          materialsMissingSummary,
+          // Stuck count
+          stuckCount,
+          // Queue status (wrapped in try-catch)
+          queueStatusResult,
+        ] = await Promise.all([
+          // Stats queries
+          this.userRepo.count(),
+          this.userRepo.count({
+            where: { lastSeen: MoreThan(twentyFourHoursAgo) },
+          }),
+          this.materialRepo.count(),
+          this.materialRepo.count({ where: { status: MaterialStatus.READY } }),
+          this.materialRepo.count({
+            where: this.ACTIVELY_PROCESSING_WHERE,
+          }),
+          this.materialRepo.count({
+            where: { processingStatus: ProcessingStatus.FAILED },
+          }),
+          this.quizResultRepo.count(),
+          this.materialRepo.count({
+            where: {
+              summary: IsNull(),
+              processingStatus: ProcessingStatus.COMPLETED,
+            },
+          }),
+          // Stuck count
+          this.materialRepo.count({
+            where: this.ACTIVELY_PROCESSING_WHERE,
+          }),
+          // Queue status wrapped to prevent rejection from failing entire batch
+          Promise.all([
+            this.materialsQueue.getWaitingCount(),
+            this.materialsQueue.getActiveCount(),
+            this.materialsQueue.getCompletedCount(),
+            this.materialsQueue.getFailedCount(),
+            this.materialsQueue.getDelayedCount(),
+          ]).catch(() => null),
+        ]);
 
-    // Build queue status response
-    let queueStatus = null;
+        // Build queue status response
+        let queueStatus = null;
 
-    if (queueStatusResult) {
-      const [waiting, active, completed, failed, delayed] = queueStatusResult;
+        if (queueStatusResult) {
+          const [waiting, active, completed, failed, delayed] =
+            queueStatusResult;
 
-      queueStatus = {
-        queue: 'materials',
-        counts: { waiting, active, completed, failed, delayed },
-        total: waiting + active + completed + failed + delayed,
-      };
-    }
+          queueStatus = {
+            queue: 'materials',
+            counts: { waiting, active, completed, failed, delayed },
+            total: waiting + active + completed + failed + delayed,
+          };
+        }
 
-    return {
-      stats: {
-        users: { total: totalUsers, active: activeUsers },
-        materials: {
-          total: totalMaterials,
-          ready: materialsReady,
-          processing: materialsProcessing,
-          failed: materialsFailed,
-          missingSummary: materialsMissingSummary,
-        },
-        quizzes: { taken: totalQuizzesTaken },
+        return {
+          stats: {
+            users: { total: totalUsers, active: activeUsers },
+            materials: {
+              total: totalMaterials,
+              ready: materialsReady,
+              processing: materialsProcessing,
+              failed: materialsFailed,
+              missingSummary: materialsMissingSummary,
+            },
+            quizzes: { taken: totalQuizzesTaken },
+          },
+          contests: await this.contestsService.getAdminStats().catch((err) => {
+            this.logger.error(`Failed to fetch contest stats: ${err.message}`);
+
+            return null;
+          }),
+          stuckCount,
+          queueStatus,
+        };
       },
-      contests: await this.contestsService.getAdminStats().catch((err) => {
-        this.logger.error(`Failed to fetch contest stats: ${err.message}`);
-
-        return null;
-      }),
-      stuckCount,
-      queueStatus,
-    };
+      15, // 15 second TTL — fresh enough for admin monitoring
+    );
   }
 
   // ========== HIGH-PRIORITY ENDPOINTS ==========
