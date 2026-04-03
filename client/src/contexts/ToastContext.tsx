@@ -63,7 +63,8 @@ const initialModalState: ErrorModalState = {
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [errorModal, setErrorModal] = useState<ErrorModalState>(initialModalState);
+  const [errorModal, setErrorModal] =
+    useState<ErrorModalState>(initialModalState);
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
@@ -142,7 +143,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     };
 
     window.addEventListener('back-to-exit', handleBackToExit as EventListener);
-    return () => window.removeEventListener('back-to-exit', handleBackToExit as EventListener);
+    return () =>
+      window.removeEventListener(
+        'back-to-exit',
+        handleBackToExit as EventListener,
+      );
   }, [info]);
 
   const getIcon = (type: ToastType) => {
@@ -161,18 +166,26 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const getStyles = (type: ToastType) => {
     switch (type) {
       case 'success':
-        return 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200';
+        return 'bg-green-50 dark:bg-green-900/90 border-green-200 dark:border-green-700 text-green-800 dark:text-green-100';
       case 'error':
-        return 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200';
+        return 'bg-red-50 dark:bg-red-900/90 border-red-200 dark:border-red-700 text-red-800 dark:text-red-100';
       case 'warning':
-        return 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-800 dark:text-orange-200';
+        return 'bg-orange-50 dark:bg-orange-900/90 border-orange-200 dark:border-orange-700 text-orange-800 dark:text-orange-100';
       default:
-        return 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200';
+        return 'bg-blue-50 dark:bg-blue-900/90 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-100';
     }
   };
 
   const contextValue = useMemo(
-    () => ({ showToast, success, error, info, warning, showErrorModal, closeErrorModal }),
+    () => ({
+      showToast,
+      success,
+      error,
+      info,
+      warning,
+      showErrorModal,
+      closeErrorModal,
+    }),
     [showToast, success, error, info, warning, showErrorModal, closeErrorModal],
   );
 
@@ -185,7 +198,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl border shadow-xl animate-in slide-in-from-top-2 fade-in duration-300 ${getStyles(toast.type)} bg-opacity-100 dark:bg-opacity-100`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl border shadow-xl backdrop-blur-sm animate-in slide-in-from-top-2 fade-in duration-300 ${getStyles(toast.type)}`}
           >
             {getIcon(toast.type)}
             <p className='flex-1 text-sm font-medium'>{toast.message}</p>
@@ -212,4 +225,3 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     </ToastContext.Provider>
   );
 }
-

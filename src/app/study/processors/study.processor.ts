@@ -32,8 +32,8 @@ export class StudyProcessor {
       // and has no freezes to cover the gap
       const yesterday = new Date();
 
-      yesterday.setDate(yesterday.getDate() - 1);
-      yesterday.setHours(0, 0, 0, 0);
+      yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+      yesterday.setUTCHours(0, 0, 0, 0);
 
       const brokenStreaks = await this.streakRepo.find({
         where: {
@@ -69,7 +69,7 @@ export class StudyProcessor {
       // Find users with active streaks who haven't studied today
       const today = new Date();
 
-      today.setHours(0, 0, 0, 0);
+      today.setUTCHours(0, 0, 0, 0);
 
       // Get streaks that are active but haven't been updated today
       const activeStreaks = await this.streakRepo.find({

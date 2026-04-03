@@ -506,9 +506,18 @@ export class UsersService {
   }
 
   private getDiffDays(date1: Date, date2: Date): number {
-    const d1 = new Date(date1.getFullYear(), date1.getMonth(), date1.getDate());
-    const d2 = new Date(date2.getFullYear(), date2.getMonth(), date2.getDate());
-    const diffTime = Math.abs(d1.getTime() - d2.getTime());
+    // Use UTC to avoid timezone-dependent day boundaries
+    const d1 = Date.UTC(
+      date1.getUTCFullYear(),
+      date1.getUTCMonth(),
+      date1.getUTCDate(),
+    );
+    const d2 = Date.UTC(
+      date2.getUTCFullYear(),
+      date2.getUTCMonth(),
+      date2.getUTCDate(),
+    );
+    const diffTime = Math.abs(d1 - d2);
 
     return Math.floor(diffTime / (1000 * 3600 * 24));
   }
@@ -763,13 +772,14 @@ export class UsersService {
   // Get the Monday of the current week
   private getWeekStart(date: Date): Date {
     const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
-    const monday = new Date(d.setDate(diff));
+    // Use UTC day-of-week to avoid timezone-dependent week boundaries
+    const day = d.getUTCDay();
+    const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
 
-    monday.setHours(0, 0, 0, 0);
+    d.setUTCDate(diff);
+    d.setUTCHours(0, 0, 0, 0);
 
-    return monday;
+    return d;
   }
 
   private getStage(streak: number): string {

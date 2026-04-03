@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
+import { SkipThrottle } from '@nestjs/throttler';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { RolesGuard } from '@/app/auth/guards/roles.guard';
@@ -42,6 +43,7 @@ import { Paginate, PaginateQuery } from 'nestjs-paginate';
 import OpenAI from 'openai';
 import { IsNull, MoreThan, Repository } from 'typeorm';
 
+@SkipThrottle()
 @Controller('admin')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 @Role('admin')

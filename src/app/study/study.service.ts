@@ -211,11 +211,11 @@ export class StudyService {
     const now = new Date();
     // Get start of week (Monday)
     const startOfWeek = new Date(now);
-    const day = now.getDay();
-    const diff = now.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+    const day = now.getUTCDay();
+    const diff = now.getUTCDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
 
-    startOfWeek.setDate(diff);
-    startOfWeek.setHours(0, 0, 0, 0);
+    startOfWeek.setUTCDate(diff);
+    startOfWeek.setUTCHours(0, 0, 0, 0);
 
     const sessions = await this.studySessionRepo
       .createQueryBuilder('session')
@@ -241,8 +241,8 @@ export class StudyService {
   async getActivityHistory(userId: string, days = 30) {
     const startDate = new Date();
 
-    startDate.setDate(startDate.getDate() - days);
-    startDate.setHours(0, 0, 0, 0);
+    startDate.setUTCDate(startDate.getUTCDate() - days);
+    startDate.setUTCHours(0, 0, 0, 0);
 
     const sessions = await this.studySessionRepo
       .createQueryBuilder('session')
@@ -291,11 +291,11 @@ export class StudyService {
   async getWeeklyLeaderboard(userId: string, limit = 10) {
     // Get start of current week (Monday)
     const now = new Date();
-    const dayOfWeek = now.getDay();
-    const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-    const weekStart = new Date(now.setDate(diff));
+    const dayOfWeek = now.getUTCDay();
+    const diff = now.getUTCDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+    const weekStart = new Date(now.setUTCDate(diff));
 
-    weekStart.setHours(0, 0, 0, 0);
+    weekStart.setUTCHours(0, 0, 0, 0);
 
     // Get user's department for filtering
     let currentUser: {

@@ -266,6 +266,18 @@ export function AcademicControlCenter() {
     if (user) {
       initDashboard();
     }
+
+    // Refresh dashboard data when tab becomes visible (handles midnight crossover, etc.)
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user) {
+        fetchData(true);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [user]);
 
   // Background cleanup: validate that materials in history still exist
