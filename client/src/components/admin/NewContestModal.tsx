@@ -75,6 +75,11 @@ export function NewContestModal({
         const mappedPrizes = Object.entries(initialData.prizeConfig).map(
           ([rank, reward]) => ({ rank, reward }),
         );
+        mappedPrizes.sort((a, b) => {
+          const numA = parseInt(a.rank) || 999;
+          const numB = parseInt(b.rank) || 999;
+          return numA - numB;
+        });
         setPrizes(mappedPrizes);
       } else {
         setPrizes([]);
@@ -97,8 +102,14 @@ export function NewContestModal({
 
   if (!isOpen) return null;
 
+  const getOrdinal = (n: number) => {
+    const s = ['th', 'st', 'nd', 'rd'];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  };
+
   const handleAddPrize = () => {
-    setPrizes([...prizes, { rank: `${prizes.length + 1}th`, reward: '' }]);
+    setPrizes([...prizes, { rank: getOrdinal(prizes.length + 1), reward: '' }]);
   };
 
   const handleRemovePrize = (index: number) => {
@@ -113,7 +124,7 @@ export function NewContestModal({
     value: string,
   ) => {
     const newPrizes = [...prizes];
-    newPrizes[index][field] = value;
+    newPrizes[index] = { ...newPrizes[index], [field]: value };
     setPrizes(newPrizes);
   };
 

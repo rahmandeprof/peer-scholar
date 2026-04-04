@@ -17,6 +17,7 @@ import api from '../lib/api';
 interface Contest {
   id: string;
   name: string;
+  description?: string;
   startDate: string;
   endDate: string;
   isActive: boolean;
@@ -145,6 +146,9 @@ export function ContestDashboard() {
   }, []);
 
   const referralLink = `${window.location.origin}/signup?ref=${user?.id || ''}`;
+  const isStarted = contest
+    ? new Date().getTime() >= new Date(contest.startDate).getTime()
+    : false;
 
   const handleCopyLink = () => {
     if (user?.id) {
@@ -245,32 +249,41 @@ export function ContestDashboard() {
             {contest.name}
           </h1>
           <p className='text-sm sm:text-lg md:text-xl text-primary-100 mb-5 sm:mb-8 max-w-lg leading-relaxed'>
-            Invite your peers to join and complete their first study session.
-            Climb the leaderboard to win exclusive tech prizes!
+            {contest.description ||
+              'Invite your peers to join and complete their first study session. Climb the leaderboard to win exclusive tech prizes!'}
           </p>
 
-          <div className='flex items-center gap-2 sm:gap-3'>
-            <div className='flex items-center flex-1 min-w-0 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl overflow-hidden p-1 shadow-inner'>
-              <div className='flex-1 min-w-0 truncate px-3 sm:px-4 font-mono text-xs sm:text-sm opacity-90 text-white'>
-                {referralLink}
+          {isStarted ? (
+            <div className='flex items-center gap-2 sm:gap-3'>
+              <div className='flex items-center flex-1 min-w-0 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl overflow-hidden p-1 shadow-inner'>
+                <div className='flex-1 min-w-0 truncate px-3 sm:px-4 font-mono text-xs sm:text-sm opacity-90 text-white'>
+                  {referralLink}
+                </div>
+                <button
+                  onClick={handleCopyLink}
+                  className='flex-shrink-0 p-2.5 sm:p-3 bg-white text-primary-700 rounded-lg font-bold shadow-lg hover:bg-gray-50 transition-all flex items-center gap-1.5'
+                >
+                  <Copy className='w-4 h-4' />
+                  <span className='hidden sm:inline text-sm'>Copy</span>
+                </button>
               </div>
+
               <button
-                onClick={handleCopyLink}
-                className='flex-shrink-0 p-2.5 sm:p-3 bg-white text-primary-700 rounded-lg font-bold shadow-lg hover:bg-gray-50 transition-all flex items-center gap-1.5'
+                onClick={handleShareLink}
+                className='flex-shrink-0 p-2.5 sm:p-3 bg-purple-500/80 backdrop-blur-md border border-purple-400/50 rounded-xl font-bold shadow-lg hover:bg-purple-500 transition-all flex items-center justify-center gap-1.5 text-white'
               >
-                <Copy className='w-4 h-4' />
-                <span className='hidden sm:inline text-sm'>Copy</span>
+                <Share2 className='w-5 h-5' />
+                <span className='hidden sm:inline text-sm'>Share</span>
               </button>
             </div>
-
-            <button
-              onClick={handleShareLink}
-              className='flex-shrink-0 p-2.5 sm:p-3 bg-purple-500/80 backdrop-blur-md border border-purple-400/50 rounded-xl font-bold shadow-lg hover:bg-purple-500 transition-all flex items-center justify-center gap-1.5 text-white'
-            >
-              <Share2 className='w-5 h-5' />
-              <span className='hidden sm:inline text-sm'>Share</span>
-            </button>
-          </div>
+          ) : (
+            <div className='inline-block bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4 sm:p-5 shadow-inner'>
+              <p className='text-white font-medium text-sm sm:text-base'>
+                ⏳ Your unique referral link will be generated when the contest
+                officially starts!
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -467,8 +480,13 @@ export function ContestDashboard() {
                 </h3>
               </div>
               <div className='p-4 space-y-2.5'>
-                {Object.entries(contest.prizeConfig).map(
-                  ([rankings, prize]: any, i) => {
+                {Object.entries(contest.prizeConfig)
+                  .sort((a, b) => {
+                    const numA = parseInt(a[0]) || 999;
+                    const numB = parseInt(b[0]) || 999;
+                    return numA - numB;
+                  })
+                  .map(([rankings, prize]: any, i) => {
                     const badgeStyles = [
                       'bg-gradient-to-br from-yellow-300 to-yellow-500 text-yellow-900',
                       'bg-gradient-to-br from-gray-300 to-gray-400 text-gray-800',
@@ -489,8 +507,7 @@ export function ContestDashboard() {
                         </div>
                       </div>
                     );
-                  },
-                )}
+                  })}
               </div>
             </div>
           )}

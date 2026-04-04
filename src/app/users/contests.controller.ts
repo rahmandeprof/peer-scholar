@@ -25,6 +25,7 @@ import { Request } from 'express';
 @ApiBearerAuth()
 @Controller('contests')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
+@SkipThrottle()
 export class ContestsController {
   constructor(private readonly contestsService: ContestsService) {}
 
@@ -88,14 +89,12 @@ export class ContestsController {
   }
 
   @ApiOperation({ summary: 'Get the currently active referral contest' })
-  @SkipThrottle()
   @Get('active')
   async getActiveContest() {
     return this.contestsService.getActiveContest();
   }
 
   @ApiOperation({ summary: 'Get realtime leaderboard for active contest' })
-  @SkipThrottle()
   @Get('active/leaderboard')
   async getLeaderboard() {
     return this.contestsService.getLeaderboard();
@@ -104,7 +103,6 @@ export class ContestsController {
   @ApiOperation({
     summary: 'Get current user rank and stats for active contest',
   })
-  @SkipThrottle()
   @Get('active/my-stats')
   async getMyStats(@Req() req: Request) {
     const userId = (req.user as any)?.id;
