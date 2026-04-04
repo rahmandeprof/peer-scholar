@@ -5,7 +5,7 @@ import { ToastProvider } from './contexts/ToastContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NetworkProvider } from './contexts/NetworkContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { BorderSpinner } from './components/Skeleton';
+import { LogoPulse } from './components/LogoPulse';
 import { lazyWithRetry, lazyWithRetryNamed } from './lib/lazyWithRetry';
 
 // Lazy-loaded components with retry support for chunk load failures after deploys
@@ -96,12 +96,7 @@ const LandingPage = lazyWithRetry(() => import('./components/LandingPage'));
 // Suspense fallback for route loading
 const RouteLoadingFallback = () => (
   <div className='min-h-screen flex items-center justify-center'>
-    <div className='flex flex-col items-center gap-3'>
-      <BorderSpinner size='2xl' className='text-primary-600' />
-      <p className='text-sm text-gray-500 dark:text-gray-400 animate-pulse'>
-        Loading...
-      </p>
-    </div>
+    <LogoPulse size={48} label='Loading...' />
   </div>
 );
 
@@ -111,7 +106,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (isLoading) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
-        <BorderSpinner size='2xl' className='text-primary-600' />
+        <LogoPulse size={48} />
       </div>
     );
   }
@@ -188,7 +183,7 @@ function AppContent() {
   if (isLoading) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
-        <BorderSpinner size='2xl' className='text-primary-600' />
+        <LogoPulse size={48} />
       </div>
     );
   }

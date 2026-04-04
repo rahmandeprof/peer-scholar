@@ -6,7 +6,7 @@ import {
   MessageSquare,
   List,
 } from 'lucide-react';
-import { BorderSpinner } from './Skeleton';
+import { LogoPulse } from './LogoPulse';
 import { Chatbot } from './Chatbot';
 import { useState } from 'react';
 import api from '../lib/api';
@@ -217,7 +217,7 @@ export function AISidebar({ isOpen, onClose, materialId }: AISidebarProps) {
 
             {loading && (
               <div className='flex justify-center py-8'>
-                <BorderSpinner size='lg' className='text-primary-600' />
+                <LogoPulse size={36} />
               </div>
             )}
 

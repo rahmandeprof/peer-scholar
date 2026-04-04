@@ -11,7 +11,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { AuthGuard } from '@nestjs/passport';
-import { Throttle } from '@nestjs/throttler';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 
 import { StudySessionType } from './entities/study-session.entity';
 import { User } from '@/app/users/entities/user.entity';
@@ -29,6 +29,7 @@ interface RequestWithUser extends Request {
 }
 
 @Controller('study')
+@SkipThrottle()
 export class StudyController {
   constructor(
     private readonly studyService: StudyService,

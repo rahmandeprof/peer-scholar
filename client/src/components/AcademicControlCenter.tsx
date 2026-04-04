@@ -10,7 +10,7 @@ import {
   TrendingUp,
   Activity,
 } from 'lucide-react';
-import { BorderSpinner } from './Skeleton';
+import { LogoPulse } from './LogoPulse';
 import api from '../lib/api';
 import { getRecentlyOpened, syncViewingHistory } from '../lib/viewingHistory';
 import {
@@ -296,7 +296,7 @@ export function AcademicControlCenter() {
   if (loading) {
     return (
       <div className='flex items-center justify-center h-full'>
-        <BorderSpinner size='2xl' className='text-primary-600' />
+        <LogoPulse size={48} />
       </div>
     );
   }

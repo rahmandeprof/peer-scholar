@@ -40,6 +40,7 @@ export default {
         'slide-up': 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
         'fade-in': 'fadeIn 0.5s ease-out',
         'slide-right': 'slideRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+        'logo-pulse': 'logoPulse 1.8s ease-in-out infinite',
       },
       keyframes: {
         popIn: {
@@ -57,6 +58,10 @@ export default {
         slideRight: {
           '0%': { transform: 'translateX(-100%)' },
           '100%': { transform: 'translateX(0)' },
+        },
+        logoPulse: {
+          '0%, 100%': { opacity: '0.4', transform: 'scale(1)' },
+          '50%': { opacity: '1', transform: 'scale(1.12)' },
         },
       },
     },

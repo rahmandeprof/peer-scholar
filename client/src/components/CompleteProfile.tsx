@@ -11,6 +11,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { BorderSpinner } from './Skeleton';
+import { LogoPulse } from './LogoPulse';
 import { FeedbackModal } from './FeedbackModal';
 
 interface SchoolData {
@@ -188,7 +189,7 @@ export default function CompleteProfile() {
   if (isLoading || !user || isProfileComplete) {
     return (
       <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950'>
-        <BorderSpinner size='lg' className='text-primary-600' />
+        <LogoPulse size={48} />
       </div>
     );
   }

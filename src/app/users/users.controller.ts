@@ -12,6 +12,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { SkipThrottle } from '@nestjs/throttler';
 
 import { RolesGuard } from '@/app/auth/guards/roles.guard';
 
@@ -29,6 +30,7 @@ import { Paginate, PaginateQuery } from 'nestjs-paginate';
 
 @Controller('users')
 @UseGuards(AuthGuard('jwt'))
+@SkipThrottle()
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 

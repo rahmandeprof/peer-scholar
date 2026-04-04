@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { BorderSpinner } from './Skeleton';
+import { LogoPulse } from './LogoPulse';
 import api from '../lib/api';
 
 interface Contest {
@@ -166,7 +166,7 @@ export function ContestDashboard() {
   if (loading) {
     return (
       <div className='flex items-center justify-center p-12 min-h-[50vh]'>
-        <BorderSpinner size='lg' />
+        <LogoPulse size={48} />
       </div>
     );
   }
