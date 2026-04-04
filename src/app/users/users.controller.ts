@@ -30,7 +30,7 @@ import { Paginate, PaginateQuery } from 'nestjs-paginate';
 
 @Controller('users')
 @UseGuards(AuthGuard('jwt'))
-@SkipThrottle()
+@SkipThrottle({ default: true })
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 

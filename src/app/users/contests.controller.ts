@@ -25,7 +25,7 @@ import { Request } from 'express';
 @ApiBearerAuth()
 @Controller('contests')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
-@SkipThrottle()
+@SkipThrottle({ default: true })
 export class ContestsController {
   constructor(private readonly contestsService: ContestsService) {}
 
