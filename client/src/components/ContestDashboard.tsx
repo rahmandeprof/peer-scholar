@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Trophy,
   Copy,
@@ -44,6 +44,7 @@ export function ContestDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState<string>('');
+  const hasLoadedData = useRef(false);
 
   const fetchDashboardData = useCallback(async () => {
     try {
@@ -59,6 +60,7 @@ export function ContestDashboard() {
 
         setMyStats(statsRes.data);
         setLeaderboard(boardRes.data || []);
+        hasLoadedData.current = true;
       }
 
       // Clear any previous error on successful fetch
@@ -73,7 +75,7 @@ export function ContestDashboard() {
       // If user already sees the dashboard, don't nuke it with an error screen
       // just because a background poll failed.
       setError((prev) => {
-        if (!contest && !myStats) {
+        if (!hasLoadedData.current) {
           return 'Could not load contest data. Please try again later.';
         }
         return prev; // keep existing state (null) — dashboard stays visible
@@ -81,7 +83,7 @@ export function ContestDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [contest, myStats]);
+  }, []);
 
   useEffect(() => {
     fetchDashboardData();
