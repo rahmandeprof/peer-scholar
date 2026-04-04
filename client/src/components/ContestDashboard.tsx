@@ -11,6 +11,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { LogoPulse } from './LogoPulse';
+import MarkdownContent from './MarkdownContent';
 import api from '../lib/api';
 
 interface Contest {
@@ -94,11 +95,25 @@ export function ContestDashboard() {
 
   // Handle Countdown Timer
   useEffect(() => {
-    if (!contest?.endDate) return;
+    if (!contest?.endDate || !contest?.startDate) return;
 
     const timer = setInterval(() => {
       const now = new Date().getTime();
+      const start = new Date(contest.startDate).getTime();
       const end = new Date(contest.endDate).getTime();
+
+      if (now < start) {
+        const distance = start - now;
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor(
+          (distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+        );
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        setTimeLeft(`Starts in ${days}d ${hours}h ${minutes}m ${seconds}s`);
+        return;
+      }
+
       const distance = end - now;
 
       if (distance < 0) {
@@ -118,7 +133,7 @@ export function ContestDashboard() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [contest?.endDate]);
+  }, [contest?.startDate, contest?.endDate]);
 
   // Handle Referrals tracking event analytics if standard mixpanel/amplitude isn't available
   const logAnalytics = (event: string) => {
@@ -381,59 +396,65 @@ export function ContestDashboard() {
             <div className='p-5 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2 bg-gray-50 dark:bg-gray-900'>
               <Info className='w-5 h-5 text-purple-600 dark:text-purple-400' />
               <h3 className='font-bold text-gray-900 dark:text-white'>
-                How to Qualify
+                {contest.rules ? 'Contest Rules' : 'How to Qualify'}
               </h3>
             </div>
-            <div className='p-6 space-y-4'>
-              <div className='flex gap-3'>
-                <div className='flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold'>
-                  1
+            {contest.rules ? (
+              <div className='p-6'>
+                <MarkdownContent content={contest.rules} />
+              </div>
+            ) : (
+              <div className='p-6 space-y-4'>
+                <div className='flex gap-3'>
+                  <div className='flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold'>
+                    1
+                  </div>
+                  <div>
+                    <h4 className='font-semibold text-gray-900 dark:text-white'>
+                      Share your link
+                    </h4>
+                    <p className='text-sm text-gray-500 dark:text-gray-400'>
+                      Friends must sign up using your unique referral link.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className='font-semibold text-gray-900 dark:text-white'>
-                    Share your link
-                  </h4>
-                  <p className='text-sm text-gray-500 dark:text-gray-400'>
-                    Friends must sign up using your unique referral link.
+                <div className='flex gap-3'>
+                  <div className='flex-shrink-0 w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold'>
+                    2
+                  </div>
+                  <div>
+                    <h4 className='font-semibold text-gray-900 dark:text-white'>
+                      Verify Email
+                    </h4>
+                    <p className='text-sm text-gray-500 dark:text-gray-400'>
+                      Your friend must verify their email address and complete
+                      onboarding.
+                    </p>
+                  </div>
+                </div>
+                <div className='flex gap-3'>
+                  <div className='flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center text-green-600 dark:text-green-400 font-bold'>
+                    3
+                  </div>
+                  <div>
+                    <h4 className='font-semibold text-gray-900 dark:text-white'>
+                      Meaningful Action
+                    </h4>
+                    <p className='text-sm text-gray-500 dark:text-gray-400'>
+                      Your friend must complete an anti-idle protected study
+                      session.
+                    </p>
+                  </div>
+                </div>
+                <div className='mt-6 pt-4 border-t border-gray-100 dark:border-gray-700'>
+                  <p className='text-xs text-gray-400 italic'>
+                    Fraudulent accounts (self-referrals, spam emails) will be
+                    automatically disqualified and may result in account
+                    suspension.
                   </p>
                 </div>
               </div>
-              <div className='flex gap-3'>
-                <div className='flex-shrink-0 w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold'>
-                  2
-                </div>
-                <div>
-                  <h4 className='font-semibold text-gray-900 dark:text-white'>
-                    Verify Email
-                  </h4>
-                  <p className='text-sm text-gray-500 dark:text-gray-400'>
-                    Your friend must verify their email address and complete
-                    onboarding.
-                  </p>
-                </div>
-              </div>
-              <div className='flex gap-3'>
-                <div className='flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center text-green-600 dark:text-green-400 font-bold'>
-                  3
-                </div>
-                <div>
-                  <h4 className='font-semibold text-gray-900 dark:text-white'>
-                    Meaningful Action
-                  </h4>
-                  <p className='text-sm text-gray-500 dark:text-gray-400'>
-                    Your friend must complete an anti-idle protected study
-                    session.
-                  </p>
-                </div>
-              </div>
-              <div className='mt-6 pt-4 border-t border-gray-100 dark:border-gray-700'>
-                <p className='text-xs text-gray-400 italic'>
-                  Fraudulent accounts (self-referrals, spam emails) will be
-                  automatically disqualified and may result in account
-                  suspension.
-                </p>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Prizes Card */}

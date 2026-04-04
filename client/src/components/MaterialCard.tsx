@@ -91,6 +91,34 @@ export const MaterialCard = memo(function MaterialCard({
   const menuRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Auto-scroll logic for long titles
+  const titleContainerRef = useRef<HTMLDivElement>(null);
+  const titleTextRef = useRef<HTMLHeadingElement>(null);
+  const [scrollAmount, setScrollAmount] = useState(0);
+
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (titleContainerRef.current && titleTextRef.current) {
+        const containerW = titleContainerRef.current.clientWidth;
+        const textW = titleTextRef.current.scrollWidth;
+        if (textW > containerW) {
+          // Add a buffer so it scrolls slightly past the last character
+          setScrollAmount(textW - containerW + 16);
+        } else {
+          setScrollAmount(0);
+        }
+      }
+    };
+
+    // Delay slightly to ensure fonts have loaded and DOM is fully painted
+    const timer = setTimeout(checkOverflow, 100);
+    window.addEventListener('resize', checkOverflow);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', checkOverflow);
+    };
+  }, [material.title]);
+
   // Custom click-outside handler that works with portal
   useEffect(() => {
     if (!menuOpen) return;
@@ -170,9 +198,20 @@ export const MaterialCard = memo(function MaterialCard({
 
         <div className='p-6 flex-grow'>
           <div className='flex items-start justify-between gap-2 mb-2'>
-            <div className='flex-1 min-w-0'>
+            <div
+              className='flex-1 min-w-0 overflow-hidden'
+              ref={titleContainerRef}
+            >
               <h3
-                className='text-lg font-bold text-gray-900 dark:text-gray-100 line-clamp-2 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors break-words'
+                ref={titleTextRef}
+                className={`text-lg font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap overflow-visible group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors ${scrollAmount > 0 ? 'animate-auto-scroll' : ''}`}
+                style={
+                  scrollAmount > 0
+                    ? ({
+                        '--scroll-amount': `-${scrollAmount}px`,
+                      } as React.CSSProperties)
+                    : {}
+                }
                 title={material.title}
               >
                 {material.title}

@@ -267,6 +267,26 @@
     transform: scale(0.98);
   }
 
+  /* Auto scroll effect for overflowing text */
+  .animate-auto-scroll {
+    animation: autoScroll 6s linear infinite alternate;
+  }
+
+  .animate-auto-scroll:hover {
+    animation-play-state: paused;
+  }
+
+  @keyframes autoScroll {
+    0%,
+    15% {
+      transform: translateX(0);
+    }
+    85%,
+    100% {
+      transform: translateX(var(--scroll-amount, 0));
+    }
+  }
+
   /* Reduced motion support for accessibility */
   @media (prefers-reduced-motion: reduce) {
     .animate-spin {

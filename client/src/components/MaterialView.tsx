@@ -109,6 +109,32 @@ export const MaterialView = () => {
   const [averageRating, setAverageRating] = useState(0);
   const [isFavorited, setIsFavorited] = useState(false);
 
+  // Auto-scroll logic for header title
+  const titleContainerRef = useRef<HTMLDivElement>(null);
+  const titleTextRef = useRef<HTMLHeadingElement>(null);
+  const [scrollAmount, setScrollAmount] = useState(0);
+
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (titleContainerRef.current && titleTextRef.current) {
+        const containerW = titleContainerRef.current.clientWidth;
+        const textW = titleTextRef.current.scrollWidth;
+        if (textW > containerW) {
+          setScrollAmount(textW - containerW + 16);
+        } else {
+          setScrollAmount(0);
+        }
+      }
+    };
+
+    const timer = setTimeout(checkOverflow, 100);
+    window.addEventListener('resize', checkOverflow);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', checkOverflow);
+    };
+  }, [material?.title]);
+
   const [userRating, setUserRating] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
@@ -429,9 +455,24 @@ export const MaterialView = () => {
               </button>
               <div className='min-w-0 flex-1 overflow-hidden'>
                 <h1 className='text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2 overflow-hidden'>
-                  <span className='truncate md:whitespace-normal'>
-                    {material.title}
-                  </span>
+                  <div
+                    className='flex-1 min-w-0 overflow-hidden'
+                    ref={titleContainerRef}
+                  >
+                    <span
+                      ref={titleTextRef}
+                      className={`block whitespace-nowrap overflow-visible ${scrollAmount > 0 ? 'animate-auto-scroll' : ''}`}
+                      style={
+                        scrollAmount > 0
+                          ? ({
+                              '--scroll-amount': `-${scrollAmount}px`,
+                            } as React.CSSProperties)
+                          : {}
+                      }
+                    >
+                      {material.title}
+                    </span>
+                  </div>
                   {/* Desktop Rating */}
                   <div className='hidden md:flex items-center shrink-0'>
                     <StarRating rating={averageRating} size={12} readonly />
@@ -506,11 +547,16 @@ export const MaterialView = () => {
                           touch.clientY.toString();
                       }}
                       onTouchMove={(e) => {
+                        // If user has scrolled down the list, allow native scroll and ignore drag-to-dismiss behavior
+                        if (e.currentTarget.scrollTop > 0) return;
+
                         const touch = e.touches[0];
                         const startY = parseFloat(
                           e.currentTarget.dataset.startY || '0',
                         );
                         const deltaY = touch.clientY - startY;
+
+                        // Prevent dragging up (negative delta) which would detach the sheet
                         if (deltaY > 0) {
                           e.currentTarget.style.transform = `translateY(${deltaY}px)`;
                           e.currentTarget.dataset.currentY =
@@ -525,7 +571,9 @@ export const MaterialView = () => {
                           e.currentTarget.dataset.currentY || '0',
                         );
                         const deltaY = currentY - startY;
-                        if (deltaY > 100) {
+
+                        // Only dismiss if dragged down far enough AND we were at the top
+                        if (e.currentTarget.scrollTop <= 0 && deltaY > 100) {
                           setMenuOpen(false);
                         }
                         e.currentTarget.style.transform = '';

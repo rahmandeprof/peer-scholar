@@ -341,7 +341,7 @@ export function NewContestModal({
                   }
                   placeholder='1. Only verified referrals count...'
                   rows={3}
-                  className='w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 font-mono text-sm'
+                  className='w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 font-mono text-sm overscroll-contain'
                 />
               </div>
 

@@ -131,7 +131,6 @@ export class ContestsService {
         this.contestRepo
           .createQueryBuilder('c')
           .where('c.isActive = true')
-          .andWhere('c.startDate <= :now', { now })
           .andWhere('c.endDate >= :now', { now })
           .getOne(),
       60,
